@@ -1,0 +1,210 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{9D6AFDE5-94FF-27AA-A8B6-C1D806FEF661}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset">
+      <UniqueIdentifier>{EB8AF895-2FFB-D282-7824-2D4A4201FEC9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core">
+      <UniqueIdentifier>{69181993-7BE5-5F4E-D2AF-12B3D6121888}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Input">
+      <UniqueIdentifier>{EC03ECB8-0634-F655-1AB7-2B324CD2104B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Math">
+      <UniqueIdentifier>{D9571676-5DEA-9887-534B-2076EFA9029C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Renderer">
+      <UniqueIdentifier>{5A3B1E16-94DE-B040-6A45-DE8D4024802A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene">
+      <UniqueIdentifier>{4554135B-D92A-E093-470C-88812BEF544B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Component">
+      <UniqueIdentifier>{62473C6A-A8F3-51D3-120A-26DE9FD82BE6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\GameObject">
+      <UniqueIdentifier>{9E0CE9BD-0812-43B3-6C9E-5706B5A7DAC4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ThirdParty">
+      <UniqueIdentifier>{01FE3D09-4C70-70A5-CDC2-B5D8EB89A47F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ThirdParty\ufbx">
+      <UniqueIdentifier>{3FBB176D-7420-B98A-0C1C-6E7EF8617359}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Asset\FbxImporter.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\ResourceManager.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Application.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Time.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Window.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input\InputManager.h">
+      <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Color.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Geometry.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Intersection.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\IntVector.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Math.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\MathUtility.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Matrix4.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Quaternion.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Random.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Rotator.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Transform.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Vector2.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Vector3.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Vector4.h">
+      <Filter>Source\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Mesh.h">
+      <Filter>Source\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\CameraComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\Component.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\MonoBehaviour.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\TransformComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject\GameObject.h">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject\GameObjectHandle.h">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject\GameObjectManager.h">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Scene.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\SceneManager.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
+      <Filter>Source\ThirdParty\ufbx</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Asset\FbxImporter.cpp">
+      <Filter>Source\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\ResourceManager.cpp">
+      <Filter>Source\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Application.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Time.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Window.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input\InputManager.cpp">
+      <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Color.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Geometry.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Intersection.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Matrix4.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Quaternion.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Random.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Rotator.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math\Transform.cpp">
+      <Filter>Source\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\CameraComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\Component.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\TransformComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\GameObject\GameObject.cpp">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Scene.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\SceneManager.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
+      <Filter>Source\ThirdParty\ufbx</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,26 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/Docs/">
+    <File Path="Docs/MathConventions.md" />
+    <File Path="Docs/Roadmap.md" />
+  </Folder>
+  <Folder Name="/Engine/">
+    <Project Path="Engine/Engine.vcxproj" Id="025f038a-1a30-409c-be0a-f8b665a329a2" />
+  </Folder>
+  <Folder Name="/Engine/DX11Renderer/">
+    <Project Path="Engine/DX11Renderer/DX11Renderer.vcxproj" Id="716e4d91-0c4d-4b04-9098-c511ce3711d8" />
+  </Folder>
+  <Folder Name="/Game/">
+    <Project Path="Game/Game.vcxproj" Id="9888319e-1ec6-47ab-903e-fa649afa53b8" />
+  </Folder>
+  <Folder Name="/Tools/">
+    <File Path="Tools/GenerateFilters.ps1" />
+    <File Path="Tools/NewScript.ps1" />
+    <File Path="Tools/NewScript 사용법.md" />
+  </Folder>
+</Solution>
