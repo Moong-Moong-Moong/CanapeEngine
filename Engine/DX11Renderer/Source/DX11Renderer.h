@@ -1,5 +1,9 @@
 #pragma once
 
+#include "MeshHandle.h"
+#include "MeshAssetId.h"
+#include "RenderFrame.h"
+
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -15,8 +19,8 @@ namespace Canape
             float Position[3];
         };
 
-        using MeshHandle = uint32_t;
-        static constexpr MeshHandle InvalidMesh = 0;
+        using MeshHandle = Canape::MeshHandle;
+        static constexpr MeshHandle InvalidMesh{};
 
         DX11Renderer();
         ~DX11Renderer();
@@ -28,11 +32,16 @@ namespace Canape
         void Shutdown();
 
         MeshHandle CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
+        MeshHandle RegisterMesh(MeshAssetId assetId, std::span<const Vertex> vertices, std::span<const uint32_t> indices);
+        MeshHandle FindMesh(MeshAssetId assetId) const;
         void DestroyMesh(MeshHandle mesh);
+        bool IsMeshValid(MeshHandle mesh) const;
 
         void SetCamera(const float* view, const float* projection);
 
         bool BeginFrame();
+        // Consume synchronously between BeginFrame and EndFrame.
+        void DrawFrame(const RenderFrame& frame);
         void DrawMesh(MeshHandle mesh, const float* world);
         void EndFrame();
 

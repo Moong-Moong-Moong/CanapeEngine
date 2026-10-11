@@ -23,6 +23,9 @@ namespace Canape
 {
     namespace
     {
+        // Match the engine's row-major matrix storage when uploading constants.
+        constexpr UINT kShaderCompileFlags = D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+
         constexpr char kVertexShader[] = R"(
             cbuffer ObjectBuffer : register(b0)
             {
@@ -99,8 +102,8 @@ namespace Canape
         DirectX::XMFLOAT4X4 View{};
         DirectX::XMFLOAT4X4 Projection{};
 
-        std::unordered_map<MeshHandle, GpuMesh> Meshes;
-        MeshHandle NextMeshHandle = 1;
+        std::unordered_map<uint64_t, GpuMesh> Meshes;
+        std::unordered_map<uint64_t, MeshHandle> RegisteredMeshes;
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
@@ -197,7 +200,7 @@ namespace Canape
 
             HRESULT result = D3DCompile(
                 kVertexShader, sizeof(kVertexShader) - 1, nullptr, nullptr, nullptr,
-                "main", "vs_5_0", 0, 0, &vertexBytecode, &errors);
+                "main", "vs_5_0", kShaderCompileFlags, 0, &vertexBytecode, &errors);
             if (FAILED(result))
             {
                 LastError = errors
@@ -209,7 +212,7 @@ namespace Canape
             errors.Reset();
             result = D3DCompile(
                 kPixelShader, sizeof(kPixelShader) - 1, nullptr, nullptr, nullptr,
-                "main", "ps_5_0", 0, 0, &pixelBytecode, &errors);
+                "main", "ps_5_0", kShaderCompileFlags, 0, &pixelBytecode, &errors);
             if (FAILED(result))
             {
                 LastError = errors
@@ -337,12 +340,13 @@ namespace Canape
         std::span<const Vertex> vertices,
         std::span<const uint32_t> indices)
     {
-        if (!m_Impl || !m_Impl->Device)
+        if (!m_Impl)
         {
-            if (m_Impl)
-            {
-                m_Impl->LastError = "Initialize must be called before CreateMesh";
-            }
+            m_Impl = std::make_unique<Impl>();
+        }
+        if (!m_Impl->Device)
+        {
+            m_Impl->LastError = "Initialize must be called before CreateMesh";
             return InvalidMesh;
         }
         if (vertices.empty() || indices.empty())
@@ -380,18 +384,76 @@ namespace Canape
 
         mesh.IndexCount = static_cast<uint32_t>(indices.size());
 
-        const MeshHandle handle = m_Impl->NextMeshHandle++;
-        m_Impl->Meshes.emplace(handle, std::move(mesh));
+        // Process-wide, single-threaded allocation: never reuse handles after destroy/reinitialize.
+        static uint64_t nextHandle = 1;
+        if (nextHandle == 0)
+        {
+            m_Impl->LastError = "Mesh handle space exhausted";
+            return InvalidMesh;
+        }
+        const MeshHandle handle{ nextHandle++ };
+        m_Impl->Meshes.emplace(handle.Value, std::move(mesh));
         m_Impl->LastError.clear();
         return handle;
+    }
+
+    DX11Renderer::MeshHandle DX11Renderer::RegisterMesh(
+        MeshAssetId assetId, std::span<const Vertex> vertices, std::span<const uint32_t> indices)
+    {
+        if (!assetId.IsValid())
+        {
+            if (!m_Impl)
+            {
+                m_Impl = std::make_unique<Impl>();
+            }
+            m_Impl->LastError = "RegisterMesh requires a valid MeshAssetId";
+            return InvalidMesh;
+        }
+
+        const MeshHandle existing = FindMesh(assetId);
+        if (existing.IsValid())
+        {
+            m_Impl->LastError.clear();
+            return existing;
+        }
+
+        // Discard a stale entry before retrying; failed uploads must not leave a registration.
+        if (m_Impl)
+        {
+            m_Impl->RegisteredMeshes.erase(assetId.Value);
+        }
+        const MeshHandle handle = CreateMesh(vertices, indices);
+        if (handle.IsValid())
+        {
+            m_Impl->RegisteredMeshes.emplace(assetId.Value, handle);
+        }
+        return handle;
+    }
+
+    DX11Renderer::MeshHandle DX11Renderer::FindMesh(MeshAssetId assetId) const
+    {
+        if (!m_Impl || !assetId.IsValid())
+        {
+            return InvalidMesh;
+        }
+        const auto found = m_Impl->RegisteredMeshes.find(assetId.Value);
+        return found != m_Impl->RegisteredMeshes.end() && IsMeshValid(found->second)
+            ? found->second : InvalidMesh;
     }
 
     void DX11Renderer::DestroyMesh(MeshHandle mesh)
     {
         if (m_Impl)
         {
-            m_Impl->Meshes.erase(mesh);
+            // Explicit removal is infrequent; scanning avoids a second registration index.
+            std::erase_if(m_Impl->RegisteredMeshes, [mesh](const auto& entry) { return entry.second == mesh; });
+            m_Impl->Meshes.erase(mesh.Value);
         }
+    }
+
+    bool DX11Renderer::IsMeshValid(MeshHandle mesh) const
+    {
+        return m_Impl && mesh.IsValid() && m_Impl->Meshes.contains(mesh.Value);
     }
 
     void DX11Renderer::SetCamera(const float* view, const float* projection)
@@ -453,6 +515,24 @@ namespace Canape
         return true;
     }
 
+    void DX11Renderer::DrawFrame(const RenderFrame& frame)
+    {
+        if (!m_Impl || !m_Impl->FrameActive)
+        {
+            return;
+        }
+
+        SetCamera(frame.camera.view.Data(), frame.camera.projection.Data());
+        for (const RenderItem& item : frame.items)
+        {
+            if (IsMeshValid(item.mesh))
+            {
+                // The whole mesh is submesh 0; material/shadow fields are reserved for later.
+                DrawMesh(item.mesh, item.world.Data());
+            }
+        }
+    }
+
     void DX11Renderer::DrawMesh(MeshHandle mesh, const float* world)
     {
         if (!m_Impl || !m_Impl->FrameActive)
@@ -460,7 +540,7 @@ namespace Canape
             return;
         }
 
-        const auto found = m_Impl->Meshes.find(mesh);
+        const auto found = m_Impl->Meshes.find(mesh.Value);
         if (found == m_Impl->Meshes.end())
         {
             return;
@@ -473,8 +553,8 @@ namespace Canape
         const XMMATRIX projectionMatrix = XMLoadFloat4x4(&m_Impl->Projection);
 
         Impl::ObjectConstants constants{};
-        XMStoreFloat4x4(&constants.WorldViewProjection, XMMatrixTranspose(worldMatrix * viewMatrix * projectionMatrix));
-        XMStoreFloat4x4(&constants.World, XMMatrixTranspose(worldMatrix));
+        XMStoreFloat4x4(&constants.WorldViewProjection, worldMatrix * viewMatrix * projectionMatrix);
+        XMStoreFloat4x4(&constants.World, worldMatrix);
 
         ID3D11DeviceContext* context = m_Impl->Context.Get();
         context->UpdateSubresource(m_Impl->ObjectBuffer.Get(), 0, nullptr, &constants, 0, 0);

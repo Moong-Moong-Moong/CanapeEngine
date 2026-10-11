@@ -13,7 +13,7 @@
     <Filter Include="Source\Input">
       <UniqueIdentifier>{EC03ECB8-0634-F655-1AB7-2B324CD2104B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Math">
+    <Filter Include="Common\Math">
       <UniqueIdentifier>{D9571676-5DEA-9887-534B-2076EFA9029C}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Renderer">
@@ -57,47 +57,47 @@
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Color.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Color.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Geometry.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Geometry.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Intersection.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Intersection.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\IntVector.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\IntVector.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Math.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Math.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\MathUtility.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\MathUtility.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Matrix4.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Matrix4.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Quaternion.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Quaternion.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Random.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Random.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Rotator.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Rotator.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Transform.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Transform.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Vector2.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Vector2.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Vector3.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Vector3.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Vector4.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="..\Common\Math\Vector4.h">
+      <Filter>Common\Math</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Mesh.h">
       <Filter>Source\Renderer</Filter>
@@ -155,29 +155,29 @@
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Color.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Color.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Geometry.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Geometry.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Intersection.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Intersection.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Matrix4.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Matrix4.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Quaternion.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Quaternion.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Random.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Random.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Rotator.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Rotator.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Transform.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="..\Common\Math\Transform.cpp">
+      <Filter>Common\Math</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp">
       <Filter>Source\Scene\Component</Filter>

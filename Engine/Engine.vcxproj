@@ -41,7 +41,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(ProjectDir)DX11Renderer\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;$(ProjectDir)DX11Renderer\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -64,20 +64,20 @@
     <ClInclude Include="Source\Asset\FbxImporter.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
-    <ClInclude Include="Source\Math\Color.h" />
-    <ClInclude Include="Source\Math\Geometry.h" />
-    <ClInclude Include="Source\Math\Intersection.h" />
-    <ClInclude Include="Source\Math\IntVector.h" />
-    <ClInclude Include="Source\Math\Math.h" />
-    <ClInclude Include="Source\Math\MathUtility.h" />
-    <ClInclude Include="Source\Math\Matrix4.h" />
-    <ClInclude Include="Source\Math\Quaternion.h" />
-    <ClInclude Include="Source\Math\Random.h" />
-    <ClInclude Include="Source\Math\Rotator.h" />
-    <ClInclude Include="Source\Math\Transform.h" />
-    <ClInclude Include="Source\Math\Vector2.h" />
-    <ClInclude Include="Source\Math\Vector3.h" />
-    <ClInclude Include="Source\Math\Vector4.h" />
+    <ClInclude Include="..\Common\Math\Color.h" />
+    <ClInclude Include="..\Common\Math\Geometry.h" />
+    <ClInclude Include="..\Common\Math\Intersection.h" />
+    <ClInclude Include="..\Common\Math\IntVector.h" />
+    <ClInclude Include="..\Common\Math\Math.h" />
+    <ClInclude Include="..\Common\Math\MathUtility.h" />
+    <ClInclude Include="..\Common\Math\Matrix4.h" />
+    <ClInclude Include="..\Common\Math\Quaternion.h" />
+    <ClInclude Include="..\Common\Math\Random.h" />
+    <ClInclude Include="..\Common\Math\Rotator.h" />
+    <ClInclude Include="..\Common\Math\Transform.h" />
+    <ClInclude Include="..\Common\Math\Vector2.h" />
+    <ClInclude Include="..\Common\Math\Vector3.h" />
+    <ClInclude Include="..\Common\Math\Vector4.h" />
     <ClInclude Include="Source\Scene\Component\CameraComponent.h" />
     <ClInclude Include="Source\Scene\Component\Component.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObject.h" />
@@ -98,14 +98,14 @@
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
-    <ClCompile Include="Source\Math\Color.cpp" />
-    <ClCompile Include="Source\Math\Geometry.cpp" />
-    <ClCompile Include="Source\Math\Intersection.cpp" />
-    <ClCompile Include="Source\Math\Matrix4.cpp" />
-    <ClCompile Include="Source\Math\Quaternion.cpp" />
-    <ClCompile Include="Source\Math\Random.cpp" />
-    <ClCompile Include="Source\Math\Rotator.cpp" />
-    <ClCompile Include="Source\Math\Transform.cpp" />
+    <ClCompile Include="..\Common\Math\Color.cpp" />
+    <ClCompile Include="..\Common\Math\Geometry.cpp" />
+    <ClCompile Include="..\Common\Math\Intersection.cpp" />
+    <ClCompile Include="..\Common\Math\Matrix4.cpp" />
+    <ClCompile Include="..\Common\Math\Quaternion.cpp" />
+    <ClCompile Include="..\Common\Math\Random.cpp" />
+    <ClCompile Include="..\Common\Math\Rotator.cpp" />
+    <ClCompile Include="..\Common\Math\Transform.cpp" />
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
     <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp" />

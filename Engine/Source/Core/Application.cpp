@@ -80,6 +80,7 @@ namespace Canape
 
         Scene* scene = m_SceneManager->GetActiveScene();
         CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
+        RenderFrame frame;
 
         if (!camera || !camera->IsActiveAndEnabled())
         {
@@ -94,11 +95,11 @@ namespace Canape
             m_WarnedNoCamera = false;
 
             const float aspectRatio = static_cast<float>(m_Renderer->GetWidth()) / static_cast<float>(m_Renderer->GetHeight());
-            const Matrix4 view = camera->GetViewMatrix();
-            const Matrix4 projection = camera->GetProjectionMatrix(aspectRatio);
-            m_Renderer->SetCamera(view.Data(), projection.Data());
+            frame.camera.view = camera->GetViewMatrix();
+            frame.camera.projection = camera->GetProjectionMatrix(aspectRatio);
+            frame.camera.cameraPosition = camera->GetTransform()->GetPosition();
 
-            scene->ForEachGameObject([this](GameObject* gameObject)
+            scene->ForEachGameObject([this, &frame](GameObject* gameObject)
             {
                 if (gameObject->IsPendingDestroy() || !gameObject->IsActiveInHierarchy())
                 {
@@ -113,7 +114,9 @@ namespace Canape
                         continue;
                     }
 
-                    if (mesh->GetGpuHandle() == DX11Renderer::InvalidMesh)
+                    const MeshAssetId assetId = mesh->GetAssetId();
+                    DX11Renderer::MeshHandle handle = m_Renderer->FindMesh(assetId);
+                    if (!handle.IsValid())
                     {
                         std::vector<DX11Renderer::Vertex> vertices;
                         vertices.reserve(mesh->GetVertexCount());
@@ -121,15 +124,23 @@ namespace Canape
                         {
                             vertices.push_back({ { position.X, position.Y, position.Z } });
                         }
-                        mesh->SetGpuHandle(m_Renderer->CreateMesh(vertices, mesh->GetIndices()));
+                        handle = m_Renderer->RegisterMesh(assetId, vertices, mesh->GetIndices());
                     }
 
-                    const Matrix4 world = gameObject->GetTransform()->GetLocalToWorldMatrix();
-                    m_Renderer->DrawMesh(mesh->GetGpuHandle(), world.Data());
+                    if (!handle.IsValid())
+                    {
+                        continue;
+                    }
+
+                    RenderItem item;
+                    item.mesh = handle;
+                    item.world = gameObject->GetTransform()->GetLocalToWorldMatrix();
+                    frame.items.push_back(item);
                 }
             });
         }
 
+        m_Renderer->DrawFrame(frame);
         m_Renderer->EndFrame();
     }
 
