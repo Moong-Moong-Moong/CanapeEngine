@@ -92,5 +92,16 @@ exit /b 0</Command>
       <Project>{025f038a-1a30-409c-be0a-f8b665a329a2}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shaders\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shaders\**\*.hlsli" />
+    <None Include="@(RendererShader)">
+      <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyRendererShaders" AfterTargets="Build">
+    <Copy SourceFiles="@(RendererShader)"
+          DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

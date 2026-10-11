@@ -4,12 +4,31 @@
     <Filter Include="Source">
       <UniqueIdentifier>{C03BBF4F-45B9-FAAF-09CD-1359DB769F58}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\MeshData.h">
+      <Filter>Source</Filter>
+    </ClInclude>
     <ClInclude Include="Source\MaterialHandle.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\MaterialData.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TextureData.h">
+      <Filter>Source</Filter>
+    </ClInclude>
     <ClInclude Include="Source\RenderFrame.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PipelineState.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GPUResourceCache.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ShaderCompiler.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\DX11Renderer.h">
@@ -17,8 +36,25 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\PipelineState.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GPUResourceCache.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ShaderCompiler.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Source\DX11Renderer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Mesh.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Common\Constants.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

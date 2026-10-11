@@ -102,6 +102,12 @@
     <ClInclude Include="Source\Renderer\Mesh.h">
       <Filter>Source\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\MaterialAsset.h">
+      <Filter>Source\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\TextureAsset.h">
+      <Filter>Source\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scene\Component\CameraComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>

@@ -3,6 +3,7 @@
 #include "ThirdParty/ufbx/ufbx.h"
 
 #include <vector>
+#include <cmath>
 
 namespace Canape
 {
@@ -36,6 +37,7 @@ namespace Canape
 		options.target_unit_meters = 1.0f;
 		options.space_conversion = UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY;
 		options.handedness_conversion_axis = UFBX_MIRROR_AXIS_X;
+		options.generate_missing_normals = true;
 
 		ufbx_error error{};
 		ScenePtr scene(ufbx_load_file(path.c_str(), &options, &error));
@@ -45,9 +47,15 @@ namespace Canape
 			return nullptr;
 		}
 
-		std::vector<Vector3> positions;
+		std::vector<StaticVertex> vertices;
 		std::vector<uint32_t> indices;
+		std::vector<SubMesh> submeshes;
 		std::vector<uint32_t> triangleCorners;
+		if (scene->materials.count > UINT32_MAX)
+		{
+			SetError(outError, path + ": too many material slots");
+			return nullptr;
+		}
 
 		for (const ufbx_node* node : scene->nodes)
 		{
@@ -58,28 +66,64 @@ namespace Canape
 			}
 
 			triangleCorners.resize(mesh->max_face_triangles * 3);
+			const ufbx_matrix normalMatrix = ufbx_matrix_for_normals(&node->geometry_to_world);
 
-			for (const ufbx_face& face : mesh->faces)
+			for (const ufbx_mesh_part& part : mesh->material_parts)
 			{
-				const uint32_t triangleCount = ufbx_triangulate_face(triangleCorners.data(), triangleCorners.size(), mesh, face);
-
-				for (uint32_t i = 0; i < triangleCount * 3; ++i)
+				// Resolve the node's actual binding before flattening. A file-material index
+				// is a Mesh-local slot here; identical FBX materials share the same slot.
+				// The slot after the file's materials is reserved for unassigned/default material.
+				const ufbx_material* material = part.index < node->materials.count ? node->materials[part.index] : nullptr;
+				const uint32_t materialSlot = material ? material->typed_id : static_cast<uint32_t>(scene->materials.count);
+				const uint32_t startIndex = static_cast<uint32_t>(indices.size());
+				for (uint32_t faceIndex : part.face_indices)
 				{
-					const ufbx_vec3 local = ufbx_get_vertex_vec3(&mesh->vertex_position, triangleCorners[i]);
-					const ufbx_vec3 world = ufbx_transform_position(&node->geometry_to_world, local);
-
-					indices.push_back(static_cast<uint32_t>(positions.size()));
-					positions.push_back(ToVector3(world));
+					const uint32_t triangleCount = ufbx_triangulate_face(triangleCorners.data(), triangleCorners.size(), mesh, mesh->faces[faceIndex]);
+					if (uint64_t(vertices.size()) + uint64_t(triangleCount) * 3 > UINT32_MAX)
+					{
+						SetError(outError, path + ": too many vertices");
+						return nullptr;
+					}
+					for (uint32_t i = 0; i < triangleCount * 3; ++i)
+					{
+						const uint32_t corner = triangleCorners[i];
+						StaticVertex vertex;
+						vertex.Position = ToVector3(ufbx_transform_position(&node->geometry_to_world,
+							ufbx_get_vertex_vec3(&mesh->vertex_position, corner)));
+						if (mesh->vertex_normal.exists)
+						{
+							vertex.Normal = ToVector3(ufbx_vec3_normalize(ufbx_transform_direction(&normalMatrix,
+								ufbx_get_vertex_vec3(&mesh->vertex_normal, corner))));
+							if (!std::isfinite(vertex.Normal.X) || !std::isfinite(vertex.Normal.Y) || !std::isfinite(vertex.Normal.Z))
+								vertex.Normal = {};
+						}
+						if (mesh->vertex_uv.exists)
+						{
+							const ufbx_vec2 uv = ufbx_get_vertex_vec2(&mesh->vertex_uv, corner);
+							vertex.UV = { static_cast<float>(uv.x), static_cast<float>(uv.y) };
+						}
+						indices.push_back(static_cast<uint32_t>(vertices.size()));
+						vertices.push_back(vertex);
+					}
 				}
+				const uint32_t indexCount = static_cast<uint32_t>(indices.size()) - startIndex;
+				if (indexCount != 0)
+					submeshes.push_back({ startIndex, indexCount, 0, materialSlot });
 			}
 		}
 
-		if (positions.empty())
+		if (vertices.empty())
 		{
 			SetError(outError, path + ": no mesh data");
 			return nullptr;
 		}
 
-		return std::make_shared<Mesh>(std::move(positions), std::move(indices));
+		if (const char* validationError = ValidateMeshIndices(vertices.size(), indices, submeshes))
+		{
+			SetError(outError, path + ": " + validationError);
+			return nullptr;
+		}
+		if (outError) outError->clear();
+		return std::make_shared<Mesh>(std::move(vertices), std::move(indices), std::move(submeshes));
 	}
 }

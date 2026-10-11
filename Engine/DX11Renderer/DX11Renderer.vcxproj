@@ -58,13 +58,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\DX11Renderer.h" />
+    <ClInclude Include="Source\ShaderCompiler.h" />
+    <ClInclude Include="Source\GPUResourceCache.h" />
+    <ClInclude Include="Source\PipelineState.h" />
     <ClInclude Include="Source\MeshAssetId.h" />
     <ClInclude Include="Source\MeshHandle.h" />
+    <ClInclude Include="Source\MeshData.h" />
     <ClInclude Include="Source\MaterialHandle.h" />
+    <ClInclude Include="Source\MaterialData.h" />
+    <ClInclude Include="Source\TextureData.h" />
     <ClInclude Include="Source\RenderFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\DX11Renderer.cpp" />
+    <ClCompile Include="Source\ShaderCompiler.cpp" />
+    <ClCompile Include="Source\GPUResourceCache.cpp" />
+    <ClCompile Include="Source\PipelineState.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Mesh.hlsl" />
+    <None Include="Shaders\Common\Constants.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -4,7 +4,8 @@
 
 namespace Canape
 {
-    // Placeholder only. No material resources are registered yet; zero is invalid.
+    // Renderer registration reference, not a CPU asset ID. Zero is invalid;
+    // nonzero handles may become stale after explicit removal or renderer reset.
     struct MaterialHandle
     {
         uint64_t Value = 0;

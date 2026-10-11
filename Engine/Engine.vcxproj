@@ -89,6 +89,8 @@
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h" />
     <ClInclude Include="Source\Scene\Component\MonoBehaviour.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
+    <ClInclude Include="Source\Renderer\MaterialAsset.h" />
+    <ClInclude Include="Source\Renderer\TextureAsset.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
   </ItemGroup>
   <ItemGroup>

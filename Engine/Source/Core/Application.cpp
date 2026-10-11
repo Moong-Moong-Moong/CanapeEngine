@@ -118,13 +118,7 @@ namespace Canape
                     DX11Renderer::MeshHandle handle = m_Renderer->FindMesh(assetId);
                     if (!handle.IsValid())
                     {
-                        std::vector<DX11Renderer::Vertex> vertices;
-                        vertices.reserve(mesh->GetVertexCount());
-                        for (const Vector3& position : mesh->GetPositions())
-                        {
-                            vertices.push_back({ { position.X, position.Y, position.Z } });
-                        }
-                        handle = m_Renderer->RegisterMesh(assetId, vertices, mesh->GetIndices());
+                        handle = m_Renderer->RegisterMesh(assetId, mesh->GetVertices(), mesh->GetIndices(), mesh->GetSubMeshes());
                     }
 
                     if (!handle.IsValid())
@@ -135,7 +129,30 @@ namespace Canape
                     RenderItem item;
                     item.mesh = handle;
                     item.world = gameObject->GetTransform()->GetLocalToWorldMatrix();
-                    frame.items.push_back(item);
+                    for (uint32_t i = 0; i < mesh->GetSubMeshes().size(); ++i)
+                    {
+                        item.submeshIndex = i;
+                        item.material = {};
+                        if (const auto material = meshRenderer->GetMaterial(mesh->GetSubMeshes()[i].materialSlot))
+                        {
+                            item.material = m_Renderer->FindMaterial(material->GetAssetId());
+                            if (!item.material.IsValid())
+                            {
+                                TextureHandle textureHandle{};
+                                const auto& texture = material->GetBaseColorTexture();
+                                if (texture)
+                                {
+                                    textureHandle = m_Renderer->RegisterTexture(texture->GetAssetId(), texture->GetWidth(),
+                                        texture->GetHeight(), texture->GetFormat(), texture->GetPixels());
+                                }
+                                // Do not freeze a failed texture upload into the material snapshot.
+                                // Use default material this frame and retry registration next frame.
+                                if (!texture || textureHandle.IsValid())
+                                    item.material = m_Renderer->RegisterMaterial(material->GetAssetId(), material->GetDesc(), textureHandle);
+                            }
+                        }
+                        frame.items.push_back(item);
+                    }
                 }
             });
         }

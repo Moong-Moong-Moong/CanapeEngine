@@ -17,3 +17,5 @@
 #include "Scene/Component/MeshRendererComponent.h"
 #include "Scene/Component/MonoBehaviour.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/MaterialAsset.h"
+#include "Renderer/TextureAsset.h"
