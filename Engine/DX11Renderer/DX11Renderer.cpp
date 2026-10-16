@@ -1,17 +1,16 @@
-#include "DX11Renderer.h"
+#include "DX11Renderer/DX11Renderer.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 
 #include <d3d11.h>
-#include "PipelineState.h"
-#include "GPUResourceCache.h"
+#include "DX11Renderer/Pipeline/DX11PipelineState.h"
+#include "DX11Renderer/Resource/DX11ResourceCache.h"
 #include <DirectXMath.h>
 #include <wrl/client.h>
 
 #include <sstream>
-#include <unordered_map>
 #include <cmath>
 #include <algorithm>
 
@@ -52,12 +51,6 @@ namespace Canape
         static_assert(sizeof(MaterialConstants) == 32);
         static_assert(offsetof(MaterialConstants, Mode) == 16 && offsetof(MaterialConstants, AlphaCutoff) == 20);
 
-        struct MaterialEntry
-        {
-            MaterialDesc Desc;
-            TextureHandle BaseColorTexture;
-        };
-
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
@@ -67,16 +60,12 @@ namespace Canape
         DirectX::XMFLOAT4X4 View{};
         DirectX::XMFLOAT4X4 Projection{};
 
-        // Descriptor snapshots only. No per-material GPU resource is needed for BaseColor.
-        std::unordered_map<uint64_t, MaterialEntry> Materials;
-        std::unordered_map<uint64_t, MaterialHandle> RegisteredMaterials;
-
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
         // Reverse member destruction releases cached resources before Context and Device.
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
-        GPUResourceCache Resources;
-        PipelineState Pipelines;
+        DX11ResourceCache Resources;
+        DX11PipelineState Pipelines;
         ComPtr<IDXGISwapChain> SwapChain;
         ComPtr<ID3D11RenderTargetView> RenderTargetView;
         ComPtr<ID3D11Texture2D> DepthTexture;
@@ -102,7 +91,7 @@ namespace Canape
             return false;
         }
 
-        void BindPipeline(const PipelineSelection& pipeline)
+        void BindPipeline(const DX11PipelineSelection& pipeline)
         {
             Context->IASetInputLayout(pipeline.InputLayout);
             Context->VSSetShader(pipeline.VS, nullptr, 0);
@@ -335,69 +324,36 @@ namespace Canape
     MaterialHandle DX11Renderer::RegisterMaterial(MaterialAssetId assetId, const MaterialDesc& desc, TextureHandle baseColorTexture)
     {
         if (!m_Impl) m_Impl = std::make_unique<Impl>();
-        if (!assetId.IsValid() || !m_Impl->Device)
+        if (!m_Impl->Device)
         {
             m_Impl->LastError = "RegisterMaterial requires a valid asset ID and initialized renderer";
             return {};
         }
-        if (const MaterialHandle existing = FindMaterial(assetId); existing.IsValid())
-        {
-            m_Impl->LastError.clear();
-            return existing; // First registration wins until explicit removal/reset.
-        }
-        const Vector4& color = desc.baseColor;
-        if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
-        {
-            m_Impl->LastError = "RegisterMaterial requires a finite BaseColor";
-            return {};
-        }
-        if ((desc.alphaMode != AlphaMode::Opaque && desc.alphaMode != AlphaMode::Masked && desc.alphaMode != AlphaMode::Transparent)
-            || !std::isfinite(desc.alphaCutoff) || desc.alphaCutoff < 0.0f || desc.alphaCutoff > 1.0f)
-        {
-            m_Impl->LastError = "RegisterMaterial requires a supported AlphaMode and finite AlphaCutoff in [0, 1]";
-            return {};
-        }
-        static uint64_t nextHandle = 1; // Never reuse a removed/pre-reset handle during this process.
-        if (nextHandle == 0)
-        {
-            m_Impl->LastError = "Material handle space exhausted";
-            return {};
-        }
-        const MaterialHandle handle{ nextHandle++ };
-        m_Impl->RegisteredMaterials.erase(assetId.Value);
-        m_Impl->Materials.emplace(handle.Value, Impl::MaterialEntry{ desc, baseColorTexture });
-        m_Impl->RegisteredMaterials.emplace(assetId.Value, handle);
-        m_Impl->LastError.clear();
-        return handle;
+        return m_Impl->Resources.RegisterMaterial(assetId, desc, baseColorTexture, m_Impl->LastError);
     }
 
     MaterialHandle DX11Renderer::FindMaterial(MaterialAssetId assetId) const
     {
-        if (!m_Impl || !assetId.IsValid()) return {};
-        const auto found = m_Impl->RegisteredMaterials.find(assetId.Value);
-        return found != m_Impl->RegisteredMaterials.end() && IsMaterialValid(found->second) ? found->second : MaterialHandle{};
+        return m_Impl ? m_Impl->Resources.FindMaterial(assetId) : MaterialHandle{};
     }
 
     MaterialDesc DX11Renderer::GetMaterial(MaterialHandle material) const
     {
-        if (m_Impl && material.IsValid())
+        if (m_Impl)
         {
-            const auto found = m_Impl->Materials.find(material.Value);
-            if (found != m_Impl->Materials.end()) return found->second.Desc;
+            if (const auto* resource = m_Impl->Resources.GetMaterial(material)) return resource->Desc;
         }
         return {}; // Default white material, including nonexistent or stale handles.
     }
 
     void DX11Renderer::DestroyMaterial(MaterialHandle material)
     {
-        if (!m_Impl) return;
-        std::erase_if(m_Impl->RegisteredMaterials, [material](const auto& entry) { return entry.second == material; });
-        m_Impl->Materials.erase(material.Value);
+        if (m_Impl) m_Impl->Resources.DestroyMaterial(material);
     }
 
     bool DX11Renderer::IsMaterialValid(MaterialHandle material) const
     {
-        return m_Impl && material.IsValid() && m_Impl->Materials.contains(material.Value);
+        return m_Impl && m_Impl->Resources.IsMaterialValid(material);
     }
 
     TextureHandle DX11Renderer::RegisterTexture(TextureAssetId assetId, uint32_t width, uint32_t height,
@@ -421,13 +377,6 @@ namespace Canape
     void DX11Renderer::DestroyTexture(TextureHandle texture)
     {
         if (!IsTextureValid(texture)) return;
-        // Explicit removal invalidates dependent material snapshots so Application can rebuild them.
-        std::erase_if(m_Impl->RegisteredMaterials, [&](const auto& entry)
-        {
-            const auto material = m_Impl->Materials.find(entry.second.Value);
-            return material != m_Impl->Materials.end() && material->second.BaseColorTexture == texture;
-        });
-        std::erase_if(m_Impl->Materials, [texture](const auto& entry) { return entry.second.BaseColorTexture == texture; });
         ID3D11ShaderResourceView* unbound = nullptr;
         m_Impl->Context->PSSetShaderResources(0, 1, &unbound);
         m_Impl->Resources.DestroyTexture(texture);
@@ -480,18 +429,18 @@ namespace Canape
         return true;
     }
 
-    void DX11Renderer::DrawFrame(const RenderFrame& frame)
+    void DX11Renderer::DrawScene(const RenderScene& scene)
     {
         if (!m_Impl || !m_Impl->FrameActive)
         {
             return;
         }
 
-        SetCamera(frame.camera.view.Data(), frame.camera.projection.Data());
+        SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
         std::vector<const RenderItem*> opaque, masked;
         struct TransparentDraw { const RenderItem* Item; float Depth; };
         std::vector<TransparentDraw> transparent;
-        for (const RenderItem& item : frame.items)
+        for (const RenderItem& item : scene.items)
         {
             if (!IsMeshValid(item.mesh)) continue;
             switch (GetMaterial(item.material).alphaMode)
@@ -500,7 +449,7 @@ namespace Canape
             case AlphaMode::Transparent:
             {
                 // Approximate camera-space depth from the world origin; no bounds/triangle sorting.
-                float depth = frame.camera.view.TransformPoint(item.world.GetTranslation()).Z;
+                float depth = scene.camera.view.TransformPoint(item.world.GetTranslation()).Z;
                 if (!std::isfinite(depth)) depth = 0.0f; // Keep the comparator ordered for malformed input.
                 transparent.push_back({ &item, depth });
                 break;
@@ -527,7 +476,7 @@ namespace Canape
         {
             return;
         }
-        const GPUResourceCache::GpuMesh& gpuMesh = *resource;
+        const DX11MeshResource& gpuMesh = *resource;
         if (submeshIndex >= gpuMesh.SubMeshes.size())
         {
             m_Impl->LastError = "DrawMesh received an invalid submeshIndex";
@@ -553,7 +502,8 @@ namespace Canape
 
         ID3D11DeviceContext* context = m_Impl->Context.Get();
         context->UpdateSubresource(m_Impl->ObjectBuffer.Get(), 0, nullptr, &constants, 0, 0);
-        const MaterialDesc materialDesc = GetMaterial(material);
+        const DX11MaterialResource* materialResource = m_Impl->Resources.GetMaterial(material);
+        const MaterialDesc materialDesc = materialResource ? materialResource->Desc : MaterialDesc{};
         const Impl::MaterialConstants materialConstants{ materialDesc.baseColor, static_cast<uint32_t>(materialDesc.alphaMode), materialDesc.alphaCutoff };
         context->UpdateSubresource(m_Impl->MaterialBuffer.Get(), 0, nullptr, &materialConstants, 0, 0);
         // Bind every draw, including direct DrawMesh calls, so prior pipeline state cannot leak.
@@ -561,9 +511,9 @@ namespace Canape
         ID3D11Buffer* materialBuffer = m_Impl->MaterialBuffer.Get();
         context->PSSetConstantBuffers(1, 1, &materialBuffer);
         ID3D11ShaderResourceView* textureView = m_Impl->Resources.GetWhiteTextureView();
-        if (const auto entry = m_Impl->Materials.find(material.Value); entry != m_Impl->Materials.end())
+        if (materialResource)
         {
-            if (const auto* texture = m_Impl->Resources.GetTexture(entry->second.BaseColorTexture))
+            if (const auto* texture = m_Impl->Resources.GetTexture(materialResource->BaseColorTexture))
                 textureView = texture->ShaderResourceView.Get();
         }
         // Always bind, including white fallback, so previous draws cannot leak a texture.

@@ -1,11 +1,13 @@
 #pragma once
 
-#include "MeshHandle.h"
-#include "MeshAssetId.h"
-#include "RenderFrame.h"
-#include "MeshData.h"
-#include "MaterialData.h"
-#include "TextureData.h"
+#include "Asset/AssetId.h"
+#include "Asset/Material/MaterialDesc.h"
+#include "Asset/Mesh/MeshData.h"
+#include "Asset/Texture/TextureData.h"
+#include "Renderer/Handle/MaterialHandle.h"
+#include "Renderer/Handle/MeshHandle.h"
+#include "Renderer/Handle/TextureHandle.h"
+#include "Renderer/RenderScene.h"
 
 #include <cstdint>
 #include <memory>
@@ -14,6 +16,7 @@
 
 namespace Canape
 {
+    // DX11 backend. Engine code reaches it only through Renderer; D3D types stay in the .cpp.
     class DX11Renderer
     {
     public:
@@ -63,7 +66,7 @@ namespace Canape
 
         bool BeginFrame();
         // Consume synchronously between BeginFrame and EndFrame.
-        void DrawFrame(const RenderFrame& frame);
+        void DrawScene(const RenderScene& scene);
         void DrawMesh(MeshHandle mesh, const float* world, uint32_t submeshIndex = 0, MaterialHandle material = {});
         void EndFrame();
 

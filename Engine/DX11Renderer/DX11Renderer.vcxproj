@@ -41,7 +41,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -57,27 +57,23 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\DX11Renderer.h" />
-    <ClInclude Include="Source\ShaderCompiler.h" />
-    <ClInclude Include="Source\GPUResourceCache.h" />
-    <ClInclude Include="Source\PipelineState.h" />
-    <ClInclude Include="Source\MeshAssetId.h" />
-    <ClInclude Include="Source\MeshHandle.h" />
-    <ClInclude Include="Source\MeshData.h" />
-    <ClInclude Include="Source\MaterialHandle.h" />
-    <ClInclude Include="Source\MaterialData.h" />
-    <ClInclude Include="Source\TextureData.h" />
-    <ClInclude Include="Source\RenderFrame.h" />
+    <ClInclude Include="DX11Renderer.h" />
+    <ClInclude Include="Resource\DX11ResourceCache.h" />
+    <ClInclude Include="Resource\DX11MeshResource.h" />
+    <ClInclude Include="Resource\DX11TextureResource.h" />
+    <ClInclude Include="Resource\DX11MaterialResource.h" />
+    <ClInclude Include="Pipeline\DX11PipelineState.h" />
+    <ClInclude Include="Pipeline\DX11ShaderCompiler.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\DX11Renderer.cpp" />
-    <ClCompile Include="Source\ShaderCompiler.cpp" />
-    <ClCompile Include="Source\GPUResourceCache.cpp" />
-    <ClCompile Include="Source\PipelineState.cpp" />
+    <ClCompile Include="DX11Renderer.cpp" />
+    <ClCompile Include="Resource\DX11ResourceCache.cpp" />
+    <ClCompile Include="Pipeline\DX11PipelineState.cpp" />
+    <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Mesh.hlsl" />
-    <None Include="Shaders\Common\Constants.hlsli" />
+    <None Include="Shader\Mesh.hlsl" />
+    <None Include="Shader\Common\Constants.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

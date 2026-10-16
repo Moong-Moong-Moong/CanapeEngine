@@ -1,4 +1,4 @@
-#include "Asset/FbxImporter.h"
+#include "Asset/Mesh/FbxImporter.h"
 
 #include "ThirdParty/ufbx/ufbx.h"
 
@@ -30,7 +30,7 @@ namespace Canape
 		}
 	}
 
-	std::shared_ptr<Mesh> FbxImporter::LoadMesh(const std::string& path, std::string* outError)
+	std::unique_ptr<MeshAsset> FbxImporter::LoadMesh(const std::string& path, std::string* outError)
 	{
 		ufbx_load_opts options{};
 		options.target_axes = { UFBX_COORDINATE_AXIS_NEGATIVE_X, UFBX_COORDINATE_AXIS_POSITIVE_Y, UFBX_COORDINATE_AXIS_POSITIVE_Z };
@@ -124,6 +124,6 @@ namespace Canape
 			return nullptr;
 		}
 		if (outError) outError->clear();
-		return std::make_shared<Mesh>(std::move(vertices), std::move(indices), std::move(submeshes));
+		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(submeshes));
 	}
 }

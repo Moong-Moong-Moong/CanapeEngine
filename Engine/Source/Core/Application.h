@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Asset/ResourceManager.h"
+#include "Asset/AssetManager.h"
 #include "Core/Window.h"
 #include "Input/InputManager.h"
+#include "Renderer/Renderer.h"
 #include "Scene/SceneManager.h"
-
-#include "DX11Renderer.h"
 
 #include <memory>
 
@@ -28,8 +27,8 @@ namespace Canape
         Window& GetWindow() { return *m_Window; }
         SceneManager& GetSceneManager() { return *m_SceneManager; }
         InputManager& GetInputManager() { return *m_InputManager; }
-        DX11Renderer& GetRenderer() { return *m_Renderer; }
-        ResourceManager& GetResourceManager() { return *m_ResourceManager; }
+        Renderer& GetRenderer() { return *m_Renderer; }
+        AssetManager& GetAssetManager() { return *m_AssetManager; }
 
     protected:
         virtual void OnInit() {}
@@ -37,17 +36,14 @@ namespace Canape
         virtual void OnShutdown() {}
 
     private:
-        void RenderScene();
-
         static Application* s_Instance;
 
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<InputManager> m_InputManager;
-        std::unique_ptr<DX11Renderer> m_Renderer;
-        std::unique_ptr<ResourceManager> m_ResourceManager;
+        std::unique_ptr<Renderer> m_Renderer;
+        std::unique_ptr<AssetManager> m_AssetManager;
         std::unique_ptr<SceneManager> m_SceneManager;
 
         bool m_Running = false;
-        bool m_WarnedNoCamera = false;
     };
 }

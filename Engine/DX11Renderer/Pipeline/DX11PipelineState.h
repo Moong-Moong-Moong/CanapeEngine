@@ -1,7 +1,7 @@
 #pragma once
 
-#include "MeshData.h"
-#include "MaterialData.h"
+#include "Asset/Mesh/MeshData.h"
+#include "Asset/Material/MaterialDesc.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -9,9 +9,9 @@
 
 namespace Canape
 {
-    // Borrowed pointers owned by PipelineState. Resolve and bind within the current draw;
+    // Borrowed pointers owned by DX11PipelineState. Resolve and bind within the current draw;
     // do not retain selections across initialization or renderer shutdown.
-    struct PipelineSelection
+    struct DX11PipelineSelection
     {
         ID3D11VertexShader* VS = nullptr;
         ID3D11PixelShader* PS = nullptr;
@@ -24,17 +24,17 @@ namespace Canape
 
     // The two fixed vertex formats and three existing alpha modes share these objects.
     // No Device/Context ownership, resource registry, or frame execution lives here.
-    class PipelineState
+    class DX11PipelineState
     {
     public:
-        PipelineState() = default;
-        PipelineState(const PipelineState&) = delete;
-        PipelineState& operator=(const PipelineState&) = delete;
-        PipelineState(PipelineState&&) = default;
-        PipelineState& operator=(PipelineState&&) = default;
+        DX11PipelineState() = default;
+        DX11PipelineState(const DX11PipelineState&) = delete;
+        DX11PipelineState& operator=(const DX11PipelineState&) = delete;
+        DX11PipelineState(DX11PipelineState&&) = default;
+        DX11PipelineState& operator=(DX11PipelineState&&) = default;
 
         bool Initialize(ID3D11Device* device, std::string& error);
-        PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;

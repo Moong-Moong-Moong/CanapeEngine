@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Scene/Component/Component.h"
-#include "Renderer/Mesh.h"
-#include "Renderer/MaterialAsset.h"
+#include "Asset/AssetManager.h"
 
-#include <memory>
-#include <utility>
+#include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Canape
@@ -14,23 +13,20 @@ namespace Canape
 	{
 	public:
 		MeshRendererComponent() = default;
-		explicit MeshRendererComponent(std::shared_ptr<Mesh> mesh) : m_Mesh(std::move(mesh)) {}
 
-		const std::shared_ptr<Mesh>& GetMesh() const { return m_Mesh; }
-		void SetMesh(std::shared_ptr<Mesh> mesh) { m_Mesh = std::move(mesh); }
+		// Call after AddComponent: the owning scene/object names are recorded at acquisition.
+		// Replaces the current mesh. On failure the component keeps no mesh and returns false.
+		bool SetMesh(const std::string& path, std::string* outError = nullptr);
+		// Resolve through AssetManager::GetMesh.
+		const MeshAssetHandle& GetMesh() const { return m_Mesh; }
 
-		void SetMaterial(uint32_t slot, std::shared_ptr<MaterialAsset> material)
-		{
-			if (slot >= m_Materials.size()) m_Materials.resize(size_t(slot) + 1);
-			m_Materials[slot] = std::move(material);
-		}
-		std::shared_ptr<MaterialAsset> GetMaterial(uint32_t slot) const
-		{
-			return slot < m_Materials.size() ? m_Materials[slot] : nullptr;
-		}
+		// Same rules as SetMesh. The material must already exist (AssetManager::CreateMaterial).
+		bool SetMaterial(uint32_t slot, const std::string& materialName, std::string* outError = nullptr);
+		// Resolve through AssetManager::GetMaterial. Invalid for empty or out-of-range slots.
+		const MaterialAssetHandle& GetMaterial(uint32_t slot) const;
 
 	private:
-		std::shared_ptr<Mesh> m_Mesh;
-		std::vector<std::shared_ptr<MaterialAsset>> m_Materials;
+		MeshAssetHandle m_Mesh;
+		std::vector<MaterialAssetHandle> m_Materials;
 	};
 }

@@ -8,20 +8,6 @@ namespace Canape
     // Tightly packed RGBA bytes containing sRGB color. Alpha remains linear.
     enum class TextureFormat { RGBA8_SRGB };
 
-    struct TextureAssetId
-    {
-        uint64_t Value = 0; // CPU asset identity; zero is invalid.
-        constexpr bool IsValid() const { return Value != 0; }
-        constexpr bool operator==(const TextureAssetId&) const = default;
-    };
-
-    struct TextureHandle
-    {
-        uint64_t Value = 0; // Renderer registration; nonzero may still be stale.
-        constexpr bool IsValid() const { return Value != 0; }
-        constexpr bool operator==(const TextureHandle&) const = default;
-    };
-
     inline const char* ValidateTextureData(uint32_t width, uint32_t height, TextureFormat format, size_t byteCount)
     {
         if (format != TextureFormat::RGBA8_SRGB) return "Unsupported texture pixel format";

@@ -1,7 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include "PipelineState.h"
-#include "ShaderCompiler.h"
+#include "DX11Renderer/Pipeline/DX11PipelineState.h"
+#include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
 
 #include <iterator>
 #include <sstream>
@@ -26,17 +26,17 @@ namespace Canape
         }
     }
 
-    bool PipelineState::Initialize(ID3D11Device* device, std::string& error)
+    bool DX11PipelineState::Initialize(ID3D11Device* device, std::string& error)
     {
-        *this = PipelineState{};
+        *this = DX11PipelineState{};
         error.clear();
         if (!device)
         {
-            error = "PipelineState::Initialize requires a renderer device";
+            error = "DX11PipelineState::Initialize requires a renderer device";
             return false;
         }
         // Publish only a complete set. Any failed creation releases temporary objects.
-        PipelineState pending;
+        DX11PipelineState pending;
         ComPtr<ID3DBlob> vertexBytecode;
         ComPtr<ID3DBlob> pixelBytecode;
         if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", nullptr,
@@ -147,7 +147,7 @@ namespace Canape
         return true;
     }
 
-    PipelineSelection PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const
+    DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const
     {
         const bool isStatic = vertexFormat == VertexFormat::Static;
         const bool transparent = alphaMode == AlphaMode::Transparent;

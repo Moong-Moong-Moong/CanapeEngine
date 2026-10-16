@@ -4,7 +4,7 @@
 
 namespace Canape
 {
-    // Runtime GPU reference. Nonzero values still require DX11Renderer::IsMeshValid.
+    // Runtime GPU reference. Nonzero values may become stale after removal or renderer reset.
     struct MeshHandle
     {
         uint64_t Value = 0;

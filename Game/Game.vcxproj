@@ -44,7 +44,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine\Source;$(CanapeRoot)Engine\DX11Renderer\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,7 +93,7 @@ exit /b 0</Command>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shaders\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shaders\**\*.hlsli" />
+    <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsli" />
     <None Include="@(RendererShader)">
       <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>

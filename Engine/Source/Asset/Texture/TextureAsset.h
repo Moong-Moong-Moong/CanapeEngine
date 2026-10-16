@@ -1,6 +1,7 @@
 #pragma once
 
-#include "TextureData.h"
+#include "Asset/AssetId.h"
+#include "Asset/Texture/TextureData.h"
 #include <stdexcept>
 #include <utility>
 #include <vector>

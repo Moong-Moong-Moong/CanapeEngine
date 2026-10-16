@@ -1,8 +1,9 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include "GPUResourceCache.h"
+#include "DX11Renderer/Resource/DX11ResourceCache.h"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 namespace Canape
@@ -19,7 +20,7 @@ namespace Canape
         }
     }
 
-    MeshHandle GPUResourceCache::CreateMesh(ID3D11Device* device, const void* vertices, size_t vertexCount,
+    MeshHandle DX11ResourceCache::CreateMesh(ID3D11Device* device, const void* vertices, size_t vertexCount,
         uint32_t stride, VertexFormat format, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes, std::string& error)
     {
@@ -45,7 +46,7 @@ namespace Canape
         vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
         D3D11_SUBRESOURCE_DATA vertexData{ vertices };
 
-        GpuMesh mesh;
+        DX11MeshResource mesh;
         HRESULT result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &mesh.VertexBuffer);
         if (FAILED(result))
         {
@@ -85,7 +86,7 @@ namespace Canape
         return handle;
     }
 
-    MeshHandle GPUResourceCache::RegisterMesh(ID3D11Device* device, MeshAssetId assetId, const void* vertices,
+    MeshHandle DX11ResourceCache::RegisterMesh(ID3D11Device* device, MeshAssetId assetId, const void* vertices,
         size_t vertexCount, uint32_t stride, VertexFormat format, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes, std::string& error)
     {
@@ -103,42 +104,42 @@ namespace Canape
         }
 
         // Discard a stale entry before retrying; failed uploads must not leave a registration.
-        RegisteredMeshes.erase(assetId.Value);
+        RegisteredMeshes.erase(assetId.value);
         const MeshHandle handle = CreateMesh(device, vertices, vertexCount, stride, format, indices, submeshes, error);
         if (handle.IsValid())
         {
-            RegisteredMeshes.emplace(assetId.Value, handle);
+            RegisteredMeshes.emplace(assetId.value, handle);
         }
         return handle;
     }
 
-    MeshHandle GPUResourceCache::FindMesh(MeshAssetId assetId) const
+    MeshHandle DX11ResourceCache::FindMesh(MeshAssetId assetId) const
     {
         if (!assetId.IsValid()) return {};
-        const auto found = RegisteredMeshes.find(assetId.Value);
+        const auto found = RegisteredMeshes.find(assetId.value);
         return found != RegisteredMeshes.end() && IsMeshValid(found->second) ? found->second : MeshHandle{};
     }
 
-    const GPUResourceCache::GpuMesh* GPUResourceCache::GetMesh(MeshHandle mesh) const
+    const DX11MeshResource* DX11ResourceCache::GetMesh(MeshHandle mesh) const
     {
         const auto found = Meshes.find(mesh.Value);
         return found != Meshes.end() ? &found->second : nullptr;
     }
 
-    bool GPUResourceCache::IsMeshValid(MeshHandle mesh) const
+    bool DX11ResourceCache::IsMeshValid(MeshHandle mesh) const
     {
         return mesh.IsValid() && GetMesh(mesh) != nullptr;
     }
 
-    void GPUResourceCache::DestroyMesh(MeshHandle mesh)
+    void DX11ResourceCache::DestroyMesh(MeshHandle mesh)
     {
         // Explicit removal is infrequent; scanning avoids a second registration index.
         std::erase_if(RegisteredMeshes, [mesh](const auto& entry) { return entry.second == mesh; });
         Meshes.erase(mesh.Value);
     }
 
-    bool GPUResourceCache::CreateGpuTexture(ID3D11Device* device, ID3D11DeviceContext* context,
-        uint32_t width, uint32_t height, const uint8_t* pixels, GpuTexture& texture, std::string& error)
+    bool DX11ResourceCache::CreateTextureResource(ID3D11Device* device, ID3D11DeviceContext* context,
+        uint32_t width, uint32_t height, const uint8_t* pixels, DX11TextureResource& texture, std::string& error)
     {
         constexpr DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         UINT support = 0;
@@ -169,7 +170,7 @@ namespace Canape
         return true;
     }
 
-    TextureHandle GPUResourceCache::RegisterTexture(ID3D11Device* device, ID3D11DeviceContext* context,
+    TextureHandle DX11ResourceCache::RegisterTexture(ID3D11Device* device, ID3D11DeviceContext* context,
         TextureAssetId assetId, uint32_t width, uint32_t height, TextureFormat format,
         std::span<const uint8_t> pixels, std::string& error)
     {
@@ -183,7 +184,7 @@ namespace Canape
             error.clear();
             return existing;
         }
-        RegisteredTextures.erase(assetId.Value);
+        RegisteredTextures.erase(assetId.value);
         if (const char* validationError = ValidateTextureData(width, height, format, pixels.size()))
         {
             error = validationError;
@@ -194,8 +195,8 @@ namespace Canape
             error = "Texture dimensions exceed D3D11 Texture2D limits";
             return {};
         }
-        GpuTexture texture;
-        if (!CreateGpuTexture(device, context, width, height, pixels.data(), texture, error)) return {};
+        DX11TextureResource texture;
+        if (!CreateTextureResource(device, context, width, height, pixels.data(), texture, error)) return {};
         static uint64_t nextHandle = 1; // Never reuse handles after removal/reinitialize.
         if (nextHandle == 0)
         {
@@ -204,36 +205,106 @@ namespace Canape
         }
         const TextureHandle handle{ nextHandle++ };
         Textures.emplace(handle.Value, std::move(texture));
-        RegisteredTextures.emplace(assetId.Value, handle);
+        RegisteredTextures.emplace(assetId.value, handle);
         error.clear();
         return handle;
     }
 
-    TextureHandle GPUResourceCache::FindTexture(TextureAssetId assetId) const
+    TextureHandle DX11ResourceCache::FindTexture(TextureAssetId assetId) const
     {
         if (!assetId.IsValid()) return {};
-        const auto found = RegisteredTextures.find(assetId.Value);
+        const auto found = RegisteredTextures.find(assetId.value);
         return found != RegisteredTextures.end() && IsTextureValid(found->second) ? found->second : TextureHandle{};
     }
 
-    const GPUResourceCache::GpuTexture* GPUResourceCache::GetTexture(TextureHandle texture) const
+    const DX11TextureResource* DX11ResourceCache::GetTexture(TextureHandle texture) const
     {
         const auto found = Textures.find(texture.Value);
         return found != Textures.end() ? &found->second : nullptr;
     }
 
-    bool GPUResourceCache::IsTextureValid(TextureHandle texture) const
+    bool DX11ResourceCache::IsTextureValid(TextureHandle texture) const
     {
         return texture.IsValid() && GetTexture(texture) != nullptr;
     }
 
-    void GPUResourceCache::DestroyTexture(TextureHandle texture)
+    void DX11ResourceCache::DestroyTexture(TextureHandle texture)
     {
+        // Invalidate dependent material snapshots so the Engine renderer can rebuild them.
+        std::erase_if(RegisteredMaterials, [&](const auto& entry)
+        {
+            const auto material = Materials.find(entry.second.Value);
+            return material != Materials.end() && material->second.BaseColorTexture == texture;
+        });
+        std::erase_if(Materials, [texture](const auto& entry) { return entry.second.BaseColorTexture == texture; });
         std::erase_if(RegisteredTextures, [texture](const auto& entry) { return entry.second == texture; });
         Textures.erase(texture.Value);
     }
 
-    bool GPUResourceCache::CreateWhiteTexture(ID3D11Device* device, ID3D11DeviceContext* context, std::string& error)
+    MaterialHandle DX11ResourceCache::RegisterMaterial(MaterialAssetId assetId, const MaterialDesc& desc,
+        TextureHandle baseColorTexture, std::string& error)
+    {
+        if (!assetId.IsValid())
+        {
+            error = "RegisterMaterial requires a valid asset ID and initialized renderer";
+            return {};
+        }
+        if (const MaterialHandle existing = FindMaterial(assetId); existing.IsValid())
+        {
+            error.clear();
+            return existing; // First registration wins until explicit removal/reset.
+        }
+        const Vector4& color = desc.baseColor;
+        if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
+        {
+            error = "RegisterMaterial requires a finite BaseColor";
+            return {};
+        }
+        if ((desc.alphaMode != AlphaMode::Opaque && desc.alphaMode != AlphaMode::Masked && desc.alphaMode != AlphaMode::Transparent)
+            || !std::isfinite(desc.alphaCutoff) || desc.alphaCutoff < 0.0f || desc.alphaCutoff > 1.0f)
+        {
+            error = "RegisterMaterial requires a supported AlphaMode and finite AlphaCutoff in [0, 1]";
+            return {};
+        }
+        static uint64_t nextHandle = 1; // Never reuse a removed/pre-reset handle during this process.
+        if (nextHandle == 0)
+        {
+            error = "Material handle space exhausted";
+            return {};
+        }
+        const MaterialHandle handle{ nextHandle++ };
+        RegisteredMaterials.erase(assetId.value);
+        Materials.emplace(handle.Value, DX11MaterialResource{ desc, baseColorTexture });
+        RegisteredMaterials.emplace(assetId.value, handle);
+        error.clear();
+        return handle;
+    }
+
+    MaterialHandle DX11ResourceCache::FindMaterial(MaterialAssetId assetId) const
+    {
+        if (!assetId.IsValid()) return {};
+        const auto found = RegisteredMaterials.find(assetId.value);
+        return found != RegisteredMaterials.end() && IsMaterialValid(found->second) ? found->second : MaterialHandle{};
+    }
+
+    const DX11MaterialResource* DX11ResourceCache::GetMaterial(MaterialHandle material) const
+    {
+        const auto found = Materials.find(material.Value);
+        return found != Materials.end() ? &found->second : nullptr;
+    }
+
+    bool DX11ResourceCache::IsMaterialValid(MaterialHandle material) const
+    {
+        return material.IsValid() && GetMaterial(material) != nullptr;
+    }
+
+    void DX11ResourceCache::DestroyMaterial(MaterialHandle material)
+    {
+        std::erase_if(RegisteredMaterials, [material](const auto& entry) { return entry.second == material; });
+        Materials.erase(material.Value);
+    }
+
+    bool DX11ResourceCache::CreateWhiteTexture(ID3D11Device* device, ID3D11DeviceContext* context, std::string& error)
     {
         if (!device || !context)
         {
@@ -241,10 +312,10 @@ namespace Canape
             return false;
         }
         constexpr uint8_t white[] = { 255, 255, 255, 255 };
-        return CreateGpuTexture(device, context, 1, 1, white, WhiteTexture, error);
+        return CreateTextureResource(device, context, 1, 1, white, WhiteTexture, error);
     }
 
-    ID3D11ShaderResourceView* GPUResourceCache::GetWhiteTextureView() const
+    ID3D11ShaderResourceView* DX11ResourceCache::GetWhiteTextureView() const
     {
         return WhiteTexture.ShaderResourceView.Get();
     }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Asset/FbxImporter.h"
-#include "Asset/ResourceManager.h"
+#include "Asset/Mesh/FbxImporter.h"
+#include "Asset/AssetManager.h"
 #include "Core/Application.h"
 #include "Core/Time.h"
 #include "Core/Window.h"
@@ -16,6 +16,6 @@
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/Component/MeshRendererComponent.h"
 #include "Scene/Component/MonoBehaviour.h"
-#include "Renderer/Mesh.h"
-#include "Renderer/MaterialAsset.h"
-#include "Renderer/TextureAsset.h"
+#include "Asset/Mesh/MeshAsset.h"
+#include "Asset/Material/MaterialAsset.h"
+#include "Asset/Texture/TextureAsset.h"

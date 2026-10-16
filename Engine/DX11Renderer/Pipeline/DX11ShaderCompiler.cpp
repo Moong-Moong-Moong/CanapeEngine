@@ -1,6 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include "ShaderCompiler.h"
+#include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
 
 #include <filesystem>
 #include <sstream>

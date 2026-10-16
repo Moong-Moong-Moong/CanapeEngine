@@ -18,12 +18,4 @@ namespace Canape
         AlphaMode alphaMode = AlphaMode::Opaque;
         float alphaCutoff = 0.5f; // Masked: discard when BaseColor.a * Texture.a is below this.
     };
-
-    // CPU asset identity, distinct from the renderer's MaterialHandle. Zero is invalid.
-    struct MaterialAssetId
-    {
-        uint64_t Value = 0;
-        constexpr bool IsValid() const { return Value != 0; }
-        constexpr bool operator==(const MaterialAssetId&) const = default;
-    };
 }
