@@ -10,20 +10,25 @@ namespace
 
 Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
 {
-    Canape::ResourceManager& resources = Canape::Application::Get().GetResourceManager();
     Canape::Scene* scene = sceneManager.CreateScene(Name);
 
     Canape::GameObject* player = scene->CreateGameObject("Player");
-    player->AddComponent<Canape::MeshRendererComponent>(resources.LoadMesh(kPlayerModelPath));
+    auto* playerRenderer = player->AddComponent<Canape::MeshRendererComponent>();
+    playerRenderer->SetMesh(kPlayerModelPath);
     player->AddComponent<PlayerController>();
 
-    Canape::GameObject* enemy = scene->CreateGameObject("Enemy");
-    enemy->GetTransform()->SetLocalPosition({ 3.0f, 0.0f, 4.0f });
-    enemy->GetTransform()->LookAt(player->GetTransform()->GetPosition());
-    enemy->AddComponent<Canape::MeshRendererComponent>(resources.LoadMesh(kEnemyModelPath));
+    const char* enemyNames[] = { "Enemy", "Enemy Transparent", "Enemy Masked" };
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        Canape::GameObject* enemy = scene->CreateGameObject(enemyNames[i]);
+        enemy->GetTransform()->SetLocalPosition({ -3.0f + 3.0f * i, 0.0f, 4.0f });
+        enemy->GetTransform()->LookAt(player->GetTransform()->GetPosition());
+        auto* renderer = enemy->AddComponent<Canape::MeshRendererComponent>();
+        renderer->SetMesh(kEnemyModelPath);
+    }
 
     Canape::GameObject* camera = scene->CreateGameObject("Main Camera");
-    camera->AddComponent<CameraController>(player->GetHandle());
+    camera->AddComponent<CameraController>(player->GetHandle(), 35.0f);
     scene->SetMainCamera(camera->AddComponent<Canape::CameraComponent>());
 
     sceneManager.LoadScene(Name);

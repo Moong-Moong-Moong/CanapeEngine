@@ -1,18 +1,58 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source">
-      <UniqueIdentifier>{C03BBF4F-45B9-FAAF-09CD-1359DB769F58}</UniqueIdentifier>
+    <Filter Include="Pipeline">
+      <UniqueIdentifier>{DE187C24-BC3F-12CA-7471-13A6110C97FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{81618E46-B56A-2FFC-90DA-D9E5FAC1856C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{CFD95F44-F04E-2503-75E2-CBE3618A6A8A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Common">
+      <UniqueIdentifier>{F10A155D-27BC-386F-8252-E3DF0B632F7A}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\DX11Renderer.h">
-      <Filter>Source</Filter>
+    <ClInclude Include="DX11Renderer.h" />
+    <ClInclude Include="Pipeline\DX11PipelineState.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\DX11ShaderCompiler.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11MaterialResource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11MeshResource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11ResourceCache.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11TextureResource.h">
+      <Filter>Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\DX11Renderer.cpp">
-      <Filter>Source</Filter>
+    <ClCompile Include="DX11Renderer.cpp" />
+    <ClCompile Include="Pipeline\DX11PipelineState.cpp">
+      <Filter>Pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp">
+      <Filter>Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\DX11ResourceCache.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Common\Constants.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,11 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{6F4A72CA-AF8D-1EC6-4A55-DA4BC8DAAC75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Math">
+      <UniqueIdentifier>{7C5AFF16-6091-7EE3-7E16-E4B7A21DEDD7}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{9D6AFDE5-94FF-27AA-A8B6-C1D806FEF661}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Asset">
       <UniqueIdentifier>{EB8AF895-2FFB-D282-7824-2D4A4201FEC9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Material">
+      <UniqueIdentifier>{A7DBAFD4-BAFD-57C2-BF74-A0776C8EB891}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Mesh">
+      <UniqueIdentifier>{31BBBB7F-4BE4-D48F-F9F3-5B6D82699F99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Texture">
+      <UniqueIdentifier>{7A7308C3-40B8-055A-052E-86799EFD5231}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Core">
       <UniqueIdentifier>{69181993-7BE5-5F4E-D2AF-12B3D6121888}</UniqueIdentifier>
@@ -13,11 +28,11 @@
     <Filter Include="Source\Input">
       <UniqueIdentifier>{EC03ECB8-0634-F655-1AB7-2B324CD2104B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Math">
-      <UniqueIdentifier>{D9571676-5DEA-9887-534B-2076EFA9029C}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Renderer">
       <UniqueIdentifier>{5A3B1E16-94DE-B040-6A45-DE8D4024802A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Renderer\Handle">
+      <UniqueIdentifier>{2862A9A8-404B-8977-3F8E-4D6A687DCFA6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Scene">
       <UniqueIdentifier>{4554135B-D92A-E093-470C-88812BEF544B}</UniqueIdentifier>
@@ -36,11 +51,86 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Asset\FbxImporter.h">
+    <ClInclude Include="..\Common\Math\Color.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Geometry.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Intersection.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\IntVector.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Math.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\MathUtility.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Matrix4.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Quaternion.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Random.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Rotator.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Transform.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector2.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector3.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector4.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetGpuUploader.h">
       <Filter>Source\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Asset\ResourceManager.h">
+    <ClInclude Include="Source\Asset\AssetHandle.h">
       <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetId.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetManager.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetTracker.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Material\MaterialAsset.h">
+      <Filter>Source\Asset\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Material\MaterialDesc.h">
+      <Filter>Source\Asset\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\FbxImporter.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\MeshAsset.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\MeshData.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\TextureAsset.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\TextureData.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\TextureImporter.h">
+      <Filter>Source\Asset\Texture</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Application.h">
       <Filter>Source\Core</Filter>
@@ -57,49 +147,22 @@
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Color.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="Source\Renderer\Handle\MaterialHandle.h">
+      <Filter>Source\Renderer\Handle</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Geometry.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="Source\Renderer\Handle\MeshHandle.h">
+      <Filter>Source\Renderer\Handle</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Intersection.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="Source\Renderer\Handle\TextureHandle.h">
+      <Filter>Source\Renderer\Handle</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\IntVector.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="Source\Renderer\Renderer.h">
+      <Filter>Source\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\Math.h">
-      <Filter>Source\Math</Filter>
+    <ClInclude Include="Source\Renderer\RenderItem.h">
+      <Filter>Source\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\MathUtility.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Matrix4.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Quaternion.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Random.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Rotator.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Transform.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Vector2.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Vector3.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\Vector4.h">
-      <Filter>Source\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\Mesh.h">
+    <ClInclude Include="Source\Renderer\RenderScene.h">
       <Filter>Source\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Component\CameraComponent.h">
@@ -137,11 +200,47 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Asset\FbxImporter.cpp">
+    <ClCompile Include="..\Common\Math\Color.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Geometry.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Intersection.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Matrix4.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Quaternion.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Random.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Rotator.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Math\Transform.cpp">
+      <Filter>Common\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\AssetManager.cpp">
       <Filter>Source\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Asset\ResourceManager.cpp">
+    <ClCompile Include="Source\Asset\AssetTracker.cpp">
       <Filter>Source\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp">
+      <Filter>Source\Asset\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp">
+      <Filter>Source\Asset\Texture</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Application.cpp">
       <Filter>Source\Core</Filter>
@@ -155,34 +254,16 @@
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\Color.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Geometry.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Intersection.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Matrix4.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Quaternion.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Random.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Rotator.cpp">
-      <Filter>Source\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\Transform.cpp">
-      <Filter>Source\Math</Filter>
+    <ClCompile Include="Source\Renderer\Renderer.cpp">
+      <Filter>Source\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\Component.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp">

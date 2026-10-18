@@ -5,8 +5,8 @@
 class CameraController final : public Canape::MonoBehaviour
 {
 public:
-    explicit CameraController(Canape::GameObjectHandle target = {})
-        : m_Target(target)
+    explicit CameraController(Canape::GameObjectHandle target = {}, float initialPitch = 15.0f)
+        : m_Target(target), m_Pitch(initialPitch)
     {
     }
 

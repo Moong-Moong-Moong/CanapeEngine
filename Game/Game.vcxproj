@@ -44,7 +44,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Engine\Source;$(CanapeRoot)Engine\DX11Renderer\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,5 +92,16 @@ exit /b 0</Command>
       <Project>{025f038a-1a30-409c-be0a-f8b665a329a2}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsli" />
+    <None Include="@(RendererShader)">
+      <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyRendererShaders" AfterTargets="Build">
+    <Copy SourceFiles="@(RendererShader)"
+          DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

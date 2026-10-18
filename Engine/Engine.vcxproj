@@ -16,6 +16,7 @@
     <ProjectGuid>{025f038a-1a30-409c-be0a-f8b665a329a2}</ProjectGuid>
     <RootNamespace>Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Canape</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -41,7 +42,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(ProjectDir)DX11Renderer\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -57,27 +58,44 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Asset\ResourceManager.h" />
+    <ClInclude Include="Source\Asset\AssetId.h" />
+    <ClInclude Include="Source\Asset\AssetGpuUploader.h" />
+    <ClInclude Include="Source\Asset\AssetHandle.h" />
+    <ClInclude Include="Source\Asset\AssetManager.h" />
+    <ClInclude Include="Source\Asset\AssetTracker.h" />
+    <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
+    <ClInclude Include="Source\Asset\Mesh\MeshData.h" />
+    <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
+    <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
+    <ClInclude Include="Source\Asset\Material\MaterialDesc.h" />
+    <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
+    <ClInclude Include="Source\Asset\Texture\TextureData.h" />
+    <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
+    <ClInclude Include="Source\Renderer\Renderer.h" />
+    <ClInclude Include="Source\Renderer\RenderScene.h" />
+    <ClInclude Include="Source\Renderer\RenderItem.h" />
+    <ClInclude Include="Source\Renderer\Handle\MeshHandle.h" />
+    <ClInclude Include="Source\Renderer\Handle\MaterialHandle.h" />
+    <ClInclude Include="Source\Renderer\Handle\TextureHandle.h" />
     <ClInclude Include="Source\Engine.h" />
     <ClInclude Include="Source\Core\Application.h" />
     <ClInclude Include="Source\Core\Time.h" />
-    <ClInclude Include="Source\Asset\FbxImporter.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
-    <ClInclude Include="Source\Math\Color.h" />
-    <ClInclude Include="Source\Math\Geometry.h" />
-    <ClInclude Include="Source\Math\Intersection.h" />
-    <ClInclude Include="Source\Math\IntVector.h" />
-    <ClInclude Include="Source\Math\Math.h" />
-    <ClInclude Include="Source\Math\MathUtility.h" />
-    <ClInclude Include="Source\Math\Matrix4.h" />
-    <ClInclude Include="Source\Math\Quaternion.h" />
-    <ClInclude Include="Source\Math\Random.h" />
-    <ClInclude Include="Source\Math\Rotator.h" />
-    <ClInclude Include="Source\Math\Transform.h" />
-    <ClInclude Include="Source\Math\Vector2.h" />
-    <ClInclude Include="Source\Math\Vector3.h" />
-    <ClInclude Include="Source\Math\Vector4.h" />
+    <ClInclude Include="..\Common\Math\Color.h" />
+    <ClInclude Include="..\Common\Math\Geometry.h" />
+    <ClInclude Include="..\Common\Math\Intersection.h" />
+    <ClInclude Include="..\Common\Math\IntVector.h" />
+    <ClInclude Include="..\Common\Math\Math.h" />
+    <ClInclude Include="..\Common\Math\MathUtility.h" />
+    <ClInclude Include="..\Common\Math\Matrix4.h" />
+    <ClInclude Include="..\Common\Math\Quaternion.h" />
+    <ClInclude Include="..\Common\Math\Random.h" />
+    <ClInclude Include="..\Common\Math\Rotator.h" />
+    <ClInclude Include="..\Common\Math\Transform.h" />
+    <ClInclude Include="..\Common\Math\Vector2.h" />
+    <ClInclude Include="..\Common\Math\Vector3.h" />
+    <ClInclude Include="..\Common\Math\Vector4.h" />
     <ClInclude Include="Source\Scene\Component\CameraComponent.h" />
     <ClInclude Include="Source\Scene\Component\Component.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObject.h" />
@@ -88,24 +106,29 @@
     <ClInclude Include="Source\Scene\Component\TransformComponent.h" />
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h" />
     <ClInclude Include="Source\Scene\Component\MonoBehaviour.h" />
-    <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Asset\FbxImporter.cpp" />
-    <ClCompile Include="Source\Asset\ResourceManager.cpp" />
+    <ClCompile Include="Source\Asset\AssetManager.cpp" />
+    <ClCompile Include="Source\Asset\AssetTracker.cpp" />
+    <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
+    <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
+    <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
+    <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
+    <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp" />
+    <ClCompile Include="Source\Renderer\Renderer.cpp" />
     <ClCompile Include="Source\Core\Application.cpp" />
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
-    <ClCompile Include="Source\Math\Color.cpp" />
-    <ClCompile Include="Source\Math\Geometry.cpp" />
-    <ClCompile Include="Source\Math\Intersection.cpp" />
-    <ClCompile Include="Source\Math\Matrix4.cpp" />
-    <ClCompile Include="Source\Math\Quaternion.cpp" />
-    <ClCompile Include="Source\Math\Random.cpp" />
-    <ClCompile Include="Source\Math\Rotator.cpp" />
-    <ClCompile Include="Source\Math\Transform.cpp" />
+    <ClCompile Include="..\Common\Math\Color.cpp" />
+    <ClCompile Include="..\Common\Math\Geometry.cpp" />
+    <ClCompile Include="..\Common\Math\Intersection.cpp" />
+    <ClCompile Include="..\Common\Math\Matrix4.cpp" />
+    <ClCompile Include="..\Common\Math\Quaternion.cpp" />
+    <ClCompile Include="..\Common\Math\Random.cpp" />
+    <ClCompile Include="..\Common\Math\Rotator.cpp" />
+    <ClCompile Include="..\Common\Math\Transform.cpp" />
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
     <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp" />
@@ -118,11 +141,6 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="DX11Renderer\DX11Renderer.vcxproj">
-      <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
