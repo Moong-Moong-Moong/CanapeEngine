@@ -9,13 +9,13 @@
 
 namespace Canape
 {
-    // Only the two implemented formats are exposed. Skinning can add its own format later.
+
     enum class VertexFormat { Position, Static };
 
     struct StaticVertex
     {
         Vector3 Position{};
-        Vector3 Normal{}; // Zero selects the renderer's geometric-normal fallback.
+        Vector3 Normal{}; 
         Vector2 UV{};
     };
 
@@ -24,7 +24,7 @@ namespace Canape
         uint32_t startIndex = 0;
         uint32_t indexCount = 0;
         int32_t baseVertex = 0;
-        uint32_t materialSlot = 0; // Mesh-local slot; no MaterialHandle is assigned yet.
+        uint32_t materialSlot = 0; 
     };
 
     static_assert(std::is_standard_layout_v<StaticVertex>);
@@ -33,7 +33,6 @@ namespace Canape
     static_assert(offsetof(StaticVertex, Normal) == 12);
     static_assert(offsetof(StaticVertex, UV) == 24);
 
-    // Shared CPU/GPU boundary validation. Empty ranges mean one whole-buffer submesh.
     inline const char* ValidateMeshIndices(size_t vertexCount, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes)
     {

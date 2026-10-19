@@ -2,6 +2,7 @@
 #include "Core/Application.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
+#include "Debug/DebugLog.h"
 
 namespace Canape
 {
@@ -24,6 +25,7 @@ namespace Canape
 		GameObject* gameObject = GetGameObject();
 		if (!gameObject)
 		{
+			CN_LOG_ENGINE("MeshRenderer", "AddComponent 전에 SetMesh 호출됨");
 			if (outError) *outError = kAttachError;
 			m_Mesh.Reset();
 			return false;
@@ -39,6 +41,7 @@ namespace Canape
 		GameObject* gameObject = GetGameObject();
 		if (!gameObject)
 		{
+			CN_LOG_ENGINE("MeshRenderer", "AddComponent 전에 SetMaterial 호출됨");
 			if (outError) *outError = kAttachError;
 			return false;
 		}

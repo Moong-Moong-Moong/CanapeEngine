@@ -15,8 +15,6 @@ namespace Canape
         Vector3 cameraPosition{};
     };
 
-    // A synchronous per-frame snapshot of the active Scene, built by Renderer.
-    // Referenced GPU resources must live until the backend's DrawScene returns.
     struct RenderScene
     {
         RenderView camera;

@@ -5,6 +5,7 @@
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Texture/TextureAsset.h"
+#include "Debug/DebugLog.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/MeshRendererComponent.h"
 #include "Scene/GameObject/GameObject.h"
@@ -124,7 +125,7 @@ namespace Canape
         {
             if (!m_WarnedNoCamera)
             {
-                OutputDebugStringA("[Engine] No main camera is rendering\n");
+                CN_LOG_ENGINE("Renderer", "메인 카메라 없음");
                 m_WarnedNoCamera = true;
             }
         }

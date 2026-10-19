@@ -12,9 +12,6 @@ namespace Canape
     class DX11Renderer;
     class Scene;
 
-    // Engine-facing render layer. Collects a Scene into a RenderScene and submits the frame.
-    // Assets are uploaded and released by AssetManager through AssetGpuUploader; rendering only
-    // looks up what is already uploaded. Backend types stay out of this header.
     class Renderer final : public AssetGpuUploader
     {
     public:
@@ -26,7 +23,6 @@ namespace Canape
 
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
 
-        // A null scene or missing main camera still clears and presents the frame.
         void Render(Scene* scene, const AssetManager& assets);
 
         bool UploadMesh(const MeshAsset& mesh, std::string& error) override;

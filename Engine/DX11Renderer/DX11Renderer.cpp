@@ -14,6 +14,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "../Source/Debug/DebugLog.h"
+
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -196,12 +198,14 @@ namespace Canape
     DX11Renderer::DX11Renderer()
         : m_Impl(std::make_unique<Impl>())
     {
+
     }
 
     DX11Renderer::~DX11Renderer() = default;
 
     bool DX11Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
     {
+        CN_LOG_RENDERER("Init", "렌더러 초기화 완료");
         Shutdown();
         m_Impl = std::make_unique<Impl>();
         m_Impl->Window = static_cast<HWND>(nativeWindow);
@@ -480,6 +484,7 @@ namespace Canape
         if (submeshIndex >= gpuMesh.SubMeshes.size())
         {
             m_Impl->LastError = "DrawMesh received an invalid submeshIndex";
+            CN_LOG_RENDERER("Draw", "잘못된 서브메시 인덱스: ", submeshIndex);
             return;
         }
 

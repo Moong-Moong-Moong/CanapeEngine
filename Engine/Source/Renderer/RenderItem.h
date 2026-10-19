@@ -8,7 +8,6 @@
 
 namespace Canape
 {
-    // One submesh draw. Handles must be registered with the renderer that consumes the item.
     struct RenderItem
     {
         MeshHandle mesh{};

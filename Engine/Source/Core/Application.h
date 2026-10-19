@@ -45,5 +45,6 @@ namespace Canape
         std::unique_ptr<SceneManager> m_SceneManager;
 
         bool m_Running = false;
+        uint32_t m_PrintAssetsCommand = 0;
     };
 }

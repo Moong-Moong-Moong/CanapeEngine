@@ -1,6 +1,7 @@
-#include "Asset/AssetManager.h"
+﻿#include "Asset/AssetManager.h"
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/Texture/TextureImporter.h"
+#include "Debug/DebugLog.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -35,9 +36,9 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
-		// ���� ��θ� ���� ��� ��ȯ
-		// ���ڿ� ǥ�� UTF-8 ����
-		// �빮�� -> �ҹ��� ��ȯ (Windows������ ���� ��ҹ��� ���� X)
+		// 파일 경로를 절대 경로 변환
+		// 문자열 표현 UTF-8 통일
+		// 대문자 -> 소문자 변환 (Windows에서는 파일 대소문자 구분 X)
 		bool ResolveAssetPath(const std::string& path, ResolvedAssetPath& resolved, std::string& error)
 		{
 			std::error_code pathError;
@@ -67,7 +68,7 @@ namespace Canape
 
 		void LogAssetError(const char* operation, const std::string& error)
 		{
-			OutputDebugStringA(("[AssetManager] " + std::string(operation) + ": " + error + "\n").c_str());
+			CN_LOG_ENGINE("Asset", operation, ": ", error);
 		}
 
 		template <typename T>
@@ -114,6 +115,15 @@ namespace Canape
 				entries.erase(found);
 			}
 		}
+
+		template <typename T>
+		void AppendAssetStatuses(const AssetMap<T>& entries, AssetType type, std::vector<AssetStatus>& statuses)
+		{
+			for (const auto& [id, entry] : entries)
+			{
+				statuses.push_back({ type, id.value, entry.path, entry.referenceCount, entry.gpuUploaded });
+			}
+		}
 	}
 
 	template <typename T>
@@ -158,7 +168,7 @@ namespace Canape
 		std::string error;
 		if (!ResolveAssetPath(path, resolved, error))
 		{
-			LogAssetError("Failed to load mesh", error);
+			LogAssetError("메시 로드 실패", error);
 			return {};
 		}
 
@@ -198,25 +208,25 @@ namespace Canape
 		else
 		{
 			error = path + ": Unsupported mesh file extension '" + extension + "'";
-			LogAssetError("Failed to load mesh", error);
+			LogAssetError("메시 로드 실패", error);
 			if (outError) *outError = std::move(error);
 			return {};
 		}
 
 		if (!mesh)
 		{
-			LogAssetError("Failed to load mesh", error);
+			LogAssetError("메시 로드 실패", error);
 			return {};
 		}
 		if (!m_GpuUploader.UploadMesh(*mesh, error))
 		{
-			LogAssetError("Failed to upload mesh", path + ": " + error);
+			LogAssetError("메시 업로드 실패", path + ": " + error);
 			return {};
 		}
 
 		const MeshAssetId id = mesh->GetAssetId();
 		m_MeshIdByPath.emplace(pathKey, id);
-		m_MeshesById.emplace(id, AssetEntry<MeshAsset>{ std::move(mesh), filePath, pathKey });
+		m_MeshesById.emplace(id, AssetEntry<MeshAsset>{ std::move(mesh), filePath, pathKey }).first->second.gpuUploaded = true;
 		return id;
 	}
 
@@ -253,7 +263,7 @@ namespace Canape
 		std::string error;
 		if (!ResolveAssetPath(path, resolved, error))
 		{
-			LogAssetError("Failed to load texture", error);
+			LogAssetError("텍스처 로드 실패", error);
 			return {};
 		}
 
@@ -293,25 +303,25 @@ namespace Canape
 		else
 		{
 			error = path + ": Unsupported texture file extension '" + extension + "'";
-			LogAssetError("Failed to load texture", error);
+			LogAssetError("텍스처 로드 실패", error);
 			if (outError) *outError = std::move(error);
 			return {};
 		}
 
 		if (!texture)
 		{
-			LogAssetError("Failed to load texture", error);
+			LogAssetError("텍스처 로드 실패", error);
 			return {};
 		}
 		if (!m_GpuUploader.UploadTexture(*texture, error))
 		{
-			LogAssetError("Failed to upload texture", path + ": " + error);
+			LogAssetError("텍스처 업로드 실패", path + ": " + error);
 			return {};
 		}
 
 		const TextureAssetId id = texture->GetAssetId();
 		m_TextureIdByPath.emplace(pathKey, id);
-		m_TexturesById.emplace(id, AssetEntry<TextureAsset>{ std::move(texture), filePath, pathKey });
+		m_TexturesById.emplace(id, AssetEntry<TextureAsset>{ std::move(texture), filePath, pathKey }).first->second.gpuUploaded = true;
 		return id;
 	}
 
@@ -345,13 +355,17 @@ namespace Canape
 		if (outError) outError->clear();
 		auto fail = [&](std::string error) -> MaterialAssetHandle
 		{
-			LogAssetError("Failed to create material", error);
+			LogAssetError("머티리얼 생성 실패", error);
 			if (outError) *outError = std::move(error);
 			return {};
 		};
 
 		if (name.empty()) return fail("Material name must not be empty");
-		if (FindMaterial(name).IsValid()) return fail("Material '" + name + "' already exists");
+		if (const MaterialAssetId existing = FindMaterial(name); existing.IsValid())
+		{
+			CN_LOG_ENGINE("Material", "이미 있는 머티리얼 반환: ", name);
+			return CreateMaterialHandle(existing, owner);
+		}
 
 		// The caller loads the texture first; the material takes its own reference to it.
 		TextureAssetHandle texture;
@@ -365,13 +379,13 @@ namespace Canape
 		std::string error;
 		if (!m_GpuUploader.UploadMaterial(*material, error))
 		{
-			LogAssetError("Failed to upload material", name + ": " + error);
+			LogAssetError("머티리얼 업로드 실패", name + ": " + error);
 			return {};
 		}
 
 		const MaterialAssetId id = material->GetAssetId();
 		m_MaterialIdByName.emplace(name, id);
-		m_MaterialsById.emplace(id, AssetEntry<MaterialAsset>{ std::move(material), name, name });
+		m_MaterialsById.emplace(id, AssetEntry<MaterialAsset>{ std::move(material), name, name }).first->second.gpuUploaded = true;
 		return CreateMaterialHandle(id, owner);
 	}
 
@@ -383,7 +397,7 @@ namespace Canape
 		if (!id.IsValid())
 		{
 			std::string error = "Material '" + name + "' does not exist";
-			LogAssetError("Failed to get material", error);
+			LogAssetError("머티리얼 조회 실패", error);
 			if (outError) *outError = std::move(error);
 			return {};
 		}
@@ -420,5 +434,22 @@ namespace Canape
 		m_GpuUploader.ReleaseMaterials(unused);
 		EraseAssets(m_MaterialIdByName, m_MaterialsById, unused);
 		return unused.size();
+	}
+
+	void AssetManager::PrintAssetRecords() const
+	{
+		std::vector<AssetStatus> statuses;
+		statuses.reserve(m_MeshesById.size() + m_MaterialsById.size() + m_TexturesById.size());
+		AppendAssetStatuses(m_MeshesById, AssetType::Mesh, statuses);
+		AppendAssetStatuses(m_MaterialsById, AssetType::Material, statuses);
+		AppendAssetStatuses(m_TexturesById, AssetType::Texture, statuses);
+		m_Tracker.PrintRecord(statuses);
+	}
+	size_t AssetManager::ReleaseUnusedAssets()
+	{
+		size_t released = ReleaseUnusedMeshes();
+		released += ReleaseUnusedMaterials();
+		released += ReleaseUnusedTextures();
+		return released;
 	}
 }

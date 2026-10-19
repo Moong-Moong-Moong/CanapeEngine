@@ -22,7 +22,7 @@ namespace Canape
 		const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 		const std::vector<StaticVertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<SubMesh>& GetSubMeshes() const { return m_SubMeshes; }
-		// CPU data is canonical StaticVertex, including meshes built by the position-only constructor.
+
 		VertexFormat GetVertexFormat() const { return VertexFormat::Static; }
 
 		uint32_t GetVertexCount() const { return static_cast<uint32_t>(m_Vertices.size()); }
