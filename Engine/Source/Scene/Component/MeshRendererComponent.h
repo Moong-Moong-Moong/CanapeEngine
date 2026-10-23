@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scene/Component/Component.h"
+#include "Scene/Component/RenderableComponent.h"
 #include "Asset/AssetManager.h"
 
 #include <cstdint>
@@ -9,20 +9,16 @@
 
 namespace Canape
 {
-	class MeshRendererComponent : public Component
+	class MeshRendererComponent : public RenderableComponent
 	{
 	public:
 		MeshRendererComponent() = default;
-
-		// Call after AddComponent: the owning scene/object names are recorded at acquisition.
-		// Replaces the current mesh. On failure the component keeps no mesh and returns false.
+		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const override;
 		bool SetMesh(const std::string& path, std::string* outError = nullptr);
-		// Resolve through AssetManager::GetMesh.
 		const MeshAssetHandle& GetMesh() const { return m_Mesh; }
 
-		// Same rules as SetMesh. The material must already exist (AssetManager::CreateMaterial).
 		bool SetMaterial(uint32_t slot, const std::string& materialName, std::string* outError = nullptr);
-		// Resolve through AssetManager::GetMaterial. Invalid for empty or out-of-range slots.
+
 		const MaterialAssetHandle& GetMaterial(uint32_t slot) const;
 
 	private:

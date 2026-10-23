@@ -6,7 +6,7 @@ namespace Canape
 {
 	SceneManager::~SceneManager()
 	{
-		m_ActiveScene = nullptr;
+		m_activeScene = nullptr;
 		m_PendingActiveScene = nullptr;
 		m_Scenes.clear();
 	}
@@ -21,9 +21,9 @@ namespace Canape
 		m_Scenes.push_back(std::make_unique<Scene>(name));
 		Scene* created = m_Scenes.back().get();
 
-		if (!m_ActiveScene)
+		if (!m_activeScene)
 		{
-			m_ActiveScene = created;
+			m_activeScene = created;
 		}
 		return created;
 	}
@@ -63,11 +63,9 @@ namespace Canape
 
 	void SceneManager::Update()
 	{
-		if (m_ActiveScene)
+		if (m_activeScene)
 		{
-			m_ActiveScene->Update();
-			m_ActiveScene->LateUpdate();
-			m_ActiveScene->FlushDestroyed();
+			m_activeScene->UpdateGameObjects();
 		}
 
 		ApplyPendingChanges();
@@ -77,15 +75,15 @@ namespace Canape
 	{
 		if (m_PendingActiveScene)
 		{
-			m_ActiveScene = m_PendingActiveScene;
+			m_activeScene = m_PendingActiveScene;
 			m_PendingActiveScene = nullptr;
 		}
 
 		for (Scene* scene : m_PendingUnloadScenes)
 		{
-			if (scene == m_ActiveScene)
+			if (scene == m_activeScene)
 			{
-				m_ActiveScene = nullptr;
+				m_activeScene = nullptr;
 			}
 
 			std::erase_if(m_Scenes, [scene](const std::unique_ptr<Scene>& owned)

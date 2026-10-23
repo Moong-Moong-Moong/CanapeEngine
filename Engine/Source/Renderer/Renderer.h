@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Asset/AssetGpuUploader.h"
+#include "Renderer/Handle/MaterialHandle.h"
+#include "Renderer/Handle/MeshHandle.h"
 
 #include <cstdint>
 #include <memory>
@@ -34,6 +36,8 @@ namespace Canape
 
         uint32_t GetWidth() const;
         uint32_t GetHeight() const;
+		MeshHandle FindMesh(MeshAssetId assetId) const;
+		MaterialHandle FindMaterial(MaterialAssetId assetId) const;
 
         const std::string& GetLastError() const;
 

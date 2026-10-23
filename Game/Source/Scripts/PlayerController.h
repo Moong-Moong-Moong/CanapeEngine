@@ -2,7 +2,7 @@
 
 #include <Engine.h>
 
-class PlayerController final : public Canape::MonoBehaviour
+class PlayerController final : public Canape::ScriptComponent
 {
 public:
     explicit PlayerController(float moveSpeed = 3.0f, float turnSpeedDegrees = 540.0f)

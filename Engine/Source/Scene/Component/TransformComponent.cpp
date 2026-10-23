@@ -85,7 +85,7 @@ namespace Canape
 				return;
 			}
 
-			if (parent->GetGameObject()->GetScene() != GetGameObject()->GetScene())
+			if (parent->GetOwnerObject()->GetScene() != GetOwnerObject()->GetScene())
 			{
 				return;
 			}
@@ -102,8 +102,6 @@ namespace Canape
 		{
 			m_Parent->m_Children.push_back(this);
 		}
-
-		GetGameObject()->RefreshHierarchy();
 	}
 
 	bool TransformComponent::IsChildOf(const TransformComponent* ancestor) const

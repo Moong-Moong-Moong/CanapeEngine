@@ -1,6 +1,6 @@
 # Tools 사용법
 
-## NewScript.ps1 — MonoBehaviour 스크립트 생성
+## NewScript.ps1 — ScriptComponent 스크립트 생성
 
 
 ```bash

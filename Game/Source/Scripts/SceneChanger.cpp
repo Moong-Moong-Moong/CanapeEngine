@@ -9,7 +9,7 @@ void SceneChanger::Update()
     }
 
     Canape::SceneManager& sceneManager = application.GetSceneManager();
-    const std::string currentScene = GetGameObject()->GetScene()->GetName();
+    const std::string currentScene = GetOwnerObject()->GetScene()->GetName();
 
     m_NextScene(sceneManager);
     sceneManager.UnloadScene(currentScene);

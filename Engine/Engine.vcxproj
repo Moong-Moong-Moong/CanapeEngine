@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -72,6 +72,7 @@
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
     <ClInclude Include="Source\Asset\Texture\TextureData.h" />
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
+    <ClInclude Include="Source\Core\Containers\SlotMap.h" />
     <ClInclude Include="Source\Debug\DebugLog.h">
       <DeploymentContent>false</DeploymentContent>
     </ClInclude>
@@ -103,13 +104,13 @@
     <ClInclude Include="Source\Scene\Component\CameraComponent.h" />
     <ClInclude Include="Source\Scene\Component\Component.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObject.h" />
-    <ClInclude Include="Source\Scene\GameObject\GameObjectHandle.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObjectManager.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\Component\TransformComponent.h" />
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h" />
-    <ClInclude Include="Source\Scene\Component\MonoBehaviour.h" />
+    <ClInclude Include="Source\Scene\Component\RenderableComponent.h" />
+    <ClInclude Include="Source\Scene\Component\ScriptComponent.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -138,7 +139,7 @@
     <ClCompile Include="..\Common\Math\Transform.cpp" />
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
-    <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp" />
+    <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObject.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />

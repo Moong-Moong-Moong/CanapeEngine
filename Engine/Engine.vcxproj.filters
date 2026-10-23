@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Common">
@@ -51,6 +51,9 @@
     </Filter>
     <Filter Include="Source\Debug">
       <UniqueIdentifier>{0524b823-227a-46b1-b3b3-1e651409119d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core\Containers">
+      <UniqueIdentifier>{79d9402d-c634-4906-a9d6-46f2bc0e732e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -177,16 +180,16 @@
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scene\Component\MonoBehaviour.h">
+    <ClInclude Include="Source\Scene\Component\RenderableComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\ScriptComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Component\TransformComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\GameObject\GameObject.h">
-      <Filter>Source\Scene\GameObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Scene\GameObject\GameObjectHandle.h">
       <Filter>Source\Scene\GameObject</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\GameObject\GameObjectManager.h">
@@ -203,6 +206,9 @@
     </ClInclude>
     <ClInclude Include="Source\Debug\DebugLog.h">
       <Filter>Source\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Containers\SlotMap.h">
+      <Filter>Source\Core\Containers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -272,7 +278,7 @@
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scene\Component\MonoBehaviour.cpp">
+    <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\TransformComponent.cpp">

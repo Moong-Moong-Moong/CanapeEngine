@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Scene/GameObject/GameObjectHandle.h"
 #include "Scene/GameObject/GameObjectManager.h"
 
 #include <cstddef>
@@ -13,6 +12,9 @@ namespace Canape
 {
 	class GameObject;
 	class CameraComponent;
+	class AssetManager;
+	class Renderer;
+	struct RenderScene;
 
 	class Scene final
 	{
@@ -25,33 +27,32 @@ namespace Canape
 
 		const std::string& GetName() const { return m_Name; }
 
-		GameObject* CreateGameObject(const std::string& name = "GameObject");
-		void Destroy(GameObject* gameObject);
-		void Destroy(const GameObjectHandle& handle);
+		void UpdateGameObjects();
+		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer);
 
-		GameObject* GetGameObject(const GameObjectHandle& handle) const { return m_Objects.Get(handle); }
-		bool IsAlive(const GameObjectHandle& handle) const { return m_Objects.IsAlive(handle); }
+		//***** GameObject
+		//*** Update, Find 는 다음 프레임부터 활성화됩니다.
+		//*** 리턴 받은 Handle 로 GameObject* 접근과 내부 데이터 수정은 바로 가능합니다.
+		Handle<GameObject> DeferAddGameObject(const std::string& name = "GameObject");
+		//*** 다음 프레임부터 모든 데이터 삭제, 기능이 비활성화 됩니다.
+		void DeferRemoveGameObject(const Handle<GameObject> handle);
+		GameObject* GetGameObject(const Handle<GameObject> handle);
+		Handle<GameObject> FindGameObjectByName(const std::string& name);
 
-		GameObject* Find(std::string_view name) const;
-		std::vector<GameObject*> GetRootGameObjects() const;
-		std::size_t GetGameObjectCount() const { return m_Objects.GetCount(); }
-
-		template<typename Func>
-		void ForEachGameObject(Func&& func) const { m_Objects.ForEach(std::forward<Func>(func)); }
-
-		CameraComponent* GetMainCamera() const;
+		//***** Camera
+		CameraComponent* GetMainCamera() ;
 		void SetMainCamera(CameraComponent* camera);
+
+	private:
+		//***** GameObject
+		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");
+		void RemoveGameObject(const Handle<GameObject> handle);
 
 	private:
 		friend class SceneManager;
 
-		void Update();
-		void LateUpdate();
-		void FlushDestroyed();
-		void MarkForDestroy(GameObject* gameObject);
-
 		std::string m_Name;
-		GameObjectManager m_Objects;
-		GameObjectHandle m_MainCamera;
+		GameObjectManager m_gameObjects;
+		Handle<GameObject> m_MainCamera;
 	};
 }

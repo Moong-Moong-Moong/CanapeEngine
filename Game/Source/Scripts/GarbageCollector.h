@@ -2,7 +2,7 @@
 
 #include <Engine.h>
 
-class GarbageCollector final : public Canape::MonoBehaviour
+class GarbageCollector final : public Canape::ScriptComponent
 {
 public:
     explicit GarbageCollector(Canape::Key key = Canape::Key::Delete)

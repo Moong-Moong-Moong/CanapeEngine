@@ -2,7 +2,7 @@
 
 #include <Engine.h>
 
-class SceneChanger final : public Canape::MonoBehaviour
+class SceneChanger final : public Canape::ScriptComponent
 {
 public:
     using SceneFactory = Canape::Scene* (*)(Canape::SceneManager&);

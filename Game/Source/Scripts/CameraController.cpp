@@ -18,7 +18,7 @@ void CameraController::Update()
 
 void CameraController::LateUpdate()
 {
-    const Canape::GameObject* target = Resolve(m_Target);
+    const Canape::GameObject* target = GetGameObject(m_Target);
     if (!target)
     {
         return;

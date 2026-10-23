@@ -9,7 +9,7 @@
 
 namespace Canape
 {
-	class MonoBehaviour : public Component
+	class ScriptComponent : public Component
 	{
 	public:
 		template<typename T>
@@ -21,21 +21,23 @@ namespace Canape
 		template<typename T, typename... Args>
 		T* AddComponent(Args&&... args) const { return GetGameObject()->AddComponent<T>(std::forward<Args>(args)...); }
 
-		GameObject* CreateGameObject(const std::string& name = "GameObject") const;
-		GameObject* Resolve(const GameObjectHandle& handle) const;
-		void Destroy(GameObject* gameObject) const;
-		void Destroy(const GameObjectHandle& handle) const;
-		void Destroy(Component* component) const;
+
+		bool GetAwoken() const { return m_Awoken; }
+		void SetAwoken(bool awoken) { m_Awoken = awoken; }
+		bool GetStarted() const { return m_Started; }
+		void SetStarted(bool started) { m_Started = started; }
+
+		Handle<GameObject> CreateGameObject(const std::string& name = "GameObject") const;
+		GameObject* GetGameObject(const Handle<GameObject>& handle) const;
+		void Destroy(const Handle<GameObject>& handle) const;
 
 	protected:
-		MonoBehaviour() = default;
+		ScriptComponent() = default;
 
 		virtual void Awake() {}
-		virtual void OnEnable() {}
 		virtual void Start() {}
 		virtual void Update() {}
 		virtual void LateUpdate() {}
-		virtual void OnDisable() {}
 		virtual void OnDestroy() {}
 
 	private:
@@ -43,6 +45,5 @@ namespace Canape
 
 		bool m_Awoken = false;
 		bool m_Started = false;
-		bool m_EnabledState = false;
 	};
 }

@@ -2,8 +2,7 @@
 
 #include "Scene/Component/Component.h"
 #include "Scene/Component/TransformComponent.h"
-#include "Scene/GameObject/GameObjectHandle.h"
-
+#include "Core/Containers/SlotMap.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -14,28 +13,36 @@
 namespace Canape
 {
 	class Scene;
-	class MonoBehaviour;
+	class ScriptComponent;
+	class RenderableComponent;
+	class AssetManager;
+	class Renderer;
+	struct RenderScene;
 
 	class GameObject final
 	{
 	public:
-		~GameObject();
-
+		GameObject();
+		GameObject(Scene* scene, std::string name, Handle<GameObject> handle);
+		~GameObject() = default;
 		GameObject(const GameObject&) = delete;
 		GameObject& operator=(const GameObject&) = delete;
 
 		const std::string& GetName() const { return m_Name; }
 		void SetName(const std::string& name) { m_Name = name; }
-
-		const GameObjectHandle& GetHandle() const { return m_Handle; }
 		Scene* GetScene() const { return m_Scene; }
-		TransformComponent* GetTransform() const { return m_Transform; }
-
-		bool IsActiveSelf() const { return m_Active; }
-		bool IsActiveInHierarchy() const;
-		void SetActive(bool active);
-
+		void SetScene(Scene* scene) { m_Scene = scene; }
+		void SetHandle(const Handle<GameObject>& handle) { m_handle = handle; }
+		const Handle<GameObject>& GetHandle() const { return m_handle; }
+		bool IsActive() const { return m_Active; }
+		void SetActive(bool active) { m_Active = active; }
+		bool IsActivePending() const { return m_ActivePending; }
+		void SetActivePending(bool pending) { m_ActivePending = pending; }
 		bool IsPendingDestroy() const { return m_PendingDestroy; }
+		void SetPendingDestroy(bool pending) { m_PendingDestroy = pending; }
+
+		TransformComponent* GetTransform() const { return m_Transform; }
+		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const;
 
 		template<typename T, typename... Args>
 		T* AddComponent(Args&&... args);
@@ -52,31 +59,30 @@ namespace Canape
 		bool RemoveComponent(Component* component);
 
 	private:
-		friend class Scene;
 		friend class GameObjectManager;
-		friend class Component;
-		friend class TransformComponent;
 
-		GameObject(Scene* scene, std::string name, GameObjectHandle handle);
+		GameObject(Scene* scene, std::string name);
 
-		void AttachComponent(std::unique_ptr<Component> component);
+		void BeginUpdate();
 		void Update();
-		void LateUpdate();
-		void FlushDestroyedComponents();
+		void UpdateScriptComponents();
 
-		void OnComponentEnabledChanged(Component* component);
-		void RefreshHierarchy();
-		static void SyncBehaviour(MonoBehaviour* behaviour);
-		static void DestroyBehaviour(MonoBehaviour* behaviour);
+		void FlushRemovedComponents();
+		void AddPendingComponents();
 
 		std::string m_Name;
-		GameObjectHandle m_Handle;
 		Scene* m_Scene = nullptr;
-		TransformComponent* m_Transform = nullptr;
-		std::vector<std::unique_ptr<Component>> m_Components;
-		std::vector<MonoBehaviour*> m_Behaviours;
+		Handle<GameObject> m_handle = {};
+
 		bool m_Active = true;
+		bool m_ActivePending = false;
 		bool m_PendingDestroy = false;
+
+		std::vector<std::unique_ptr<Component>> m_Components;
+		std::vector<ScriptComponent*> m_ScriptComponents;
+		std::vector<RenderableComponent*> m_RenderableComponents;
+		std::vector<Component*> m_PendingRemoveComponents;
+		TransformComponent* m_Transform = nullptr;
 	};
 
 	template<typename T, typename... Args>
@@ -87,7 +93,10 @@ namespace Canape
 
 		auto component = std::make_unique<T>(std::forward<Args>(args)...);
 		T* result = component.get();
-		AttachComponent(std::move(component));
+		component->m_GameObject = this;
+		component->m_Enabled = true;
+		component->m_PendingAdd = true;
+		m_Components.push_back(std::move(component));
 		return result;
 	}
 
