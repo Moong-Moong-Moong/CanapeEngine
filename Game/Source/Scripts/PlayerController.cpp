@@ -49,7 +49,7 @@ void PlayerController::GetCameraAxes(Canape::Vector3& outForward, Canape::Vector
     outForward = Canape::Vector3::Forward;
     outRight = Canape::Vector3::Right;
 
-    const Canape::CameraComponent* camera = GetGameObject()->GetScene()->GetMainCamera();
+    const Canape::CameraComponent* camera = GetOwnerObject()->GetScene()->GetMainCamera();
     if (!camera)
     {
         return;

@@ -21,7 +21,7 @@ namespace Canape
 
 		Scene* CreateScene(const std::string& name);
 		Scene* GetScene(std::string_view name) const;
-		Scene* GetActiveScene() const { return m_ActiveScene; }
+		Scene* GetActiveScene() const { return m_activeScene; }
 		std::size_t GetSceneCount() const { return m_Scenes.size(); }
 
 		void SetActiveScene(Scene* scene);
@@ -36,7 +36,7 @@ namespace Canape
 		bool Owns(const Scene* scene) const;
 
 		std::vector<std::unique_ptr<Scene>> m_Scenes;
-		Scene* m_ActiveScene = nullptr;
+		Scene* m_activeScene = nullptr;
 		Scene* m_PendingActiveScene = nullptr;
 		std::vector<Scene*> m_PendingUnloadScenes;
 	};

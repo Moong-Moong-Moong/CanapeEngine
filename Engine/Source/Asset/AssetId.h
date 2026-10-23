@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -16,7 +16,7 @@ namespace Canape
 
         bool IsValid() const { return value != 0; }
 
-        // ÄÄÆÄÀÏ·¯°¡ ¸â¹ö º¯¼öµéÀ» ºñ±³ÇÏ´Â ÄÚµå¸¦ ÀÚµ¿À¸·Î »ı¼ºÇÑ´Ù.
+        // ì»´íŒŒì¼ëŸ¬ê°€ ë©¤ë²„ ë³€ìˆ˜ë“¤ì„ ë¹„êµí•˜ëŠ” ì½”ë“œë¥¼ ìë™ìœ¼ë¡œ ìƒì„±í•œë‹¤.
         //constexpr bool operator==(const AssetId&) const = default;
 
         bool operator==(const AssetId& other) const

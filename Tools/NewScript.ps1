@@ -30,7 +30,7 @@ foreach ($function in $With)
 {
 	if ($lifecycleOrder -notcontains $function)
 	{
-		throw "'$function' is not a MonoBehaviour function. Use: $($lifecycleOrder -join ', ')"
+		throw "'$function' is not a ScriptComponent function. Use: $($lifecycleOrder -join ', ')"
 	}
 }
 
@@ -69,7 +69,7 @@ $indent = '    '
 $header = New-Object System.Text.StringBuilder
 [void]$header.Append("#pragma once$newline$newline")
 [void]$header.Append("#include <Engine.h>$newline$newline")
-[void]$header.Append("class $Name final : public Canape::MonoBehaviour$newline")
+[void]$header.Append("class $Name final : public Canape::ScriptComponent$newline")
 [void]$header.Append("{$newline")
 [void]$header.Append("protected:$newline")
 foreach ($function in $functions)

@@ -16,7 +16,7 @@ namespace Canape
 
     MaterialAssetId MaterialAsset::AllocateAssetId()
     {
-        static uint64_t nextId = 1; // Single-threaded; never reset or reused during this process.
+        static uint64_t nextId = 1; 
         if (nextId == 0) throw std::overflow_error("Material asset ID space exhausted");
         return MaterialAssetId{ nextId++ };
     }

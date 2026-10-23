@@ -5,9 +5,9 @@
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Texture/TextureAsset.h"
+#include "Debug/DebugLog.h"
 #include "Scene/Component/CameraComponent.h"
-#include "Scene/Component/MeshRendererComponent.h"
-#include "Scene/GameObject/GameObject.h"
+#include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -124,10 +124,11 @@ namespace Canape
         {
             if (!m_WarnedNoCamera)
             {
-                OutputDebugStringA("[Engine] No main camera is rendering\n");
+                CN_LOG_ENGINE("Renderer", "메인 카메라 없음");
                 m_WarnedNoCamera = true;
             }
         }
+
         else
         {
             m_WarnedNoCamera = false;
@@ -137,45 +138,7 @@ namespace Canape
             renderScene.camera.projection = camera->GetProjectionMatrix(aspectRatio);
             renderScene.camera.cameraPosition = camera->GetTransform()->GetPosition();
 
-            DX11Renderer& backend = *m_Backend;
-            scene->ForEachGameObject([&backend, &assets, &renderScene](GameObject* gameObject)
-            {
-                if (gameObject->IsPendingDestroy() || !gameObject->IsActiveInHierarchy())
-                {
-                    return;
-                }
-
-                for (MeshRendererComponent* meshRenderer : gameObject->GetComponents<MeshRendererComponent>())
-                {
-                    const MeshAsset* mesh = assets.GetMesh(meshRenderer->GetMesh());
-                    if (!meshRenderer->IsEnabled() || !mesh)
-                    {
-                        continue;
-                    }
-
-                    // Uploaded by AssetManager at load time; never registered here.
-                    const MeshHandle handle = backend.FindMesh(mesh->GetAssetId());
-                    if (!handle.IsValid())
-                    {
-                        continue;
-                    }
-
-                    RenderItem item;
-                    item.mesh = handle;
-                    item.world = gameObject->GetTransform()->GetLocalToWorldMatrix();
-                    for (uint32_t i = 0; i < mesh->GetSubMeshes().size(); ++i)
-                    {
-                        item.submeshIndex = i;
-                        item.material = {};
-                        // Uploaded by AssetManager::CreateMaterial; a missing material draws default white.
-                        if (const MaterialAsset* material = assets.GetMaterial(meshRenderer->GetMaterial(mesh->GetSubMeshes()[i].materialSlot)))
-                        {
-                            item.material = backend.FindMaterial(material->GetAssetId());
-                        }
-                        renderScene.items.push_back(item);
-                    }
-                }
-            });
+            scene->BuildRenderScene(renderScene, assets, *this);
         }
 
         m_Backend->DrawScene(renderScene);
@@ -191,6 +154,16 @@ namespace Canape
     {
         return m_Backend->GetHeight();
     }
+
+	MeshHandle Renderer::FindMesh(MeshAssetId assetId) const
+	{
+		return m_Backend->FindMesh(assetId);
+	}
+
+	MaterialHandle Renderer::FindMaterial(MaterialAssetId assetId) const
+	{
+		return m_Backend->FindMaterial(assetId);
+	}
 
     const std::string& Renderer::GetLastError() const
     {

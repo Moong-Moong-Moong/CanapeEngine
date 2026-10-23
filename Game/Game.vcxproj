@@ -58,13 +58,19 @@ exit /b 0</Command>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <Link>
+      <NoEntryPoint Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </NoEntryPoint>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -74,15 +80,21 @@ exit /b 0</Command>
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h" />
     <ClInclude Include="Source\Scenes\SampleScene.h" />
+    <ClInclude Include="Source\Scenes\SampleScene2.h" />
     <ClInclude Include="Source\Scripts\PlayerController.h" />
     <ClInclude Include="Source\Scripts\CameraController.h" />
+    <ClInclude Include="Source\Scripts\SceneChanger.h" />
+    <ClInclude Include="Source\Scripts\GarbageCollector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
     <ClCompile Include="Source\Scenes\SampleScene.cpp" />
+    <ClCompile Include="Source\Scenes\SampleScene2.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Scripts\PlayerController.cpp" />
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
+    <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
+    <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\DX11Renderer\DX11Renderer.vcxproj">
@@ -100,8 +112,6 @@ exit /b 0</Command>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyRendererShaders" AfterTargets="Build">
-    <Copy SourceFiles="@(RendererShader)"
-          DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

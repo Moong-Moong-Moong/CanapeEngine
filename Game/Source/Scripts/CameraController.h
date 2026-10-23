@@ -2,15 +2,15 @@
 
 #include <Engine.h>
 
-class CameraController final : public Canape::MonoBehaviour
+class CameraController final : public Canape::ScriptComponent
 {
 public:
-    explicit CameraController(Canape::GameObjectHandle target = {}, float initialPitch = 15.0f)
+	 explicit CameraController(Handle<Canape::GameObject> target = {}, float initialPitch = 15.0f)
         : m_Target(target), m_Pitch(initialPitch)
     {
     }
 
-    void SetTarget(Canape::GameObjectHandle target) { m_Target = target; }
+	 void SetTarget(Handle<Canape::GameObject> target) { m_Target = target; }
 
 protected:
     void Awake() override;
@@ -19,7 +19,7 @@ protected:
     void LateUpdate() override;
 
 private:
-    Canape::GameObjectHandle m_Target;
+	 Handle<Canape::GameObject> m_Target;
 
     float m_Distance = 4.0f;
     float m_PivotHeight = 1.2f;

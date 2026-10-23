@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <span>
 #include <string>
 
 namespace Canape
@@ -26,6 +27,15 @@ namespace Canape
 		std::string componentName;
 	};
 
+	struct AssetStatus
+	{
+		AssetType type;
+		uint64_t assetId = 0;
+		std::string path;
+		uint32_t referenceCount = 0;
+		bool gpuUploaded = false;
+	};
+
 	// Debug record of every live asset handle. Records are removed by RecordId,
 	// so duplicate or renamed owners never collide.
 	class AssetTracker
@@ -34,7 +44,7 @@ namespace Canape
 		AssetRecordId AddRecord(AssetType type, uint64_t assetId, const std::string& path, const AssetOwnerInfo& owner);
 		void DeleteRecord(AssetRecordId recordId);
 		// Writes every record grouped by AssetType to the debugger output.
-		void PrintRecord() const;
+		void PrintRecord(std::span<const AssetStatus> assets) const;
 
 		size_t GetRecordCount() const { return m_Records.size(); }
 

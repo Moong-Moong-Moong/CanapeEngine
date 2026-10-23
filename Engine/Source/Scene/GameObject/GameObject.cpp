@@ -1,50 +1,25 @@
 #include "Scene/GameObject/GameObject.h"
-#include "Scene/Component/MonoBehaviour.h"
-
-#include <algorithm>
+#include "../Component/Component.h"
+#include "Scene/Component/RenderableComponent.h"
+#include "Scene/Component/ScriptComponent.h"
+#include "Core/Containers/SlotMap.h"
 
 namespace Canape
 {
-	GameObject::GameObject(Scene* scene, std::string name, GameObjectHandle handle)
-		: m_Name(std::move(name))
-		, m_Handle(handle)
-		, m_Scene(scene)
+	GameObject::GameObject()
 	{
 		auto transform = std::unique_ptr<TransformComponent>(new TransformComponent());
 		m_Transform = transform.get();
-		AttachComponent(std::move(transform));
+		transform->m_GameObject = this;
+		m_Components.push_back(std::move(transform));
 	}
 
-	GameObject::~GameObject()
+	GameObject::GameObject(Scene* scene, std::string name, Handle<GameObject> handle)
+		: GameObject()
 	{
-		for (std::size_t i = 0; i < m_Behaviours.size(); ++i)
-		{
-			DestroyBehaviour(m_Behaviours[i]);
-		}
-		m_Behaviours.clear();
-		m_Components.clear();
-	}
-
-	bool GameObject::IsActiveInHierarchy() const
-	{
-		if (!m_Active)
-		{
-			return false;
-		}
-
-		const TransformComponent* parent = m_Transform->GetParent();
-		return parent ? parent->GetGameObject()->IsActiveInHierarchy() : true;
-	}
-
-	void GameObject::SetActive(bool active)
-	{
-		if (m_Active == active)
-		{
-			return;
-		}
-
-		m_Active = active;
-		RefreshHierarchy();
+		m_Name = std::move(name);
+		m_Scene = scene;
+		m_handle = handle;
 	}
 
 	bool GameObject::RemoveComponent(Component* component)
@@ -55,146 +30,135 @@ namespace Canape
 		}
 
 		component->m_PendingDestroy = true;
+		m_PendingRemoveComponents.push_back(component);
 		return true;
 	}
 
-	void GameObject::AttachComponent(std::unique_ptr<Component> component)
+	void GameObject::BeginUpdate()
 	{
-		component->m_GameObject = this;
-		Component* attached = component.get();
-		m_Components.push_back(std::move(component));
+		//*** 삭제 예정 컴포넌트 삭제
+		FlushRemovedComponents();
+		//*** 추가 예정 컴포넌트 활성화
+		AddPendingComponents();
+	}
 
-		if (auto* behaviour = dynamic_cast<MonoBehaviour*>(attached))
+	void GameObject::FlushRemovedComponents()
+	{
+		for (Component* removedComponent : m_PendingRemoveComponents)
 		{
-			m_Behaviours.push_back(behaviour);
-			SyncBehaviour(behaviour);
+			//*** Script Component 목록에서 삭제
+			auto scriptComponent = m_ScriptComponents.begin();
+			while (scriptComponent != m_ScriptComponents.end())
+			{
+				if (*scriptComponent == removedComponent)
+				{
+					static_cast<ScriptComponent*>(removedComponent)->OnDestroy();
+					m_ScriptComponents.erase(scriptComponent);
+					break;
+				}
+
+				++scriptComponent;
+			}
+
+			//*** Renderable Component 목록에서 삭제
+			auto renderableComponent = m_RenderableComponents.begin();
+			while (renderableComponent != m_RenderableComponents.end())
+			{
+				if (*renderableComponent == removedComponent)
+				{
+					m_RenderableComponents.erase(renderableComponent);
+					break;
+				}
+
+				++renderableComponent;
+			}
+
+			//*** Component 목록에서 삭제
+			auto component = m_Components.begin();
+			while (component != m_Components.end())
+			{
+				if (component->get() == removedComponent)
+				{
+					m_Components.erase(component);
+					break;
+				}
+
+				++component;
+			}
+		}
+
+		m_PendingRemoveComponents.clear();
+	}
+
+	void GameObject::AddPendingComponents()
+	{
+		for (const std::unique_ptr<Component>& component : m_Components)
+		{
+
+			if (component->m_PendingAdd)
+			{
+				component->m_PendingAdd = false;
+
+				//***** Script Component 목록에 추가
+				ScriptComponent* scriptComponent = dynamic_cast<ScriptComponent*>(component.get());
+				if (scriptComponent && component->m_Enabled)
+				{
+					m_ScriptComponents.push_back(scriptComponent);
+				}
+
+				//***** Renderable Component 목록에 추가
+				RenderableComponent* renderableComponent = dynamic_cast<RenderableComponent*>(component.get());
+				if (renderableComponent && component->m_Enabled)
+				{
+					m_RenderableComponents.push_back(renderableComponent);
+				}
+			}
 		}
 	}
 
 	void GameObject::Update()
 	{
-		for (std::size_t i = 0; i < m_Behaviours.size(); ++i)
-		{
-			MonoBehaviour* behaviour = m_Behaviours[i];
-			if (!behaviour->m_EnabledState || behaviour->m_PendingDestroy)
-			{
-				continue;
-			}
-
-			if (!behaviour->m_Started)
-			{
-				behaviour->m_Started = true;
-				behaviour->Start();
-
-				if (!behaviour->m_EnabledState || behaviour->m_PendingDestroy)
-				{
-					continue;
-				}
-			}
-
-			behaviour->Update();
-		}
-	}
-
-	void GameObject::LateUpdate()
-	{
-		for (std::size_t i = 0; i < m_Behaviours.size(); ++i)
-		{
-			MonoBehaviour* behaviour = m_Behaviours[i];
-			if (!behaviour->m_EnabledState || behaviour->m_PendingDestroy || !behaviour->m_Started)
-			{
-				continue;
-			}
-
-			behaviour->LateUpdate();
-		}
-	}
-
-	void GameObject::FlushDestroyedComponents()
-	{
-		for (std::size_t i = 0; i < m_Behaviours.size(); ++i)
-		{
-			if (m_Behaviours[i]->m_PendingDestroy)
-			{
-				DestroyBehaviour(m_Behaviours[i]);
-			}
-		}
-
-		std::erase_if(m_Behaviours, [](const MonoBehaviour* behaviour)
-		{
-			return behaviour->m_PendingDestroy;
-		});
-
-		std::erase_if(m_Components, [](const std::unique_ptr<Component>& component)
-		{
-			return component->m_PendingDestroy;
-		});
-	}
-
-	void GameObject::OnComponentEnabledChanged(Component* component)
-	{
-		if (auto* behaviour = dynamic_cast<MonoBehaviour*>(component))
-		{
-			SyncBehaviour(behaviour);
-		}
-	}
-
-	void GameObject::RefreshHierarchy()
-	{
-		for (std::size_t i = 0; i < m_Behaviours.size(); ++i)
-		{
-			SyncBehaviour(m_Behaviours[i]);
-		}
-
-		const std::vector<TransformComponent*> children = m_Transform->GetChildren();
-		for (TransformComponent* child : children)
-		{
-			child->GetGameObject()->RefreshHierarchy();
-		}
-	}
-
-	void GameObject::SyncBehaviour(MonoBehaviour* behaviour)
-	{
-		if (behaviour->m_PendingDestroy)
-		{
+		if (m_Active == false)
 			return;
+
+		BeginUpdate();
+		UpdateScriptComponents();
+	}
+
+	void GameObject::UpdateScriptComponents()
+	{
+		for (ScriptComponent* scriptComp : m_ScriptComponents)
+		{
+			if (scriptComp->GetAwoken())
+				continue;
+			scriptComp->Awake();
+			scriptComp->SetAwoken(true);
 		}
 
-		if (!behaviour->m_Awoken && behaviour->GetGameObject()->IsActiveInHierarchy())
+		for (ScriptComponent* scriptComp : m_ScriptComponents)
 		{
-			behaviour->m_Awoken = true;
-			behaviour->Awake();
+			if (scriptComp->GetStarted())
+				continue;
+			scriptComp->Start();
+			scriptComp->SetStarted(true);
 		}
 
-		const bool shouldEnable = behaviour->m_Awoken && !behaviour->m_PendingDestroy && behaviour->IsActiveAndEnabled();
-		if (shouldEnable == behaviour->m_EnabledState)
+		for (ScriptComponent* scriptComp : m_ScriptComponents)
 		{
-			return;
+			scriptComp->Update();
 		}
 
-		behaviour->m_EnabledState = shouldEnable;
-		if (shouldEnable)
+		for (ScriptComponent* scriptComp : m_ScriptComponents)
 		{
-			behaviour->OnEnable();
-		}
-		else
-		{
-			behaviour->OnDisable();
+			scriptComp->LateUpdate();
 		}
 	}
 
-	void GameObject::DestroyBehaviour(MonoBehaviour* behaviour)
+	void GameObject::BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const
 	{
-		if (behaviour->m_EnabledState)
+		for (RenderableComponent* renderableComponent : m_RenderableComponents)
 		{
-			behaviour->m_EnabledState = false;
-			behaviour->OnDisable();
-		}
-
-		if (behaviour->m_Awoken)
-		{
-			behaviour->m_Awoken = false;
-			behaviour->OnDestroy();
+			renderableComponent->BuildRenderScene(renderScene, assets, renderer);
 		}
 	}
 }

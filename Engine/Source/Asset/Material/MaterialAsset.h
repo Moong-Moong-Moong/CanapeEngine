@@ -18,8 +18,6 @@ namespace Canape
 
         MaterialAssetId GetAssetId() const { return m_AssetId; }
         const MaterialDesc& GetDesc() const { return m_Desc; }
-        // The material's own reference; invalid when it has no BaseColor texture.
-        // Resolve through AssetManager::GetTexture.
         const TextureAssetHandle& GetBaseColorTexture() const { return m_BaseColorTexture; }
 
     private:

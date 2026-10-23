@@ -1,10 +1,7 @@
 #pragma once
 
-#include "Scene/GameObject/GameObjectHandle.h"
+#include "Core/Containers/SlotMap.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -12,45 +9,37 @@ namespace Canape
 {
 	class GameObject;
 	class Scene;
+	class AssetManager;
+	class Renderer;
+	struct RenderScene;
 
 	class GameObjectManager
 	{
 	public:
 		GameObjectManager() = default;
-		~GameObjectManager();
+		~GameObjectManager() = default;
 
 		GameObjectManager(const GameObjectManager&) = delete;
 		GameObjectManager& operator=(const GameObjectManager&) = delete;
 
-		GameObjectHandle Create(Scene* scene, const std::string& name);
-		GameObject* Get(const GameObjectHandle& handle) const;
-		bool IsAlive(const GameObjectHandle& handle) const;
-		bool Destroy(const GameObjectHandle& handle);
-		void Clear();
+		Handle<GameObject> AddGameObject(const std::string& name, Scene* scene);
+		void RemoveGameObject(Handle<GameObject> handle);
+		Handle<GameObject> DeferAddGameObject(const std::string& name, Scene* scene);
+		void DeferRemoveGameObject(Handle<GameObject> handle);
+		GameObject* GetGameObject(Handle<GameObject> handle);
+		Handle<GameObject> FindGameObjectByName(const std::string& name);
 
-		std::size_t GetCount() const { return m_AliveCount; }
+		void BeginUpdate();
+		void Update();
+		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer);
 
-		template<typename Func>
-		void ForEach(Func&& func) const
-		{
-			for (std::size_t i = 0; i < m_Slots.size(); ++i)
-			{
-				if (GameObject* object = m_Slots[i].Object.get())
-				{
-					func(object);
-				}
-			}
-		}
+		void FlushRemoved();
+		void ActivePending();
+	private:
+
 
 	private:
-		struct Slot
-		{
-			std::unique_ptr<GameObject> Object;
-			std::uint32_t Generation = 0;
-		};
-
-		std::vector<Slot> m_Slots;
-		std::vector<std::uint32_t> m_FreeIndices;
-		std::size_t m_AliveCount = 0;
+		SlotMap<GameObject> m_gameObjects;
+		std::vector<Handle<GameObject>> m_pendingRemoveHandles;
 	};
 }

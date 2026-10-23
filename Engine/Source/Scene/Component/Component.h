@@ -13,12 +13,11 @@ namespace Canape
 		Component(const Component&) = delete;
 		Component& operator=(const Component&) = delete;
 
-		GameObject* GetGameObject() const { return m_GameObject; }
+		GameObject* GetOwnerObject() const { return m_GameObject; }
 		TransformComponent* GetTransform() const;
 
 		bool IsEnabled() const { return m_Enabled; }
-		void SetEnabled(bool enabled);
-		bool IsActiveAndEnabled() const;
+		void SetEnabled(bool enabled) { m_Enabled = enabled; }
 		bool IsPendingDestroy() const { return m_PendingDestroy; }
 
 	protected:
@@ -29,6 +28,7 @@ namespace Canape
 
 		GameObject* m_GameObject = nullptr;
 		bool m_Enabled = true;
+		bool m_PendingAdd = false;
 		bool m_PendingDestroy = false;
 	};
 }

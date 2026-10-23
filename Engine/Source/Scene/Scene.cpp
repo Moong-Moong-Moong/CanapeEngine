@@ -11,126 +11,70 @@ namespace Canape
 
 	Scene::~Scene()
 	{
-		m_Objects.Clear();
+
 	}
 
-	GameObject* Scene::CreateGameObject(const std::string& name)
+	void Scene::UpdateGameObjects()
 	{
-		return m_Objects.Get(m_Objects.Create(this, name));
+		m_gameObjects.Update();
 	}
 
-	void Scene::Destroy(GameObject* gameObject)
+	void Scene::BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer)
 	{
-		if (!gameObject || gameObject->GetScene() != this || gameObject->m_PendingDestroy)
+		m_gameObjects.BuildRenderScene(renderScene, assets, renderer);
+	}
+
+	Handle<GameObject> Scene::AddGameObject(const std::string& name)
+	{
+		return m_gameObjects.AddGameObject(name, this);
+	}
+
+	void Scene::RemoveGameObject(const Handle<GameObject> handle)
+	{
+		m_gameObjects.RemoveGameObject(handle);
+	}
+
+	Handle<GameObject> Scene::DeferAddGameObject(const std::string& name)
+	{
+		return m_gameObjects.DeferAddGameObject(name, this);
+	}
+
+	void Scene::DeferRemoveGameObject(const Handle<GameObject> handle)
+	{
+		//*** 다음 프레임 시작 전 삭제
+		m_gameObjects.DeferRemoveGameObject(handle);
+	}	
+
+	GameObject* Scene::GetGameObject(const Handle<GameObject> handle)
+	{
+		return m_gameObjects.GetGameObject(handle);
+	}
+
+	Handle<GameObject> Scene::FindGameObjectByName(const std::string& name)
+	{
+		return m_gameObjects.FindGameObjectByName(name);
+	}
+
+	CameraComponent* Scene::GetMainCamera()
+	{
+		GameObject* gameObject = m_gameObjects.GetGameObject(m_MainCamera);
+		if (!gameObject)
 		{
-			return;
+			return nullptr;
 		}
 
-		MarkForDestroy(gameObject);
-	}
-
-	void Scene::Destroy(const GameObjectHandle& handle)
-	{
-		Destroy(m_Objects.Get(handle));
-	}
-
-	GameObject* Scene::Find(std::string_view name) const
-	{
-		GameObject* found = nullptr;
-		m_Objects.ForEach([&](GameObject* gameObject)
-		{
-			if (!found && !gameObject->m_PendingDestroy && gameObject->GetName() == name)
-			{
-				found = gameObject;
-			}
-		});
-		return found;
-	}
-
-	std::vector<GameObject*> Scene::GetRootGameObjects() const
-	{
-		std::vector<GameObject*> roots;
-		m_Objects.ForEach([&](GameObject* gameObject)
-		{
-			if (!gameObject->m_PendingDestroy && !gameObject->GetTransform()->GetParent())
-			{
-				roots.push_back(gameObject);
-			}
-		});
-		return roots;
-	}
-
-	CameraComponent* Scene::GetMainCamera() const
-	{
-		GameObject* gameObject = m_Objects.Get(m_MainCamera);
-		return gameObject ? gameObject->GetComponent<CameraComponent>() : nullptr;
+		return gameObject->GetComponent<CameraComponent>();
 	}
 
 	void Scene::SetMainCamera(CameraComponent* camera)
 	{
-		if (!camera)
+		if (!camera || !camera->GetOwnerObject() ||
+			camera->GetOwnerObject()->GetScene() != this)
 		{
 			m_MainCamera = {};
 			return;
 		}
 
-		GameObject* gameObject = camera->GetGameObject();
-		if (!gameObject || gameObject->GetScene() != this)
-		{
-			return;
-		}
-
-		m_MainCamera = gameObject->GetHandle();
-	}
-
-	void Scene::Update()
-	{
-		m_Objects.ForEach([](GameObject* gameObject)
-		{
-			if (!gameObject->m_PendingDestroy && gameObject->IsActiveInHierarchy())
-			{
-				gameObject->Update();
-			}
-		});
-	}
-
-	void Scene::LateUpdate()
-	{
-		m_Objects.ForEach([](GameObject* gameObject)
-		{
-			if (!gameObject->m_PendingDestroy && gameObject->IsActiveInHierarchy())
-			{
-				gameObject->LateUpdate();
-			}
-		});
-	}
-
-	void Scene::FlushDestroyed()
-	{
-		std::vector<GameObjectHandle> destroyed;
-		m_Objects.ForEach([&](GameObject* gameObject)
-		{
-			gameObject->FlushDestroyedComponents();
-
-			if (gameObject->m_PendingDestroy)
-			{
-				destroyed.push_back(gameObject->GetHandle());
-			}
-		});
-
-		for (const GameObjectHandle& handle : destroyed)
-		{
-			m_Objects.Destroy(handle);
-		}
-	}
-
-	void Scene::MarkForDestroy(GameObject* gameObject)
-	{
-		gameObject->m_PendingDestroy = true;
-
-		for (TransformComponent* child : gameObject->GetTransform()->GetChildren())
-		{
-			MarkForDestroy(child->GetGameObject());
-		}
+		m_MainCamera = camera->GetOwnerObject()->GetHandle();
 	}
 }

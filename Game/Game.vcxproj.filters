@@ -18,7 +18,16 @@
     <ClInclude Include="Source\Scenes\SampleScene.h">
       <Filter>Source\Scenes</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scenes\SampleScene2.h">
+      <Filter>Source\Scenes</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\CameraController.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scripts\SceneChanger.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\PlayerController.h">
@@ -35,11 +44,24 @@
     <ClCompile Include="Source\Scenes\SampleScene.cpp">
       <Filter>Source\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scenes\SampleScene2.cpp">
+      <Filter>Source\Scenes</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Scripts\CameraController.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\SceneChanger.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PlayerController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="@(RendererShader)" />
+    <None Include="@(RendererShader)" />
   </ItemGroup>
 </Project>
