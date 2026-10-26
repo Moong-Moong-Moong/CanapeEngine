@@ -8,8 +8,3 @@
 #include "Math/Quaternion.h"
 #include "Math/Rotator.h"
 #include "Math/Matrix4.h"
-#include "Math/Transform.h"
-#include "Math/Geometry.h"
-#include "Math/Intersection.h"
-#include "Math/Color.h"
-#include "Math/Random.h"

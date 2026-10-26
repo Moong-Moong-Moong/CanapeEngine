@@ -1,11 +1,12 @@
 #pragma once
 
+#include "Math/MathUtility.h"
 #include "Math/Vector3.h"
+
+#include <DirectXMath.h>
 
 namespace Canape
 {
-	struct Matrix4;
-
 	struct Quaternion
 	{
 		float X = 0.0f;
@@ -18,67 +19,78 @@ namespace Canape
 
 		static const Quaternion Identity;
 
-		static Quaternion FromAxisAngle(const Vector3& axis, float radians);
-		static Quaternion FromRotationMatrix(const Matrix4& matrix);
-		static Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::Up);
-		static Quaternion FromToRotation(const Vector3& from, const Vector3& to);
+		DirectX::XMVECTOR ToXM() const { return DirectX::XMVectorSet(X, Y, Z, W); }
 
-		static constexpr float Dot(const Quaternion& a, const Quaternion& b) { return a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W; }
-		static float Angle(const Quaternion& a, const Quaternion& b);
-		static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
-		static Quaternion Nlerp(const Quaternion& a, const Quaternion& b, float t);
-		static Quaternion RotateTowards(const Quaternion& from, const Quaternion& to, float maxRadiansDelta);
-		static bool IsNearlyEqual(const Quaternion& a, const Quaternion& b, float tolerance = Math::SmallNumber);
-
-		constexpr Quaternion operator*(const Quaternion& rhs) const
+		static Quaternion FromXM(DirectX::FXMVECTOR q)
 		{
-			return {
-				W * rhs.X + X * rhs.W + Y * rhs.Z - Z * rhs.Y,
-				W * rhs.Y - X * rhs.Z + Y * rhs.W + Z * rhs.X,
-				W * rhs.Z + X * rhs.Y - Y * rhs.X + Z * rhs.W,
-				W * rhs.W - X * rhs.X - Y * rhs.Y - Z * rhs.Z
-			};
+			DirectX::XMFLOAT4 result;
+			DirectX::XMStoreFloat4(&result, q);
+			return { result.x, result.y, result.z, result.w };
 		}
 
-		constexpr Quaternion& operator*=(const Quaternion& rhs) { *this = *this * rhs; return *this; }
-		constexpr Vector3 operator*(const Vector3& v) const { return Rotate(v); }
-
-		constexpr bool operator==(const Quaternion& rhs) const = default;
-
-		constexpr float LengthSquared() const { return X * X + Y * Y + Z * Z + W * W; }
-		float Length() const { return Math::Sqrt(LengthSquared()); }
-
-		Quaternion Normalized() const;
-		void Normalize() { *this = Normalized(); }
-
-		constexpr Quaternion Conjugate() const { return { -X, -Y, -Z, W }; }
-
-		constexpr Quaternion Inverse() const
+		Quaternion operator*(const Quaternion& rhs) const
 		{
-			const float lengthSquared = LengthSquared();
-			if (lengthSquared < Math::Epsilon)
+			return FromXM(DirectX::XMQuaternionMultiply(rhs.ToXM(), ToXM()));
+		}
+
+		Quaternion Normalized() const
+		{
+			if (DirectX::XMVectorGetX(DirectX::XMQuaternionLength(ToXM())) < Math::Epsilon)
 			{
-				return Quaternion{};
+				return Identity;
 			}
-			const float inv = 1.0f / lengthSquared;
-			return { -X * inv, -Y * inv, -Z * inv, W * inv };
+			return FromXM(DirectX::XMQuaternionNormalize(ToXM()));
 		}
 
-		constexpr Vector3 Rotate(const Vector3& v) const
+		Quaternion Inverse() const
 		{
-			const Vector3 u{ X, Y, Z };
-			const Vector3 t = Vector3::Cross(u, v) * 2.0f;
-			return v + t * W + Vector3::Cross(u, t);
+			if (DirectX::XMVectorGetX(DirectX::XMQuaternionLengthSq(ToXM())) < Math::Epsilon)
+			{
+				return Identity;
+			}
+			return FromXM(DirectX::XMQuaternionInverse(ToXM()));
 		}
 
-		constexpr Vector3 Unrotate(const Vector3& v) const { return Conjugate().Rotate(v); }
+		Vector3 Rotate(const Vector3& v) const { return Vector3::FromXM(DirectX::XMVector3Rotate(v.ToXM(), ToXM())); }
 
-		constexpr Vector3 GetRight() const { return Rotate(Vector3::Right); }
-		constexpr Vector3 GetUp() const { return Rotate(Vector3::Up); }
-		constexpr Vector3 GetForward() const { return Rotate(Vector3::Forward); }
+		Vector3 GetRight() const { return Rotate(Vector3::Right); }
+		Vector3 GetUp() const { return Rotate(Vector3::Up); }
+		Vector3 GetForward() const { return Rotate(Vector3::Forward); }
 
-		void ToAxisAngle(Vector3& outAxis, float& outRadians) const;
-		Matrix4 ToMatrix() const;
+		static Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::Up)
+		{
+			const Vector3 f = forward.Normalized();
+			if (f.IsNearlyZero())
+			{
+				return Identity;
+			}
+
+			Vector3 r = Vector3::Cross(up, f);
+			if (r.IsNearlyZero())
+			{
+				r = Vector3::Cross(Math::Abs(f.Y) < 0.999f ? Vector3::Up : Vector3::Forward, f);
+			}
+			r = r.Normalized();
+			const Vector3 u = Vector3::Cross(f, r);
+
+			const DirectX::XMMATRIX basis(
+				r.X, r.Y, r.Z, 0.0f,
+				u.X, u.Y, u.Z, 0.0f,
+				f.X, f.Y, f.Z, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f);
+			return FromXM(DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationMatrix(basis)));
+		}
+
+		static Quaternion RotateTowards(const Quaternion& from, const Quaternion& to, float maxRadiansDelta)
+		{
+			const float dot = DirectX::XMVectorGetX(DirectX::XMQuaternionDot(from.ToXM(), to.ToXM()));
+			const float angle = 2.0f * std::acos(Math::Min(Math::Abs(dot), 1.0f));
+			if (angle < Math::Epsilon)
+			{
+				return to;
+			}
+			return FromXM(DirectX::XMQuaternionSlerp(from.ToXM(), to.ToXM(), Math::Min(1.0f, maxRadiansDelta / angle)));
+		}
 	};
 
 	inline constexpr Quaternion Quaternion::Identity{ 0.0f, 0.0f, 0.0f, 1.0f };
