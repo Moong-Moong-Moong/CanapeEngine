@@ -72,10 +72,8 @@
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
     <ClInclude Include="Source\Asset\Texture\TextureData.h" />
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
+    <ClInclude Include="Source\CNDebug\DebugLog.h" />
     <ClInclude Include="Source\Core\Containers\SlotMap.h" />
-    <ClInclude Include="Source\Debug\DebugLog.h">
-      <DeploymentContent>false</DeploymentContent>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\Renderer.h" />
     <ClInclude Include="Source\Renderer\RenderScene.h" />
     <ClInclude Include="Source\Renderer\RenderItem.h" />
@@ -117,9 +115,7 @@
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
-    <ClCompile Include="Source\Debug\DebugLog.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="Source\CNDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />

@@ -4,7 +4,7 @@
 #include "Scripts/GarbageCollector.h"
 #include "Scripts/PlayerController.h"
 #include "Scripts/SceneChanger.h"
-#include "../../../Engine/Source/Debug/DebugLog.h"
+#include "../../../Engine/Source/CNDebug/DebugLog.h"
 
 namespace
 {

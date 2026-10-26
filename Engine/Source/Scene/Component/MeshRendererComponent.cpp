@@ -6,7 +6,7 @@
 #include "Renderer/RenderScene.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
-#include "Debug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 
 namespace Canape
 {

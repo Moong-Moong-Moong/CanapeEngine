@@ -5,7 +5,7 @@
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Texture/TextureAsset.h"
-#include "Debug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
@@ -120,7 +120,7 @@ namespace Canape
         CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
         RenderScene renderScene;
 
-        if (!camera || !camera->IsActiveAndEnabled())
+        if (!camera || !camera->IsEnabled())
         {
             if (!m_WarnedNoCamera)
             {

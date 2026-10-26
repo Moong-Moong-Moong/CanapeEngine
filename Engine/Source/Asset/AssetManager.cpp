@@ -1,7 +1,7 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/Texture/TextureImporter.h"
-#include "Debug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

@@ -14,7 +14,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "../Source/Debug/DebugLog.h"
+#include "../Source/CNDebug/DebugLog.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")

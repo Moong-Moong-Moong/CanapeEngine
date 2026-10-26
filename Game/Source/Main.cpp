@@ -4,7 +4,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <exception>
-#include "../../Engine/Source/Debug/DebugLog.h"
+#include "../../Engine/Source/CNDebug/DebugLog.h"
 
 
 int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int)

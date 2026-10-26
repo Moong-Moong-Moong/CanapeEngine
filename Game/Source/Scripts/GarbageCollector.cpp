@@ -1,5 +1,5 @@
 #include "Scripts/GarbageCollector.h"
-#include "Debug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 
 void GarbageCollector::Update()
 {

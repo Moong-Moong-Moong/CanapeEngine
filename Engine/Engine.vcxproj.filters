@@ -49,11 +49,11 @@
     <Filter Include="Source\ThirdParty\ufbx">
       <UniqueIdentifier>{3FBB176D-7420-B98A-0C1C-6E7EF8617359}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Debug">
-      <UniqueIdentifier>{0524b823-227a-46b1-b3b3-1e651409119d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Core\Containers">
       <UniqueIdentifier>{79d9402d-c634-4906-a9d6-46f2bc0e732e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\CNDebug">
+      <UniqueIdentifier>{196acfaf-9c13-48d4-bb3f-b2e16c40c93c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -204,11 +204,11 @@
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Debug\DebugLog.h">
-      <Filter>Source\Debug</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Containers\SlotMap.h">
       <Filter>Source\Core\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CNDebug\DebugLog.h">
+      <Filter>Source\CNDebug</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -299,8 +299,8 @@
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Debug\DebugLog.cpp">
-      <Filter>Source\Debug</Filter>
+    <ClCompile Include="Source\CNDebug\DebugLog.cpp">
+      <Filter>Source\CNDebug</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
