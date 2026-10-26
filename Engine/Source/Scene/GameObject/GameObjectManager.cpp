@@ -83,7 +83,7 @@ namespace Canape
 	{
 		for (GameObject* gameObject : m_gameObjects.GetAll())
 		{
-			if (gameObject->IsActive())
+			if (!gameObject->IsActive())
 				continue;
 
 			gameObject->BuildRenderScene(renderScene, assets, renderer);
