@@ -39,7 +39,7 @@ Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
     assets.CreateMaterial("M_Enemy_Transparent", transparentDesc, enemyTexture, materialOwner);
     assets.CreateMaterial("M_Enemy_Masked", maskedDesc, enemyTexture, materialOwner);
 
-    Canape::GameObject* player = scene->GetGameObject(scene->DeferAddGameObject("Player"));
+    Canape::GameObject* player = scene->GetGameObject(scene->AddGameObject("Player"));
     auto* playerRenderer = player->AddComponent<Canape::MeshRendererComponent>();
     playerRenderer->SetMesh(kPlayerModelPath);
     playerRenderer->SetMaterial(0, "M_Player");
@@ -49,7 +49,7 @@ Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
     const char* enemyMaterials[] = { "M_Enemy", "M_Enemy_Transparent", "M_Enemy_Masked" };
     for (uint32_t i = 0; i < 3; ++i)
     {
-        Canape::GameObject* enemy = scene->GetGameObject(scene->DeferAddGameObject(enemyNames[i]));
+        Canape::GameObject* enemy = scene->GetGameObject(scene->AddGameObject(enemyNames[i]));
         enemy->GetTransform()->SetLocalPosition({ -3.0f + 3.0f * i, 0.0f, 4.0f });
         enemy->GetTransform()->LookAt(player->GetTransform()->GetPosition());
         auto* renderer = enemy->AddComponent<Canape::MeshRendererComponent>();
@@ -57,18 +57,18 @@ Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
         renderer->SetMaterial(0, enemyMaterials[i]);
     }
 
-    Canape::GameObject* camera = scene->GetGameObject(scene->DeferAddGameObject("Main Camera"));
+    Canape::GameObject* camera = scene->GetGameObject(scene->AddGameObject("Main Camera"));
     camera->AddComponent<CameraController>(player->GetHandle(), 35.0f);
     scene->SetMainCamera(camera->AddComponent<Canape::CameraComponent>());
 
-    Canape::GameObject* sceneChanger = scene->GetGameObject(scene->DeferAddGameObject("Scene Changer"));
+    Canape::GameObject* sceneChanger = scene->GetGameObject(scene->AddGameObject("Scene Changer"));
     sceneChanger->AddComponent<SceneChanger>(&SampleScene2::Create, Canape::Key::Space);
 
-    Canape::GameObject* garbageCollector = scene->GetGameObject(scene->DeferAddGameObject("Garbage Collector"));
+    Canape::GameObject* garbageCollector = scene->GetGameObject(scene->AddGameObject("Garbage Collector"));
     garbageCollector->AddComponent<GarbageCollector>(Canape::Key::Delete);
 
 
-    Canape::GameObject* level = scene->GetGameObject(scene->DeferAddGameObject("Level"));
+    Canape::GameObject* level = scene->GetGameObject(scene->AddGameObject("Level"));
     auto* levelRenderer = level->AddComponent<Canape::MeshRendererComponent>();
     levelRenderer->SetMesh(kLevelModelPath);
 

@@ -109,6 +109,7 @@
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h" />
     <ClInclude Include="Source\Scene\Component\RenderableComponent.h" />
     <ClInclude Include="Source\Scene\Component\ScriptComponent.h" />
+    <ClInclude Include="Source\Scene\Component\ComponentRegistry.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -136,6 +137,7 @@
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
     <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp" />
+    <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObject.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />

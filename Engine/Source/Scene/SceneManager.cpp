@@ -65,7 +65,7 @@ namespace Canape
 	{
 		if (m_activeScene)
 		{
-			m_activeScene->UpdateGameObjects();
+			m_activeScene->Update();
 		}
 
 		ApplyPendingChanges();

@@ -1,7 +1,6 @@
 #include "Scene/GameObject/GameObject.h"
 #include "../Component/Component.h"
-#include "Scene/Component/RenderableComponent.h"
-#include "Scene/Component/ScriptComponent.h"
+#include "Scene/Scene.h"
 #include "Core/Containers/SlotMap.h"
 
 namespace Canape
@@ -14,14 +13,6 @@ namespace Canape
 		m_Components.push_back(std::move(transform));
 	}
 
-	GameObject::GameObject(Scene* scene, std::string name, Handle<GameObject> handle)
-		: GameObject()
-	{
-		m_Name = std::move(name);
-		m_Scene = scene;
-		m_handle = handle;
-	}
-
 	bool GameObject::RemoveComponent(Component* component)
 	{
 		if (!component || component == m_Transform || component->m_GameObject != this || component->m_PendingDestroy)
@@ -30,135 +21,49 @@ namespace Canape
 		}
 
 		component->m_PendingDestroy = true;
-		m_PendingRemoveComponents.push_back(component);
+		if (m_Scene)
+		{
+			m_Scene->UnregisterComponent(component);
+		}
 		return true;
 	}
 
-	void GameObject::BeginUpdate()
+	void GameObject::RegisterComponent(Component* component)
 	{
-		//*** 삭제 예정 컴포넌트 삭제
-		FlushRemovedComponents();
-		//*** 추가 예정 컴포넌트 활성화
-		AddPendingComponents();
-	}
-
-	void GameObject::FlushRemovedComponents()
-	{
-		for (Component* removedComponent : m_PendingRemoveComponents)
+		if (!m_Scene || m_PendingDestroy)
 		{
-			//*** Script Component 목록에서 삭제
-			auto scriptComponent = m_ScriptComponents.begin();
-			while (scriptComponent != m_ScriptComponents.end())
-			{
-				if (*scriptComponent == removedComponent)
-				{
-					static_cast<ScriptComponent*>(removedComponent)->OnDestroy();
-					m_ScriptComponents.erase(scriptComponent);
-					break;
-				}
-
-				++scriptComponent;
-			}
-
-			//*** Renderable Component 목록에서 삭제
-			auto renderableComponent = m_RenderableComponents.begin();
-			while (renderableComponent != m_RenderableComponents.end())
-			{
-				if (*renderableComponent == removedComponent)
-				{
-					m_RenderableComponents.erase(renderableComponent);
-					break;
-				}
-
-				++renderableComponent;
-			}
-
-			//*** Component 목록에서 삭제
-			auto component = m_Components.begin();
-			while (component != m_Components.end())
-			{
-				if (component->get() == removedComponent)
-				{
-					m_Components.erase(component);
-					break;
-				}
-
-				++component;
-			}
+			return;
 		}
 
-		m_PendingRemoveComponents.clear();
+		m_Scene->RegisterComponent(component);
 	}
 
-	void GameObject::AddPendingComponents()
+	void GameObject::RemoveAllComponents()
 	{
 		for (const std::unique_ptr<Component>& component : m_Components)
 		{
-
-			if (component->m_PendingAdd)
+			if (component.get() == m_Transform || component->m_PendingDestroy)
 			{
-				component->m_PendingAdd = false;
+				continue;
+			}
 
-				//***** Script Component 목록에 추가
-				ScriptComponent* scriptComponent = dynamic_cast<ScriptComponent*>(component.get());
-				if (scriptComponent && component->m_Enabled)
-				{
-					m_ScriptComponents.push_back(scriptComponent);
-				}
-
-				//***** Renderable Component 목록에 추가
-				RenderableComponent* renderableComponent = dynamic_cast<RenderableComponent*>(component.get());
-				if (renderableComponent && component->m_Enabled)
-				{
-					m_RenderableComponents.push_back(renderableComponent);
-				}
+			component->m_PendingDestroy = true;
+			if (m_Scene)
+			{
+				m_Scene->UnregisterComponent(component.get());
 			}
 		}
 	}
 
-	void GameObject::Update()
+	void GameObject::DestroyComponent(Component* component)
 	{
-		if (m_Active == false)
-			return;
-
-		BeginUpdate();
-		UpdateScriptComponents();
-	}
-
-	void GameObject::UpdateScriptComponents()
-	{
-		for (ScriptComponent* scriptComp : m_ScriptComponents)
+		for (auto it = m_Components.begin(); it != m_Components.end(); ++it)
 		{
-			if (scriptComp->GetAwoken())
-				continue;
-			scriptComp->Awake();
-			scriptComp->SetAwoken(true);
-		}
-
-		for (ScriptComponent* scriptComp : m_ScriptComponents)
-		{
-			if (scriptComp->GetStarted())
-				continue;
-			scriptComp->Start();
-			scriptComp->SetStarted(true);
-		}
-
-		for (ScriptComponent* scriptComp : m_ScriptComponents)
-		{
-			scriptComp->Update();
-		}
-
-		for (ScriptComponent* scriptComp : m_ScriptComponents)
-		{
-			scriptComp->LateUpdate();
-		}
-	}
-
-	void GameObject::BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const
-	{
-		for (RenderableComponent* renderableComponent : m_RenderableComponents)
-		{
-			renderableComponent->BuildRenderScene(renderScene, assets, renderer);
+			if (it->get() == component)
+			{
+				m_Components.erase(it);
+				return;
+			}
 		}
 	}
 }

@@ -13,17 +13,11 @@
 namespace Canape
 {
 	class Scene;
-	class ScriptComponent;
-	class RenderableComponent;
-	class AssetManager;
-	class Renderer;
-	struct RenderScene;
 
 	class GameObject final
 	{
 	public:
 		GameObject();
-		GameObject(Scene* scene, std::string name, Handle<GameObject> handle);
 		~GameObject() = default;
 		GameObject(const GameObject&) = delete;
 		GameObject& operator=(const GameObject&) = delete;
@@ -36,52 +30,35 @@ namespace Canape
 		const Handle<GameObject>& GetHandle() const { return m_handle; }
 		bool IsActive() const { return m_Active; }
 		void SetActive(bool active) { m_Active = active; }
-		bool IsActivePending() const { return m_ActivePending; }
-		void SetActivePending(bool pending) { m_ActivePending = pending; }
 		bool IsPendingDestroy() const { return m_PendingDestroy; }
 		void SetPendingDestroy(bool pending) { m_PendingDestroy = pending; }
 
-		TransformComponent* GetTransform() const { return m_Transform; }
-		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const;
-
 		template<typename T, typename... Args>
 		T* AddComponent(Args&&... args);
-
 		template<typename T>
 		T* GetComponent() const;
-
 		template<typename T>
 		std::vector<T*> GetComponents() const;
-
 		template<typename T>
 		bool RemoveComponent();
 
 		bool RemoveComponent(Component* component);
+		void DestroyComponent(Component* component);
+
+		void RegisterComponent(Component* component);
+		void RemoveAllComponents();
+
+		TransformComponent* GetTransform() const { return m_Transform; }
 
 	private:
-		friend class GameObjectManager;
-
-		GameObject(Scene* scene, std::string name);
-
-		void BeginUpdate();
-		void Update();
-		void UpdateScriptComponents();
-
-		void FlushRemovedComponents();
-		void AddPendingComponents();
-
 		std::string m_Name;
 		Scene* m_Scene = nullptr;
 		Handle<GameObject> m_handle = {};
 
 		bool m_Active = true;
-		bool m_ActivePending = false;
 		bool m_PendingDestroy = false;
 
 		std::vector<std::unique_ptr<Component>> m_Components;
-		std::vector<ScriptComponent*> m_ScriptComponents;
-		std::vector<RenderableComponent*> m_RenderableComponents;
-		std::vector<Component*> m_PendingRemoveComponents;
 		TransformComponent* m_Transform = nullptr;
 	};
 
@@ -95,8 +72,8 @@ namespace Canape
 		T* result = component.get();
 		component->m_GameObject = this;
 		component->m_Enabled = true;
-		component->m_PendingAdd = true;
 		m_Components.push_back(std::move(component));
+		RegisterComponent(result);
 		return result;
 	}
 

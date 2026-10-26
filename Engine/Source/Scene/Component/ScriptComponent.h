@@ -13,13 +13,13 @@ namespace Canape
 	{
 	public:
 		template<typename T>
-		T* GetComponent() const { return GetGameObject()->GetComponent<T>(); }
+		T* GetComponent() const { return GetOwnerObject()->GetComponent<T>(); }
 
 		template<typename T>
-		std::vector<T*> GetComponents() const { return GetGameObject()->GetComponents<T>(); }
+		std::vector<T*> GetComponents() const { return GetOwnerObject()->GetComponents<T>(); }
 
 		template<typename T, typename... Args>
-		T* AddComponent(Args&&... args) const { return GetGameObject()->AddComponent<T>(std::forward<Args>(args)...); }
+		T* AddComponent(Args&&... args) const { return GetOwnerObject()->AddComponent<T>(std::forward<Args>(args)...); }
 
 
 		bool GetAwoken() const { return m_Awoken; }
@@ -41,7 +41,7 @@ namespace Canape
 		virtual void OnDestroy() {}
 
 	private:
-		friend class GameObject;
+		friend class Scene;
 
 		bool m_Awoken = false;
 		bool m_Started = false;

@@ -186,6 +186,9 @@
     <ClInclude Include="Source\Scene\Component\ScriptComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scene\Component\ComponentRegistry.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scene\Component\TransformComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
@@ -279,6 +282,9 @@
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\TransformComponent.cpp">

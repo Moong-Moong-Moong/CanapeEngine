@@ -28,7 +28,6 @@ namespace Canape
 
 		GameObject* m_GameObject = nullptr;
 		bool m_Enabled = true;
-		bool m_PendingAdd = false;
 		bool m_PendingDestroy = false;
 	};
 }

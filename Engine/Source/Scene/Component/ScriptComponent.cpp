@@ -13,7 +13,7 @@ namespace Canape
 		if (scene == nullptr)
 			return handle;
 
-		return scene->DeferAddGameObject(name);
+		return scene->AddGameObject(name);
 	}
 
 	void ScriptComponent::Destroy(const Handle<GameObject>& handle) const
@@ -25,7 +25,7 @@ namespace Canape
 		if (scene == nullptr)
 			return;
 
-		scene->DeferRemoveGameObject(handle);
+		scene->RemoveGameObject(handle);
 	}
 
 	GameObject* ScriptComponent::GetGameObject(const Handle<GameObject>& handle) const

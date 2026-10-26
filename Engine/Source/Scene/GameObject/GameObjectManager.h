@@ -9,9 +9,6 @@ namespace Canape
 {
 	class GameObject;
 	class Scene;
-	class AssetManager;
-	class Renderer;
-	struct RenderScene;
 
 	class GameObjectManager
 	{
@@ -24,22 +21,13 @@ namespace Canape
 
 		Handle<GameObject> AddGameObject(const std::string& name, Scene* scene);
 		void RemoveGameObject(Handle<GameObject> handle);
-		Handle<GameObject> DeferAddGameObject(const std::string& name, Scene* scene);
-		void DeferRemoveGameObject(Handle<GameObject> handle);
 		GameObject* GetGameObject(Handle<GameObject> handle);
 		Handle<GameObject> FindGameObjectByName(const std::string& name);
 
-		void BeginUpdate();
-		void Update();
-		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer);
-
-		void FlushRemoved();
-		void ActivePending();
-	private:
-
+		void FlushPending();
 
 	private:
 		SlotMap<GameObject> m_gameObjects;
-		std::vector<Handle<GameObject>> m_pendingRemoveHandles;
+		std::vector<Handle<GameObject>> m_pendingRemove;
 	};
 }
