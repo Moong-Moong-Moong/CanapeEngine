@@ -17,7 +17,7 @@
 namespace Canape
 {
     Renderer::Renderer()
-        : m_Backend(std::make_unique<DX11Renderer>())
+        : m_DX11(std::make_unique<DX11Renderer>())
     {
     }
 
@@ -25,55 +25,48 @@ namespace Canape
 
     bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
     {
-        return m_Backend->Initialize(nativeWindow, width, height);
+        return m_DX11->Initialize(nativeWindow, width, height);
     }
 
-    bool Renderer::UploadMesh(const MeshAsset& mesh, std::string& error)
+    bool Renderer::UploadMesh(const MeshAsset& mesh)
     {
-        const MeshHandle handle = m_Backend->RegisterMesh(mesh.GetAssetId(), mesh.GetVertices(),
+        const MeshHandle handle = m_DX11->RegisterMesh(mesh.GetAssetId(), mesh.GetVertices(),
             mesh.GetIndices(), mesh.GetSubMeshes());
         if (!handle.IsValid())
         {
-            error = m_Backend->GetLastError();
             return false;
         }
-        error.clear();
         return true;
     }
 
-    bool Renderer::UploadTexture(const TextureAsset& texture, std::string& error)
+    bool Renderer::UploadTexture(const TextureAsset& texture)
     {
-        const TextureHandle handle = m_Backend->RegisterTexture(texture.GetAssetId(), texture.GetWidth(),
+        const TextureHandle handle = m_DX11->RegisterTexture(texture.GetAssetId(), texture.GetWidth(),
             texture.GetHeight(), texture.GetFormat(), texture.GetPixels());
         if (!handle.IsValid())
         {
-            error = m_Backend->GetLastError();
             return false;
         }
-        error.clear();
         return true;
     }
 
-    bool Renderer::UploadMaterial(const MaterialAsset& material, std::string& error)
+    bool Renderer::UploadMaterial(const MaterialAsset& material)
     {
         TextureHandle baseColorTexture{};
         if (const TextureAssetHandle& texture = material.GetBaseColorTexture(); texture.IsValid())
         {
-            baseColorTexture = m_Backend->FindTexture(texture.GetId());
+            baseColorTexture = m_DX11->FindTexture(texture.GetId());
             if (!baseColorTexture.IsValid())
             {
-                error = "BaseColor texture must be uploaded before the material";
                 return false;
             }
         }
 
-        const MaterialHandle handle = m_Backend->RegisterMaterial(material.GetAssetId(), material.GetDesc(), baseColorTexture);
+        const MaterialHandle handle = m_DX11->RegisterMaterial(material.GetAssetId(), material.GetDesc(), baseColorTexture);
         if (!handle.IsValid())
         {
-            error = m_Backend->GetLastError();
             return false;
         }
-        error.clear();
         return true;
     }
 
@@ -81,9 +74,9 @@ namespace Canape
     {
         for (const MeshAssetId assetId : meshes)
         {
-            if (const MeshHandle handle = m_Backend->FindMesh(assetId); handle.IsValid())
+            if (const MeshHandle handle = m_DX11->FindMesh(assetId); handle.IsValid())
             {
-                m_Backend->DestroyMesh(handle);
+                m_DX11->DestroyMesh(handle);
             }
         }
     }
@@ -92,9 +85,9 @@ namespace Canape
     {
         for (const TextureAssetId assetId : textures)
         {
-            if (const TextureHandle handle = m_Backend->FindTexture(assetId); handle.IsValid())
+            if (const TextureHandle handle = m_DX11->FindTexture(assetId); handle.IsValid())
             {
-                m_Backend->DestroyTexture(handle);
+                m_DX11->DestroyTexture(handle);
             }
         }
     }
@@ -103,16 +96,16 @@ namespace Canape
     {
         for (const MaterialAssetId assetId : materials)
         {
-            if (const MaterialHandle handle = m_Backend->FindMaterial(assetId); handle.IsValid())
+            if (const MaterialHandle handle = m_DX11->FindMaterial(assetId); handle.IsValid())
             {
-                m_Backend->DestroyMaterial(handle);
+                m_DX11->DestroyMaterial(handle);
             }
         }
     }
 
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
-        if (!m_Backend->BeginFrame())
+        if (!m_DX11->BeginFrame())
         {
             return;
         }
@@ -133,7 +126,7 @@ namespace Canape
         {
             m_WarnedNoCamera = false;
 
-            const float aspectRatio = static_cast<float>(m_Backend->GetWidth()) / static_cast<float>(m_Backend->GetHeight());
+            const float aspectRatio = static_cast<float>(m_DX11->GetWidth()) / static_cast<float>(m_DX11->GetHeight());
             renderScene.camera.view = camera->GetViewMatrix();
             renderScene.camera.projection = camera->GetProjectionMatrix(aspectRatio);
             renderScene.camera.cameraPosition = camera->GetTransform()->GetPosition();
@@ -141,32 +134,32 @@ namespace Canape
             scene->BuildRenderScene(renderScene, assets, *this);
         }
 
-        m_Backend->DrawScene(renderScene);
-        m_Backend->EndFrame();
+        m_DX11->DrawScene(renderScene);
+        m_DX11->EndFrame();
     }
 
     uint32_t Renderer::GetWidth() const
     {
-        return m_Backend->GetWidth();
+        return m_DX11->GetWidth();
     }
 
     uint32_t Renderer::GetHeight() const
     {
-        return m_Backend->GetHeight();
+        return m_DX11->GetHeight();
     }
 
 	MeshHandle Renderer::FindMesh(MeshAssetId assetId) const
 	{
-		return m_Backend->FindMesh(assetId);
+		return m_DX11->FindMesh(assetId);
 	}
 
 	MaterialHandle Renderer::FindMaterial(MaterialAssetId assetId) const
 	{
-		return m_Backend->FindMaterial(assetId);
+		return m_DX11->FindMaterial(assetId);
 	}
 
     const std::string& Renderer::GetLastError() const
     {
-        return m_Backend->GetLastError();
+        return m_DX11->GetLastError();
     }
 }

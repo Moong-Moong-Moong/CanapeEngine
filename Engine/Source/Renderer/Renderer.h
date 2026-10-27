@@ -27,9 +27,9 @@ namespace Canape
 
         void Render(Scene* scene, const AssetManager& assets);
 
-        bool UploadMesh(const MeshAsset& mesh, std::string& error) override;
-        bool UploadTexture(const TextureAsset& texture, std::string& error) override;
-        bool UploadMaterial(const MaterialAsset& material, std::string& error) override;
+        bool UploadMesh(const MeshAsset& mesh) override;
+        bool UploadTexture(const TextureAsset& texture) override;
+        bool UploadMaterial(const MaterialAsset& material) override;
         void ReleaseMeshes(std::span<const MeshAssetId> meshes) override;
         void ReleaseTextures(std::span<const TextureAssetId> textures) override;
         void ReleaseMaterials(std::span<const MaterialAssetId> materials) override;
@@ -42,7 +42,7 @@ namespace Canape
         const std::string& GetLastError() const;
 
     private:
-        std::unique_ptr<DX11Renderer> m_Backend;
+        std::unique_ptr<DX11Renderer> m_DX11;
         bool m_WarnedNoCamera = false;
     };
 }

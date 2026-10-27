@@ -33,7 +33,7 @@ namespace Canape::Debug
 	void UnregisterKeyCommand(uint32_t commandId);
 
 	template <typename... Args>
-	void Log(MainTag tag, std::string_view subTag, const char* file, int line, Args&&... args) //Args&& : 여러개의 다른 타입 인자, 좌측값, 우측값 둘다 OK
+	void Log(MainTag tag, std::string_view subTag, const char* file, int line, Args&&... args) 
 	{
 		std::ostringstream stream; // 문자열 제작을 위한 스트림 객체
 		(stream << ... << std::forward<Args>(args)); // Fold Expression, 여러개의 인자에 << 연산자를 반복 적용

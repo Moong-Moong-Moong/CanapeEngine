@@ -6,14 +6,11 @@
 #include "Renderer/RenderScene.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
-#include "CNDebug/DebugLog.h"
 
 namespace Canape
 {
 	namespace
 	{
-		constexpr char kAttachError[] = "MeshRendererComponent must be added with AddComponent first";
-
 		AssetOwnerInfo MakeOwnerInfo(const GameObject& gameObject)
 		{
 			AssetOwnerInfo owner;
@@ -57,34 +54,29 @@ namespace Canape
 		}
 	}
 
-	bool MeshRendererComponent::SetMesh(const std::string& path, std::string* outError)
+	bool MeshRendererComponent::SetMesh(const std::string& path)
 	{
 		GameObject* gameObject = GetOwnerObject();
 		if (!gameObject)
 		{
-			CN_LOG_ENGINE("MeshRenderer", "AddComponent 전에 SetMesh 호출됨");
-			if (outError) *outError = kAttachError;
 			m_Mesh.Reset();
 			return false;
 		}
 
-		// Acquire before the old handle is released so re-setting the same path never unloads it.
-		m_Mesh = Application::Get().GetAssetManager().GetMeshHandle(path, MakeOwnerInfo(*gameObject), outError);
+		m_Mesh = Application::Get().GetAssetManager().GetMeshHandle(path, MakeOwnerInfo(*gameObject));
 		return m_Mesh.IsValid();
 	}
 
-	bool MeshRendererComponent::SetMaterial(uint32_t slot, const std::string& materialName, std::string* outError)
+	bool MeshRendererComponent::SetMaterial(uint32_t slot, const std::string& materialName)
 	{
 		GameObject* gameObject = GetOwnerObject();
 		if (!gameObject)
 		{
-			CN_LOG_ENGINE("MeshRenderer", "AddComponent 전에 SetMaterial 호출됨");
-			if (outError) *outError = kAttachError;
 			return false;
 		}
 
 		if (slot >= m_Materials.size()) m_Materials.resize(size_t(slot) + 1);
-		m_Materials[slot] = Application::Get().GetAssetManager().GetMaterialHandle(materialName, MakeOwnerInfo(*gameObject), outError);
+		m_Materials[slot] = Application::Get().GetAssetManager().GetMaterialHandle(materialName, MakeOwnerInfo(*gameObject));
 		return m_Materials[slot].IsValid();
 	}
 

@@ -28,6 +28,7 @@ namespace Canape
 	template <typename T>
 	using AssetMap = std::unordered_map<AssetId<T>, AssetEntry<T>, AssetIdHash<T>>;
 
+	//***** CPU 자원을 관리
 	class AssetManager
 	{
 	public:
@@ -36,24 +37,26 @@ namespace Canape
 		AssetManager(const AssetManager&) = delete;
 		AssetManager& operator=(const AssetManager&) = delete;
 
-		MeshAssetHandle GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner, std::string* outError = nullptr);
+		//***** Release
+		size_t ReleaseUnusedAssets();
 
+		//***** Mesh
+		MeshAssetHandle GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const MeshAsset* GetMesh(const MeshAssetHandle& handle) const;
 
-		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner, std::string* outError = nullptr);
+		//***** Texture
+		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const TextureAsset* GetTexture(const TextureAssetHandle& handle) const;
 
+		//***** Material
 		MaterialAssetHandle CreateMaterial(const std::string& name, const MaterialDesc& desc,
-			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner, std::string* outError = nullptr);
-
-		MaterialAssetHandle GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner, std::string* outError = nullptr);
+			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner);
+		MaterialAssetHandle GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner);
 		const MaterialAsset* GetMaterial(const MaterialAssetHandle& handle) const;
 
+		//***** Asset Tracker
 		const AssetTracker& GetTracker() const { return m_Tracker; }
 		void PrintAssetRecords() const;
-
-		// 적절한 순서로 에셋 삭제
-		size_t ReleaseUnusedAssets();
 
 	private:
 		template <typename T>
@@ -67,10 +70,8 @@ namespace Canape
 		TextureAssetId FindTexture(const std::string& pathKey) const;
 		MaterialAssetId FindMaterial(const std::string& name) const;
 
-		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath,
-			std::string* outError);
-		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath,
-			std::string* outError);
+		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
+		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath);
 
 		MeshAssetHandle CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner);
 		TextureAssetHandle CreateTextureHandle(TextureAssetId id, const AssetOwnerInfo& owner);
@@ -107,4 +108,5 @@ namespace Canape
 		}
 		Clear();
 	}
+
 }

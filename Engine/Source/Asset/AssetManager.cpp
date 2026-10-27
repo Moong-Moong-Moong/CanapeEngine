@@ -17,9 +17,8 @@ namespace Canape
 	{
 		struct ResolvedAssetPath
 		{
-			std::filesystem::path file;
-			std::string utf8File; // Absolute, normalized, generic separators.
-			std::string key;      // utf8File lowercased: Windows paths are case-insensitive.
+			std::string utf8File; // 절대 경로
+			std::string key;      // 소문자로 변환된 키 용 경로
 		};
 
 		std::string ToLowerAscii(std::string text)
@@ -36,39 +35,33 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
-		// 파일 경로를 절대 경로 변환
-		// 문자열 표현 UTF-8 통일
-		// 대문자 -> 소문자 변환 (Windows에서는 파일 대소문자 구분 X)
-		bool ResolveAssetPath(const std::string& path, ResolvedAssetPath& resolved, std::string& error)
+		bool ResolveAssetPath(const std::string& path, ResolvedAssetPath& resolved)
 		{
+			//*** 에셋 경로 가공
+			//std::u8string, utf-8, char8_t
+			//std::filesystem::absolute, 상대 -> 절대
+			//std::filesystem::path.lexically_normal(), 경로 정규화
 			std::error_code pathError;
-			try
-			{
-				resolved.file = std::filesystem::absolute(std::filesystem::path(std::u8string(path.begin(), path.end())), pathError).lexically_normal();
-			}
-			catch (const std::system_error&)
-			{
-				error = path + ": Decode asset path failed";
-				return false;
-			}
+			const std::filesystem::path file = 
+				std::filesystem::absolute(
+					std::filesystem::path(std::u8string(path.begin(), path.end())),
+					pathError
+				).lexically_normal();
+
 			if (pathError)
 			{
-				error = path + ": Resolve asset path failed (" + pathError.message() + ')';
 				return false;
 			}
-			resolved.utf8File = ToUtf8(resolved.file.generic_u8string());
+
+			resolved.utf8File = ToUtf8(file.generic_u8string());
 			resolved.key = ToLowerAscii(resolved.utf8File);
 			return true;
 		}
 
+		//*** 확장자를 소문자로 파싱
 		std::string GetLowerExtension(const std::string& utf8File)
 		{
 			return ToLowerAscii(ToUtf8(std::filesystem::path(std::u8string(utf8File.begin(), utf8File.end())).extension().u8string()));
-		}
-
-		void LogAssetError(const char* operation, const std::string& error)
-		{
-			CN_LOG_ENGINE("Asset", operation, ": ", error);
 		}
 
 		template <typename T>
@@ -103,7 +96,6 @@ namespace Canape
 			return unused;
 		}
 
-		// Destroying an asset can release handles it owns (a material's texture) into other maps.
 		template <typename T>
 		void EraseAssets(std::unordered_map<std::string, AssetId<T>>& idByKey, AssetMap<T>& entries,
 			const std::vector<AssetId<T>>& ids)
@@ -159,23 +151,19 @@ namespace Canape
 	}
 
 	// Mesh
-
-	MeshAssetHandle AssetManager::GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner, std::string* outError)
+	MeshAssetHandle AssetManager::GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner)
 	{
-		if (outError) outError->clear();
-
 		ResolvedAssetPath resolved;
-		std::string error;
-		if (!ResolveAssetPath(path, resolved, error))
+		if (!ResolveAssetPath(path, resolved))
 		{
-			LogAssetError("메시 로드 실패", error);
+			CN_LOG_ENGINE("Asset", "메쉬 에셋 경로 오류 : ", path);
 			return {};
 		}
 
 		MeshAssetId id = FindMesh(resolved.key);
 		if (!id.IsValid())
 		{
-			id = LoadMesh(path, resolved.key, resolved.utf8File, outError);
+			id = LoadMesh(path, resolved.key, resolved.utf8File);
 			if (!id.IsValid())
 			{
 				return {};
@@ -194,33 +182,29 @@ namespace Canape
 		return FindAssetId(m_MeshIdByPath, pathKey);
 	}
 
-	MeshAssetId AssetManager::LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath,
-		std::string* outError)
+	MeshAssetId AssetManager::LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath)
 	{
 		const std::string extension = GetLowerExtension(filePath);
 
-		std::string error;
 		std::unique_ptr<MeshAsset> mesh;
 		if (extension == ".fbx")
 		{
-			mesh = FbxImporter::LoadMesh(filePath, &error);
+			mesh = FbxImporter::LoadMesh(filePath);
 		}
 		else
 		{
-			error = path + ": Unsupported mesh file extension '" + extension + "'";
-			LogAssetError("메시 로드 실패", error);
-			if (outError) *outError = std::move(error);
+			CN_LOG_ENGINE("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
 			return {};
 		}
 
 		if (!mesh)
 		{
-			LogAssetError("메시 로드 실패", error);
+			CN_LOG_ENGINE("Asset", "메쉬 에셋 로드 오류 : Import 실패, ", path);
 			return {};
 		}
-		if (!m_GpuUploader.UploadMesh(*mesh, error))
+		if (!m_GpuUploader.UploadMesh(*mesh))
 		{
-			LogAssetError("메시 업로드 실패", path + ": " + error);
+			CN_LOG_ENGINE("Asset", "메쉬 에셋 Gpu 로드 실패, ", path);
 			return {};
 		}
 
@@ -228,7 +212,7 @@ namespace Canape
 		m_MeshIdByPath.emplace(pathKey, id);
 		m_MeshesById.emplace(id, AssetEntry<MeshAsset>{ std::move(mesh), filePath, pathKey }).first->second.gpuUploaded = true;
 		return id;
-	}
+	}	
 
 	MeshAssetHandle AssetManager::CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner)
 	{
@@ -247,7 +231,7 @@ namespace Canape
 		{
 			return 0;
 		}
-		// GPU resources go first; the CPU entry is the source they were built from.
+
 		m_GpuUploader.ReleaseMeshes(unused);
 		EraseAssets(m_MeshIdByPath, m_MeshesById, unused);
 		return unused.size();
@@ -255,22 +239,19 @@ namespace Canape
 
 	// Texture
 
-	TextureAssetHandle AssetManager::GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner, std::string* outError)
+	TextureAssetHandle AssetManager::GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner)
 	{
-		if (outError) outError->clear();
-
 		ResolvedAssetPath resolved;
-		std::string error;
-		if (!ResolveAssetPath(path, resolved, error))
+		if (!ResolveAssetPath(path, resolved))
 		{
-			LogAssetError("텍스처 로드 실패", error);
+			CN_LOG_ENGINE("Asset", "텍스처 에셋 경로 오류 : ", path);
 			return {};
 		}
 
 		TextureAssetId id = FindTexture(resolved.key);
 		if (!id.IsValid())
 		{
-			id = LoadTexture(path, resolved.key, resolved.utf8File, outError);
+			id = LoadTexture(path, resolved.key, resolved.utf8File);
 			if (!id.IsValid())
 			{
 				return {};
@@ -289,33 +270,29 @@ namespace Canape
 		return FindAssetId(m_TextureIdByPath, pathKey);
 	}
 
-	TextureAssetId AssetManager::LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath,
-		std::string* outError)
+	TextureAssetId AssetManager::LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath)
 	{
 		const std::string extension = GetLowerExtension(filePath);
 
-		std::string error;
 		std::unique_ptr<TextureAsset> texture;
 		if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp")
 		{
-			texture = TextureImporter::LoadTexture(std::filesystem::path(std::u8string(filePath.begin(), filePath.end())), &error);
+			texture = TextureImporter::LoadTexture(std::filesystem::path(std::u8string(filePath.begin(), filePath.end())));
 		}
 		else
 		{
-			error = path + ": Unsupported texture file extension '" + extension + "'";
-			LogAssetError("텍스처 로드 실패", error);
-			if (outError) *outError = std::move(error);
+			CN_LOG_ENGINE("Asset", "텍스처 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
 			return {};
 		}
 
 		if (!texture)
 		{
-			LogAssetError("텍스처 로드 실패", error);
+			CN_LOG_ENGINE("Asset", "텍스처 에셋 로드 오류 : Import 실패, ", path);
 			return {};
 		}
-		if (!m_GpuUploader.UploadTexture(*texture, error))
+		if (!m_GpuUploader.UploadTexture(*texture))
 		{
-			LogAssetError("텍스처 업로드 실패", path + ": " + error);
+			CN_LOG_ENGINE("Asset", "텍스처 에셋 Gpu 로드 실패, ", path);
 			return {};
 		}
 
@@ -350,36 +327,34 @@ namespace Canape
 	// Material
 
 	MaterialAssetHandle AssetManager::CreateMaterial(const std::string& name, const MaterialDesc& desc,
-		const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner, std::string* outError)
+		const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner)
 	{
-		if (outError) outError->clear();
-		auto fail = [&](std::string error) -> MaterialAssetHandle
+		if (name.empty())
 		{
-			LogAssetError("머티리얼 생성 실패", error);
-			if (outError) *outError = std::move(error);
+			CN_LOG_ENGINE("Asset", "머티리얼 에셋 생성 오류 : 이름 없음");
 			return {};
-		};
-
-		if (name.empty()) return fail("Material name must not be empty");
+		}
 		if (const MaterialAssetId existing = FindMaterial(name); existing.IsValid())
 		{
-			CN_LOG_ENGINE("Material", "이미 있는 머티리얼 반환: ", name);
+			CN_LOG_ENGINE("Asset", "이미 있는 머티리얼 반환: ", name);
 			return CreateMaterialHandle(existing, owner);
 		}
 
-		// The caller loads the texture first; the material takes its own reference to it.
 		TextureAssetHandle texture;
 		if (baseColorTexture.IsValid())
 		{
-			if (!GetTexture(baseColorTexture)) return fail("Material '" + name + "' references a released texture");
+			if (!GetTexture(baseColorTexture))
+			{
+				CN_LOG_ENGINE("Asset", "머티리얼 에셋 생성 오류 : 해제된 텍스처 참조, ", name);
+				return {};
+			}
 			texture = CreateTextureHandle(baseColorTexture.GetId(), { owner.sceneName, "Material:" + name, "MaterialAsset" });
 		}
 
 		auto material = std::make_unique<MaterialAsset>(desc, std::move(texture));
-		std::string error;
-		if (!m_GpuUploader.UploadMaterial(*material, error))
+		if (!m_GpuUploader.UploadMaterial(*material))
 		{
-			LogAssetError("머티리얼 업로드 실패", name + ": " + error);
+			CN_LOG_ENGINE("Asset", "머티리얼 에셋 Gpu 로드 실패, ", name);
 			return {};
 		}
 
@@ -389,16 +364,12 @@ namespace Canape
 		return CreateMaterialHandle(id, owner);
 	}
 
-	MaterialAssetHandle AssetManager::GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner, std::string* outError)
+	MaterialAssetHandle AssetManager::GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner)
 	{
-		if (outError) outError->clear();
-
 		const MaterialAssetId id = FindMaterial(name);
 		if (!id.IsValid())
 		{
-			std::string error = "Material '" + name + "' does not exist";
-			LogAssetError("머티리얼 조회 실패", error);
-			if (outError) *outError = std::move(error);
+			CN_LOG_ENGINE("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
 			return {};
 		}
 		return CreateMaterialHandle(id, owner);

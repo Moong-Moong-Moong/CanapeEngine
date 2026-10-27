@@ -7,10 +7,6 @@ namespace Canape
 {
 	class AssetManager;
 
-	// Move-only reference to an asset owned by AssetManager. Holds no asset pointer;
-	// resolve through AssetManager (for example GetMesh) on every access.
-	// Destruction releases one reference and deletes this handle's tracker record.
-	// Member definitions that call AssetManager live at the end of AssetManager.h.
 	template <typename T>
 	class AssetHandle
 	{
@@ -43,7 +39,6 @@ namespace Canape
 		bool IsValid() const { return m_Manager && m_Id.IsValid(); }
 		AssetId<T> GetId() const { return m_Id; }
 
-		// Releases the reference early. The handle becomes invalid.
 		void Reset();
 
 	private:
@@ -65,6 +60,8 @@ namespace Canape
 		AssetRecordId m_RecordId{};
 		AssetManager* m_Manager = nullptr;
 	};
+
+	// Reset()은 AssetManager의 완전한 정의가 필요해서 AssetManager.h 하단에 정의한다.
 
 	using MeshAssetHandle = AssetHandle<MeshAsset>;
 	using TextureAssetHandle = AssetHandle<TextureAsset>;

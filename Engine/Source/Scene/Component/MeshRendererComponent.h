@@ -14,10 +14,10 @@ namespace Canape
 	public:
 		MeshRendererComponent() = default;
 		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const override;
-		bool SetMesh(const std::string& path, std::string* outError = nullptr);
+		bool SetMesh(const std::string& path);
 		const MeshAssetHandle& GetMesh() const { return m_Mesh; }
 
-		bool SetMaterial(uint32_t slot, const std::string& materialName, std::string* outError = nullptr);
+		bool SetMaterial(uint32_t slot, const std::string& materialName);
 
 		const MaterialAssetHandle& GetMaterial(uint32_t slot) const;
 

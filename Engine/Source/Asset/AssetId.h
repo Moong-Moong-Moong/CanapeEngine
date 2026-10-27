@@ -34,7 +34,6 @@ namespace Canape
     using MaterialAssetId = AssetId<MaterialAsset>;
     using TextureAssetId = AssetId<TextureAsset>;
 
-    // Hash for unordered_map keys: std::unordered_map<MeshAssetId, V, AssetIdHash<MeshAsset>>.
     template <typename T>
     struct AssetIdHash
     {
