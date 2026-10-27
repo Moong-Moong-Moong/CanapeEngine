@@ -32,6 +32,7 @@ namespace Canape
 		void Update();
 		void EndUpdate();
 		void OnDestroyScripts();
+
 		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer);
 
 		//***** GameObject

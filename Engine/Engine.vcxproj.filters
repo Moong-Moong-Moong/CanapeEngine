@@ -57,15 +57,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\Math\Color.h">
-      <Filter>Common\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Math\Geometry.h">
-      <Filter>Common\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Math\Intersection.h">
-      <Filter>Common\Math</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Math\IntVector.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
@@ -81,13 +72,7 @@
     <ClInclude Include="..\Common\Math\Quaternion.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\Math\Random.h">
-      <Filter>Common\Math</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Math\Rotator.h">
-      <Filter>Common\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Math\Transform.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Math\Vector2.h">
@@ -215,30 +200,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Common\Math\Color.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Geometry.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Intersection.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Matrix4.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Quaternion.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Random.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Rotator.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Math\Transform.cpp">
-      <Filter>Common\Math</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Asset\AssetManager.cpp">
       <Filter>Source\Asset</Filter>
     </ClCompile>
