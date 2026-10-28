@@ -64,17 +64,23 @@
     <ClInclude Include="Resource\DX11MeshResource.h" />
     <ClInclude Include="Resource\DX11TextureResource.h" />
     <ClInclude Include="Resource\DX11MaterialResource.h" />
+    <ClInclude Include="Resource\DX11ColorTarget.h" />
+    <ClInclude Include="Resource\DX11DepthTarget.h" />
     <ClInclude Include="Pipeline\DX11PipelineState.h" />
     <ClInclude Include="Pipeline\DX11ShaderCompiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DX11Renderer.cpp" />
     <ClCompile Include="Resource\DX11ResourceCache.cpp" />
+    <ClCompile Include="Resource\DX11ColorTarget.cpp" />
+    <ClCompile Include="Resource\DX11DepthTarget.cpp" />
     <ClCompile Include="Pipeline\DX11PipelineState.cpp" />
     <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\Mesh.hlsl" />
+    <None Include="Shader\ShadowDepth.hlsl" />
+    <None Include="Shader\ShadowDebug.hlsl" />
     <None Include="Shader\Common\Constants.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

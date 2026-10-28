@@ -70,12 +70,20 @@ namespace Canape
         void DrawMesh(MeshHandle mesh, const float* world, uint32_t submeshIndex = 0, MaterialHandle material = {});
         void EndFrame();
 
+        // Draw the shadow depth map over the main pass for inspection. Disabled by default.
+        void SetShadowDebugEnabled(bool enabled);
+        // Show the per-pixel shadow factor in grayscale. Disabled by default.
+        void SetShadowFactorDebugEnabled(bool enabled);
+
         uint32_t GetWidth() const;
         uint32_t GetHeight() const;
 
         const std::string& GetLastError() const;
 
     private:
+        void RenderShadowPass(const RenderScene& scene);
+        void RenderMainPass(const RenderScene& scene);
+        void DrawShadowDebug();
         MeshHandle CreateMeshData(const void* vertices, size_t vertexCount, uint32_t stride, VertexFormat format,
             std::span<const uint32_t> indices, std::span<const SubMesh> submeshes);
         MeshHandle RegisterMeshData(MeshAssetId assetId, const void* vertices, size_t vertexCount,

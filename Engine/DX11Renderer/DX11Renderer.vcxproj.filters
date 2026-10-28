@@ -34,6 +34,12 @@
     <ClInclude Include="Resource\DX11TextureResource.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\DX11ColorTarget.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11DepthTarget.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DX11Renderer.cpp" />
@@ -46,12 +52,24 @@
     <ClCompile Include="Resource\DX11ResourceCache.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Resource\DX11ColorTarget.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\DX11DepthTarget.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
     <None Include="Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\ShadowDepth.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\ShadowDebug.hlsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

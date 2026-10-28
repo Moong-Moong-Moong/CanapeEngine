@@ -93,6 +93,27 @@ namespace Canape
             vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.StaticInputLayout);
         if (FAILED(result)) return Fail(error, "ID3D11Device::CreateInputLayout(static)", result);
 
+        if (!CompileShaderFile(L"Shaders/ShadowDepth.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, vertexBytecode, error)) return false;
+        result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
+            nullptr, &pending.ShadowVertexShader);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateVertexShader(shadow)", result);
+        // Both mesh formats begin with POSITION at offset zero; only the stride differs.
+        result = device->CreateInputLayout(inputElements, static_cast<UINT>(std::size(inputElements)),
+            vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.ShadowInputLayout);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateInputLayout(shadow)", result);
+
+        if (!CompileShaderFile(L"Shaders/ShadowDebug.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, vertexBytecode, error)) return false;
+        result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
+            nullptr, &pending.ShadowDebugVertexShader);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateVertexShader(shadow debug)", result);
+        if (!CompileShaderFile(L"Shaders/ShadowDebug.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error)) return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.ShadowDebugPixelShader);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreatePixelShader(shadow debug)", result);
+
         D3D11_BLEND_DESC blendDesc{};
         auto& blend = blendDesc.RenderTarget[0];
         blend.SrcBlend = blend.SrcBlendAlpha = D3D11_BLEND_ONE;
@@ -122,6 +143,10 @@ namespace Canape
         depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         result = device->CreateDepthStencilState(&depthDesc, &pending.TransparentDepthState);
         if (FAILED(result)) return Fail(error, "ID3D11Device::CreateDepthStencilState(transparent)", result);
+        depthDesc.DepthEnable = FALSE;
+        depthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+        result = device->CreateDepthStencilState(&depthDesc, &pending.ShadowDebugDepthState);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateDepthStencilState(shadow debug)", result);
 
         D3D11_SAMPLER_DESC samplerDesc{};
         samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -132,6 +157,12 @@ namespace Canape
         result = device->CreateSamplerState(&samplerDesc, &pending.LinearSampler);
         if (FAILED(result)) return Fail(error, "ID3D11Device::CreateSamplerState(linear wrap)", result);
 
+        // Hard shadows compare exactly one depth texel; shader checks bounds before sampling.
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        result = device->CreateSamplerState(&samplerDesc, &pending.ShadowSampler);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateSamplerState(shadow point clamp)", result);
+
         D3D11_RASTERIZER_DESC rasterizerDesc{};
         rasterizerDesc.FillMode = D3D11_FILL_SOLID;
         rasterizerDesc.CullMode = D3D11_CULL_NONE;
@@ -141,6 +172,14 @@ namespace Canape
         {
             return Fail(error, "ID3D11Device::CreateRasterizerState", result);
         }
+
+        // Raster bias stays zero; the current comparison bias is in ShadowFrameConstants.
+        constexpr INT kShadowDepthBias = 0;
+        constexpr FLOAT kShadowSlopeScaledDepthBias = 0.0f;
+        rasterizerDesc.DepthBias = kShadowDepthBias;
+        rasterizerDesc.SlopeScaledDepthBias = kShadowSlopeScaledDepthBias;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.ShadowRasterizerState);
+        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateRasterizerState(shadow)", result);
 
 
         *this = std::move(pending);
@@ -159,6 +198,22 @@ namespace Canape
             transparent ? TransparentBlendState.Get() : OpaqueBlendState.Get(),
             transparent ? TransparentDepthState.Get() : OpaqueDepthState.Get(),
             LinearSampler.Get()
+        };
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveShadow() const
+    {
+        return {
+            ShadowVertexShader.Get(), nullptr, ShadowInputLayout.Get(),
+            ShadowRasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), nullptr
+        };
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveShadowDebug() const
+    {
+        return {
+            ShadowDebugVertexShader.Get(), ShadowDebugPixelShader.Get(), nullptr,
+            RasterizerState.Get(), OpaqueBlendState.Get(), ShadowDebugDepthState.Get(), LinearSampler.Get()
         };
     }
 }

@@ -35,18 +35,28 @@ namespace Canape
 
         bool Initialize(ID3D11Device* device, std::string& error);
         DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        DX11PipelineSelection ResolveShadow() const;
+        DX11PipelineSelection ResolveShadowDebug() const;
+        ID3D11SamplerState* GetShadowSampler() const { return ShadowSampler.Get(); }
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowDebugVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> ShadowDebugPixelShader;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> ShadowInputLayout;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> ShadowRasterizerState;
         Microsoft::WRL::ComPtr<ID3D11BlendState> OpaqueBlendState;
         Microsoft::WRL::ComPtr<ID3D11BlendState> TransparentBlendState;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> OpaqueDepthState;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> TransparentDepthState;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> ShadowDebugDepthState;
         Microsoft::WRL::ComPtr<ID3D11SamplerState> LinearSampler;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> ShadowSampler;
     };
 }
