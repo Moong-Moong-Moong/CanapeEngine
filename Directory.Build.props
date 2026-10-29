@@ -4,5 +4,7 @@
     <CanapeRoot>$(MSBuildThisFileDirectory)</CanapeRoot>
     <OutDir>$(CanapeRoot)Binaries\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
     <IntDir>$(CanapeRoot)Intermediate\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
+    <CanapeRenderDebug Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">1</CanapeRenderDebug>
+    <CanapeRenderDebug Condition="'$(Configuration)'=='Shipping'">0</CanapeRenderDebug>
   </PropertyGroup>
 </Project>

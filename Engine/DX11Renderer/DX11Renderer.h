@@ -2,6 +2,8 @@
 
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Data/MeshData.h"
+#include "DX11Renderer/Data/RendererDebugSettings.h"
+#include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Resource/DX11ResourceId.h"
 #include "DX11Renderer/Scene/RenderScene.h"
@@ -50,6 +52,8 @@ namespace Canape
         void DestroyTexture(TextureResourceId texture);
 
         void SetCamera(const float* view, const float* projection);
+        void SetDebugSettings(const RendererDebugSettings& settings);
+        RendererDebugStats GetDebugStats() const;
 
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);

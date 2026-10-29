@@ -6,6 +6,9 @@
 
 #include <d3d11.h>
 #include "DX11Renderer/Pipeline/DX11PipelineState.h"
+#if CANAPE_RENDER_DEBUG
+#include "DX11Renderer/Pipeline/GPUProfiler.h"
+#endif
 #include "DX11Renderer/Resource/DX11ResourceCache.h"
 #include <DirectXMath.h>
 #include <wrl/client.h>
@@ -161,16 +164,37 @@ namespace Canape
             Vector4 BaseColor;
             uint32_t Mode;
             float AlphaCutoff;
-            float Padding[2]{};
+            uint32_t HasBaseColorTexture = 0;
+            float Padding = 0.0f;
         };
         static_assert(sizeof(MaterialConstants) == 32);
         static_assert(offsetof(MaterialConstants, Mode) == 16 && offsetof(MaterialConstants, AlphaCutoff) == 20);
+        static_assert(offsetof(MaterialConstants, HasBaseColorTexture) == 24);
+
+#if CANAPE_RENDER_DEBUG
+        struct alignas(16) DepthDisplayConstants
+        {
+            float Min;
+            float Max;
+            float Padding[2]{};
+        };
+        static_assert(sizeof(DepthDisplayConstants) == 16);
+#endif
 
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
         bool FrameActive = false;
         std::string LastError;
+#if CANAPE_RENDER_DEBUG
+        RendererDebugSettings DebugSettings{};
+        RendererDebugStats CurrentStats{};
+        RendererDebugStats CompletedStats{};
+        uint64_t NextFrameId = 0;
+        GPUProfiler Profiler;
+        bool ProfilerAvailable = false;
+        uint64_t MinGpuFrameId = 0;
+#endif
 
         ViewConstants ViewData{};
         SceneConstants SceneData{};
@@ -186,12 +210,21 @@ namespace Canape
         DX11PipelineState Pipelines;
         ComPtr<IDXGISwapChain> SwapChain;
         ComPtr<ID3D11RenderTargetView> RenderTargetView;
+        ComPtr<ID3D11Texture2D> SceneColorTexture;
+        ComPtr<ID3D11RenderTargetView> SceneColorRenderTargetView;
+        ComPtr<ID3D11ShaderResourceView> SceneColorShaderResourceView;
         ComPtr<ID3D11Texture2D> DepthTexture;
         ComPtr<ID3D11DepthStencilView> DepthStencilView;
+#if CANAPE_RENDER_DEBUG
+        ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
+#endif
         ComPtr<ID3D11Buffer> ObjectBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
+#if CANAPE_RENDER_DEBUG
+        ComPtr<ID3D11Buffer> DepthDisplayBuffer;
+#endif
 
         Impl()
         {
@@ -238,6 +271,50 @@ namespace Canape
             Context->PSSetSamplers(0, 1, &pipeline.Sampler);
         }
 
+        void RenderFinalOutput()
+        {
+            // Rebinding the back buffer unbinds both SceneColor RTV and depth DSV before SRV reads.
+            ID3D11RenderTargetView* backBuffer = RenderTargetView.Get();
+            Context->OMSetRenderTargets(1, &backBuffer, nullptr);
+
+            D3D11_VIEWPORT viewport{};
+            viewport.Width = static_cast<float>(Width);
+            viewport.Height = static_cast<float>(Height);
+            viewport.MaxDepth = 1.0f;
+            Context->RSSetViewports(1, &viewport);
+
+#if CANAPE_RENDER_DEBUG
+            const bool cameraDepth = DebugSettings.enabled && DebugSettings.viewMode == DebugViewMode::CameraDepth;
+            BindPipeline(Pipelines.ResolveFinalOutput(cameraDepth));
+            ID3D11ShaderResourceView* output = cameraDepth
+                ? DepthShaderResourceView.Get() : SceneColorShaderResourceView.Get();
+#else
+            BindPipeline(Pipelines.ResolveFinalOutput(false));
+            ID3D11ShaderResourceView* output = SceneColorShaderResourceView.Get();
+#endif
+            Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            Context->PSSetShaderResources(0, 1, &output);
+#if CANAPE_RENDER_DEBUG
+            if (cameraDepth)
+            {
+                const DepthDisplayConstants display{ DebugSettings.depthMin, DebugSettings.depthMax };
+                Context->UpdateSubresource(DepthDisplayBuffer.Get(), 0, nullptr, &display, 0, 0);
+                ID3D11Buffer* buffer = DepthDisplayBuffer.Get();
+                Context->PSSetConstantBuffers(0, 1, &buffer);
+            }
+#endif
+            Context->Draw(3, 0);
+#if CANAPE_RENDER_DEBUG
+            ++CurrentStats.drawCalls;
+            ++CurrentStats.triangleCount;
+#endif
+
+            ID3D11ShaderResourceView* unbound = nullptr;
+            Context->PSSetShaderResources(0, 1, &unbound);
+            ID3D11Buffer* unboundBuffer = nullptr;
+            Context->PSSetConstantBuffers(0, 1, &unboundBuffer);
+        }
+
         bool CreateTargets(uint32_t width, uint32_t height)
         {
             ComPtr<ID3D11Texture2D> backBuffer;
@@ -262,15 +339,55 @@ namespace Canape
                 return false;
             }
 
+            // Match the old back-buffer sRGB render target so scene blending stays linear.
+            D3D11_TEXTURE2D_DESC sceneColorDesc{};
+            sceneColorDesc.Width = width;
+            sceneColorDesc.Height = height;
+            sceneColorDesc.MipLevels = 1;
+            sceneColorDesc.ArraySize = 1;
+            sceneColorDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+            sceneColorDesc.SampleDesc.Count = 1;
+            sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
+            sceneColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+            result = Device->CreateTexture2D(&sceneColorDesc, nullptr, &SceneColorTexture);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateTexture2D(scene color)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+            result = Device->CreateRenderTargetView(SceneColorTexture.Get(), nullptr, &SceneColorRenderTargetView);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateRenderTargetView(scene color)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+            result = Device->CreateShaderResourceView(SceneColorTexture.Get(), nullptr, &SceneColorShaderResourceView);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateShaderResourceView(scene color)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+
             D3D11_TEXTURE2D_DESC depthDesc{};
             depthDesc.Width = width;
             depthDesc.Height = height;
             depthDesc.MipLevels = 1;
             depthDesc.ArraySize = 1;
+#if CANAPE_RENDER_DEBUG
+            depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+#else
             depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+#endif
             depthDesc.SampleDesc.Count = 1;
             depthDesc.Usage = D3D11_USAGE_DEFAULT;
+#if CANAPE_RENDER_DEBUG
+            depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+#else
             depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+#endif
 
             result = Device->CreateTexture2D(&depthDesc, nullptr, &DepthTexture);
             if (FAILED(result))
@@ -280,13 +397,30 @@ namespace Canape
                 return false;
             }
 
-            result = Device->CreateDepthStencilView(DepthTexture.Get(), nullptr, &DepthStencilView);
+            D3D11_DEPTH_STENCIL_VIEW_DESC depthViewDesc{};
+            depthViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depthViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+            result = Device->CreateDepthStencilView(DepthTexture.Get(), &depthViewDesc, &DepthStencilView);
             if (FAILED(result))
             {
                 LastError = HResultMessage("ID3D11Device::CreateDepthStencilView", result);
                 CN_LOG_RENDERER("Error", LastError);
                 return false;
             }
+
+#if CANAPE_RENDER_DEBUG
+            D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
+            depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+            depthResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            depthResourceDesc.Texture2D.MipLevels = 1;
+            result = Device->CreateShaderResourceView(DepthTexture.Get(), &depthResourceDesc, &DepthShaderResourceView);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateShaderResourceView(depth)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+#endif
 
             Width = width;
             Height = height;
@@ -301,7 +435,15 @@ namespace Canape
             }
 
             Context->OMSetRenderTargets(0, nullptr, nullptr);
+            ID3D11ShaderResourceView* unbound = nullptr;
+            Context->PSSetShaderResources(0, 1, &unbound);
             RenderTargetView.Reset();
+            SceneColorShaderResourceView.Reset();
+            SceneColorRenderTargetView.Reset();
+            SceneColorTexture.Reset();
+#if CANAPE_RENDER_DEBUG
+            DepthShaderResourceView.Reset();
+#endif
             DepthStencilView.Reset();
             DepthTexture.Reset();
 
@@ -359,6 +501,17 @@ namespace Canape
                 CN_LOG_RENDERER("Error", LastError);
                 return false;
             }
+
+#if CANAPE_RENDER_DEBUG
+            constantBufferDesc.ByteWidth = sizeof(DepthDisplayConstants);
+            result = Device->CreateBuffer(&constantBufferDesc, nullptr, &DepthDisplayBuffer);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(depth display constants)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+#endif
 
             return Resources.CreateWhiteTexture(Device.Get(), Context.Get(), LastError);
         }
@@ -422,7 +575,13 @@ namespace Canape
             return false;
         }
 
-        return m_Impl->CreateTargets(width, height) && m_Impl->CreatePipeline();
+        if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()) return false;
+#if CANAPE_RENDER_DEBUG
+        std::string profilerError;
+        m_Impl->ProfilerAvailable = m_Impl->Profiler.Initialize(m_Impl->Device.Get(), profilerError);
+        if (!m_Impl->ProfilerAvailable) CN_LOG_RENDERER("Profiler", profilerError);
+#endif
+        return true;
     }
 
     void DX11Renderer::Shutdown()
@@ -484,6 +643,53 @@ namespace Canape
         if (std::isfinite(det) && det != 0.0f && !XMMatrixIsInfinite(inverseView) && !XMMatrixIsNaN(inverseView))
             m_Impl->ViewData.CameraPosition = Vector3::FromXM(inverseView.r[3]);
         m_Impl->ViewDirty = true;
+    }
+
+    void DX11Renderer::SetDebugSettings(const RendererDebugSettings& settings)
+    {
+#if CANAPE_RENDER_DEBUG
+        if (!m_Impl) return;
+
+        RendererDebugSettings valid = settings;
+        if (valid.viewMode != DebugViewMode::Final && valid.viewMode != DebugViewMode::CameraDepth
+            && valid.viewMode != DebugViewMode::WorldNormal && valid.viewMode != DebugViewMode::UV
+            && valid.viewMode != DebugViewMode::MipLOD)
+            valid.viewMode = DebugViewMode::Final;
+        if (!std::isfinite(valid.depthMin) || !std::isfinite(valid.depthMax)
+            || valid.depthMin < 0.0f || valid.depthMax > 1.0f || valid.depthMin >= valid.depthMax)
+        {
+            const RendererDebugSettings defaults;
+            valid.depthMin = defaults.depthMin;
+            valid.depthMax = defaults.depthMax;
+        }
+        if (valid.captureGpuTimings && !m_Impl->DebugSettings.captureGpuTimings)
+            m_Impl->MinGpuFrameId = m_Impl->NextFrameId + 1;
+        m_Impl->DebugSettings = valid;
+#else
+        (void)settings;
+#endif
+    }
+
+    RendererDebugStats DX11Renderer::GetDebugStats() const
+    {
+        if (!m_Impl) return {};
+        RendererDebugStats stats{};
+#if CANAPE_RENDER_DEBUG
+        stats = m_Impl->CompletedStats;
+        if (m_Impl->DebugSettings.captureGpuTimings && m_Impl->ProfilerAvailable)
+        {
+            const GpuTimingResult& timing = m_Impl->Profiler.LatestResult();
+            if (timing.frameId >= m_Impl->MinGpuFrameId)
+            {
+                stats.gpuFrameId = timing.frameId;
+                stats.gpuTimingValid = timing.valid;
+                stats.gpuFrameMs = timing.frameMs;
+                stats.drawSceneMs = timing.drawSceneMs;
+                stats.finalOutputMs = timing.finalOutputMs;
+            }
+        }
+#endif
+        return stats;
     }
 
     void DX11Renderer::SetRenderView(const RenderView& view)
@@ -549,7 +755,7 @@ namespace Canape
 
     bool DX11Renderer::BeginFrame()
     {
-        if (!m_Impl || !m_Impl->Context || !m_Impl->SwapChain)
+        if (!m_Impl || !m_Impl->Context || !m_Impl->SwapChain || m_Impl->FrameActive)
         {
             return false;
         }
@@ -569,12 +775,23 @@ namespace Canape
 
         ID3D11DeviceContext* context = m_Impl->Context.Get();
 
-        // Linear RGB and linear alpha. The sRGB RTV encodes RGB, including clear values.
+#if CANAPE_RENDER_DEBUG
+        m_Impl->CurrentStats = {};
+        m_Impl->CurrentStats.frameId = ++m_Impl->NextFrameId;
+        if (m_Impl->ProfilerAvailable)
+        {
+            m_Impl->Profiler.Poll(context);
+            if (m_Impl->DebugSettings.captureGpuTimings)
+                m_Impl->Profiler.BeginFrame(context, m_Impl->CurrentStats.frameId);
+        }
+#endif
+
+        // Linear RGB and linear alpha. The SceneColor sRGB RTV encodes RGB, including clear values.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
-        context->ClearRenderTargetView(m_Impl->RenderTargetView.Get(), clearColor);
+        context->ClearRenderTargetView(m_Impl->SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(m_Impl->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-        ID3D11RenderTargetView* renderTarget = m_Impl->RenderTargetView.Get();
+        ID3D11RenderTargetView* renderTarget = m_Impl->SceneColorRenderTargetView.Get();
         context->OMSetRenderTargets(1, &renderTarget, m_Impl->DepthStencilView.Get());
 
         D3D11_VIEWPORT viewport{};
@@ -613,6 +830,10 @@ namespace Canape
             return;
         }
 
+#if CANAPE_RENDER_DEBUG
+        if (m_Impl->ProfilerAvailable) m_Impl->Profiler.BeginDrawScene(m_Impl->Context.Get());
+#endif
+
         SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
         m_Impl->ViewData.CameraPosition = scene.camera.cameraPosition;
         m_Impl->SceneData.AmbientColor = scene.ambientColor;
@@ -649,6 +870,9 @@ namespace Canape
         for (const auto* item : opaque) draw(item);
         for (const auto* item : masked) draw(item);
         for (const auto& entry : transparent) draw(entry.Item);
+#if CANAPE_RENDER_DEBUG
+        if (m_Impl->ProfilerAvailable) m_Impl->Profiler.EndDrawScene(m_Impl->Context.Get());
+#endif
     }
 
     void DX11Renderer::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
@@ -688,21 +912,36 @@ namespace Canape
         context->UpdateSubresource(m_Impl->ObjectBuffer.Get(), 0, nullptr, &constants, 0, 0);
         const DX11MaterialResource* materialResource = m_Impl->Resources.GetMaterial(material);
         const MaterialDesc materialDesc = materialResource ? materialResource->Desc : MaterialDesc{};
-        const Impl::MaterialConstants materialConstants{ materialDesc.baseColor, static_cast<uint32_t>(materialDesc.alphaMode), materialDesc.alphaCutoff };
+        ID3D11ShaderResourceView* textureView = m_Impl->Resources.GetWhiteTextureView();
+        uint32_t hasBaseColorTexture = 0;
+        if (materialResource)
+        {
+            if (const auto* texture = m_Impl->Resources.GetTexture(materialResource->BaseColorTexture))
+            {
+                textureView = texture->ShaderResourceView.Get();
+#if CANAPE_RENDER_DEBUG
+                hasBaseColorTexture = 1;
+#endif
+            }
+        }
+        const Impl::MaterialConstants materialConstants{ materialDesc.baseColor,
+            static_cast<uint32_t>(materialDesc.alphaMode), materialDesc.alphaCutoff,
+            hasBaseColorTexture };
         context->UpdateSubresource(m_Impl->MaterialBuffer.Get(), 0, nullptr, &materialConstants, 0, 0);
         // Bind every draw, including direct DrawMesh calls, so prior pipeline state cannot leak.
+#if CANAPE_RENDER_DEBUG
+        const DebugViewMode meshView = m_Impl->DebugSettings.enabled
+            ? m_Impl->DebugSettings.viewMode : DebugViewMode::Final;
+        const bool wireframe = m_Impl->DebugSettings.enabled && m_Impl->DebugSettings.wireframe;
+        m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode, meshView, wireframe));
+#else
         m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode));
+#endif
         m_Impl->BindSharedConstants();
         ID3D11Buffer* objectBuffer = m_Impl->ObjectBuffer.Get();
         context->VSSetConstantBuffers(0, 1, &objectBuffer);
         ID3D11Buffer* materialBuffer = m_Impl->MaterialBuffer.Get();
         context->PSSetConstantBuffers(1, 1, &materialBuffer);
-        ID3D11ShaderResourceView* textureView = m_Impl->Resources.GetWhiteTextureView();
-        if (materialResource)
-        {
-            if (const auto* texture = m_Impl->Resources.GetTexture(materialResource->BaseColorTexture))
-                textureView = texture->ShaderResourceView.Get();
-        }
         // Always bind, including white fallback, so previous draws cannot leak a texture.
         context->PSSetShaderResources(0, 1, &textureView);
         const UINT stride = gpuMesh.Stride;
@@ -712,6 +951,10 @@ namespace Canape
         context->IASetIndexBuffer(gpuMesh.IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         const SubMesh& part = gpuMesh.SubMeshes[submeshIndex];
         context->DrawIndexed(part.indexCount, part.startIndex, part.baseVertex);
+#if CANAPE_RENDER_DEBUG
+        ++m_Impl->CurrentStats.drawCalls;
+        m_Impl->CurrentStats.triangleCount += part.indexCount / 3;
+#endif
     }
 
     void DX11Renderer::EndFrame()
@@ -721,7 +964,21 @@ namespace Canape
             return;
         }
 
+#if CANAPE_RENDER_DEBUG
+        if (m_Impl->ProfilerAvailable) m_Impl->Profiler.BeginFinalOutput(m_Impl->Context.Get());
+#endif
+        m_Impl->RenderFinalOutput();
+#if CANAPE_RENDER_DEBUG
+        if (m_Impl->ProfilerAvailable)
+        {
+            m_Impl->Profiler.EndFinalOutput(m_Impl->Context.Get());
+            m_Impl->Profiler.EndFrame(m_Impl->Context.Get());
+        }
+#endif
         m_Impl->FrameActive = false;
+#if CANAPE_RENDER_DEBUG
+        m_Impl->CompletedStats = m_Impl->CurrentStats;
+#endif
 
         const HRESULT result = m_Impl->SwapChain->Present(1, 0);
         if (FAILED(result))

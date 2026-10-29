@@ -30,6 +30,12 @@
     <ClInclude Include="Data\MeshData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\RendererDebugSettings.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\RendererDebugStats.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\TextureData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
@@ -40,6 +46,9 @@
       <Filter>Source\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline\DX11ShaderCompiler.h">
+      <Filter>Source\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\GPUProfiler.h">
       <Filter>Source\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Resource\DX11MaterialResource.h">
@@ -74,11 +83,17 @@
     <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp">
       <Filter>Source\Pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="Pipeline\GPUProfiler.cpp">
+      <Filter>Source\Pipeline</Filter>
+    </ClCompile>
     <ClCompile Include="Resource\DX11ResourceCache.cpp">
       <Filter>Source\Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
