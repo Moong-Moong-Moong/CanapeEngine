@@ -23,10 +23,11 @@ struct VertexOutput
 VertexOutput VSMain(VertexInput input)
 {
     VertexOutput output;
-    output.Position = mul(float4(input.Position, 1.0f), WorldViewProjection);
-    output.WorldPosition = mul(float4(input.Position, 1.0f), World).xyz;
+    float4 worldPosition = mul(float4(input.Position, 1.0f), World);
+    output.Position = mul(worldPosition, ViewProjection);
+    output.WorldPosition = worldPosition.xyz;
 #ifdef STATIC_VERTEX
-    output.WorldNormal = mul(float4(input.Normal, 0.0f), WorldNormal).xyz;
+    output.WorldNormal = mul(float4(input.Normal, 0.0f), WorldInverseTranspose).xyz;
     output.UV = input.UV;
 #else
     output.WorldNormal = float3(0, 0, 0);
