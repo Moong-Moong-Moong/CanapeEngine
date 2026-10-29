@@ -2,6 +2,7 @@
 
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/MaterialDesc.h"
+#include "DX11Renderer/Data/RendererDebugSettings.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -34,19 +35,35 @@ namespace Canape
         DX11PipelineState& operator=(DX11PipelineState&&) = default;
 
         bool Initialize(ID3D11Device* device, std::string& error);
-        DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
+            DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false) const;
+        DX11PipelineSelection ResolveFinalOutput(bool cameraDepth) const;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> FinalOutputVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
+#if CANAPE_RENDER_DEBUG
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> WorldNormalPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> UVPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> MipLODPixelShader;
+#endif
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> FinalOutputPixelShader;
+#if CANAPE_RENDER_DEBUG
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> CameraDepthPixelShader;
+#endif
         Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticInputLayout;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+#if CANAPE_RENDER_DEBUG
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> WireframeRasterizerState;
+#endif
         Microsoft::WRL::ComPtr<ID3D11BlendState> OpaqueBlendState;
         Microsoft::WRL::ComPtr<ID3D11BlendState> TransparentBlendState;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> OpaqueDepthState;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> TransparentDepthState;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> FinalOutputDepthState;
         Microsoft::WRL::ComPtr<ID3D11SamplerState> LinearSampler;
     };
 }

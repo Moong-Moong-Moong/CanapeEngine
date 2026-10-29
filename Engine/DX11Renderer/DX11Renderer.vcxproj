@@ -9,6 +9,10 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Shipping|x64">
+      <Configuration>Shipping</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -30,6 +34,10 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Shipping'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -41,6 +49,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -58,9 +67,19 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Shipping'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DX11Renderer.h" />
     <ClInclude Include="Data\MeshData.h" />
+    <ClInclude Include="Data\RendererDebugSettings.h" />
+    <ClInclude Include="Data\RendererDebugStats.h" />
     <ClInclude Include="Data\MaterialDesc.h" />
     <ClInclude Include="Data\TextureData.h" />
     <ClInclude Include="Scene\RenderItem.h" />
@@ -72,14 +91,19 @@
     <ClInclude Include="Resource\DX11MaterialResource.h" />
     <ClInclude Include="Pipeline\DX11PipelineState.h" />
     <ClInclude Include="Pipeline\DX11ShaderCompiler.h" />
+    <ClInclude Include="Pipeline\GPUProfiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DX11Renderer.cpp" />
     <ClCompile Include="Resource\DX11ResourceCache.cpp" />
     <ClCompile Include="Pipeline\DX11PipelineState.cpp" />
     <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp" />
+    <ClCompile Include="Pipeline\GPUProfiler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'=='Shipping'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader\FinalOutput.hlsl" />
     <None Include="Shader\Mesh.hlsl" />
     <None Include="Shader\Common\Constants.hlsli" />
   </ItemGroup>

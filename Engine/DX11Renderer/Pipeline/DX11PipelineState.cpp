@@ -66,6 +66,44 @@ namespace Canape
             return false;
         }
 
+#if CANAPE_RENDER_DEBUG
+        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugWorldNormal", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.WorldNormalPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(world normal)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+
+        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugUV", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.UVPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(UV)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+
+        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugMipLOD", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.MipLODPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(mip LOD)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+#endif
+
         constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
               D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -109,6 +147,41 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+
+        if (!CompileShaderFile(L"Shaders/FinalOutput.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, vertexBytecode, error)
+            || !CompileShaderFile(L"Shaders/FinalOutput.hlsl", "PSMain", "ps_5_0", nullptr,
+                kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
+            nullptr, &pending.FinalOutputVertexShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateVertexShader(final output)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.FinalOutputPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(final output)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+#if CANAPE_RENDER_DEBUG
+        if (!CompileShaderFile(L"Shaders/FinalOutput.hlsl", "PSCameraDepth", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.CameraDepthPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(camera depth)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+#endif
 
         D3D11_BLEND_DESC blendDesc{};
         auto& blend = blendDesc.RenderTarget[0];
@@ -159,6 +232,15 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+        depthDesc.DepthEnable = FALSE;
+        depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        result = device->CreateDepthStencilState(&depthDesc, &pending.FinalOutputDepthState);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateDepthStencilState(final output)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         D3D11_SAMPLER_DESC samplerDesc{};
         samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -185,23 +267,66 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+#if CANAPE_RENDER_DEBUG
+        rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.WireframeRasterizerState);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateRasterizerState(wireframe)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+#endif
 
 
         *this = std::move(pending);
         return true;
     }
 
-    DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode) const
+    DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
+        DebugViewMode debugView, bool wireframe) const
     {
         const bool isStatic = vertexFormat == VertexFormat::Static;
         const bool transparent = alphaMode == AlphaMode::Transparent;
+        ID3D11PixelShader* pixelShader = PixelShader.Get();
+#if CANAPE_RENDER_DEBUG
+        if (debugView == DebugViewMode::WorldNormal) pixelShader = WorldNormalPixelShader.Get();
+        else if (debugView == DebugViewMode::UV) pixelShader = UVPixelShader.Get();
+        else if (debugView == DebugViewMode::MipLOD) pixelShader = MipLODPixelShader.Get();
+#else
+        (void)debugView;
+        (void)wireframe;
+#endif
         return {
             isStatic ? StaticVertexShader.Get() : VertexShader.Get(),
-            PixelShader.Get(),
+            pixelShader,
             isStatic ? StaticInputLayout.Get() : InputLayout.Get(),
+#if CANAPE_RENDER_DEBUG
+            wireframe ? WireframeRasterizerState.Get() : RasterizerState.Get(),
+#else
             RasterizerState.Get(),
+#endif
             transparent ? TransparentBlendState.Get() : OpaqueBlendState.Get(),
             transparent ? TransparentDepthState.Get() : OpaqueDepthState.Get(),
+            LinearSampler.Get()
+        };
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveFinalOutput(bool cameraDepth) const
+    {
+        ID3D11PixelShader* pixelShader = FinalOutputPixelShader.Get();
+#if CANAPE_RENDER_DEBUG
+        if (cameraDepth) pixelShader = CameraDepthPixelShader.Get();
+#else
+        (void)cameraDepth;
+#endif
+        return {
+            FinalOutputVertexShader.Get(),
+            pixelShader,
+            nullptr,
+            RasterizerState.Get(),
+            OpaqueBlendState.Get(),
+            FinalOutputDepthState.Get(),
             LinearSampler.Get()
         };
     }
