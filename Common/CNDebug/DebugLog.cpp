@@ -36,7 +36,7 @@ namespace Canape::Debug
 
 		// 현재 필터
 		bool g_ShowAll = true;
-		MainTag g_SelectedTag = MainTag::Engine;
+		MainTag g_SelectedTag = MainTag::Runtime;
 		std::string g_SelectedSubTag; // 비어 있으면 하위태그 전체
 
 		HANDLE g_Out = nullptr;
@@ -70,7 +70,7 @@ namespace Canape::Debug
 		{
 			switch (tag)
 			{
-			case MainTag::Engine: return "Engine";
+			case MainTag::Runtime: return "Runtime";
 			case MainTag::DX11Renderer: return "DX11Renderer";
 			case MainTag::Game: return "Game";
 			default: return "Unknown";
@@ -81,7 +81,7 @@ namespace Canape::Debug
 		{
 			switch (tag)
 			{
-			case MainTag::Engine: return FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;      // 하늘색
+			case MainTag::Runtime: return FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;      // 하늘색
 			case MainTag::DX11Renderer: return  FOREGROUND_GREEN | FOREGROUND_INTENSITY;                 // 초록색
 			case MainTag::Game: return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;         // 노란색
 			default: return kDefaultColor;
@@ -131,7 +131,7 @@ namespace Canape::Debug
 			return g_SelectedSubTag.empty() || EqualsIgnoreCase(entry.subTag, g_SelectedSubTag);
 		}
 
-		// [Engine][Asset] 메세지  (Engine\Source\...\File.cpp:123)
+		// [Runtime][Asset] 메세지  (Engine\Source\...\File.cpp:123)
 		std::string Format(const Entry& entry)
 		{
 			std::ostringstream stream;
@@ -189,7 +189,7 @@ namespace Canape::Debug
 			std::ostringstream header;
 			header << "===== Filter: " << (g_ShowAll ? "ALL" : ToString(g_SelectedTag))
 				<< " / " << (g_SelectedSubTag.empty() ? "*" : g_SelectedSubTag)
-				<< "  (F5 All | F6 Engine | F7 DX11Renderer | F8 Game | F11 SubTag Input";
+				<< "  (F5 All | F6 Runtime | F7 DX11Renderer | F8 Game | F11 SubTag Input";
 			for (const KeyCommand& keyCommand : g_KeyCommands)
 			{
 				header << " | " << KeyName(keyCommand.virtualKey) << ' ' << keyCommand.description;
@@ -246,7 +246,7 @@ namespace Canape::Debug
 				switch (key.wVirtualKeyCode)
 				{
 				case VK_F5: ShowAll(); break;
-				case VK_F6: ShowOnly(MainTag::Engine); break;
+				case VK_F6: ShowOnly(MainTag::Runtime); break;
 				case VK_F7: ShowOnly(MainTag::DX11Renderer); break;
 				case VK_F8: ShowOnly(MainTag::Game); break;
 				case VK_F11: BeginSubTagInput(); break;

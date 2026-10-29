@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/RenderItem.h"
+#include "DX11Renderer/Scene/RenderItem.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 

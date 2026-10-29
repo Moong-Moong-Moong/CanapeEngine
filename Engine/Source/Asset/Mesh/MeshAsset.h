@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Asset/AssetId.h"
-#include "Asset/Mesh/MeshData.h"
+#include "DX11Renderer/Data/MeshData.h"
 #include "Math/Vector3.h"
 
 #include <cstdint>

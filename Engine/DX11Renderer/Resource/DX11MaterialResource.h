@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Asset/Material/MaterialDesc.h"
-#include "Renderer/Handle/TextureHandle.h"
+#include "DX11Renderer/Data/MaterialDesc.h"
+#include "DX11Renderer/Resource/DX11ResourceId.h"
 
 namespace Canape
 {
@@ -9,6 +9,6 @@ namespace Canape
     struct DX11MaterialResource
     {
         MaterialDesc Desc;
-        TextureHandle BaseColorTexture;
+        TextureResourceId BaseColorTexture;
     };
 }

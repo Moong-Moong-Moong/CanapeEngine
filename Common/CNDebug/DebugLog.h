@@ -10,7 +10,7 @@ namespace Canape::Debug
 {
 	enum class MainTag
 	{
-		Engine,
+		Runtime,
 		DX11Renderer,
 		Game,
 		Count
@@ -49,7 +49,7 @@ namespace Canape::Debug
 #endif
 
 // 모듈별 매크로
-#define CN_LOG_ENGINE(subTag, ...)   CN_LOG(Engine, subTag, __VA_ARGS__)
+#define CN_LOG_RUNTIME(subTag, ...)  CN_LOG(Runtime, subTag, __VA_ARGS__)
 #define CN_LOG_RENDERER(subTag, ...) CN_LOG(DX11Renderer, subTag, __VA_ARGS__)
 #define CN_LOG_GAME(subTag, ...)     CN_LOG(Game, subTag, __VA_ARGS__)
 
@@ -57,7 +57,7 @@ namespace Canape::Debug
 
 //#include "Debug/DebugLog.h"
 
-//CN_LOG_ENGINE("Asset", "Loaded mesh '", path, "' (id ", id, ")");
+//CN_LOG_RUNTIME("Asset", "Loaded mesh '", path, "' (id ", id, ")");
 //CN_LOG_RENDERER("Shader", "Compile failed: ", errorMsg);
 //CN_LOG_GAME("", "Player spawned at (", x, ", ", y, ")");   // 하위태그 없음
-//CN_LOG(Engine, "Input", "Key ", key, " pressed");
+//CN_LOG(Runtime, "Input", "Key ", key, " pressed");

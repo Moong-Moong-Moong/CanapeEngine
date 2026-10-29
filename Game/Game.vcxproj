@@ -44,7 +44,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -97,10 +97,18 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Content\Models\Enemy.fbx" />
+    <None Include="Content\Models\level.FBX" />
+    <None Include="Content\Models\Player.fbx" />
+    <None Include="Content\Texture\Enemy_BaseColor.png" />
+    <None Include="Content\Texture\Player_BaseColor.png" />
+    <None Include="Content\Texture\README.md" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Engine\DX11Renderer\DX11Renderer.vcxproj">
       <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Engine\Engine.vcxproj">
+    <ProjectReference Include="..\Engine\Runtime.vcxproj">
       <Project>{025f038a-1a30-409c-be0a-f8b665a329a2}</Project>
     </ProjectReference>
   </ItemGroup>

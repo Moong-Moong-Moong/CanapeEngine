@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Asset/Mesh/MeshData.h"
+#include "DX11Renderer/Data/MeshData.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>

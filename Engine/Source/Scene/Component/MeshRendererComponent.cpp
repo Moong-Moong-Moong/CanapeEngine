@@ -3,7 +3,6 @@
 #include "Asset/Mesh/MeshAsset.h"
 #include "Core/Application.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/RenderScene.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
 
@@ -21,7 +20,7 @@ namespace Canape
 		}
 	}
 
-	void MeshRendererComponent::BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer) const
+	void MeshRendererComponent::AddRenderItem(const AssetManager& assets, Renderer& renderer) const
 	{
 		const MeshAsset* mesh = assets.GetMesh(m_Mesh);
 		if (!mesh)
@@ -29,28 +28,18 @@ namespace Canape
 			return;
 		}
 
-		const MeshHandle meshHandle = renderer.FindMesh(mesh->GetAssetId());
-		if (!meshHandle.IsValid())
+		const Matrix4 world = GetTransform()->GetLocalToWorldMatrix();
+		const uint32_t subMeshCount = static_cast<uint32_t>(mesh->GetSubMeshes().size());
+		for (uint32_t i = 0; i < subMeshCount; ++i)
 		{
-			return;
-		}
-
-		RenderItem item;
-		item.mesh = meshHandle;
-		item.world = GetTransform()->GetLocalToWorldMatrix();
-
-		for (uint32_t i = 0; i < mesh->GetSubMeshes().size(); ++i)
-		{
-			item.submeshIndex = i;
-			item.material = {};
-
+			MaterialAssetId materialId;
 			const MaterialAsset* material = assets.GetMaterial(GetMaterial(mesh->GetSubMeshes()[i].materialSlot));
 			if (material)
 			{
-				item.material = renderer.FindMaterial(material->GetAssetId());
+				materialId = material->GetAssetId();
 			}
 
-			renderScene.items.push_back(item);
+			renderer.AddRenderItem(mesh->GetAssetId(), i, materialId, world);
 		}
 	}
 

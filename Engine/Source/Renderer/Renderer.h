@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Asset/AssetGpuUploader.h"
-#include "Renderer/Handle/MaterialHandle.h"
-#include "Renderer/Handle/MeshHandle.h"
+#include "Asset/AssetId.h"
+#include "Math/Matrix4.h"
 
 #include <cstdint>
 #include <memory>
@@ -12,13 +11,14 @@ namespace Canape
 {
     class AssetManager;
     class DX11Renderer;
+    class GpuResourceRegistry;
     class Scene;
 
-    class Renderer final : public AssetGpuUploader
+    class Renderer final
     {
     public:
         Renderer();
-        ~Renderer() override;
+        ~Renderer();
 
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
@@ -27,22 +27,18 @@ namespace Canape
 
         void Render(Scene* scene, const AssetManager& assets);
 
-        bool UploadMesh(const MeshAsset& mesh) override;
-        bool UploadTexture(const TextureAsset& texture) override;
-        bool UploadMaterial(const MaterialAsset& material) override;
-        void ReleaseMeshes(std::span<const MeshAssetId> meshes) override;
-        void ReleaseTextures(std::span<const TextureAssetId> textures) override;
-        void ReleaseMaterials(std::span<const MaterialAssetId> materials) override;
+        void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
+
+        GpuResourceRegistry& GetRegistry() { return *m_Registry; }
 
         uint32_t GetWidth() const;
         uint32_t GetHeight() const;
-		MeshHandle FindMesh(MeshAssetId assetId) const;
-		MaterialHandle FindMaterial(MaterialAssetId assetId) const;
 
         const std::string& GetLastError() const;
 
     private:
         std::unique_ptr<DX11Renderer> m_DX11;
+        std::unique_ptr<GpuResourceRegistry> m_Registry;
         bool m_WarnedNoCamera = false;
     };
 }

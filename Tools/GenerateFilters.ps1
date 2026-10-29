@@ -35,12 +35,29 @@ foreach ($project in $Projects)
 	$namespaceManager = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
 	$namespaceManager.AddNamespace('m', $msbuildNamespace)
 
+	# Keep filters already assigned to existing items; only new items get a folder-based filter.
+	$existingFilters = @{}
+	if (Test-Path "$projectPath.filters")
+	{
+		[xml]$existingXml = Get-Content "$projectPath.filters" -Raw
+		$existingNamespaces = New-Object System.Xml.XmlNamespaceManager($existingXml.NameTable)
+		$existingNamespaces.AddNamespace('m', $msbuildNamespace)
+		foreach ($node in $existingXml.SelectNodes('//m:ItemGroup/m:*[@Include and not(self::m:Filter)]', $existingNamespaces))
+		{
+			$filterNode = $node.SelectSingleNode('m:Filter', $existingNamespaces)
+			$existingFilters["$($node.LocalName)|$($node.GetAttribute('Include'))"] = if ($filterNode) { $filterNode.InnerText } else { '' }
+		}
+	}
+
 	$items = New-Object System.Collections.Generic.List[object]
 	foreach ($type in $itemTypes)
 	{
 		foreach ($node in $xml.SelectNodes("//m:ItemGroup/m:$type", $namespaceManager))
 		{
-			$items.Add([pscustomobject]@{ Type = $type; Include = $node.GetAttribute('Include'); Filter = (Get-FilterPath $node.GetAttribute('Include')) })
+			$include = $node.GetAttribute('Include')
+			$key = "$type|$include"
+			$filter = if ($existingFilters.ContainsKey($key)) { $existingFilters[$key] } else { Get-FilterPath $include }
+			$items.Add([pscustomobject]@{ Type = $type; Include = $include; Filter = $filter })
 		}
 	}
 

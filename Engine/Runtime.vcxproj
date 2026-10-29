@@ -14,9 +14,9 @@
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{025f038a-1a30-409c-be0a-f8b665a329a2}</ProjectGuid>
-    <RootNamespace>Engine</RootNamespace>
+    <RootNamespace>Runtime</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Canape</ProjectName>
+    <ProjectName>Runtime</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -60,26 +60,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\Asset\AssetId.h" />
-    <ClInclude Include="Source\Asset\AssetGpuUploader.h" />
     <ClInclude Include="Source\Asset\AssetHandle.h" />
     <ClInclude Include="Source\Asset\AssetManager.h" />
     <ClInclude Include="Source\Asset\AssetTracker.h" />
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
-    <ClInclude Include="Source\Asset\Mesh\MeshData.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
-    <ClInclude Include="Source\Asset\Material\MaterialDesc.h" />
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
-    <ClInclude Include="Source\Asset\Texture\TextureData.h" />
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
-    <ClInclude Include="Source\CNDebug\DebugLog.h" />
+    <ClInclude Include="..\Common\CNDebug\DebugLog.h" />
     <ClInclude Include="Source\Core\Containers\SlotMap.h" />
     <ClInclude Include="Source\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Renderer\RenderScene.h" />
-    <ClInclude Include="Source\Renderer\RenderItem.h" />
-    <ClInclude Include="Source\Renderer\Handle\MeshHandle.h" />
-    <ClInclude Include="Source\Renderer\Handle\MaterialHandle.h" />
-    <ClInclude Include="Source\Renderer\Handle\TextureHandle.h" />
+    <ClInclude Include="Source\Renderer\GpuResourceRegistry.h" />
     <ClInclude Include="Source\Engine.h" />
     <ClInclude Include="Source\Core\Application.h" />
     <ClInclude Include="Source\Core\Time.h" />
@@ -111,11 +103,12 @@
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
-    <ClCompile Include="Source\CNDebug\DebugLog.cpp" />
+    <ClCompile Include="..\Common\CNDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
     <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp" />
+    <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp" />
     <ClCompile Include="Source\Renderer\Renderer.cpp" />
     <ClCompile Include="Source\Core\Application.cpp" />
     <ClCompile Include="Source\Core\Time.cpp" />
@@ -134,6 +127,11 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="DX11Renderer\DX11Renderer.vcxproj">
+      <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

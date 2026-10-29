@@ -92,12 +92,12 @@ namespace Canape
 		}
 	}
 
-	void Scene::BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer)
+	void Scene::BuildRenderScene(const AssetManager& assets, Renderer& renderer)
 	{
 		for (RenderableComponent* renderable : m_componentRegistry.GetRenderables())
 		{
 			if (IsRunnable(renderable))
-				renderable->BuildRenderScene(renderScene, assets, renderer);
+				renderable->AddRenderItem(assets, renderer);
 		}
 	}
 

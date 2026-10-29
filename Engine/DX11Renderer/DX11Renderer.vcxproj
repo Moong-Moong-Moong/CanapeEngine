@@ -41,7 +41,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -60,7 +60,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DX11Renderer.h" />
+    <ClInclude Include="Data\MeshData.h" />
+    <ClInclude Include="Data\MaterialDesc.h" />
+    <ClInclude Include="Data\TextureData.h" />
+    <ClInclude Include="Scene\RenderItem.h" />
+    <ClInclude Include="Scene\RenderScene.h" />
     <ClInclude Include="Resource\DX11ResourceCache.h" />
+    <ClInclude Include="Resource\DX11ResourceId.h" />
     <ClInclude Include="Resource\DX11MeshResource.h" />
     <ClInclude Include="Resource\DX11TextureResource.h" />
     <ClInclude Include="Resource\DX11MaterialResource.h" />

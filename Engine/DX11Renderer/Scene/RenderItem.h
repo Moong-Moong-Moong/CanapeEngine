@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Renderer/Handle/MaterialHandle.h"
-#include "Renderer/Handle/MeshHandle.h"
+#include "DX11Renderer/Resource/DX11ResourceId.h"
 #include "Math/Matrix4.h"
 
 #include <cstdint>
@@ -10,9 +9,9 @@ namespace Canape
 {
     struct RenderItem
     {
-        MeshHandle mesh{};
+        MeshResourceId mesh{};
         uint32_t submeshIndex = 0;
-        MaterialHandle material{};
+        MaterialResourceId material{};
         Matrix4 world{};
         bool castShadow = true;
     };

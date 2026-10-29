@@ -2,7 +2,7 @@
 
 #include "Asset/AssetHandle.h"
 #include "Asset/AssetId.h"
-#include "Asset/Material/MaterialDesc.h"
+#include "DX11Renderer/Data/MaterialDesc.h"
 
 namespace Canape
 {

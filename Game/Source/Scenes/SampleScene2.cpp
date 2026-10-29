@@ -2,7 +2,7 @@
 #include "Scenes/SampleScene.h"
 #include "Scripts/SceneChanger.h"
 #include "Scripts/GarbageCollector.h"
-#include "../../../Engine/Source/CNDebug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 
 Canape::Scene* SampleScene2::Create(Canape::SceneManager& sceneManager)
 {

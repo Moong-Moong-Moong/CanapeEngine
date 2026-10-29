@@ -144,6 +144,6 @@ namespace Canape
 			}
 		}
 
-		CN_LOG_ENGINE("AssetTracker", stream.str());
+		CN_LOG_RUNTIME("AssetTracker", stream.str());
 	}
 }

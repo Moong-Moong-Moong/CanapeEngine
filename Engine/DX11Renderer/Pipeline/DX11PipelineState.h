@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Asset/Mesh/MeshData.h"
-#include "Asset/Material/MaterialDesc.h"
+#include "DX11Renderer/Data/MeshData.h"
+#include "DX11Renderer/Data/MaterialDesc.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>

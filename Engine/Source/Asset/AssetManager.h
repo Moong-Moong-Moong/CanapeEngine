@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Asset/AssetGpuUploader.h"
 #include "Asset/AssetHandle.h"
 #include "Asset/AssetTracker.h"
 #include "Asset/Material/MaterialAsset.h"
@@ -14,6 +13,8 @@
 
 namespace Canape
 {
+	class GpuResourceRegistry;
+
 	template <typename T>
 	struct AssetEntry
 	{
@@ -32,7 +33,7 @@ namespace Canape
 	class AssetManager
 	{
 	public:
-		explicit AssetManager(AssetGpuUploader& gpuUploader);
+		explicit AssetManager(GpuResourceRegistry& gpuRegistry);
 
 		AssetManager(const AssetManager&) = delete;
 		AssetManager& operator=(const AssetManager&) = delete;
@@ -86,7 +87,7 @@ namespace Canape
 		template <typename T>
 		void ReleaseReference(AssetMap<T>& entries, AssetId<T> id, AssetRecordId recordId);
 
-		AssetGpuUploader& m_GpuUploader;
+		GpuResourceRegistry& m_GpuRegistry;
 		AssetTracker m_Tracker;
 
 		std::unordered_map<std::string, TextureAssetId> m_TextureIdByPath;
