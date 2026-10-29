@@ -88,12 +88,6 @@ namespace Canape
             if (Context) Context->ClearState();
         }
 
-        bool Fail(const char* operation, HRESULT result)
-        {
-            LastError = HResultMessage(operation, result);
-            return false;
-        }
-
         void BindPipeline(const DX11PipelineSelection& pipeline)
         {
             Context->IASetInputLayout(pipeline.InputLayout);
@@ -111,7 +105,9 @@ namespace Canape
             HRESULT result = SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
             if (FAILED(result))
             {
-                return Fail("IDXGISwapChain::GetBuffer", result);
+                LastError = HResultMessage("IDXGISwapChain::GetBuffer", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             // Keep the UNORM swap-chain storage; encode linear RGB once through its sRGB view.
@@ -122,7 +118,9 @@ namespace Canape
             result = Device->CreateRenderTargetView(backBuffer.Get(), &renderTargetDesc, &RenderTargetView);
             if (FAILED(result))
             {
-                return Fail("ID3D11Device::CreateRenderTargetView(back buffer, RGBA8_UNORM_SRGB)", result);
+                LastError = HResultMessage("ID3D11Device::CreateRenderTargetView(back buffer, RGBA8_UNORM_SRGB)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             D3D11_TEXTURE2D_DESC depthDesc{};
@@ -138,13 +136,17 @@ namespace Canape
             result = Device->CreateTexture2D(&depthDesc, nullptr, &DepthTexture);
             if (FAILED(result))
             {
-                return Fail("ID3D11Device::CreateTexture2D(depth)", result);
+                LastError = HResultMessage("ID3D11Device::CreateTexture2D(depth)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             result = Device->CreateDepthStencilView(DepthTexture.Get(), nullptr, &DepthStencilView);
             if (FAILED(result))
             {
-                return Fail("ID3D11Device::CreateDepthStencilView", result);
+                LastError = HResultMessage("ID3D11Device::CreateDepthStencilView", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             Width = width;
@@ -167,7 +169,9 @@ namespace Canape
             const HRESULT result = SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
             if (FAILED(result))
             {
-                return Fail("IDXGISwapChain::ResizeBuffers", result);
+                LastError = HResultMessage("IDXGISwapChain::ResizeBuffers", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             return CreateTargets(width, height);
@@ -184,13 +188,20 @@ namespace Canape
             HRESULT result = Device->CreateBuffer(&constantBufferDesc, nullptr, &ObjectBuffer);
             if (FAILED(result))
             {
-                return Fail("ID3D11Device::CreateBuffer(constants)", result);
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(constants)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
             }
 
             static_assert(sizeof(Vector4) == 16);
             constantBufferDesc.ByteWidth = sizeof(MaterialConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &MaterialBuffer);
-            if (FAILED(result)) return Fail("ID3D11Device::CreateBuffer(material constants)", result);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(material constants)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
 
             return Resources.CreateWhiteTexture(Device.Get(), Context.Get(), LastError);
         }
@@ -214,6 +225,7 @@ namespace Canape
         if (!m_Impl->Window || !IsWindow(m_Impl->Window))
         {
             m_Impl->LastError = "Initialize received an invalid native window";
+            CN_LOG_RENDERER("Error", m_Impl->LastError);
             return false;
         }
 
@@ -248,7 +260,9 @@ namespace Canape
 
         if (FAILED(result))
         {
-            return m_Impl->Fail("D3D11CreateDeviceAndSwapChain", result);
+            m_Impl->LastError = HResultMessage("D3D11CreateDeviceAndSwapChain", result);
+            CN_LOG_RENDERER("Error", m_Impl->LastError);
+            return false;
         }
 
         return m_Impl->CreateTargets(width, height) && m_Impl->CreatePipeline();
@@ -317,6 +331,7 @@ namespace Canape
         if (!m_Impl->Device)
         {
             m_Impl->LastError = "CreateMaterial requires an initialized renderer";
+            CN_LOG_RENDERER("Error", m_Impl->LastError);
             return {};
         }
         return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, m_Impl->LastError);
@@ -530,7 +545,8 @@ namespace Canape
         const HRESULT result = m_Impl->SwapChain->Present(1, 0);
         if (FAILED(result))
         {
-            m_Impl->Fail("IDXGISwapChain::Present", result);
+            m_Impl->LastError = HResultMessage("IDXGISwapChain::Present", result);
+            CN_LOG_RENDERER("Error", m_Impl->LastError);
         }
     }
 

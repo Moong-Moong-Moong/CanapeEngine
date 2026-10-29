@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "DX11Renderer/Pipeline/DX11PipelineState.h"
+#include "CNDebug/DebugLog.h"
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
 
 #include <iterator>
@@ -16,13 +17,12 @@ namespace Canape
         // Match the engine's row-major matrix storage; CPU uploads are not transposed.
         constexpr UINT kShaderCompileFlags = D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 
-        bool Fail(std::string& error, const char* operation, HRESULT result)
+        std::string HResultMessage(const char* operation, HRESULT result)
         {
             std::ostringstream stream;
             stream << operation << " failed (HRESULT 0x" << std::hex
                    << static_cast<unsigned long>(result) << ')';
-            error = stream.str();
-            return false;
+            return stream.str();
         }
     }
 
@@ -33,6 +33,7 @@ namespace Canape
         if (!device)
         {
             error = "DX11PipelineState::Initialize requires a renderer device";
+            CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
         // Publish only a complete set. Any failed creation releases temporary objects.
@@ -50,7 +51,9 @@ namespace Canape
             nullptr, &pending.VertexShader);
         if (FAILED(result))
         {
-            return Fail(error, "ID3D11Device::CreateVertexShader", result);
+            error = HResultMessage("ID3D11Device::CreateVertexShader", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
         }
 
         result = device->CreatePixelShader(
@@ -58,7 +61,9 @@ namespace Canape
             nullptr, &pending.PixelShader);
         if (FAILED(result))
         {
-            return Fail(error, "ID3D11Device::CreatePixelShader", result);
+            error = HResultMessage("ID3D11Device::CreatePixelShader", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
         }
 
         constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
@@ -72,7 +77,9 @@ namespace Canape
             &pending.InputLayout);
         if (FAILED(result))
         {
-            return Fail(error, "ID3D11Device::CreateInputLayout", result);
+            error = HResultMessage("ID3D11Device::CreateInputLayout", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
         }
 
         // Two fixed vertex formats, each compiled against its actual input signature.
@@ -82,7 +89,12 @@ namespace Canape
             return false;
         result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
             nullptr, &pending.StaticVertexShader);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateVertexShader(static)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateVertexShader(static)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         const D3D11_INPUT_ELEMENT_DESC staticElements[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -91,7 +103,12 @@ namespace Canape
         };
         result = device->CreateInputLayout(staticElements, static_cast<UINT>(std::size(staticElements)),
             vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.StaticInputLayout);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateInputLayout(static)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateInputLayout(static)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         D3D11_BLEND_DESC blendDesc{};
         auto& blend = blendDesc.RenderTarget[0];
@@ -100,14 +117,24 @@ namespace Canape
         blend.BlendOp = blend.BlendOpAlpha = D3D11_BLEND_OP_ADD;
         blend.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
         result = device->CreateBlendState(&blendDesc, &pending.OpaqueBlendState);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateBlendState(opaque)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateBlendState(opaque)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
         blend.BlendEnable = TRUE;
         blend.SrcBlend = D3D11_BLEND_SRC_ALPHA;
         blend.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         // Straight-alpha RGB; accumulated alpha is As + Ad * (1 - As).
         blend.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
         result = device->CreateBlendState(&blendDesc, &pending.TransparentBlendState);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateBlendState(transparent)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateBlendState(transparent)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         D3D11_DEPTH_STENCIL_DESC depthDesc{};
         depthDesc.DepthEnable = TRUE;
@@ -118,10 +145,20 @@ namespace Canape
         depthDesc.FrontFace = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
         depthDesc.BackFace = depthDesc.FrontFace;
         result = device->CreateDepthStencilState(&depthDesc, &pending.OpaqueDepthState);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateDepthStencilState(opaque)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateDepthStencilState(opaque)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
         depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         result = device->CreateDepthStencilState(&depthDesc, &pending.TransparentDepthState);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateDepthStencilState(transparent)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateDepthStencilState(transparent)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         D3D11_SAMPLER_DESC samplerDesc{};
         samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -130,7 +167,12 @@ namespace Canape
         samplerDesc.MaxAnisotropy = 1;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
         result = device->CreateSamplerState(&samplerDesc, &pending.LinearSampler);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateSamplerState(linear wrap)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateSamplerState(linear wrap)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 
         D3D11_RASTERIZER_DESC rasterizerDesc{};
         rasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -139,7 +181,9 @@ namespace Canape
         result = device->CreateRasterizerState(&rasterizerDesc, &pending.RasterizerState);
         if (FAILED(result))
         {
-            return Fail(error, "ID3D11Device::CreateRasterizerState", result);
+            error = HResultMessage("ID3D11Device::CreateRasterizerState", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
         }
 
 

@@ -39,7 +39,7 @@ namespace Canape
         {
             if (!m_WarnedNoCamera)
             {
-                CN_LOG_RUNTIME("Renderer", "메인 카메라 없음");
+                CN_LOG_RENDERER("Renderer", "메인 카메라 없음");
                 m_WarnedNoCamera = true;
             }
         }

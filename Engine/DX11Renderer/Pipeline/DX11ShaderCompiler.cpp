@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
+#include "CNDebug/DebugLog.h"
 
 #include <filesystem>
 #include <sstream>
@@ -25,6 +26,7 @@ namespace Canape
         {
             error = "GetModuleFileNameW failed while resolving shader path (Win32 error "
                 + std::to_string(GetLastError()) + ')';
+            CN_LOG_RENDERER("Shader", error);
             return false;
         }
         const auto path = std::filesystem::path(executablePath.data()).parent_path() / relativePath;
@@ -44,6 +46,7 @@ namespace Canape
             if (diagnostics)
                 message << '\n' << static_cast<const char*>(diagnostics->GetBufferPointer());
             error = message.str();
+            CN_LOG_RENDERER("Shader", error);
             bytecode.Reset();
             return false;
         }

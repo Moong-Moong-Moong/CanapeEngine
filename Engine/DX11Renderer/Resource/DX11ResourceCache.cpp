@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "DX11Renderer/Resource/DX11ResourceCache.h"
+#include "CNDebug/DebugLog.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,13 +11,12 @@ namespace Canape
 {
     namespace
     {
-        bool Fail(std::string& error, const char* operation, HRESULT result)
+        std::string HResultMessage(const char* operation, HRESULT result)
         {
             std::ostringstream stream;
             stream << operation << " failed (HRESULT 0x" << std::hex
                    << static_cast<unsigned long>(result) << ')';
-            error = stream.str();
-            return false;
+            return stream.str();
         }
     }
 
@@ -27,16 +27,19 @@ namespace Canape
         if (!device)
         {
             error = "Initialize must be called before CreateMesh";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if (const char* validationError = ValidateMeshIndices(vertexCount, indices, submeshes))
         {
             error = validationError;
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if (vertexCount > UINT32_MAX / stride || indices.size() > UINT32_MAX / sizeof(uint32_t))
         {
             error = "Mesh buffer byte size exceeds D3D11 limits";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
 
@@ -50,7 +53,8 @@ namespace Canape
         HRESULT result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &mesh.VertexBuffer);
         if (FAILED(result))
         {
-            Fail(error, "ID3D11Device::CreateBuffer(vertices)", result);
+            error = HResultMessage("ID3D11Device::CreateBuffer(vertices)", result);
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
 
@@ -63,7 +67,8 @@ namespace Canape
         result = device->CreateBuffer(&indexBufferDesc, &indexData, &mesh.IndexBuffer);
         if (FAILED(result))
         {
-            Fail(error, "ID3D11Device::CreateBuffer(indices)", result);
+            error = HResultMessage("ID3D11Device::CreateBuffer(indices)", result);
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
 
@@ -78,6 +83,7 @@ namespace Canape
         if (nextId == 0)
         {
             error = "Mesh resource ID space exhausted";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         const MeshResourceId id{ nextId++ };
@@ -108,10 +114,16 @@ namespace Canape
         constexpr DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         UINT support = 0;
         HRESULT result = device->CheckFormatSupport(format, &support);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CheckFormatSupport(sRGB texture)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CheckFormatSupport(sRGB texture)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
         if (!(support & D3D11_FORMAT_SUPPORT_TEXTURE2D) || !(support & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE))
         {
             error = "RGBA8 sRGB texture sampling is unsupported by this device";
+            CN_LOG_RENDERER("Resource", error);
             return false;
         }
         const bool generateMips = (width > 1 || height > 1) && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN);
@@ -126,9 +138,19 @@ namespace Canape
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (generateMips ? D3D11_BIND_RENDER_TARGET : 0);
         desc.MiscFlags = generateMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
         result = device->CreateTexture2D(&desc, nullptr, &texture.Texture);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateTexture2D(color)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateTexture2D(color)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
         result = device->CreateShaderResourceView(texture.Texture.Get(), nullptr, &texture.ShaderResourceView);
-        if (FAILED(result)) return Fail(error, "ID3D11Device::CreateShaderResourceView(color)", result);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateShaderResourceView(color)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
         context->UpdateSubresource(texture.Texture.Get(), 0, nullptr, pixels, width * 4, 0);
         if (generateMips) context->GenerateMips(texture.ShaderResourceView.Get());
         return true;
@@ -141,16 +163,19 @@ namespace Canape
         if (!device || !context)
         {
             error = "CreateTexture requires an initialized renderer";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if (const char* validationError = ValidateTextureData(width, height, format, pixels.size()))
         {
             error = validationError;
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if (width > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION || height > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION)
         {
             error = "Texture dimensions exceed D3D11 Texture2D limits";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         DX11TextureResource texture;
@@ -159,6 +184,7 @@ namespace Canape
         if (nextId == 0)
         {
             error = "Texture resource ID space exhausted";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         const TextureResourceId id{ nextId++ };
@@ -191,18 +217,21 @@ namespace Canape
         if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
         {
             error = "CreateMaterial requires a finite BaseColor";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if ((desc.alphaMode != AlphaMode::Opaque && desc.alphaMode != AlphaMode::Masked && desc.alphaMode != AlphaMode::Transparent)
             || !std::isfinite(desc.alphaCutoff) || desc.alphaCutoff < 0.0f || desc.alphaCutoff > 1.0f)
         {
             error = "CreateMaterial requires a supported AlphaMode and finite AlphaCutoff in [0, 1]";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         static uint64_t nextId = 1; // Never reuse a removed/pre-reset ID during this process.
         if (nextId == 0)
         {
             error = "Material resource ID space exhausted";
+            CN_LOG_RENDERER("Resource", error);
             return {};
         }
         const MaterialResourceId id{ nextId++ };
@@ -232,6 +261,7 @@ namespace Canape
         if (!device || !context)
         {
             error = "CreateWhiteTexture requires an initialized renderer";
+            CN_LOG_RENDERER("Resource", error);
             return false;
         }
         constexpr uint8_t white[] = { 255, 255, 255, 255 };
