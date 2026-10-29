@@ -18,8 +18,6 @@
 
 namespace Canape
 {
-    // Renderer-internal, single-threaded cache. Owns resources, never Device/Context.
-    // Returned resource pointers are borrowed until removal or renderer shutdown.
     class DX11ResourceCache
     {
     public:
