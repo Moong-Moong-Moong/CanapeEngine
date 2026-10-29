@@ -1,9 +1,0 @@
-<Solution>
-  <Configurations>
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
-  <Project Path="Runtime/Runtime.vcxproj" Id="3add14b9-4ffd-4b4b-bc51-8bb649fcfad8" />
-  <Project Path="DX11Renderer/DX11Renderer.vcxproj" Id="0d8c3943-00db-4b3a-b035-8503cb6ee36e" />
-  <Project Path="Game/Game.vcxproj" Id="3bcf0b44-82e3-473a-8e71-d5182c4c237c" />
-</Solution>

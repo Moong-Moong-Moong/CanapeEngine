@@ -16,7 +16,7 @@ namespace Canape
         void UpdateDebugConsole(const InputManager& input)
         {
             if (input.IsKeyPressed(Key::F5)) Debug::ShowAll();
-            if (input.IsKeyPressed(Key::F6)) Debug::ShowOnly(Debug::MainTag::Engine);
+            if (input.IsKeyPressed(Key::F6)) Debug::ShowOnly(Debug::MainTag::Runtime);
             if (input.IsKeyPressed(Key::F7)) Debug::ShowOnly(Debug::MainTag::DX11Renderer);
             if (input.IsKeyPressed(Key::F8)) Debug::ShowOnly(Debug::MainTag::Game);
             if (input.IsKeyPressed(Key::F11)) Debug::BeginSubTagInput();
@@ -32,7 +32,7 @@ namespace Canape
         m_Window(std::make_unique<Window>(windowDesc)),
         m_InputManager(std::make_unique<InputManager>()),
         m_Renderer(std::make_unique<Renderer>()),
-        m_AssetManager(std::make_unique<AssetManager>(*m_Renderer)),
+        m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
         m_SceneManager(std::make_unique<SceneManager>())
     {
         m_InputManager->InitInput(m_Window->GetNativeHandle());

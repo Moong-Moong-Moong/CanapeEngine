@@ -14,7 +14,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "../Source/CNDebug/DebugLog.h"
+#include "CNDebug/DebugLog.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -61,6 +61,7 @@ namespace Canape
 
         DirectX::XMFLOAT4X4 View{};
         DirectX::XMFLOAT4X4 Projection{};
+        RenderScene QueuedScene;
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
@@ -258,20 +259,20 @@ namespace Canape
         m_Impl.reset();
     }
 
-    DX11Renderer::MeshHandle DX11Renderer::CreateMesh(
+    MeshResourceId DX11Renderer::CreateMesh(
         std::span<const Vertex> vertices,
         std::span<const uint32_t> indices)
     {
         return CreateMeshData(vertices.data(), vertices.size(), sizeof(Vertex), VertexFormat::Position, indices, {});
     }
 
-    DX11Renderer::MeshHandle DX11Renderer::CreateMesh(std::span<const StaticVertex> vertices,
+    MeshResourceId DX11Renderer::CreateMesh(std::span<const StaticVertex> vertices,
         std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
     {
         return CreateMeshData(vertices.data(), vertices.size(), sizeof(StaticVertex), VertexFormat::Static, indices, submeshes);
     }
 
-    DX11Renderer::MeshHandle DX11Renderer::CreateMeshData(const void* vertices, size_t vertexCount,
+    MeshResourceId DX11Renderer::CreateMeshData(const void* vertices, size_t vertexCount,
         uint32_t stride, VertexFormat format, std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
     {
         if (!m_Impl) m_Impl = std::make_unique<Impl>();
@@ -279,37 +280,12 @@ namespace Canape
             indices, submeshes, m_Impl->LastError);
     }
 
-    DX11Renderer::MeshHandle DX11Renderer::RegisterMesh(
-        MeshAssetId assetId, std::span<const Vertex> vertices, std::span<const uint32_t> indices)
-    {
-        return RegisterMeshData(assetId, vertices.data(), vertices.size(), sizeof(Vertex), VertexFormat::Position, indices, {});
-    }
-
-    DX11Renderer::MeshHandle DX11Renderer::RegisterMesh(MeshAssetId assetId, std::span<const StaticVertex> vertices,
-        std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
-    {
-        return RegisterMeshData(assetId, vertices.data(), vertices.size(), sizeof(StaticVertex), VertexFormat::Static, indices, submeshes);
-    }
-
-    DX11Renderer::MeshHandle DX11Renderer::RegisterMeshData(MeshAssetId assetId, const void* vertices,
-        size_t vertexCount, uint32_t stride, VertexFormat format, std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
-    {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
-        return m_Impl->Resources.RegisterMesh(m_Impl->Device.Get(), assetId, vertices, vertexCount,
-            stride, format, indices, submeshes, m_Impl->LastError);
-    }
-
-    DX11Renderer::MeshHandle DX11Renderer::FindMesh(MeshAssetId assetId) const
-    {
-        return m_Impl ? m_Impl->Resources.FindMesh(assetId) : InvalidMesh;
-    }
-
-    void DX11Renderer::DestroyMesh(MeshHandle mesh)
+    void DX11Renderer::DestroyMesh(MeshResourceId mesh)
     {
         if (m_Impl) m_Impl->Resources.DestroyMesh(mesh);
     }
 
-    bool DX11Renderer::IsMeshValid(MeshHandle mesh) const
+    bool DX11Renderer::IsMeshValid(MeshResourceId mesh) const
     {
         return m_Impl && m_Impl->Resources.IsMeshValid(mesh);
     }
@@ -325,60 +301,59 @@ namespace Canape
         DirectX::XMStoreFloat4x4(&m_Impl->Projection, DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(projection)));
     }
 
-    MaterialHandle DX11Renderer::RegisterMaterial(MaterialAssetId assetId, const MaterialDesc& desc, TextureHandle baseColorTexture)
+    void DX11Renderer::SetRenderView(const RenderView& view)
+    {
+        if (m_Impl) m_Impl->QueuedScene.camera = view;
+    }
+
+    void DX11Renderer::AddRenderItem(const RenderItem& item)
+    {
+        if (m_Impl) m_Impl->QueuedScene.items.push_back(item);
+    }
+
+    MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture)
     {
         if (!m_Impl) m_Impl = std::make_unique<Impl>();
         if (!m_Impl->Device)
         {
-            m_Impl->LastError = "RegisterMaterial requires a valid asset ID and initialized renderer";
+            m_Impl->LastError = "CreateMaterial requires an initialized renderer";
             return {};
         }
-        return m_Impl->Resources.RegisterMaterial(assetId, desc, baseColorTexture, m_Impl->LastError);
+        return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, m_Impl->LastError);
     }
 
-    MaterialHandle DX11Renderer::FindMaterial(MaterialAssetId assetId) const
-    {
-        return m_Impl ? m_Impl->Resources.FindMaterial(assetId) : MaterialHandle{};
-    }
-
-    MaterialDesc DX11Renderer::GetMaterial(MaterialHandle material) const
+    MaterialDesc DX11Renderer::GetMaterial(MaterialResourceId material) const
     {
         if (m_Impl)
         {
             if (const auto* resource = m_Impl->Resources.GetMaterial(material)) return resource->Desc;
         }
-        return {}; // Default white material, including nonexistent or stale handles.
+        return {}; // Default white material, including nonexistent or stale IDs.
     }
 
-    void DX11Renderer::DestroyMaterial(MaterialHandle material)
+    void DX11Renderer::DestroyMaterial(MaterialResourceId material)
     {
         if (m_Impl) m_Impl->Resources.DestroyMaterial(material);
     }
 
-    bool DX11Renderer::IsMaterialValid(MaterialHandle material) const
+    bool DX11Renderer::IsMaterialValid(MaterialResourceId material) const
     {
         return m_Impl && m_Impl->Resources.IsMaterialValid(material);
     }
 
-    TextureHandle DX11Renderer::RegisterTexture(TextureAssetId assetId, uint32_t width, uint32_t height,
-        TextureFormat format, std::span<const uint8_t> pixels)
+    TextureResourceId DX11Renderer::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels)
     {
         if (!m_Impl) m_Impl = std::make_unique<Impl>();
-        return m_Impl->Resources.RegisterTexture(m_Impl->Device.Get(), m_Impl->Context.Get(),
-            assetId, width, height, format, pixels, m_Impl->LastError);
+        return m_Impl->Resources.CreateTexture(m_Impl->Device.Get(), m_Impl->Context.Get(),
+            width, height, format, pixels, m_Impl->LastError);
     }
 
-    TextureHandle DX11Renderer::FindTexture(TextureAssetId assetId) const
-    {
-        return m_Impl ? m_Impl->Resources.FindTexture(assetId) : TextureHandle{};
-    }
-
-    bool DX11Renderer::IsTextureValid(TextureHandle texture) const
+    bool DX11Renderer::IsTextureValid(TextureResourceId texture) const
     {
         return m_Impl && m_Impl->Resources.IsTextureValid(texture);
     }
 
-    void DX11Renderer::DestroyTexture(TextureHandle texture)
+    void DX11Renderer::DestroyTexture(TextureResourceId texture)
     {
         if (!IsTextureValid(texture)) return;
         ID3D11ShaderResourceView* unbound = nullptr;
@@ -433,6 +408,17 @@ namespace Canape
         return true;
     }
 
+    void DX11Renderer::DrawScene()
+    {
+        if (!m_Impl)
+        {
+            return;
+        }
+
+        DrawScene(m_Impl->QueuedScene);
+        m_Impl->QueuedScene = {};
+    }
+
     void DX11Renderer::DrawScene(const RenderScene& scene)
     {
         if (!m_Impl || !m_Impl->FrameActive)
@@ -468,7 +454,7 @@ namespace Canape
         for (const auto& entry : transparent) draw(entry.Item);
     }
 
-    void DX11Renderer::DrawMesh(MeshHandle mesh, const float* world, uint32_t submeshIndex, MaterialHandle material)
+    void DX11Renderer::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
     {
         if (!m_Impl || !m_Impl->FrameActive)
         {

@@ -15,7 +15,6 @@ namespace Canape
 	class CameraComponent;
 	class AssetManager;
 	class Renderer;
-	struct RenderScene;
 
 	class Scene final
 	{
@@ -33,7 +32,7 @@ namespace Canape
 		void EndUpdate();
 		void OnDestroyScripts();
 
-		void BuildRenderScene(RenderScene& renderScene, const AssetManager& assets, const Renderer& renderer);
+		void BuildRenderScene(const AssetManager& assets, Renderer& renderer);
 
 		//***** GameObject
 		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");

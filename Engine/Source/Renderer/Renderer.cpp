@@ -1,10 +1,7 @@
 #include "Renderer/Renderer.h"
-#include "Renderer/RenderScene.h"
+#include "Renderer/GpuResourceRegistry.h"
 #include "DX11Renderer/DX11Renderer.h"
 #include "Asset/AssetManager.h"
-#include "Asset/Material/MaterialAsset.h"
-#include "Asset/Mesh/MeshAsset.h"
-#include "Asset/Texture/TextureAsset.h"
 #include "CNDebug/DebugLog.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
@@ -17,7 +14,8 @@
 namespace Canape
 {
     Renderer::Renderer()
-        : m_DX11(std::make_unique<DX11Renderer>())
+        : m_DX11(std::make_unique<DX11Renderer>()),
+        m_Registry(std::make_unique<GpuResourceRegistry>(*m_DX11))
     {
     }
 
@@ -28,81 +26,6 @@ namespace Canape
         return m_DX11->Initialize(nativeWindow, width, height);
     }
 
-    bool Renderer::UploadMesh(const MeshAsset& mesh)
-    {
-        const MeshHandle handle = m_DX11->RegisterMesh(mesh.GetAssetId(), mesh.GetVertices(),
-            mesh.GetIndices(), mesh.GetSubMeshes());
-        if (!handle.IsValid())
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool Renderer::UploadTexture(const TextureAsset& texture)
-    {
-        const TextureHandle handle = m_DX11->RegisterTexture(texture.GetAssetId(), texture.GetWidth(),
-            texture.GetHeight(), texture.GetFormat(), texture.GetPixels());
-        if (!handle.IsValid())
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool Renderer::UploadMaterial(const MaterialAsset& material)
-    {
-        TextureHandle baseColorTexture{};
-        if (const TextureAssetHandle& texture = material.GetBaseColorTexture(); texture.IsValid())
-        {
-            baseColorTexture = m_DX11->FindTexture(texture.GetId());
-            if (!baseColorTexture.IsValid())
-            {
-                return false;
-            }
-        }
-
-        const MaterialHandle handle = m_DX11->RegisterMaterial(material.GetAssetId(), material.GetDesc(), baseColorTexture);
-        if (!handle.IsValid())
-        {
-            return false;
-        }
-        return true;
-    }
-
-    void Renderer::ReleaseMeshes(std::span<const MeshAssetId> meshes)
-    {
-        for (const MeshAssetId assetId : meshes)
-        {
-            if (const MeshHandle handle = m_DX11->FindMesh(assetId); handle.IsValid())
-            {
-                m_DX11->DestroyMesh(handle);
-            }
-        }
-    }
-
-    void Renderer::ReleaseTextures(std::span<const TextureAssetId> textures)
-    {
-        for (const TextureAssetId assetId : textures)
-        {
-            if (const TextureHandle handle = m_DX11->FindTexture(assetId); handle.IsValid())
-            {
-                m_DX11->DestroyTexture(handle);
-            }
-        }
-    }
-
-    void Renderer::ReleaseMaterials(std::span<const MaterialAssetId> materials)
-    {
-        for (const MaterialAssetId assetId : materials)
-        {
-            if (const MaterialHandle handle = m_DX11->FindMaterial(assetId); handle.IsValid())
-            {
-                m_DX11->DestroyMaterial(handle);
-            }
-        }
-    }
-
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
         if (!m_DX11->BeginFrame())
@@ -111,13 +34,12 @@ namespace Canape
         }
 
         CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
-        RenderScene renderScene;
 
         if (!camera || !camera->IsEnabled())
         {
             if (!m_WarnedNoCamera)
             {
-                CN_LOG_ENGINE("Renderer", "메인 카메라 없음");
+                CN_LOG_RUNTIME("Renderer", "메인 카메라 없음");
                 m_WarnedNoCamera = true;
             }
         }
@@ -127,15 +49,33 @@ namespace Canape
             m_WarnedNoCamera = false;
 
             const float aspectRatio = static_cast<float>(m_DX11->GetWidth()) / static_cast<float>(m_DX11->GetHeight());
-            renderScene.camera.view = camera->GetViewMatrix();
-            renderScene.camera.projection = camera->GetProjectionMatrix(aspectRatio);
-            renderScene.camera.cameraPosition = camera->GetTransform()->GetPosition();
+            RenderView view;
+            view.view = camera->GetViewMatrix();
+            view.projection = camera->GetProjectionMatrix(aspectRatio);
+            view.cameraPosition = camera->GetTransform()->GetPosition();
+            m_DX11->SetRenderView(view);
 
-            scene->BuildRenderScene(renderScene, assets, *this);
+            scene->BuildRenderScene(assets, *this);
         }
 
-        m_DX11->DrawScene(renderScene);
+        m_DX11->DrawScene();
         m_DX11->EndFrame();
+    }
+
+    void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world)
+    {
+        const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
+        if (!meshResource.IsValid())
+        {
+            return;
+        }
+
+        RenderItem item;
+        item.mesh = meshResource;
+        item.submeshIndex = submeshIndex;
+        item.material = m_Registry->GetResourceId(material);
+        item.world = world;
+        m_DX11->AddRenderItem(item);
     }
 
     uint32_t Renderer::GetWidth() const
@@ -147,16 +87,6 @@ namespace Canape
     {
         return m_DX11->GetHeight();
     }
-
-	MeshHandle Renderer::FindMesh(MeshAssetId assetId) const
-	{
-		return m_DX11->FindMesh(assetId);
-	}
-
-	MaterialHandle Renderer::FindMaterial(MaterialAssetId assetId) const
-	{
-		return m_DX11->FindMaterial(assetId);
-	}
 
     const std::string& Renderer::GetLastError() const
     {

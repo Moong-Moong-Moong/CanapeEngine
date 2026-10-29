@@ -1,13 +1,10 @@
 #pragma once
 
-#include "Asset/AssetId.h"
-#include "Asset/Material/MaterialDesc.h"
-#include "Asset/Mesh/MeshData.h"
-#include "Asset/Texture/TextureData.h"
-#include "Renderer/Handle/MaterialHandle.h"
-#include "Renderer/Handle/MeshHandle.h"
-#include "Renderer/Handle/TextureHandle.h"
-#include "Renderer/RenderScene.h"
+#include "DX11Renderer/Data/MaterialDesc.h"
+#include "DX11Renderer/Data/MeshData.h"
+#include "DX11Renderer/Data/TextureData.h"
+#include "DX11Renderer/Resource/DX11ResourceId.h"
+#include "DX11Renderer/Scene/RenderScene.h"
 
 #include <cstdint>
 #include <memory>
@@ -25,9 +22,6 @@ namespace Canape
             float Position[3];
         };
 
-        using MeshHandle = Canape::MeshHandle;
-        static constexpr MeshHandle InvalidMesh{};
-
         DX11Renderer();
         ~DX11Renderer();
 
@@ -37,37 +31,36 @@ namespace Canape
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
         void Shutdown();
 
-        MeshHandle CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
-        MeshHandle RegisterMesh(MeshAssetId assetId, std::span<const Vertex> vertices, std::span<const uint32_t> indices);
-        MeshHandle CreateMesh(std::span<const StaticVertex> vertices, std::span<const uint32_t> indices,
+        MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
+        MeshResourceId CreateMesh(std::span<const StaticVertex> vertices, std::span<const uint32_t> indices,
             std::span<const SubMesh> submeshes);
-        MeshHandle RegisterMesh(MeshAssetId assetId, std::span<const StaticVertex> vertices,
-            std::span<const uint32_t> indices, std::span<const SubMesh> submeshes);
-        MeshHandle FindMesh(MeshAssetId assetId) const;
-        void DestroyMesh(MeshHandle mesh);
-        bool IsMeshValid(MeshHandle mesh) const;
+        void DestroyMesh(MeshResourceId mesh);
+        bool IsMeshValid(MeshResourceId mesh) const;
 
-        // Registration copies the descriptor once. Remove/re-register to apply CPU edits.
-        MaterialHandle RegisterMaterial(MaterialAssetId assetId, const MaterialDesc& desc, TextureHandle baseColorTexture = {});
-        MaterialHandle FindMaterial(MaterialAssetId assetId) const;
-        // Invalid/stale handles resolve to a default white descriptor.
-        MaterialDesc GetMaterial(MaterialHandle material) const;
-        void DestroyMaterial(MaterialHandle material);
-        bool IsMaterialValid(MaterialHandle material) const;
+        // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
+        MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {});
+        // Invalid/stale IDs resolve to a default white descriptor.
+        MaterialDesc GetMaterial(MaterialResourceId material) const;
+        void DestroyMaterial(MaterialResourceId material);
+        bool IsMaterialValid(MaterialResourceId material) const;
 
-        TextureHandle RegisterTexture(TextureAssetId assetId, uint32_t width, uint32_t height,
-            TextureFormat format, std::span<const uint8_t> pixels);
-        TextureHandle FindTexture(TextureAssetId assetId) const;
-        bool IsTextureValid(TextureHandle texture) const;
-        // Explicit texture removal also invalidates materials referencing it; CPU assets can re-register.
-        void DestroyTexture(TextureHandle texture);
+        TextureResourceId CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels);
+        bool IsTextureValid(TextureResourceId texture) const;
+        // Explicit texture removal also invalidates materials referencing it; CPU assets can re-create them.
+        void DestroyTexture(TextureResourceId texture);
 
         void SetCamera(const float* view, const float* projection);
 
+        // Queue for the next DrawScene(). Cleared after each draw.
+        void SetRenderView(const RenderView& view);
+        void AddRenderItem(const RenderItem& item);
+
         bool BeginFrame();
+        // Draws the queued scene, then clears it.
+        void DrawScene();
         // Consume synchronously between BeginFrame and EndFrame.
         void DrawScene(const RenderScene& scene);
-        void DrawMesh(MeshHandle mesh, const float* world, uint32_t submeshIndex = 0, MaterialHandle material = {});
+        void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex = 0, MaterialResourceId material = {});
         void EndFrame();
 
         uint32_t GetWidth() const;
@@ -76,10 +69,8 @@ namespace Canape
         const std::string& GetLastError() const;
 
     private:
-        MeshHandle CreateMeshData(const void* vertices, size_t vertexCount, uint32_t stride, VertexFormat format,
+        MeshResourceId CreateMeshData(const void* vertices, size_t vertexCount, uint32_t stride, VertexFormat format,
             std::span<const uint32_t> indices, std::span<const SubMesh> submeshes);
-        MeshHandle RegisterMeshData(MeshAssetId assetId, const void* vertices, size_t vertexCount,
-            uint32_t stride, VertexFormat format, std::span<const uint32_t> indices, std::span<const SubMesh> submeshes);
         struct Impl;
         std::unique_ptr<Impl> m_Impl;
     };

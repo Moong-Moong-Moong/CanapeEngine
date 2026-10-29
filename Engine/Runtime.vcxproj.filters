@@ -1,0 +1,249 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{15081D3D-6FD5-0304-BE28-69FCEE68E8F4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\CNDebug">
+      <UniqueIdentifier>{743A920A-BC06-2A71-7433-AE79CDC2426F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Math">
+      <UniqueIdentifier>{707909B4-7794-FED7-35AC-B9B5BF50C71F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{7FB241F9-384C-492C-AA5E-EC84F7832C27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset">
+      <UniqueIdentifier>{06402F98-F982-BF33-5BD5-E0274990024D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Material">
+      <UniqueIdentifier>{BACC0A57-AF96-05C6-A653-5227ACB46AC7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Mesh">
+      <UniqueIdentifier>{95B22BD3-847A-AE95-9711-B5636F011EDB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Texture">
+      <UniqueIdentifier>{A2516336-DDAF-F9C3-2A78-1ADF8681A596}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core">
+      <UniqueIdentifier>{D8149C35-BC74-8F21-115B-0F0B33399B80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core\Containers">
+      <UniqueIdentifier>{EEAC9D9D-A0F1-5905-A47C-A3CE3A097EA4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Input">
+      <UniqueIdentifier>{D23E979E-2CFA-6BF4-4B69-B979A184A45B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Renderer">
+      <UniqueIdentifier>{C0C50F43-B577-32D5-1592-8611F7350414}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene">
+      <UniqueIdentifier>{A6C54692-8C8C-CED4-29EB-35A23A485607}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Component">
+      <UniqueIdentifier>{D157FA78-6365-C88B-B76E-C70F07AF02A4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\GameObject">
+      <UniqueIdentifier>{6F885533-E6C5-B79C-1F53-37D7A46920B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ThirdParty">
+      <UniqueIdentifier>{AD4FD8F4-B56F-AF91-E0CE-1FF63F1EEC75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ThirdParty\ufbx">
+      <UniqueIdentifier>{F51ADD6D-5EBD-EE87-6F67-226844A786CD}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common\CNDebug\DebugLog.h">
+      <Filter>Common\CNDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\IntVector.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Math.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\MathUtility.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Matrix4.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Quaternion.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Rotator.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector2.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector3.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Vector4.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetHandle.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetId.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetManager.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\AssetTracker.h">
+      <Filter>Source\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Material\MaterialAsset.h">
+      <Filter>Source\Asset\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\FbxImporter.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\MeshAsset.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\TextureAsset.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\TextureImporter.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Application.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Containers\SlotMap.h">
+      <Filter>Source\Core\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Time.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Window.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input\InputManager.h">
+      <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\GpuResourceRegistry.h">
+      <Filter>Source\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Renderer.h">
+      <Filter>Source\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\CameraComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\Component.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\ComponentRegistry.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\RenderableComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\ScriptComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\TransformComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject\GameObject.h">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject\GameObjectManager.h">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Scene.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\SceneManager.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
+      <Filter>Source\ThirdParty\ufbx</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Common\CNDebug\DebugLog.cpp">
+      <Filter>Common\CNDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\AssetManager.cpp">
+      <Filter>Source\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\AssetTracker.cpp">
+      <Filter>Source\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp">
+      <Filter>Source\Asset\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Application.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Time.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Window.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input\InputManager.cpp">
+      <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp">
+      <Filter>Source\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Renderer.cpp">
+      <Filter>Source\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\CameraComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\Component.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\TransformComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\GameObject\GameObject.cpp">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp">
+      <Filter>Source\Scene\GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Scene.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\SceneManager.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
+      <Filter>Source\ThirdParty\ufbx</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

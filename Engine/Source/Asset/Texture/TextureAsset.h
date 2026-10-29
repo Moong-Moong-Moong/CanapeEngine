@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Asset/AssetId.h"
-#include "Asset/Texture/TextureData.h"
+#include "DX11Renderer/Data/TextureData.h"
 #include <stdexcept>
 #include <utility>
 #include <vector>

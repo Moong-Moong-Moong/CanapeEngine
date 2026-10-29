@@ -1,50 +1,81 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Pipeline">
-      <UniqueIdentifier>{DE187C24-BC3F-12CA-7471-13A6110C97FF}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{81618E46-B56A-2FFC-90DA-D9E5FAC1856C}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader">
       <UniqueIdentifier>{CFD95F44-F04E-2503-75E2-CBE3618A6A8A}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader\Common">
       <UniqueIdentifier>{F10A155D-27BC-386F-8252-E3DF0B632F7A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{C03BBF4F-45B9-FAAF-09CD-1359DB769F58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Data">
+      <UniqueIdentifier>{1AC097C0-316E-F9E8-26CC-822AA9869C6A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Pipeline">
+      <UniqueIdentifier>{766C0C1E-92CA-F9F6-C7AD-EA51EC36B577}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Resource">
+      <UniqueIdentifier>{8723E206-F750-2210-B690-D78E1AC314B0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene">
+      <UniqueIdentifier>{72465566-FAB7-6B8E-FE90-FFDE586C7FB5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DX11Renderer.h" />
+    <ClInclude Include="Data\MaterialDesc.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\MeshData.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\TextureData.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11Renderer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
     <ClInclude Include="Pipeline\DX11PipelineState.h">
-      <Filter>Pipeline</Filter>
+      <Filter>Source\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline\DX11ShaderCompiler.h">
-      <Filter>Pipeline</Filter>
+      <Filter>Source\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Resource\DX11MaterialResource.h">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Resource\DX11MeshResource.h">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Resource\DX11ResourceCache.h">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\DX11ResourceId.h">
+      <Filter>Source\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Resource\DX11TextureResource.h">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\RenderItem.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\RenderScene.h">
+      <Filter>Source\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DX11Renderer.cpp" />
+    <ClCompile Include="DX11Renderer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Pipeline\DX11PipelineState.cpp">
-      <Filter>Pipeline</Filter>
+      <Filter>Source\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp">
-      <Filter>Pipeline</Filter>
+      <Filter>Source\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Resource\DX11ResourceCache.cpp">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

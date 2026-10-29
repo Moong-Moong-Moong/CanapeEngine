@@ -1,6 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Content">
+      <UniqueIdentifier>{47790819-4050-550B-B6F5-7009048EF9D7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Models">
+      <UniqueIdentifier>{847B5F28-E2FE-3F94-107C-F31CED166020}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Texture">
+      <UniqueIdentifier>{568F0B1E-69C6-71C8-9733-41AC29664C29}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{D5F4A14A-296F-C4CD-3A23-84F6F0C3C3C1}</UniqueIdentifier>
     </Filter>
@@ -24,13 +33,13 @@
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scripts\SceneChanger.h">
-      <Filter>Source\Scripts</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\PlayerController.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scripts\SceneChanger.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,18 +59,35 @@
     <ClCompile Include="Source\Scripts\CameraController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scripts\SceneChanger.cpp">
-      <Filter>Source\Scripts</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PlayerController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scripts\SceneChanger.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="@(RendererShader)" />
-    <None Include="@(RendererShader)" />
+    <None Include="Content\Models\Enemy.fbx">
+      <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Models\level.FBX">
+      <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Models\Player.fbx">
+      <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Texture\Enemy_BaseColor.png">
+      <Filter>Content\Texture</Filter>
+    </None>
+    <None Include="Content\Texture\Player_BaseColor.png">
+      <Filter>Content\Texture</Filter>
+    </None>
+    <None Include="Content\Texture\README.md">
+      <Filter>Content\Texture</Filter>
+    </None>
   </ItemGroup>
 </Project>

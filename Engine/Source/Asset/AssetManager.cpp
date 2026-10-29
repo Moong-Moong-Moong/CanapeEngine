@@ -2,6 +2,7 @@
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/Texture/TextureImporter.h"
 #include "CNDebug/DebugLog.h"
+#include "Renderer/GpuResourceRegistry.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -145,8 +146,8 @@ namespace Canape
 		}
 	}
 
-	AssetManager::AssetManager(AssetGpuUploader& gpuUploader)
-		: m_GpuUploader(gpuUploader)
+	AssetManager::AssetManager(GpuResourceRegistry& gpuRegistry)
+		: m_GpuRegistry(gpuRegistry)
 	{
 	}
 
@@ -156,7 +157,7 @@ namespace Canape
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
 		{
-			CN_LOG_ENGINE("Asset", "메쉬 에셋 경로 오류 : ", path);
+			CN_LOG_RUNTIME("Asset", "메쉬 에셋 경로 오류 : ", path);
 			return {};
 		}
 
@@ -193,18 +194,18 @@ namespace Canape
 		}
 		else
 		{
-			CN_LOG_ENGINE("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
+			CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
 			return {};
 		}
 
 		if (!mesh)
 		{
-			CN_LOG_ENGINE("Asset", "메쉬 에셋 로드 오류 : Import 실패, ", path);
+			CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : Import 실패, ", path);
 			return {};
 		}
-		if (!m_GpuUploader.UploadMesh(*mesh))
+		if (!m_GpuRegistry.CreateMeshResource(*mesh).IsValid())
 		{
-			CN_LOG_ENGINE("Asset", "메쉬 에셋 Gpu 로드 실패, ", path);
+			CN_LOG_RUNTIME("Asset", "메쉬 에셋 Gpu 로드 실패, ", path);
 			return {};
 		}
 
@@ -232,7 +233,7 @@ namespace Canape
 			return 0;
 		}
 
-		m_GpuUploader.ReleaseMeshes(unused);
+		m_GpuRegistry.ReleaseMeshes(unused);
 		EraseAssets(m_MeshIdByPath, m_MeshesById, unused);
 		return unused.size();
 	}
@@ -244,7 +245,7 @@ namespace Canape
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
 		{
-			CN_LOG_ENGINE("Asset", "텍스처 에셋 경로 오류 : ", path);
+			CN_LOG_RUNTIME("Asset", "텍스처 에셋 경로 오류 : ", path);
 			return {};
 		}
 
@@ -281,18 +282,18 @@ namespace Canape
 		}
 		else
 		{
-			CN_LOG_ENGINE("Asset", "텍스처 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
+			CN_LOG_RUNTIME("Asset", "텍스처 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
 			return {};
 		}
 
 		if (!texture)
 		{
-			CN_LOG_ENGINE("Asset", "텍스처 에셋 로드 오류 : Import 실패, ", path);
+			CN_LOG_RUNTIME("Asset", "텍스처 에셋 로드 오류 : Import 실패, ", path);
 			return {};
 		}
-		if (!m_GpuUploader.UploadTexture(*texture))
+		if (!m_GpuRegistry.CreateTextureResource(*texture).IsValid())
 		{
-			CN_LOG_ENGINE("Asset", "텍스처 에셋 Gpu 로드 실패, ", path);
+			CN_LOG_RUNTIME("Asset", "텍스처 에셋 Gpu 로드 실패, ", path);
 			return {};
 		}
 
@@ -319,7 +320,7 @@ namespace Canape
 		{
 			return 0;
 		}
-		m_GpuUploader.ReleaseTextures(unused);
+		m_GpuRegistry.ReleaseTextures(unused);
 		EraseAssets(m_TextureIdByPath, m_TexturesById, unused);
 		return unused.size();
 	}
@@ -331,12 +332,12 @@ namespace Canape
 	{
 		if (name.empty())
 		{
-			CN_LOG_ENGINE("Asset", "머티리얼 에셋 생성 오류 : 이름 없음");
+			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 생성 오류 : 이름 없음");
 			return {};
 		}
 		if (const MaterialAssetId existing = FindMaterial(name); existing.IsValid())
 		{
-			CN_LOG_ENGINE("Asset", "이미 있는 머티리얼 반환: ", name);
+			CN_LOG_RUNTIME("Asset", "이미 있는 머티리얼 반환: ", name);
 			return CreateMaterialHandle(existing, owner);
 		}
 
@@ -345,16 +346,16 @@ namespace Canape
 		{
 			if (!GetTexture(baseColorTexture))
 			{
-				CN_LOG_ENGINE("Asset", "머티리얼 에셋 생성 오류 : 해제된 텍스처 참조, ", name);
+				CN_LOG_RUNTIME("Asset", "머티리얼 에셋 생성 오류 : 해제된 텍스처 참조, ", name);
 				return {};
 			}
 			texture = CreateTextureHandle(baseColorTexture.GetId(), { owner.sceneName, "Material:" + name, "MaterialAsset" });
 		}
 
 		auto material = std::make_unique<MaterialAsset>(desc, std::move(texture));
-		if (!m_GpuUploader.UploadMaterial(*material))
+		if (!m_GpuRegistry.CreateMaterialResource(*material).IsValid())
 		{
-			CN_LOG_ENGINE("Asset", "머티리얼 에셋 Gpu 로드 실패, ", name);
+			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 Gpu 로드 실패, ", name);
 			return {};
 		}
 
@@ -369,7 +370,7 @@ namespace Canape
 		const MaterialAssetId id = FindMaterial(name);
 		if (!id.IsValid())
 		{
-			CN_LOG_ENGINE("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
+			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
 			return {};
 		}
 		return CreateMaterialHandle(id, owner);
@@ -402,7 +403,7 @@ namespace Canape
 		{
 			return 0;
 		}
-		m_GpuUploader.ReleaseMaterials(unused);
+		m_GpuRegistry.ReleaseMaterials(unused);
 		EraseAssets(m_MaterialIdByName, m_MaterialsById, unused);
 		return unused.size();
 	}
