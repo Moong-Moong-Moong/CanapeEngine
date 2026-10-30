@@ -2,6 +2,9 @@
 
 #include "Asset/AssetId.h"
 #include "Math/Matrix4.h"
+#if CANAPE_RENDER_DEBUG
+#include "DX11Renderer/Data/RendererDebugSettings.h"
+#endif
 
 #include <cstdint>
 #include <memory>
@@ -12,6 +15,7 @@ namespace Canape
     class AssetManager;
     class DX11Renderer;
     class GpuResourceRegistry;
+    class InputManager;
     class Scene;
 
     class Renderer final
@@ -27,6 +31,11 @@ namespace Canape
 
         void Render(Scene* scene, const AssetManager& assets);
 
+#if CANAPE_RENDER_DEBUG
+        // Temporary renderer-side controls for inspecting the current scene.
+        void UpdateDebugControls(const InputManager& input);
+#endif
+
         void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
 
         GpuResourceRegistry& GetRegistry() { return *m_Registry; }
@@ -40,5 +49,13 @@ namespace Canape
         std::unique_ptr<DX11Renderer> m_DX11;
         std::unique_ptr<GpuResourceRegistry> m_Registry;
         bool m_WarnedNoCamera = false;
+#if CANAPE_RENDER_DEBUG
+        void UpdateDebugTitle();
+
+        RendererDebugSettings m_DebugSettings{};
+        void* m_DebugWindow = nullptr;
+        std::wstring m_DebugBaseTitle;
+        uint64_t m_NextDebugTitleMs = 0;
+#endif
     };
 }

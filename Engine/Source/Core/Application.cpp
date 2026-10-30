@@ -86,6 +86,10 @@ namespace Canape
             UpdateDebugConsole(*m_InputManager);
 #endif
 
+#if CANAPE_RENDER_DEBUG
+            m_Renderer->UpdateDebugControls(*m_InputManager);
+#endif
+
             m_SceneManager->Update();
 
             m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
