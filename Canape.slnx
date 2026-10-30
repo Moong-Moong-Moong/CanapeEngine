@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/Docs/">
     <File Path="Docs/MathConventions.md" />
+    <File Path="Docs/RendererDebugQuickTest.md" />
   </Folder>
   <Folder Name="/Tools/">
     <File Path="Tools/GenerateFilters.ps1" />
