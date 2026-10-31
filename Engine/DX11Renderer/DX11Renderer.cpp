@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <array>
 
 #include "CNDebug/DebugLog.h"
 
@@ -28,6 +29,41 @@ namespace Canape
 {
     namespace
     {
+        // All temporary light values live here, outside GPU packing/upload code.
+        std::array<RenderLight, 2> CreateTestLights()
+        {
+            RenderLight directional;
+            directional.id = 1;
+            directional.type = LightType::Directional;
+            directional.direction = { -0.4f, -1.0f, 0.6f };
+            directional.color = { 0.85f, 0.85f, 0.9f };
+            directional.intensity = 0.9f;
+            directional.castShadow = true;
+
+            RenderLight point;
+            point.id = 2;
+            point.type = LightType::Point;
+            point.position = { 2.0f, 3.0f, -2.0f };
+            point.color = { 1.0f, 0.45f, 0.18f };
+            point.intensity = 2.0f;
+            point.range = 12.0f;
+            return { directional, point };
+        }
+
+        std::span<const RenderLight> SelectLights(const RenderScene& scene)
+        {
+            // Engine integration: replace this body with: return scene.lights;
+            // Both BeginFrame (direct DrawMesh) and DrawScene use this selector.
+            (void)scene;
+            static const auto testLights = CreateTestLights();
+            return testLights;
+        }
+
+        bool IsFinite(const Vector3& value)
+        {
+            return std::isfinite(value.X) && std::isfinite(value.Y) && std::isfinite(value.Z);
+        }
+
         std::string HResultMessage(const char* operation, HRESULT result)
         {
             std::ostringstream stream;
@@ -39,6 +75,36 @@ namespace Canape
 
     struct DX11Renderer::Impl
     {
+        enum class ShadowDebugMode { None, MapDepth, Visibility };
+
+        // Renderer-local settings. Scene/camera-bound fitting can later replace only
+        // BuildDirectionalShadowView; no light direction is duplicated here.
+        struct DirectionalShadowSettings
+        {
+            bool enabled = true;
+            uint32_t resolution = 2048;
+            bool pcf = true; // Hardware 2x2 PCF; false selects a single comparison.
+            Vector3 center{};
+            float width = 80.0f;
+            float height = 80.0f;
+            float lightDistance = 80.0f;
+            float nearPlane = 0.1f;
+            float farPlane = 200.0f;
+            float depthBias = 0.0005f; // Receiver depth only; rasterizer bias remains zero.
+            ShadowDebugMode debugView = ShadowDebugMode::None; // Debug/Release only.
+        };
+
+        struct ShadowMapResources
+        {
+            ComPtr<ID3D11Texture2D> Texture;
+            ComPtr<ID3D11DepthStencilView> DepthView;
+            ComPtr<ID3D11ShaderResourceView> ShaderView;
+            ComPtr<ID3D11SamplerState> Sampler;
+            ComPtr<ID3D11Buffer> Constants;
+            uint32_t Resolution = 0;
+            bool Pcf = false;
+        };
+
         struct alignas(16) ObjectConstants
         {
             DirectX::XMFLOAT4X4 World;
@@ -201,6 +267,10 @@ namespace Canape
         bool ViewDirty = true;
         bool SceneDirty = true;
         RenderScene QueuedScene;
+        DirectionalShadowSettings ShadowSettings{};
+        bool ShadowActive = false;
+        uint32_t AttemptedShadowResolution = UINT32_MAX;
+        bool AttemptedShadowPcf = false;
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
@@ -208,6 +278,8 @@ namespace Canape
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
         DX11ResourceCache Resources;
         DX11PipelineState Pipelines;
+        ShadowMapResources ShadowMap;
+        ComPtr<ID3D11SamplerState> FallbackShadowSampler;
         ComPtr<IDXGISwapChain> SwapChain;
         ComPtr<ID3D11RenderTargetView> RenderTargetView;
         ComPtr<ID3D11Texture2D> SceneColorTexture;
@@ -222,6 +294,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
+        ComPtr<ID3D11Buffer> LightBuffer;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;
 #endif
@@ -237,6 +310,266 @@ namespace Canape
         {
             // Drop context-held buffer/SRV references before releasing the owned GPU objects.
             if (Context) Context->ClearState();
+        }
+
+        static LightConstants BuildLightConstants(std::span<const RenderLight> lights,
+            uint32_t* shadowDirectionalIndex = nullptr)
+        {
+            if (shadowDirectionalIndex) *shadowDirectionalIndex = InvalidShadowView;
+            // Rebuild the entire buffer, including unused entries and shadow metadata.
+            LightConstants data{};
+            for (const RenderLight& light : lights)
+            {
+                if (!IsFinite(light.color) || !std::isfinite(light.intensity) || light.intensity <= 0.0f)
+                    continue;
+                const Vector3 colorIntensity = light.color * light.intensity;
+                if (!IsFinite(colorIntensity)) continue;
+
+                if (light.type == LightType::Directional)
+                {
+                    if (data.DirectionalCount == MaxDirectionalLights || !IsFinite(light.direction)) continue;
+                    const float lengthSquared = light.direction.LengthSquared();
+                    if (!std::isfinite(lengthSquared) || lengthSquared <= 1e-12f) continue;
+                    // The first accepted Directional light owns the one shadow map.
+                    // Respect its existing castShadow flag; do not silently choose another light.
+                    if (shadowDirectionalIndex && data.DirectionalCount == 0 && light.castShadow)
+                        *shadowDirectionalIndex = 0;
+                    auto& gpu = data.DirectionalLights[data.DirectionalCount++];
+                    gpu.Direction = light.direction / std::sqrt(lengthSquared);
+                    gpu.ColorIntensity = colorIntensity;
+                }
+                else if (light.type == LightType::Point)
+                {
+                    if (data.LocalCount == MaxLocalLights || !IsFinite(light.position)
+                        || !std::isfinite(light.range) || light.range <= 0.0f) continue;
+                    auto& gpu = data.LocalLights[data.LocalCount++];
+                    gpu.Position = light.position;
+                    gpu.Range = light.range;
+                    gpu.ColorIntensity = colorIntensity;
+                    gpu.Type = static_cast<uint32_t>(LocalLightType::Point);
+                }
+                // Spot shading is future work. Shadow metadata is published only after a valid pass.
+            }
+            return data;
+        }
+
+        bool EnsureShadowResources()
+        {
+            if (ShadowMap.Texture && ShadowMap.Resolution == ShadowSettings.resolution
+                && ShadowMap.Pcf == ShadowSettings.pcf) return true;
+            // Retry after settings change or renderer reinitialization, without logging every frame.
+            if (AttemptedShadowResolution == ShadowSettings.resolution && AttemptedShadowPcf == ShadowSettings.pcf)
+                return false;
+            AttemptedShadowResolution = ShadowSettings.resolution;
+            AttemptedShadowPcf = ShadowSettings.pcf;
+            auto failed = [](const char* operation, HRESULT result)
+            {
+                CN_LOG_RENDERER("Shadow", HResultMessage(operation, result), "; rendering without shadows");
+                (void)operation;
+                (void)result;
+                return false;
+            };
+            if (ShadowSettings.resolution == 0 || ShadowSettings.resolution > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION)
+                return failed("Shadow map resolution", E_INVALIDARG);
+
+            // Publish a complete set only. A failed recreation never exposes a partial texture/view pair.
+            ShadowMapResources pending;
+            D3D11_TEXTURE2D_DESC texture{};
+            texture.Width = texture.Height = ShadowSettings.resolution;
+            texture.MipLevels = texture.ArraySize = 1;
+            texture.Format = DXGI_FORMAT_R32_TYPELESS;
+            texture.SampleDesc.Count = 1;
+            texture.Usage = D3D11_USAGE_DEFAULT;
+            texture.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+            HRESULT result = Device->CreateTexture2D(&texture, nullptr, &pending.Texture);
+            if (FAILED(result)) return failed("CreateTexture2D(shadow)", result);
+            D3D11_DEPTH_STENCIL_VIEW_DESC dsv{};
+            dsv.Format = DXGI_FORMAT_D32_FLOAT;
+            dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+            result = Device->CreateDepthStencilView(pending.Texture.Get(), &dsv, &pending.DepthView);
+            if (FAILED(result)) return failed("CreateDepthStencilView(shadow)", result);
+            D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+            srv.Format = DXGI_FORMAT_R32_FLOAT;
+            srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srv.Texture2D.MipLevels = 1;
+            result = Device->CreateShaderResourceView(pending.Texture.Get(), &srv, &pending.ShaderView);
+            if (FAILED(result)) return failed("CreateShaderResourceView(shadow)", result);
+            D3D11_SAMPLER_DESC sampler{};
+            sampler.Filter = ShadowSettings.pcf ? D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT
+                : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+            sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+            sampler.BorderColor[0] = sampler.BorderColor[1] = sampler.BorderColor[2] = sampler.BorderColor[3] = 1.0f;
+            sampler.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+            sampler.MaxAnisotropy = 1;
+            sampler.MaxLOD = D3D11_FLOAT32_MAX;
+            result = Device->CreateSamplerState(&sampler, &pending.Sampler);
+            if (FAILED(result)) return failed("CreateSamplerState(shadow comparison)", result);
+            D3D11_BUFFER_DESC buffer{};
+            buffer.ByteWidth = sizeof(ShadowConstants);
+            buffer.Usage = D3D11_USAGE_DEFAULT;
+            buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            result = Device->CreateBuffer(&buffer, nullptr, &pending.Constants);
+            if (FAILED(result)) return failed("CreateBuffer(shadow constants)", result);
+            pending.Resolution = ShadowSettings.resolution;
+            pending.Pcf = ShadowSettings.pcf;
+            ID3D11ShaderResourceView* unbound = nullptr;
+            Context->PSSetShaderResources(1, 1, &unbound);
+            ShadowMap = std::move(pending);
+            return true;
+        }
+
+        static bool BuildDirectionalShadowView(const Vector3& direction,
+            const DirectionalShadowSettings& settings, ShadowViewGpu& output)
+        {
+            if (!IsFinite(direction) || direction.LengthSquared() < 1e-12f || !IsFinite(settings.center)
+                || !std::isfinite(settings.width) || settings.width <= 0.0f
+                || !std::isfinite(settings.height) || settings.height <= 0.0f
+                || !std::isfinite(settings.lightDistance) || settings.lightDistance <= 0.0f
+                || !std::isfinite(settings.nearPlane) || settings.nearPlane < 0.0f
+                || !std::isfinite(settings.farPlane) || settings.farPlane <= settings.nearPlane
+                || !std::isfinite(settings.depthBias) || settings.depthBias < 0.0f) return false;
+            using namespace DirectX;
+            const XMVECTOR forward = XMVector3Normalize(direction.ToXM());
+            const XMVECTOR eye = XMVectorSubtract(settings.center.ToXM(), XMVectorScale(forward, settings.lightDistance));
+            const XMVECTOR up = std::abs(XMVectorGetY(forward)) > 0.99f
+                ? XMVectorSet(0, 0, 1, 0) : XMVectorSet(0, 1, 0, 0);
+            const XMMATRIX view = XMMatrixLookToLH(eye, forward, up);
+            const XMMATRIX projection = XMMatrixOrthographicLH(settings.width, settings.height,
+                settings.nearPlane, settings.farPlane);
+            const XMMATRIX viewProjection = view * projection;
+            if (XMMatrixIsNaN(viewProjection) || XMMatrixIsInfinite(viewProjection)) return false;
+            // Row-major, left-handed, z [0,1], no upload transpose, same as the camera.
+            XMStoreFloat4x4(&output.LightViewProjection, viewProjection);
+            output.DepthBias = settings.depthBias;
+            output.MapIndex = 0;
+            output.NearPlane = settings.nearPlane;
+            output.FarPlane = settings.farPlane;
+            return true;
+        }
+
+        void UploadLights(std::span<const RenderLight> lights, const RenderScene* scene = nullptr)
+        {
+            uint32_t shadowIndex = InvalidShadowView;
+            LightConstants data = BuildLightConstants(lights, &shadowIndex);
+            ShadowConstants shadowData{};
+            ShadowActive = scene && ShadowSettings.enabled && shadowIndex != InvalidShadowView
+                && Pipelines.ShadowsAvailable() && EnsureShadowResources()
+                && BuildDirectionalShadowView(data.DirectionalLights[shadowIndex].Direction,
+                    ShadowSettings, shadowData.Views[0]);
+            if (ShadowActive)
+            {
+                shadowData.ViewCount = 1;
+                auto& light = data.DirectionalLights[shadowIndex];
+                light.ShadowViewOffset = 0;
+                light.ShadowViewCount = 1;
+            }
+            // Full uploads clear old views/metadata on every frame and every scene, including fallback.
+            Context->UpdateSubresource(LightBuffer.Get(), 0, nullptr, &data, 0, 0);
+            if (ShadowMap.Constants)
+                Context->UpdateSubresource(ShadowMap.Constants.Get(), 0, nullptr, &shadowData, 0, 0);
+            if (ShadowActive) RenderShadowPass(*scene);
+        }
+
+        void BindMainTargets()
+        {
+            ID3D11RenderTargetView* target = SceneColorRenderTargetView.Get();
+            Context->OMSetRenderTargets(1, &target, DepthStencilView.Get());
+            D3D11_VIEWPORT viewport{};
+            viewport.Width = static_cast<float>(Width);
+            viewport.Height = static_cast<float>(Height);
+            viewport.MaxDepth = 1.0f;
+            Context->RSSetViewports(1, &viewport);
+            Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        }
+
+        void UpdateObjectConstants(const float* world)
+        {
+            using namespace DirectX;
+            const XMMATRIX worldMatrix = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(world));
+            ObjectConstants constants{};
+            XMStoreFloat4x4(&constants.World, worldMatrix);
+            XMVECTOR determinant;
+            const XMMATRIX inverseWorld = XMMatrixInverse(&determinant, worldMatrix);
+            const float det = XMVectorGetX(determinant);
+            // Normal inverse-transpose is mathematical, unrelated to row-major upload packing.
+            if (std::isfinite(det) && det != 0.0f && !XMMatrixIsInfinite(inverseWorld) && !XMMatrixIsNaN(inverseWorld))
+                XMStoreFloat4x4(&constants.WorldInverseTranspose, XMMatrixTranspose(inverseWorld));
+            Context->UpdateSubresource(ObjectBuffer.Get(), 0, nullptr, &constants, 0, 0);
+            ID3D11Buffer* buffer = ObjectBuffer.Get();
+            Context->VSSetConstantBuffers(0, 1, &buffer);
+        }
+
+        MaterialDesc BindMaterial(MaterialResourceId material)
+        {
+            const DX11MaterialResource* resource = Resources.GetMaterial(material);
+            const MaterialDesc desc = resource ? resource->Desc : MaterialDesc{};
+            ID3D11ShaderResourceView* textureView = Resources.GetWhiteTextureView();
+            uint32_t hasTexture = 0;
+            if (resource)
+            {
+                if (const auto* texture = Resources.GetTexture(resource->BaseColorTexture))
+                {
+                    textureView = texture->ShaderResourceView.Get();
+#if CANAPE_RENDER_DEBUG
+                    hasTexture = 1;
+#endif
+                }
+            }
+            const MaterialConstants constants{ desc.baseColor, static_cast<uint32_t>(desc.alphaMode),
+                desc.alphaCutoff, hasTexture };
+            Context->UpdateSubresource(MaterialBuffer.Get(), 0, nullptr, &constants, 0, 0);
+            ID3D11Buffer* buffer = MaterialBuffer.Get();
+            Context->PSSetConstantBuffers(1, 1, &buffer);
+            Context->PSSetShaderResources(0, 1, &textureView);
+            return desc;
+        }
+
+        void DrawMeshGeometry(const DX11MeshResource& mesh, uint32_t submeshIndex)
+        {
+            const UINT stride = mesh.Stride;
+            constexpr UINT offset = 0;
+            ID3D11Buffer* vertexBuffer = mesh.VertexBuffer.Get();
+            Context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+            Context->IASetIndexBuffer(mesh.IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+            const SubMesh& part = mesh.SubMeshes[submeshIndex];
+            Context->DrawIndexed(part.indexCount, part.startIndex, part.baseVertex);
+#if CANAPE_RENDER_DEBUG
+            ++CurrentStats.drawCalls;
+            CurrentStats.triangleCount += part.indexCount / 3;
+#endif
+        }
+
+        void RenderShadowPass(const RenderScene& scene)
+        {
+            // Unbind the read view before binding the same texture as writable depth.
+            ID3D11ShaderResourceView* unbound = nullptr;
+            Context->PSSetShaderResources(1, 1, &unbound);
+            Context->OMSetRenderTargets(0, nullptr, ShadowMap.DepthView.Get());
+            Context->ClearDepthStencilView(ShadowMap.DepthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            D3D11_VIEWPORT viewport{};
+            viewport.Width = viewport.Height = static_cast<float>(ShadowMap.Resolution);
+            viewport.MaxDepth = 1.0f;
+            Context->RSSetViewports(1, &viewport);
+            Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            ID3D11Buffer* shadowBuffer = ShadowMap.Constants.Get();
+            Context->VSSetConstantBuffers(5, 1, &shadowBuffer);
+            for (const RenderItem& item : scene.items)
+            {
+                if (!item.castShadow) continue;
+                const auto* mesh = Resources.GetMesh(item.mesh);
+                if (!mesh || item.submeshIndex >= mesh->SubMeshes.size()) continue;
+                const auto* material = Resources.GetMaterial(item.material);
+                const AlphaMode alpha = material ? material->Desc.alphaMode : AlphaMode::Opaque;
+                if (alpha == AlphaMode::Transparent) continue;
+                BindPipeline(Pipelines.ResolveShadow(mesh->Format, alpha));
+                UpdateObjectConstants(item.world.Data());
+                if (alpha == AlphaMode::Masked) BindMaterial(item.material);
+                DrawMeshGeometry(*mesh, item.submeshIndex);
+            }
+            // The camera view constants were never overwritten. Restore camera targets,
+            // viewport and the default pipeline; each main draw then binds its own variant.
+            BindMainTargets();
+            BindPipeline(Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque));
         }
 
         void BindSharedConstants()
@@ -255,9 +588,18 @@ namespace Canape
 
             ID3D11Buffer* viewBuffer = ViewBuffer.Get();
             ID3D11Buffer* sceneBuffer = SceneBuffer.Get();
+            ID3D11Buffer* lightBuffer = LightBuffer.Get();
             Context->VSSetConstantBuffers(2, 1, &viewBuffer);
             Context->PSSetConstantBuffers(2, 1, &viewBuffer);
+            Context->PSSetConstantBuffers(3, 1, &lightBuffer);
             Context->PSSetConstantBuffers(4, 1, &sceneBuffer);
+            ID3D11Buffer* shadowBuffer = ShadowMap.Constants.Get();
+            Context->VSSetConstantBuffers(5, 1, &shadowBuffer);
+            Context->PSSetConstantBuffers(5, 1, &shadowBuffer);
+            ID3D11ShaderResourceView* shadowView = ShadowActive ? ShadowMap.ShaderView.Get() : nullptr;
+            ID3D11SamplerState* shadowSampler = ShadowMap.Sampler ? ShadowMap.Sampler.Get() : FallbackShadowSampler.Get();
+            Context->PSSetShaderResources(1, 1, &shadowView);
+            Context->PSSetSamplers(1, 1, &shadowSampler);
         }
 
         void BindPipeline(const DX11PipelineSelection& pipeline)
@@ -285,9 +627,10 @@ namespace Canape
 
 #if CANAPE_RENDER_DEBUG
             const bool cameraDepth = DebugSettings.enabled && DebugSettings.viewMode == DebugViewMode::CameraDepth;
-            BindPipeline(Pipelines.ResolveFinalOutput(cameraDepth));
-            ID3D11ShaderResourceView* output = cameraDepth
-                ? DepthShaderResourceView.Get() : SceneColorShaderResourceView.Get();
+            const bool shadowDepth = !cameraDepth && ShadowActive && ShadowSettings.debugView == ShadowDebugMode::MapDepth;
+            BindPipeline(Pipelines.ResolveFinalOutput(cameraDepth || shadowDepth));
+            ID3D11ShaderResourceView* output = shadowDepth ? ShadowMap.ShaderView.Get()
+                : cameraDepth ? DepthShaderResourceView.Get() : SceneColorShaderResourceView.Get();
 #else
             BindPipeline(Pipelines.ResolveFinalOutput(false));
             ID3D11ShaderResourceView* output = SceneColorShaderResourceView.Get();
@@ -295,9 +638,10 @@ namespace Canape
             Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             Context->PSSetShaderResources(0, 1, &output);
 #if CANAPE_RENDER_DEBUG
-            if (cameraDepth)
+            if (cameraDepth || shadowDepth)
             {
-                const DepthDisplayConstants display{ DebugSettings.depthMin, DebugSettings.depthMax };
+                const DepthDisplayConstants display{ shadowDepth ? 0.0f : DebugSettings.depthMin,
+                    shadowDepth ? 1.0f : DebugSettings.depthMax };
                 Context->UpdateSubresource(DepthDisplayBuffer.Get(), 0, nullptr, &display, 0, 0);
                 ID3D11Buffer* buffer = DepthDisplayBuffer.Get();
                 Context->PSSetConstantBuffers(0, 1, &buffer);
@@ -493,6 +837,15 @@ namespace Canape
                 return false;
             }
 
+            constantBufferDesc.ByteWidth = sizeof(LightConstants);
+            result = Device->CreateBuffer(&constantBufferDesc, nullptr, &LightBuffer);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(light constants)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+
             constantBufferDesc.ByteWidth = sizeof(SceneConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &SceneBuffer);
             if (FAILED(result))
@@ -512,6 +865,17 @@ namespace Canape
                 return false;
             }
 #endif
+
+            // The PS declares a comparison sampler even when shadow branches are disabled.
+            // Keep that slot valid before the first map allocation and on resource fallback.
+            D3D11_SAMPLER_DESC shadowSampler{};
+            shadowSampler.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+            shadowSampler.AddressU = shadowSampler.AddressV = shadowSampler.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+            shadowSampler.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+            shadowSampler.MaxAnisotropy = 1;
+            shadowSampler.MaxLOD = D3D11_FLOAT32_MAX;
+            result = Device->CreateSamplerState(&shadowSampler, &FallbackShadowSampler);
+            if (FAILED(result)) CN_LOG_RENDERER("Shadow", HResultMessage("CreateSamplerState(shadow fallback)", result));
 
             return Resources.CreateWhiteTexture(Device.Get(), Context.Get(), LastError);
         }
@@ -791,18 +1155,11 @@ namespace Canape
         context->ClearRenderTargetView(m_Impl->SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(m_Impl->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-        ID3D11RenderTargetView* renderTarget = m_Impl->SceneColorRenderTargetView.Get();
-        context->OMSetRenderTargets(1, &renderTarget, m_Impl->DepthStencilView.Get());
-
-        D3D11_VIEWPORT viewport{};
-        viewport.Width = static_cast<float>(m_Impl->Width);
-        viewport.Height = static_cast<float>(m_Impl->Height);
-        viewport.MaxDepth = 1.0f;
-        context->RSSetViewports(1, &viewport);
-
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_Impl->BindMainTargets();
 
         // Direct draws start with scene defaults instead of inheriting the previous frame.
+        // Always upload a freshly initialized LightConstants, even with no scene draws.
+        m_Impl->UploadLights(SelectLights(m_Impl->QueuedScene));
         m_Impl->SceneData = {};
         m_Impl->SceneDirty = true;
         // Reset the complete default pipeline, including frames ending in transparency.
@@ -843,6 +1200,8 @@ namespace Canape
         m_Impl->SceneData.FogStartDistance = scene.fog.startDistance;
         m_Impl->SceneData.FogEndDistance = scene.fog.endDistance;
         m_Impl->SceneData.FogMode = static_cast<uint32_t>(scene.fog.mode);
+        // Upload even for an empty scene or a second scene within the same frame.
+        m_Impl->UploadLights(SelectLights(scene), &scene);
         m_Impl->SceneDirty = true;
         m_Impl->BindSharedConstants();
         std::vector<const RenderItem*> opaque, masked;
@@ -895,66 +1254,21 @@ namespace Canape
             return;
         }
 
-        using namespace DirectX;
-
-        const XMMATRIX worldMatrix = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(world));
-        Impl::ObjectConstants constants{};
-        XMStoreFloat4x4(&constants.World, worldMatrix);
-        XMVECTOR determinant;
-        const XMMATRIX inverseWorld = XMMatrixInverse(&determinant, worldMatrix);
-        const float det = XMVectorGetX(determinant);
-        // Mathematical inverse-transpose for normals, not an upload/packing transpose.
-        // Singular transforms use zero normals and the geometric fallback in the pixel shader.
-        if (std::isfinite(det) && det != 0.0f && !XMMatrixIsInfinite(inverseWorld) && !XMMatrixIsNaN(inverseWorld))
-            XMStoreFloat4x4(&constants.WorldInverseTranspose, XMMatrixTranspose(inverseWorld));
-
-        ID3D11DeviceContext* context = m_Impl->Context.Get();
-        context->UpdateSubresource(m_Impl->ObjectBuffer.Get(), 0, nullptr, &constants, 0, 0);
-        const DX11MaterialResource* materialResource = m_Impl->Resources.GetMaterial(material);
-        const MaterialDesc materialDesc = materialResource ? materialResource->Desc : MaterialDesc{};
-        ID3D11ShaderResourceView* textureView = m_Impl->Resources.GetWhiteTextureView();
-        uint32_t hasBaseColorTexture = 0;
-        if (materialResource)
-        {
-            if (const auto* texture = m_Impl->Resources.GetTexture(materialResource->BaseColorTexture))
-            {
-                textureView = texture->ShaderResourceView.Get();
-#if CANAPE_RENDER_DEBUG
-                hasBaseColorTexture = 1;
-#endif
-            }
-        }
-        const Impl::MaterialConstants materialConstants{ materialDesc.baseColor,
-            static_cast<uint32_t>(materialDesc.alphaMode), materialDesc.alphaCutoff,
-            hasBaseColorTexture };
-        context->UpdateSubresource(m_Impl->MaterialBuffer.Get(), 0, nullptr, &materialConstants, 0, 0);
+        m_Impl->UpdateObjectConstants(world);
+        const MaterialDesc materialDesc = m_Impl->BindMaterial(material);
         // Bind every draw, including direct DrawMesh calls, so prior pipeline state cannot leak.
 #if CANAPE_RENDER_DEBUG
         const DebugViewMode meshView = m_Impl->DebugSettings.enabled
             ? m_Impl->DebugSettings.viewMode : DebugViewMode::Final;
         const bool wireframe = m_Impl->DebugSettings.enabled && m_Impl->DebugSettings.wireframe;
-        m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode, meshView, wireframe));
+        const bool shadowVisibility = m_Impl->ShadowSettings.debugView == Impl::ShadowDebugMode::Visibility;
+        m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode, meshView,
+            wireframe, shadowVisibility));
 #else
         m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode));
 #endif
         m_Impl->BindSharedConstants();
-        ID3D11Buffer* objectBuffer = m_Impl->ObjectBuffer.Get();
-        context->VSSetConstantBuffers(0, 1, &objectBuffer);
-        ID3D11Buffer* materialBuffer = m_Impl->MaterialBuffer.Get();
-        context->PSSetConstantBuffers(1, 1, &materialBuffer);
-        // Always bind, including white fallback, so previous draws cannot leak a texture.
-        context->PSSetShaderResources(0, 1, &textureView);
-        const UINT stride = gpuMesh.Stride;
-        constexpr UINT offset = 0;
-        ID3D11Buffer* vertexBuffer = gpuMesh.VertexBuffer.Get();
-        context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-        context->IASetIndexBuffer(gpuMesh.IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        const SubMesh& part = gpuMesh.SubMeshes[submeshIndex];
-        context->DrawIndexed(part.indexCount, part.startIndex, part.baseVertex);
-#if CANAPE_RENDER_DEBUG
-        ++m_Impl->CurrentStats.drawCalls;
-        m_Impl->CurrentStats.triangleCount += part.indexCount / 3;
-#endif
+        m_Impl->DrawMeshGeometry(gpuMesh, submeshIndex);
     }
 
     void DX11Renderer::EndFrame()

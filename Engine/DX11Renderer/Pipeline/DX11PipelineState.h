@@ -36,10 +36,22 @@ namespace Canape
 
         bool Initialize(ID3D11Device* device, std::string& error);
         DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
-            DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false) const;
+            DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false,
+            bool shadowVisibility = false) const;
         DX11PipelineSelection ResolveFinalOutput(bool cameraDepth) const;
+        DX11PipelineSelection ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && MaskedShadowPixelShader; }
 
     private:
+        bool InitializeShadows(ID3D11Device* device, std::string& error);
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticShadowVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> MaskedShadowPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> ShadowInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticShadowInputLayout;
+#if CANAPE_RENDER_DEBUG
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> ShadowVisibilityPixelShader;
+#endif
         Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> FinalOutputVertexShader;
