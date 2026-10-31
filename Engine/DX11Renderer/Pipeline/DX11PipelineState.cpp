@@ -280,22 +280,85 @@ namespace Canape
 
 
         *this = std::move(pending);
+        // Shadows are optional: a failed shadow shader must not disable the main renderer.
+        std::string shadowError;
+        if (!InitializeShadows(device, shadowError)) CN_LOG_RENDERER("Shadow", shadowError);
         return true;
     }
 
+    bool DX11PipelineState::InitializeShadows(ID3D11Device* device, std::string& error)
+    {
+        DX11PipelineState pending;
+        ComPtr<ID3DBlob> bytecode;
+        const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
+        auto createVertex = [&](bool isStatic) -> bool
+        {
+            if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSShadow", "vs_5_0",
+                isStatic ? staticDefines : nullptr, kShaderCompileFlags, bytecode, error)) return false;
+            auto& shader = isStatic ? pending.StaticShadowVertexShader : pending.ShadowVertexShader;
+            HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+                nullptr, &shader);
+            if (FAILED(result)) { error = HResultMessage("CreateVertexShader(shadow)", result); return false; }
+            const D3D11_INPUT_ELEMENT_DESC elements[] = {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV)),
+                  D3D11_INPUT_PER_VERTEX_DATA, 0 }
+            };
+            auto& layout = isStatic ? pending.StaticShadowInputLayout : pending.ShadowInputLayout;
+            result = device->CreateInputLayout(elements, isStatic ? 2u : 1u,
+                bytecode->GetBufferPointer(), bytecode->GetBufferSize(), &layout);
+            if (FAILED(result)) { error = HResultMessage("CreateInputLayout(shadow)", result); return false; }
+            return true;
+        };
+        if (!createVertex(false) || !createVertex(true)
+            || !CompileShaderFile(L"Shaders/Mesh.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
+                kShaderCompileFlags, bytecode, error)) return false;
+        HRESULT result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.MaskedShadowPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(masked shadow)", result); return false; }
+#if CANAPE_RENDER_DEBUG
+        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugShadowVisibility", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.ShadowVisibilityPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(shadow visibility)", result); return false; }
+        ShadowVisibilityPixelShader = std::move(pending.ShadowVisibilityPixelShader);
+#endif
+        ShadowVertexShader = std::move(pending.ShadowVertexShader);
+        StaticShadowVertexShader = std::move(pending.StaticShadowVertexShader);
+        MaskedShadowPixelShader = std::move(pending.MaskedShadowPixelShader);
+        ShadowInputLayout = std::move(pending.ShadowInputLayout);
+        StaticShadowInputLayout = std::move(pending.StaticShadowInputLayout);
+        return true;
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const
+    {
+        const bool isStatic = vertexFormat == VertexFormat::Static;
+        return {
+            isStatic ? StaticShadowVertexShader.Get() : ShadowVertexShader.Get(),
+            alphaMode == AlphaMode::Masked ? MaskedShadowPixelShader.Get() : nullptr,
+            isStatic ? StaticShadowInputLayout.Get() : ShadowInputLayout.Get(),
+            RasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), LinearSampler.Get()
+        };
+    }
+
     DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
-        DebugViewMode debugView, bool wireframe) const
+        DebugViewMode debugView, bool wireframe, bool shadowVisibility) const
     {
         const bool isStatic = vertexFormat == VertexFormat::Static;
         const bool transparent = alphaMode == AlphaMode::Transparent;
         ID3D11PixelShader* pixelShader = PixelShader.Get();
 #if CANAPE_RENDER_DEBUG
+        if (shadowVisibility && debugView == DebugViewMode::Final && ShadowVisibilityPixelShader)
+            pixelShader = ShadowVisibilityPixelShader.Get();
         if (debugView == DebugViewMode::WorldNormal) pixelShader = WorldNormalPixelShader.Get();
         else if (debugView == DebugViewMode::UV) pixelShader = UVPixelShader.Get();
         else if (debugView == DebugViewMode::MipLOD) pixelShader = MipLODPixelShader.Get();
 #else
         (void)debugView;
         (void)wireframe;
+        (void)shadowVisibility;
 #endif
         return {
             isStatic ? StaticVertexShader.Get() : VertexShader.Get(),

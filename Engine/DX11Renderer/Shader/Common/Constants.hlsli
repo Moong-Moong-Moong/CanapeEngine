@@ -58,7 +58,7 @@ struct LocalLightGpu
     uint Padding;
 };
 
-// Definition only until light upload/shading is implemented. CPU layout: 4240 bytes.
+// Uploaded per frame/scene and bound to PS b3. CPU layout: 4240 bytes.
 cbuffer LightBuffer : register(b3)
 {
     uint DirectionalCount;
@@ -68,7 +68,7 @@ cbuffer LightBuffer : register(b3)
     LocalLightGpu LocalLights[MAX_LOCAL_LIGHTS];
 };
 
-// Ambient/fog data is ready for future shading; the current lighting is preserved.
+// Ambient is used by mesh shading; fog data remains available for future shading.
 // Layout matches the 48-byte CPU SceneConstants.
 cbuffer SceneBuffer : register(b4)
 {
@@ -91,7 +91,8 @@ struct ShadowViewGpu
     float FarPlane;
 };
 
-// Definition only until shadow resources/rendering are implemented. CPU layout: 5136 bytes.
+// Uploaded per frame/scene; VS/PS b5. CPU layout: 5136 bytes.
+// Currently one Directional view at index 0, with Texture2D depth at t1 / sampler s1.
 // No CSM: Directional/Spot use one view; Point uses six in +X,-X,+Y,-Y,+Z,-Z order.
 // MapIndex selects a 2D-array slice or cube, according to light type.
 // The six views of one Point light share the same cube index.
