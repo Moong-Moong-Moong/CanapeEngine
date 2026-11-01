@@ -1,5 +1,6 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Mesh/FbxImporter.h"
+#include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
 #include "CNDebug/DebugLog.h"
 #include "Renderer/GpuResourceRegistry.h"
@@ -325,6 +326,92 @@ namespace Canape
 		return unused.size();
 	}
 
+	CubemapAssetHandle AssetManager::GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner)
+	{
+		ResolvedAssetPath resolved;
+		if (!ResolveAssetPath(path, resolved))
+		{
+			CN_LOG_RUNTIME("Asset", "큐브맵 에셋 경로 오류 : ", path);
+			return {};
+		}
+
+		CubemapAssetId id = FindCubemap(resolved.key);
+		if (!id.IsValid())
+		{
+			id = LoadCubemap(path, resolved.key, resolved.utf8File);
+			if (!id.IsValid())
+			{
+				return {};
+			}
+		}
+		return CreateCubemapHandle(id, owner);
+	}
+
+	const CubemapAsset* AssetManager::GetCubemap(const CubemapAssetHandle& handle) const
+	{
+		return FindAsset(m_CubemapsById, handle);
+	}
+
+	CubemapAssetId AssetManager::FindCubemap(const std::string& pathKey) const
+	{
+		return FindAssetId(m_CubemapIdByPath, pathKey);
+	}
+
+	CubemapAssetId AssetManager::LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath)
+	{
+		const std::string extension = GetLowerExtension(filePath);
+
+		std::unique_ptr<CubemapAsset> cubemap;
+		std::string error;
+		if (extension == ".dds")
+		{
+			cubemap = CubemapImporter::LoadCubemap(std::filesystem::path(std::u8string(filePath.begin(), filePath.end())), &error);
+		}
+		else
+		{
+			CN_LOG_RUNTIME("Asset", "큐브맵 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
+			return {};
+		}
+
+		if (!cubemap)
+		{
+			CN_LOG_RUNTIME("Asset", "큐브맵 에셋 로드 오류 : Import 실패, ", error);
+			return {};
+		}
+		if (!m_GpuRegistry.CreateCubemapResource(*cubemap).IsValid())
+		{
+			CN_LOG_RUNTIME("Asset", "큐브맵 에셋 Gpu 로드 실패, ", path);
+			return {};
+		}
+
+		const CubemapAssetId id = cubemap->GetAssetId();
+		m_CubemapIdByPath.emplace(pathKey, id);
+		m_CubemapsById.emplace(id, AssetEntry<CubemapAsset>{ std::move(cubemap), filePath, pathKey }).first->second.gpuUploaded = true;
+		return id;
+	}
+
+	CubemapAssetHandle AssetManager::CreateCubemapHandle(CubemapAssetId id, const AssetOwnerInfo& owner)
+	{
+		return CreateHandle(m_CubemapsById, AssetType::Cubemap, id, owner);
+	}
+
+	void AssetManager::Release(CubemapAssetId id, AssetRecordId recordId)
+	{
+		ReleaseReference(m_CubemapsById, id, recordId);
+	}
+
+	size_t AssetManager::ReleaseUnusedCubemaps()
+	{
+		const std::vector<CubemapAssetId> unused = CollectUnused(m_CubemapsById);
+		if (unused.empty())
+		{
+			return 0;
+		}
+		m_GpuRegistry.ReleaseCubemaps(unused);
+		EraseAssets(m_CubemapIdByPath, m_CubemapsById, unused);
+		return unused.size();
+	}
+
 	// Material
 
 	MaterialAssetHandle AssetManager::CreateMaterial(const std::string& name, const MaterialDesc& desc,
@@ -411,10 +498,11 @@ namespace Canape
 	void AssetManager::PrintAssetRecords() const
 	{
 		std::vector<AssetStatus> statuses;
-		statuses.reserve(m_MeshesById.size() + m_MaterialsById.size() + m_TexturesById.size());
+		statuses.reserve(m_MeshesById.size() + m_MaterialsById.size() + m_TexturesById.size() + m_CubemapsById.size());
 		AppendAssetStatuses(m_MeshesById, AssetType::Mesh, statuses);
 		AppendAssetStatuses(m_MaterialsById, AssetType::Material, statuses);
 		AppendAssetStatuses(m_TexturesById, AssetType::Texture, statuses);
+		AppendAssetStatuses(m_CubemapsById, AssetType::Cubemap, statuses);
 		m_Tracker.PrintRecord(statuses);
 	}
 	size_t AssetManager::ReleaseUnusedAssets()
@@ -422,6 +510,7 @@ namespace Canape
 		size_t released = ReleaseUnusedMeshes();
 		released += ReleaseUnusedMaterials();
 		released += ReleaseUnusedTextures();
+		released += ReleaseUnusedCubemaps();
 		return released;
 	}
 }

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Asset/AssetId.h"
+#include "DX11Renderer/Scene/RenderScene.h"
 #include "Math/Matrix4.h"
+#include "Math/Vector3.h"
 #if CANAPE_RENDER_DEBUG
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #endif
@@ -37,6 +39,10 @@ namespace Canape
 #endif
 
         void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
+        void AddLight(const RenderLight& light);
+        void SetFog(const RenderFog& fog);
+        void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);
+        void SetAmbient(const Vector3& color, float intensity);
 
         GpuResourceRegistry& GetRegistry() { return *m_Registry; }
 

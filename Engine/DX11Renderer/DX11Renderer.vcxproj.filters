@@ -66,6 +66,9 @@
     <ClInclude Include="Resource\DX11TextureResource.h">
       <Filter>Source\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\DX11CubemapResource.h">
+      <Filter>Source\Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\RenderItem.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>

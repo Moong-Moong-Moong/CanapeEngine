@@ -88,6 +88,7 @@
     <ClInclude Include="Resource\DX11ResourceId.h" />
     <ClInclude Include="Resource\DX11MeshResource.h" />
     <ClInclude Include="Resource\DX11TextureResource.h" />
+    <ClInclude Include="Resource\DX11CubemapResource.h" />
     <ClInclude Include="Resource\DX11MaterialResource.h" />
     <ClInclude Include="Pipeline\DX11PipelineState.h" />
     <ClInclude Include="Pipeline\DX11ShaderCompiler.h" />

@@ -1,8 +1,12 @@
 #include "Scene/Scene.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/CameraComponent.h"
+#include "Scene/Component/FogComponent.h"
+#include "Scene/Component/LightComponent.h"
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
+#include "Scene/Component/SkyboxComponent.h"
+#include "Renderer/Renderer.h"
 
 namespace Canape
 {
@@ -98,6 +102,31 @@ namespace Canape
 		{
 			if (IsRunnable(renderable))
 				renderable->AddRenderItem(assets, renderer);
+		}
+
+		for (LightComponent* light : m_componentRegistry.GetLights())
+		{
+			if (IsRunnable(light))
+				renderer.AddLight(light->BuildRenderLight());
+		}
+
+		for (FogComponent* fog : m_componentRegistry.GetFogs())
+		{
+			if (IsRunnable(fog))
+			{
+				renderer.SetFog(fog->BuildRenderFog());
+				break;
+			}
+		}
+
+		for (SkyboxComponent* skybox : m_componentRegistry.GetSkyboxes())
+		{
+			if (IsRunnable(skybox))
+			{
+				renderer.SetSkybox(skybox->GetCubemap().GetId(), skybox->BuildRenderSkybox());
+				renderer.SetAmbient(skybox->GetAmbientColor(), skybox->GetAmbientIntensity());
+				break;
+			}
 		}
 	}
 

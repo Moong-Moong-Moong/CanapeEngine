@@ -8,6 +8,7 @@ namespace Canape
     class MeshAsset;
     class MaterialAsset;
     class TextureAsset;
+    class CubemapAsset;
 
     template <typename Tag>
     struct AssetId
@@ -33,6 +34,7 @@ namespace Canape
     using MeshAssetId = AssetId<MeshAsset>;
     using MaterialAssetId = AssetId<MaterialAsset>;
     using TextureAssetId = AssetId<TextureAsset>;
+    using CubemapAssetId = AssetId<CubemapAsset>;
 
     template <typename T>
     struct AssetIdHash

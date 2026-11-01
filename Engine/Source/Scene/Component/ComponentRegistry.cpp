@@ -1,6 +1,9 @@
 #include "Scene/Component/ComponentRegistry.h"
+#include "Scene/Component/FogComponent.h"
+#include "Scene/Component/LightComponent.h"
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
+#include "Scene/Component/SkyboxComponent.h"
 
 #include <algorithm>
 #include <vector>
@@ -49,6 +52,21 @@ namespace Canape
 			{
 				m_renderables.push_back(renderable);
 			}
+
+			if (LightComponent* light = dynamic_cast<LightComponent*>(component))
+			{
+				m_lights.push_back(light);
+			}
+
+			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))
+			{
+				m_fogs.push_back(fog);
+			}
+
+			if (SkyboxComponent* skybox = dynamic_cast<SkyboxComponent*>(component))
+			{
+				m_skyboxes.push_back(skybox);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -65,6 +83,21 @@ namespace Canape
 			if (RenderableComponent* renderable = dynamic_cast<RenderableComponent*>(component))
 			{
 				std::erase(m_renderables, renderable);
+			}
+
+			if (LightComponent* light = dynamic_cast<LightComponent*>(component))
+			{
+				std::erase(m_lights, light);
+			}
+
+			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))
+			{
+				std::erase(m_fogs, fog);
+			}
+
+			if (SkyboxComponent* skybox = dynamic_cast<SkyboxComponent*>(component))
+			{
+				std::erase(m_skyboxes, skybox);
 			}
 		}
 		m_pendingRemove.clear();

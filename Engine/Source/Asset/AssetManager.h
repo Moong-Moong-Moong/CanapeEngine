@@ -4,6 +4,7 @@
 #include "Asset/AssetTracker.h"
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
+#include "Asset/Texture/CubemapAsset.h"
 #include "Asset/Texture/TextureAsset.h"
 
 #include <cstdint>
@@ -49,6 +50,9 @@ namespace Canape
 		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const TextureAsset* GetTexture(const TextureAssetHandle& handle) const;
 
+		CubemapAssetHandle GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner);
+		const CubemapAsset* GetCubemap(const CubemapAssetHandle& handle) const;
+
 		//***** Material
 		MaterialAssetHandle CreateMaterial(const std::string& name, const MaterialDesc& desc,
 			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner);
@@ -66,20 +70,25 @@ namespace Canape
 		size_t ReleaseUnusedMeshes();
 		size_t ReleaseUnusedMaterials();
 		size_t ReleaseUnusedTextures();
+		size_t ReleaseUnusedCubemaps();
 
 		MeshAssetId FindMesh(const std::string& pathKey) const;
 		TextureAssetId FindTexture(const std::string& pathKey) const;
+		CubemapAssetId FindCubemap(const std::string& pathKey) const;
 		MaterialAssetId FindMaterial(const std::string& name) const;
 
 		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
 		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath);
+		CubemapAssetId LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath);
 
 		MeshAssetHandle CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner);
 		TextureAssetHandle CreateTextureHandle(TextureAssetId id, const AssetOwnerInfo& owner);
+		CubemapAssetHandle CreateCubemapHandle(CubemapAssetId id, const AssetOwnerInfo& owner);
 		MaterialAssetHandle CreateMaterialHandle(MaterialAssetId id, const AssetOwnerInfo& owner);
 
 		void Release(MeshAssetId id, AssetRecordId recordId);
 		void Release(TextureAssetId id, AssetRecordId recordId);
+		void Release(CubemapAssetId id, AssetRecordId recordId);
 		void Release(MaterialAssetId id, AssetRecordId recordId);
 
 		template <typename T>
@@ -92,6 +101,9 @@ namespace Canape
 
 		std::unordered_map<std::string, TextureAssetId> m_TextureIdByPath;
 		std::unordered_map<TextureAssetId, AssetEntry<TextureAsset>, AssetIdHash<TextureAsset>> m_TexturesById;
+
+		std::unordered_map<std::string, CubemapAssetId> m_CubemapIdByPath;
+		std::unordered_map<CubemapAssetId, AssetEntry<CubemapAsset>, AssetIdHash<CubemapAsset>> m_CubemapsById;
 
 		std::unordered_map<std::string, MaterialAssetId> m_MaterialIdByName;
 		std::unordered_map<MaterialAssetId, AssetEntry<MaterialAsset>, AssetIdHash<MaterialAsset>> m_MaterialsById;

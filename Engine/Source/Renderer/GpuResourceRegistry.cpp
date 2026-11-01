@@ -1,6 +1,7 @@
 ﻿#include "Renderer/GpuResourceRegistry.h"
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
+#include "Asset/Texture/CubemapAsset.h"
 #include "Asset/Texture/TextureAsset.h"
 #include "DX11Renderer/DX11Renderer.h"
 
@@ -58,6 +59,24 @@ namespace Canape
         return resourceId;
     }
 
+    CubemapResourceId GpuResourceRegistry::CreateCubemapResource(const CubemapAsset& cubemap)
+    {
+        const CubemapAssetId assetId = cubemap.GetAssetId();
+        if (const CubemapResourceId existing = GetResourceId(assetId); existing.IsValid())
+        {
+            return existing;
+        }
+
+        m_Cubemaps.erase(assetId);
+        const CubemapResourceId resourceId = m_Renderer.CreateCubemap(cubemap.GetFaceSize(), cubemap.GetMipLevels(),
+            cubemap.GetFormat(), cubemap.GetPixels());
+        if (resourceId.IsValid())
+        {
+            m_Cubemaps.emplace(assetId, resourceId);
+        }
+        return resourceId;
+    }
+
     MaterialResourceId GpuResourceRegistry::CreateMaterialResource(const MaterialAsset& material)
     {
         const MaterialAssetId assetId = material.GetAssetId();
@@ -97,6 +116,12 @@ namespace Canape
         return m_Renderer.IsTextureValid(resourceId) ? resourceId : TextureResourceId{};
     }
 
+    CubemapResourceId GpuResourceRegistry::GetResourceId(CubemapAssetId assetId) const
+    {
+        const CubemapResourceId resourceId = FindResourceId(m_Cubemaps, assetId);
+        return m_Renderer.IsCubemapValid(resourceId) ? resourceId : CubemapResourceId{};
+    }
+
     MaterialResourceId GpuResourceRegistry::GetResourceId(MaterialAssetId assetId) const
     {
         // 텍스처 해제 시 DX11Renderer가 참조 머티리얼을 무효화하므로 매번 유효성을 확인한다.
@@ -124,6 +149,18 @@ namespace Canape
             {
                 m_Renderer.DestroyTexture(it->second);
                 m_Textures.erase(it);
+            }
+        }
+    }
+
+    void GpuResourceRegistry::ReleaseCubemaps(std::span<const CubemapAssetId> cubemaps)
+    {
+        for (const CubemapAssetId assetId : cubemaps)
+        {
+            if (const auto it = m_Cubemaps.find(assetId); it != m_Cubemaps.end())
+            {
+                m_Renderer.DestroyCubemap(it->second);
+                m_Cubemaps.erase(it);
             }
         }
     }

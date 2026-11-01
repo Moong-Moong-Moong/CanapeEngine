@@ -21,15 +21,18 @@ namespace Canape
 
         MeshResourceId CreateMeshResource(const MeshAsset& mesh);
         TextureResourceId CreateTextureResource(const TextureAsset& texture);
+        CubemapResourceId CreateCubemapResource(const CubemapAsset& cubemap);
         MaterialResourceId CreateMaterialResource(const MaterialAsset& material);
 
         // 해제되었거나 무효화된 리소스는 빈 핸들을 반환한다.
         MeshResourceId GetResourceId(MeshAssetId assetId) const;
         TextureResourceId GetResourceId(TextureAssetId assetId) const;
+        CubemapResourceId GetResourceId(CubemapAssetId assetId) const;
         MaterialResourceId GetResourceId(MaterialAssetId assetId) const;
 
         void ReleaseMeshes(std::span<const MeshAssetId> meshes);
         void ReleaseTextures(std::span<const TextureAssetId> textures);
+        void ReleaseCubemaps(std::span<const CubemapAssetId> cubemaps);
         void ReleaseMaterials(std::span<const MaterialAssetId> materials);
 
     private:
@@ -37,6 +40,7 @@ namespace Canape
 
         std::unordered_map<MeshAssetId, MeshResourceId, AssetIdHash<MeshAsset>> m_Meshes;
         std::unordered_map<TextureAssetId, TextureResourceId, AssetIdHash<TextureAsset>> m_Textures;
+        std::unordered_map<CubemapAssetId, CubemapResourceId, AssetIdHash<CubemapAsset>> m_Cubemaps;
         std::unordered_map<MaterialAssetId, MaterialResourceId, AssetIdHash<MaterialAsset>> m_Materials;
     };
 }

@@ -30,7 +30,7 @@ namespace Canape
     namespace
     {
         // All temporary light values live here, outside GPU packing/upload code.
-        std::array<RenderLight, 2> CreateTestLights()
+        [[maybe_unused]] std::array<RenderLight, 2> CreateTestLights()
         {
             RenderLight directional;
             directional.id = 1;
@@ -54,9 +54,7 @@ namespace Canape
         {
             // Engine integration: replace this body with: return scene.lights;
             // Both BeginFrame (direct DrawMesh) and DrawScene use this selector.
-            (void)scene;
-            static const auto testLights = CreateTestLights();
-            return testLights;
+            return scene.lights;
         }
 
         bool IsFinite(const Vector3& value)
@@ -1066,6 +1064,28 @@ namespace Canape
         if (m_Impl) m_Impl->QueuedScene.items.push_back(item);
     }
 
+    void DX11Renderer::AddLight(const RenderLight& light)
+    {
+        if (m_Impl) m_Impl->QueuedScene.lights.push_back(light);
+    }
+
+    void DX11Renderer::SetFog(const RenderFog& fog)
+    {
+        if (m_Impl) m_Impl->QueuedScene.fog = fog;
+    }
+
+    void DX11Renderer::SetSkybox(const RenderSkybox& skybox)
+    {
+        if (m_Impl) m_Impl->QueuedScene.skybox = skybox;
+    }
+
+    void DX11Renderer::SetAmbient(const Vector3& color, float intensity)
+    {
+        if (!m_Impl) return;
+        m_Impl->QueuedScene.ambientColor = color;
+        m_Impl->QueuedScene.ambientIntensity = intensity;
+    }
+
     MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture)
     {
         if (!m_Impl) m_Impl = std::make_unique<Impl>();
@@ -1115,6 +1135,23 @@ namespace Canape
         ID3D11ShaderResourceView* unbound = nullptr;
         m_Impl->Context->PSSetShaderResources(0, 1, &unbound);
         m_Impl->Resources.DestroyTexture(texture);
+    }
+
+    CubemapResourceId DX11Renderer::CreateCubemap(uint32_t faceSize, uint32_t mipLevels, TextureFormat format, std::span<const uint8_t> pixels)
+    {
+        if (!m_Impl) m_Impl = std::make_unique<Impl>();
+        return m_Impl->Resources.CreateCubemap(m_Impl->Device.Get(), m_Impl->Context.Get(),
+            faceSize, mipLevels, format, pixels, m_Impl->LastError);
+    }
+
+    bool DX11Renderer::IsCubemapValid(CubemapResourceId cubemap) const
+    {
+        return m_Impl && m_Impl->Resources.IsCubemapValid(cubemap);
+    }
+
+    void DX11Renderer::DestroyCubemap(CubemapResourceId cubemap)
+    {
+        if (m_Impl) m_Impl->Resources.DestroyCubemap(cubemap);
     }
 
     bool DX11Renderer::BeginFrame()

@@ -111,6 +111,12 @@
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h">
       <Filter>Source\Asset\Texture</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\CubemapAsset.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Texture\CubemapImporter.h">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Core\Application.h">
       <Filter>Source\Core</Filter>
     </ClInclude>
@@ -142,6 +148,15 @@
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Component\ComponentRegistry.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\FogComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\LightComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\SkyboxComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Component\MeshRendererComponent.h">
@@ -194,6 +209,9 @@
     <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp">
       <Filter>Source\Asset\Texture</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Asset\Texture\CubemapImporter.cpp">
+      <Filter>Source\Asset\Texture</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Core\Application.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
@@ -219,6 +237,15 @@
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\FogComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\LightComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\SkyboxComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp">

@@ -51,6 +51,10 @@ namespace Canape
         // Explicit texture removal also invalidates materials referencing it; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);
 
+        CubemapResourceId CreateCubemap(uint32_t faceSize, uint32_t mipLevels, TextureFormat format, std::span<const uint8_t> pixels);
+        bool IsCubemapValid(CubemapResourceId cubemap) const;
+        void DestroyCubemap(CubemapResourceId cubemap);
+
         void SetCamera(const float* view, const float* projection);
         void SetDebugSettings(const RendererDebugSettings& settings);
         RendererDebugStats GetDebugStats() const;
@@ -58,6 +62,10 @@ namespace Canape
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);
         void AddRenderItem(const RenderItem& item);
+        void AddLight(const RenderLight& light);
+        void SetFog(const RenderFog& fog);
+        void SetSkybox(const RenderSkybox& skybox);
+        void SetAmbient(const Vector3& color, float intensity);
 
         bool BeginFrame();
         // Draws the queued scene, then clears it.

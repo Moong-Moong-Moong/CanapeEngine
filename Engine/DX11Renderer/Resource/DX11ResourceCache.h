@@ -4,6 +4,7 @@
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Resource/DX11ResourceId.h"
+#include "DX11Renderer/Resource/DX11CubemapResource.h"
 #include "DX11Renderer/Resource/DX11MaterialResource.h"
 #include "DX11Renderer/Resource/DX11MeshResource.h"
 #include "DX11Renderer/Resource/DX11TextureResource.h"
@@ -37,6 +38,13 @@ namespace Canape
         // Also invalidates materials referencing the texture; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);
 
+        CubemapResourceId CreateCubemap(ID3D11Device* device, ID3D11DeviceContext* context,
+            uint32_t faceSize, uint32_t mipLevels, TextureFormat format,
+            std::span<const uint8_t> pixels, std::string& error);
+        const DX11CubemapResource* GetCubemap(CubemapResourceId cubemap) const;
+        bool IsCubemapValid(CubemapResourceId cubemap) const;
+        void DestroyCubemap(CubemapResourceId cubemap);
+
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
         MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture, std::string& error);
         const DX11MaterialResource* GetMaterial(MaterialResourceId material) const;
@@ -52,6 +60,7 @@ namespace Canape
 
         std::unordered_map<uint64_t, DX11MeshResource> Meshes;
         std::unordered_map<uint64_t, DX11TextureResource> Textures;
+        std::unordered_map<uint64_t, DX11CubemapResource> Cubemaps;
         std::unordered_map<uint64_t, DX11MaterialResource> Materials;
         DX11TextureResource WhiteTexture;
     };

@@ -8,6 +8,7 @@ namespace Canape
     struct DX11MeshResource;
     struct DX11MaterialResource;
     struct DX11TextureResource;
+    struct DX11CubemapResource;
 
     template <typename Tag>
     struct ResourceId
@@ -30,6 +31,7 @@ namespace Canape
     using MeshResourceId = ResourceId<DX11MeshResource>;
     using MaterialResourceId = ResourceId<DX11MaterialResource>;
     using TextureResourceId = ResourceId<DX11TextureResource>;
+    using CubemapResourceId = ResourceId<DX11CubemapResource>;
 
     template <typename T>
     struct ResourceHash

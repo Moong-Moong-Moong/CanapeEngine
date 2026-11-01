@@ -84,6 +84,8 @@
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
+    <ClInclude Include="Source\Asset\Texture\CubemapAsset.h" />
+    <ClInclude Include="Source\Asset\Texture\CubemapImporter.h" />
     <ClInclude Include="..\Common\CNDebug\DebugLog.h" />
     <ClInclude Include="Source\Core\Containers\SlotMap.h" />
     <ClInclude Include="Source\Renderer\Renderer.h" />
@@ -113,6 +115,9 @@
     <ClInclude Include="Source\Scene\Component\RenderableComponent.h" />
     <ClInclude Include="Source\Scene\Component\ScriptComponent.h" />
     <ClInclude Include="Source\Scene\Component\ComponentRegistry.h" />
+    <ClInclude Include="Source\Scene\Component\LightComponent.h" />
+    <ClInclude Include="Source\Scene\Component\FogComponent.h" />
+    <ClInclude Include="Source\Scene\Component\SkyboxComponent.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +129,7 @@
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
     <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp" />
+    <ClCompile Include="Source\Asset\Texture\CubemapImporter.cpp" />
     <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp" />
     <ClCompile Include="Source\Renderer\Renderer.cpp" />
     <ClCompile Include="Source\Core\Application.cpp" />
@@ -134,6 +140,9 @@
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
     <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp" />
+    <ClCompile Include="Source\Scene\Component\LightComponent.cpp" />
+    <ClCompile Include="Source\Scene\Component\FogComponent.cpp" />
+    <ClCompile Include="Source\Scene\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObject.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />

@@ -17,4 +17,22 @@ namespace Canape
             return "Texture requires tightly packed width * height * 4 RGBA bytes";
         return nullptr;
     }
+
+    inline const char* ValidateCubemapData(uint32_t faceSize, uint32_t mipLevels, TextureFormat format, size_t byteCount)
+    {
+        if (format != TextureFormat::RGBA8_SRGB) return "Unsupported cubemap pixel format";
+        if (faceSize == 0) return "Cubemap face size must be nonzero";
+        if (mipLevels == 0 || mipLevels > 32 || (faceSize >> (mipLevels - 1)) == 0)
+            return "Cubemap mip count exceeds the face size chain";
+        uint64_t bytes = 0;
+        for (uint32_t mip = 0; mip < mipLevels; ++mip)
+        {
+            const uint64_t size = faceSize >> mip;
+            bytes += size * size * 4;
+        }
+        bytes *= 6;
+        if (bytes > SIZE_MAX || byteCount != bytes)
+            return "Cubemap requires tightly packed RGBA bytes for 6 faces and every mip";
+        return nullptr;
+    }
 }

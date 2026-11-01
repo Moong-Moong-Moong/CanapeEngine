@@ -190,6 +190,28 @@ namespace Canape
         m_DX11->AddRenderItem(item);
     }
 
+    void Renderer::AddLight(const RenderLight& light)
+    {
+        m_DX11->AddLight(light);
+    }
+
+    void Renderer::SetFog(const RenderFog& fog)
+    {
+        m_DX11->SetFog(fog);
+    }
+
+    void Renderer::SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox)
+    {
+        RenderSkybox resolved = skybox;
+        resolved.cubemap = m_Registry->GetResourceId(cubemap);
+        m_DX11->SetSkybox(resolved);
+    }
+
+    void Renderer::SetAmbient(const Vector3& color, float intensity)
+    {
+        m_DX11->SetAmbient(color, intensity);
+    }
+
     uint32_t Renderer::GetWidth() const
     {
         return m_DX11->GetWidth();

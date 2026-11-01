@@ -48,6 +48,7 @@ namespace Canape
     struct RenderSkybox
     {
         // TextureResourceId cubemap{}; // TODO: enable when cube texture resources are supported.
+        CubemapResourceId cubemap{};
         float brightness = 1.0f;
         float rotationRadians = 0.0f; // Rotation about the world Up axis.
     };

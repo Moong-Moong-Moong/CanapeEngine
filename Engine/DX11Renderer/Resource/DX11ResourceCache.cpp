@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <vector>
 
 namespace Canape
 {
@@ -209,6 +210,136 @@ namespace Canape
         // Invalidate dependent material snapshots so the Runtime can rebuild them.
         std::erase_if(Materials, [texture](const auto& entry) { return entry.second.BaseColorTexture == texture; });
         Textures.erase(texture.value);
+    }
+
+    CubemapResourceId DX11ResourceCache::CreateCubemap(ID3D11Device* device, ID3D11DeviceContext* context,
+        uint32_t faceSize, uint32_t mipLevels, TextureFormat format,
+        std::span<const uint8_t> pixels, std::string& error)
+    {
+        if (!device || !context)
+        {
+            error = "CreateCubemap requires an initialized renderer";
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+        if (const char* validationError = ValidateCubemapData(faceSize, mipLevels, format, pixels.size()))
+        {
+            error = validationError;
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+        if (faceSize > D3D11_REQ_TEXTURECUBE_DIMENSION)
+        {
+            error = "Cubemap face size exceeds D3D11 TextureCube limits";
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+
+        constexpr DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        UINT support = 0;
+        HRESULT result = device->CheckFormatSupport(dxgiFormat, &support);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CheckFormatSupport(sRGB cubemap)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+        if (!(support & D3D11_FORMAT_SUPPORT_TEXTURECUBE) || !(support & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE))
+        {
+            error = "RGBA8 sRGB cubemap sampling is unsupported by this device";
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+
+        const bool generateMips = mipLevels == 1 && faceSize > 1 && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN);
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = faceSize;
+        desc.Height = faceSize;
+        desc.MipLevels = generateMips ? 0 : mipLevels;
+        desc.ArraySize = 6;
+        desc.Format = dxgiFormat;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (generateMips ? D3D11_BIND_RENDER_TARGET : 0);
+        desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | (generateMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0);
+
+        std::vector<D3D11_SUBRESOURCE_DATA> subresources;
+        if (!generateMips)
+        {
+            subresources.reserve(size_t(6) * mipLevels);
+            const uint8_t* data = pixels.data();
+            for (uint32_t face = 0; face < 6; ++face)
+            {
+                for (uint32_t mip = 0; mip < mipLevels; ++mip)
+                {
+                    const uint32_t size = faceSize >> mip;
+                    subresources.push_back({ data, size * 4, 0 });
+                    data += size_t(size) * size * 4;
+                }
+            }
+        }
+
+        DX11CubemapResource cubemap;
+        result = device->CreateTexture2D(&desc, generateMips ? nullptr : subresources.data(), &cubemap.Texture);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateTexture2D(cubemap)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+        viewDesc.Format = dxgiFormat;
+        viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+        viewDesc.TextureCube.MipLevels = UINT(-1);
+        result = device->CreateShaderResourceView(cubemap.Texture.Get(), &viewDesc, &cubemap.ShaderResourceView);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateShaderResourceView(cubemap)", result);
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+
+        if (generateMips)
+        {
+            D3D11_TEXTURE2D_DESC created{};
+            cubemap.Texture->GetDesc(&created);
+            const size_t faceBytes = size_t(faceSize) * faceSize * 4;
+            for (uint32_t face = 0; face < 6; ++face)
+            {
+                context->UpdateSubresource(cubemap.Texture.Get(), D3D11CalcSubresource(0, face, created.MipLevels),
+                    nullptr, pixels.data() + face * faceBytes, faceSize * 4, 0);
+            }
+            context->GenerateMips(cubemap.ShaderResourceView.Get());
+        }
+
+        static uint64_t nextId = 1;
+        if (nextId == 0)
+        {
+            error = "Cubemap resource ID space exhausted";
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
+        const CubemapResourceId id{ nextId++ };
+        Cubemaps.emplace(id.value, std::move(cubemap));
+        error.clear();
+        return id;
+    }
+
+    const DX11CubemapResource* DX11ResourceCache::GetCubemap(CubemapResourceId cubemap) const
+    {
+        const auto found = Cubemaps.find(cubemap.value);
+        return found != Cubemaps.end() ? &found->second : nullptr;
+    }
+
+    bool DX11ResourceCache::IsCubemapValid(CubemapResourceId cubemap) const
+    {
+        return cubemap.IsValid() && GetCubemap(cubemap) != nullptr;
+    }
+
+    void DX11ResourceCache::DestroyCubemap(CubemapResourceId cubemap)
+    {
+        Cubemaps.erase(cubemap.value);
     }
 
     MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture, std::string& error)
