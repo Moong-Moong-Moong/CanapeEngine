@@ -20,15 +20,19 @@ void PlayerController::Update()
     Canape::Vector3 cameraRight;
     GetCameraAxes(cameraForward, cameraRight);
 
-    const Canape::Vector3 direction = (cameraForward * input.Z + cameraRight * input.X).Normalized();
+    const Canape::Vector3 horizontalDirection = cameraForward * input.Z + cameraRight * input.X;
+    const Canape::Vector3 direction = (horizontalDirection + Canape::Vector3::Up * input.Y).Normalized();
     const float deltaTime = Canape::Time::DeltaTime();
 
     Canape::TransformComponent* transform = GetTransform();
     transform->SetLocalPosition(transform->GetLocalPosition() + direction * (m_MoveSpeed * deltaTime));
 
-    const Canape::Quaternion targetRotation = Canape::Quaternion::LookRotation(direction);
-    const float maxRadians = Canape::Math::ToRadians(m_TurnSpeedDegrees) * deltaTime;
-    transform->SetLocalRotation(Canape::Quaternion::RotateTowards(transform->GetLocalRotation(), targetRotation, maxRadians));
+    if (!horizontalDirection.IsNearlyZero())
+    {
+        const Canape::Quaternion targetRotation = Canape::Quaternion::LookRotation(horizontalDirection.Normalized());
+        const float maxRadians = Canape::Math::ToRadians(m_TurnSpeedDegrees) * deltaTime;
+        transform->SetLocalRotation(Canape::Quaternion::RotateTowards(transform->GetLocalRotation(), targetRotation, maxRadians));
+    }
 }
 
 Canape::Vector3 PlayerController::GetMoveInput() const
@@ -40,6 +44,8 @@ Canape::Vector3 PlayerController::GetMoveInput() const
     if (input.IsKeyDown(Canape::Key::Down) || input.IsKeyDown(Canape::Key::S)) move.Z -= 1.0f;
     if (input.IsKeyDown(Canape::Key::Right) || input.IsKeyDown(Canape::Key::D)) move.X += 1.0f;
     if (input.IsKeyDown(Canape::Key::Left) || input.IsKeyDown(Canape::Key::A)) move.X -= 1.0f;
+    if (input.IsKeyDown(Canape::Key::E)) move.Y += 1.0f;
+    if (input.IsKeyDown(Canape::Key::Q)) move.Y -= 1.0f;
 
     return Canape::Vector3::ClampLength(move, 1.0f);
 }

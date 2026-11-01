@@ -1,6 +1,7 @@
 // Standalone backend integration test; intentionally not part of DX11Renderer.vcxproj.
 // The private-access include is confined to this test translation unit. It permits
 // GPU readback/failure injection without adding an engine-facing testing interface.
+#define NOMINMAX
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"
@@ -8,6 +9,8 @@
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include <array>
+#include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <d3d11sdklayers.h>
 #include <fstream>
@@ -40,6 +43,18 @@ void Require(bool value, const char *message)
 }
 void CpuChecks()
 {
+    Require(Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 2.0f, true) == 3.0f
+        && Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 7.0f, true) == 8.0f
+        && Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 8.0f, true) == 0.0f,
+        "Ctrl+F2 backend slope range reaches 3..8 and wraps");
+    Require(Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.0f, false) == 0.5f
+        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.4f, true) == 1.5f
+        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.5f, true) == 1.6f
+        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.5f, false) == 1.4f
+        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.25f, true) == 0.4f
+        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.4f, true) == 0.5f
+        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.75f, false) == 0.5f,
+        "PCSS diagnostic options step independently");
     auto lights = CreateTestLights();
     auto packed = Backend::BuildLightConstants(lights);
     Require(packed.DirectionalCount == 1 && packed.LocalCount == 1, "test counts");
@@ -70,6 +85,143 @@ void CpuChecks()
     Require(packed.DirectionalCount == 0 && packed.LocalCount == 0, "invalid lights rejected");
     std::cout << "CPU: test source, normalization, intensity, capacities, empty reset, shadow sentinels, invalid input "
                  "PASS\n";
+}
+void TexelSnappingChecks()
+{
+    using namespace DirectX;
+    Backend impl;
+    impl.ShadowMap.Resolution = 4096;
+    const Vector3 lightDirection{-0.4f, -1.0f, 0.6f};
+    const Matrix4 cameraProjection = Matrix4::Perspective(0.95f, 1.5f, 0.1f, 100.0f);
+    XMStoreFloat4x4(&impl.ViewData.Projection, cameraProjection.ToXM());
+    Matrix4 cameraView;
+    auto setCamera = [&](const Vector3& position, const Vector3& direction)
+    {
+        cameraView = Matrix4::LookTo(position, direction);
+        XMStoreFloat4x4(&impl.ViewData.View, cameraView.ToXM());
+    };
+    auto build = [&]()
+    {
+        Backend::ShadowViewGpu shadow{};
+        Backend::PcssConstants pcss{};
+        Require(impl.BuildDirectionalShadowView(lightDirection, impl.ShadowSettings, shadow, pcss),
+            "build snapped shadow view");
+        Require(pcss.OrthoSize.x > 0.0f && pcss.OrthoSize.y > 0.0f,
+            "PCSS receives the actual orthographic projection extent");
+        return shadow;
+    };
+    auto width = [](const Backend::ShadowViewGpu& shadow)
+    {
+        const auto& m = shadow.LightViewProjection;
+        return 2.0f / std::sqrt(m._11 * m._11 + m._21 * m._21 + m._31 * m._31);
+    };
+    auto checkFrustum = [&](const Backend::ShadowViewGpu& shadow)
+    {
+        XMVECTOR determinant;
+        const XMMATRIX inverseCamera = XMMatrixInverse(&determinant,
+            cameraView.ToXM() * cameraProjection.ToXM());
+        const XMMATRIX lightViewProjection = XMLoadFloat4x4(&shadow.LightViewProjection);
+        const float farFraction = (std::min(100.0f, impl.ShadowSettings.shadowDistance) - 0.1f) / 99.9f;
+        for (float z : {0.0f, 1.0f})
+            for (float y : {-1.0f, 1.0f})
+                for (float x : {-1.0f, 1.0f})
+                {
+                    const XMVECTOR nearWorld = XMVector3TransformCoord(XMVectorSet(x, y, 0, 1), inverseCamera);
+                    const XMVECTOR farWorld = XMVector3TransformCoord(XMVectorSet(x, y, 1, 1), inverseCamera);
+                    const XMVECTOR world = z == 0.0f ? nearWorld
+                        : XMVectorLerp(nearWorld, farWorld, farFraction);
+                    const XMVECTOR clip = XMVector4Transform(world, lightViewProjection);
+                    const float w = XMVectorGetW(clip);
+                    Require(std::abs(XMVectorGetX(clip) / w) <= 1.0001f
+                        && std::abs(XMVectorGetY(clip) / w) <= 1.0001f
+                        && XMVectorGetZ(clip) / w >= -0.0001f
+                        && XMVectorGetZ(clip) / w <= 1.0001f,
+                        "snapped shadow contains all clipped frustum corners");
+                }
+    };
+
+    setCamera({}, {0, 0, 1});
+    Vector3 center;
+    float radius;
+    double fittedRadius;
+    const float halfFovTangent = std::tan(0.95f * 0.5f);
+    float previousWidth = 0.0f;
+    for (float distance : {20.0f, 40.0f, 80.0f, 100.0f, 120.0f})
+    {
+        impl.ShadowSettings.shadowDistance = distance;
+        Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, distance, center, radius, fittedRadius),
+            "shadow-distance frustum sphere");
+        const float effectiveFar = std::min(distance, 100.0f);
+        const double farX = effectiveFar * halfFovTangent * 1.5f;
+        const double farY = effectiveFar * halfFovTangent;
+        const double halfDepth = (effectiveFar - 0.1f) * 0.5;
+        const double expectedRadius = std::sqrt(farX * farX + farY * farY + halfDepth * halfDepth);
+        Require(std::abs(center.Z - (effectiveFar + 0.1f) * 0.5f) < 0.01f
+            && std::abs(fittedRadius - expectedRadius) < 0.01,
+            "shadow-distance corners and sphere match clipped perspective frustum");
+        const auto shadow = build();
+        const float currentWidth = width(shadow);
+        std::cout << "shadow distance " << distance << ": projection width " << currentWidth
+            << ", world units/texel " << currentWidth / impl.ShadowMap.Resolution << '\n';
+        Require(distance <= 100.0f ? currentWidth > previousWidth
+            : std::abs(currentWidth - previousWidth) < 0.05f,
+            "shadow extent grows until the camera far plane");
+        previousWidth = currentWidth;
+        checkFrustum(shadow);
+    }
+    impl.ShadowSettings.shadowDistance = 40.0f;
+    impl.ShadowMap.Resolution = 1024;
+    Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
+        "frustum sphere");
+    const XMVECTOR forward = XMVector3Normalize(lightDirection.ToXM());
+    const XMMATRIX lightAxes = XMMatrixLookToLH(XMVectorZero(), forward, XMVectorSet(0, 1, 0, 0));
+    const XMVECTOR centerLS = XMVector3TransformNormal(center.ToXM(), lightAxes);
+    const Vector3 alignedPosition = Vector3::FromXM(XMVector3TransformNormal(
+        XMVectorSet(-XMVectorGetX(centerLS), -XMVectorGetY(centerLS), 0, 0),
+        XMMatrixTranspose(lightAxes)));
+    auto moveCamera = [&](float x, float y)
+    {
+        const Vector3 movement = Vector3::FromXM(XMVector3TransformNormal(
+            XMVectorSet(x, y, 0, 0), XMMatrixTranspose(lightAxes)));
+        setCamera(alignedPosition + movement, {0, 0, 1});
+    };
+    moveCamera(0, 0);
+    const auto baseline = build();
+    const float texelSize = width(baseline) / impl.ShadowMap.Resolution;
+    checkFrustum(baseline);
+    Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
+        "aligned frustum sphere");
+    const XMVECTOR caster = XMVectorSubtract(center.ToXM(), XMVectorScale(forward, radius + 40.0f));
+    const XMVECTOR casterCamera = XMVector3TransformCoord(caster, cameraView.ToXM());
+    const XMVECTOR casterClip = XMVector4Transform(XMVectorSetW(caster, 1.0f),
+        XMLoadFloat4x4(&baseline.LightViewProjection));
+    Require(XMVectorGetZ(casterCamera) < 0.1f
+        && std::abs(XMVectorGetX(casterClip)) < 1.0f
+        && std::abs(XMVectorGetY(casterClip)) < 1.0f
+        && XMVectorGetZ(casterClip) > 0.0f && XMVectorGetZ(casterClip) < 1.0f,
+        "off-camera caster remains inside the shadow volume");
+    moveCamera(0.25f * texelSize, 0.25f * texelSize);
+    const auto smallMove = build();
+    Require(std::abs(smallMove.LightViewProjection._41 - baseline.LightViewProjection._41) < 1e-5f
+        && std::abs(smallMove.LightViewProjection._42 - baseline.LightViewProjection._42) < 1e-5f,
+        "sub-texel movement keeps shadow XY fixed");
+    checkFrustum(smallMove);
+    moveCamera(0.75f * texelSize, 0);
+    const auto oneTexel = build();
+    Require(std::abs(std::abs(oneTexel.LightViewProjection._41 - baseline.LightViewProjection._41)
+        - 2.0f / impl.ShadowMap.Resolution) < 1e-5f
+        && std::abs(oneTexel.LightViewProjection._42 - baseline.LightViewProjection._42) < 1e-5f,
+        "shadow view moves by one texel at grid boundary");
+    checkFrustum(oneTexel);
+    setCamera(alignedPosition, {0.3f, -0.2f, 1.0f});
+    const auto rotated = build();
+    Require(std::abs(width(rotated) - width(baseline)) < 1e-4f,
+        "camera rotation keeps shadow projection width fixed");
+    checkFrustum(rotated);
+    impl.ShadowMap.Resolution = 512;
+    const auto lowerResolution = build();
+    checkFrustum(lowerResolution);
+    std::cout << "CPU: texel snapping, rotation-stable width, frustum XY containment PASS\n";
 }
 Backend::LightConstants ReadLights(Backend &impl)
 {
@@ -149,6 +301,23 @@ Backend::ShadowConstants ReadShadowConstants(Backend &impl)
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
+Backend::PcssConstants ReadPcssConstants(Backend &impl)
+{
+    D3D11_BUFFER_DESC desc{};
+    impl.ShadowMap.PcssConstants->GetDesc(&desc);
+    Require(desc.ByteWidth == sizeof(Backend::PcssConstants), "PCSS constant layout");
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    ComPtr<ID3D11Buffer> staging;
+    Require(SUCCEEDED(impl.Device->CreateBuffer(&desc, nullptr, &staging)), "PCSS constants staging");
+    impl.Context->CopyResource(staging.Get(), impl.ShadowMap.PcssConstants.Get());
+    D3D11_MAPPED_SUBRESOURCE map{};
+    Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &map)), "PCSS constants map");
+    const auto result = *static_cast<const Backend::PcssConstants *>(map.pData);
+    impl.Context->Unmap(staging.Get(), 0);
+    return result;
+}
 Vector3 Project(const Vector3 &position, const Matrix4 &matrix)
 {
     return Vector3::FromXM(DirectX::XMVector3TransformCoord(position.ToXM(), matrix.ToXM()));
@@ -207,6 +376,13 @@ Image Frame(DX11Renderer &renderer, const RenderScene &scene, const std::vector<
     renderer.EndFrame();
     return image;
 }
+void SetShadowDebugView(DX11Renderer &renderer, DebugViewMode mode)
+{
+    RendererDebugSettings settings;
+    settings.enabled = mode != DebugViewMode::Final;
+    settings.viewMode = mode;
+    renderer.SetDebugSettings(settings);
+}
 void CheckMessages(ID3D11InfoQueue *queue)
 {
     unsigned warnings = 0;
@@ -240,6 +416,9 @@ void ShadowChecks()
     {
         DX11Renderer renderer;
         auto &impl = *renderer.m_Impl;
+        // Keep the WARP readback allocation bounded and use the test scene's depth range.
+        impl.ShadowSettings.resolution = 4096;
+        impl.ShadowSettings.farPlane = 200.0f;
         impl.Window = window;
         DXGI_SWAP_CHAIN_DESC swap{};
         swap.BufferDesc.Width = swap.BufferDesc.Height = 256;
@@ -299,7 +478,56 @@ void ShadowChecks()
         Require(ReadImage(impl, impl.DepthTexture.Get()).rgba == cameraDepthWithoutShadows,
                 "shadow pass preserves the camera depth buffer");
         Require(impl.ShadowActive, "public DrawScene shadow active");
-        Require(impl.ShadowMap.Resolution == 2048, "default resolution");
+        Require(impl.ShadowMap.Resolution == impl.ShadowSettings.resolution, "default resolution");
+        auto shadowPipeline = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
+        auto mainPipeline = impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque);
+        Require(shadowPipeline.Rasterizer && mainPipeline.Rasterizer
+                    && shadowPipeline.Rasterizer != mainPipeline.Rasterizer,
+                "shadow pass uses its own rasterizer state");
+        D3D11_RASTERIZER_DESC shadowRasterizer{}, mainRasterizer{};
+        shadowPipeline.Rasterizer->GetDesc(&shadowRasterizer);
+        mainPipeline.Rasterizer->GetDesc(&mainRasterizer);
+        Require(shadowRasterizer.CullMode == D3D11_CULL_BACK
+                    && shadowRasterizer.SlopeScaledDepthBias == DefaultShadowSlopeBias
+                    && mainRasterizer.SlopeScaledDepthBias == 0.0f
+                    && shadowRasterizer.DepthBias == mainRasterizer.DepthBias
+                    && shadowRasterizer.DepthBiasClamp == mainRasterizer.DepthBiasClamp,
+                "default shadow culling and slope bias preserve constant bias and clamp");
+        Require(ReadShadowConstants(impl).Views[0].DepthBias == DefaultShadowReceiverBias,
+                "default shadow receiver bias");
+        RendererDebugSettings tuning{};
+        tuning.shadowCullMode = ShadowCullMode::Front;
+        tuning.shadowSlopeBias = 0.5f;
+        tuning.shadowReceiverBias = 0.0001f;
+        tuning.shadowPcf = false;
+        renderer.SetDebugSettings(tuning);
+        auto tunedShadow = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
+        tunedShadow.Rasterizer->GetDesc(&shadowRasterizer);
+        Require(shadowRasterizer.CullMode == D3D11_CULL_FRONT && shadowRasterizer.SlopeScaledDepthBias == 0.5f,
+                "runtime front cull and slope bias");
+        Frame(renderer, scene);
+        Require(ReadShadowConstants(impl).Views[0].DepthBias == tuning.shadowReceiverBias
+                    && ReadShadowConstants(impl).PcfEnabled == 0,
+                "runtime receiver bias and PCF off");
+        tuning.shadowCullMode = ShadowCullMode::Back;
+        tuning.shadowSlopeBias = 2.0f;
+        tuning.shadowReceiverBias = 0.001f;
+        renderer.SetDebugSettings(tuning);
+        tunedShadow = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
+        tunedShadow.Rasterizer->GetDesc(&shadowRasterizer);
+        Require(shadowRasterizer.CullMode == D3D11_CULL_BACK && shadowRasterizer.SlopeScaledDepthBias == 2.0f,
+                "runtime back cull and slope bias");
+        Frame(renderer, scene);
+        Require(ReadShadowConstants(impl).Views[0].DepthBias == tuning.shadowReceiverBias,
+                "runtime receiver bias update");
+        tuning.shadowSlopeBias = 8.0f;
+        renderer.SetDebugSettings(tuning);
+        impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque).Rasterizer
+            ->GetDesc(&shadowRasterizer);
+        Require(shadowRasterizer.SlopeScaledDepthBias == 8.0f,
+            "extended slope bias applies to shadow rasterizer");
+        renderer.SetDebugSettings({});
+        Frame(renderer, scene);
         auto constants = ReadShadowConstants(impl);
         auto packed = ReadLights(impl);
         Require(constants.ViewCount == 1 && packed.DirectionalLights[0].ShadowViewCount == 1 &&
@@ -319,25 +547,25 @@ void ShadowChecks()
                   << minDepth << '\n';
         Require(before[0] - after[0] > 50, "visible cast shadow on separate receiver");
         Require(std::abs(litBefore[0] - litAfter[0]) <= 2, "unoccluded receiver stays lit / no acne");
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::Visibility;
+        SetShadowDebugView(renderer, DebugViewMode::ShadowVisibility);
         auto visibility = Frame(renderer, scene);
         Save(visibility, "visibility");
         Require(PixelAt(visibility, scene, shadowPoint)[0] < 10 && PixelAt(visibility, scene, litPoint)[0] > 245,
                 "visibility black and white");
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::MapDepth;
+        SetShadowDebugView(renderer, DebugViewMode::ShadowDepth);
         Frame(renderer, scene);
         ComPtr<ID3D11Texture2D> back;
         impl.SwapChain->GetBuffer(0, IID_PPV_ARGS(&back));
         auto depthImage = ReadImage(impl, back.Get());
         Save(depthImage, "shadow-depth");
         back.Reset(); // Release the test readback reference before exercising ResizeBuffers.
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::None;
+        SetShadowDebugView(renderer, DebugViewMode::Final);
         // Alpha-masked caster has a transparent left half and opaque right half.
         const std::array<StaticVertex, 4> maskVertices{{{{-.8f, 2, -.8f}, {0, 1, 0}, {0, 0}},
                                                         {{.8f, 2, -.8f}, {0, 1, 0}, {1, 0}},
                                                         {{.8f, 2, .8f}, {0, 1, 0}, {1, 1}},
                                                         {{-.8f, 2, .8f}, {0, 1, 0}, {0, 1}}}};
-        const std::array<uint32_t, 6> quadIndices{0, 1, 2, 0, 2, 3};
+        const std::array<uint32_t, 6> quadIndices{0, 2, 1, 0, 3, 2};
         const auto maskMesh = renderer.CreateMesh(maskVertices, quadIndices, {});
         const std::array<uint8_t, 8> texels{255, 255, 255, 0, 255, 255, 255, 255};
         const auto maskTexture = renderer.CreateTexture(2, 1, TextureFormat::RGBA8_SRGB, texels);
@@ -378,14 +606,7 @@ void ShadowChecks()
         impl.ShadowSettings.enabled = true;
         Require(PixelAt(movedOff, scene, movedShadowPoint)[0] - movedOn[0] > 50,
                 "translated caster shadows translated receiver");
-        impl.ShadowSettings.width = 4;
-        impl.ShadowSettings.height = 4;
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::Visibility;
-        auto outside = Frame(renderer, scene);
-        Require(PixelAt(outside, scene, {6, 0, 0})[0] > 245, "outside light frustum stays visible");
-        impl.ShadowSettings.width = 80;
-        impl.ShadowSettings.height = 80;
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::None;
+        SetShadowDebugView(renderer, DebugViewMode::Final);
         auto directional = CreateTestLights()[0];
         directional.color = {1, 0, 0};
         directional.intensity = .8f;
@@ -430,21 +651,132 @@ void ShadowChecks()
         impl.ShadowSettings.resolution = 1024;
         Frame(renderer, scene);
         Require(impl.ShadowActive && impl.ShadowMap.Resolution == 1024, "resource recreation after setting change");
-        impl.ShadowSettings.pcf = false;
+        ID3D11Texture2D* shadowTexture = impl.ShadowMap.Texture.Get();
+        RendererDebugSettings pcfSettings{};
+        pcfSettings.shadowPcf = false;
+        renderer.SetDebugSettings(pcfSettings);
         Frame(renderer, scene);
         D3D11_SAMPLER_DESC sampler{};
-        impl.ShadowMap.Sampler->GetDesc(&sampler);
+        impl.ShadowMap.PointSampler->GetDesc(&sampler);
         Require(sampler.Filter == D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT, "single comparison setting");
-        impl.ShadowSettings.pcf = true;
+        Require(impl.ShadowMap.Texture.Get() == shadowTexture, "PCF off keeps shadow texture");
+        pcfSettings.shadowPcf = true;
+        renderer.SetDebugSettings(pcfSettings);
         Frame(renderer, scene);
-        impl.ShadowMap.Sampler->GetDesc(&sampler);
+        impl.ShadowMap.PcfSampler->GetDesc(&sampler);
         Require(sampler.Filter == D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, "hardware PCF setting");
+        Require(impl.ShadowMap.Texture.Get() == shadowTexture, "PCF on keeps shadow texture");
         impl.ShadowSettings.resolution = 512;
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::Visibility;
-        impl.ShadowSettings.pcf = false;
+        pcfSettings.enabled = true;
+        pcfSettings.viewMode = DebugViewMode::ShadowVisibility;
+        pcfSettings.shadowPcf = false;
+        renderer.SetDebugSettings(pcfSettings);
         auto pointVisibility = Frame(renderer, scene);
-        impl.ShadowSettings.pcf = true;
+        pcfSettings.shadowPcf = true;
+        renderer.SetDebugSettings(pcfSettings);
+        impl.ShadowSettings.pcss = false;
         auto pcfVisibility = Frame(renderer, scene);
+        impl.ShadowSettings.pcss = true;
+        impl.ShadowSettings.lightAngularRadius = 0.01f;
+        auto narrowPcssVisibility = Frame(renderer, scene);
+        impl.ShadowSettings.lightAngularRadius = 0.3f;
+        auto widePcssVisibility = Frame(renderer, scene);
+        const auto defaultPcss = ReadPcssConstants(impl);
+        Require(defaultPcss.PcfTapSpacingScale == 1.5f
+            && defaultPcss.BlockerSearchRadiusWorld == 0.4f
+            && std::abs(defaultPcss.MaxFilterRadiusWorld * defaultPcss.PcfTapSpacingScale
+                - defaultPcss.BlockerSearchRadiusWorld) < 1e-6f
+            && defaultPcss.PcfSampleCount == 64
+            && defaultPcss.FilterMode == 2,
+            "configured PCSS defaults reach the GPU");
+        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
+        auto denseFootprintVisibility = Frame(renderer, scene);
+        Require(ReadPcssConstants(impl).PcfTapSpacingScale == 1.0f
+            && denseFootprintVisibility.rgba != widePcssVisibility.rgba,
+            "tap spacing changes PCF footprint without shader recompilation");
+        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.25f;
+        Frame(renderer, scene);
+        Require(ReadPcssConstants(impl).BlockerSearchRadiusWorld == 0.25f
+            && ReadPcssConstants(impl).PcfTapSpacingScale == 1.5f,
+            "blocker search radius remains independent of final PCF spacing");
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.4f;
+        Require(Frame(renderer, scene).rgba == widePcssVisibility.rgba,
+            "restoring PCSS diagnostic defaults restores original visibility");
+        Save(widePcssVisibility, "pcss-wide-visibility");
+        Require(!renderer.SetPcssPcfSampleCount(24) && renderer.GetPcssPcfSampleCount() == 64,
+            "unsupported PCSS sample count rejected");
+        const auto debugShader = impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque,
+            DebugViewMode::ShadowVisibility).PS;
+        Require(renderer.SetPcssPcfSampleCount(25), "legacy 25 mode remains selectable");
+        auto legacy25Visibility = Frame(renderer, scene);
+        Require(ReadPcssConstants(impl).PcfSampleCount == 25
+            && ReadPcssConstants(impl).FilterMode == 3, "legacy 25-tap mode remains available");
+        impl.ShadowSettings.legacyPcf25 = false;
+        auto vogel25Visibility = Frame(renderer, scene);
+        Require(ReadPcssConstants(impl).FilterMode == 2, "Vogel 25 mode selectable");
+        Require(vogel25Visibility.rgba != legacy25Visibility.rgba,
+            "legacy and Vogel 25 patterns are distinguishable");
+        Image vogel64Visibility{}, vogel128Visibility{};
+        for (uint32_t count : { 8u, 16u, 25u, 32u, 64u, 128u })
+        {
+            Require(renderer.SetPcssPcfSampleCount(count)
+                && renderer.GetPcssPcfSampleCount() == count, "PCSS sample count setter");
+            auto image = Frame(renderer, scene);
+            const auto gpu = ReadPcssConstants(impl);
+            Require(gpu.PcfSampleCount == count && gpu.FilterMode == 2,
+                "PCSS sample count uploaded without changing the filter mode");
+            Require(impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque,
+                DebugViewMode::ShadowVisibility).PS == debugShader,
+                "PCSS sample count changes without recompiling the pixel shader");
+            if (count == 64) vogel64Visibility = std::move(image);
+            if (count == 128) vogel128Visibility = std::move(image);
+        }
+        Save(vogel64Visibility, "pcss-vogel-64-visibility");
+        Save(vogel128Visibility, "pcss-vogel-128-visibility");
+        Require(vogel64Visibility.rgba != vogel128Visibility.rgba,
+            "64 and 128 taps produce distinct filtered images");
+        pcfSettings.viewMode = DebugViewMode::PcssFilterRadius;
+        renderer.SetDebugSettings(pcfSettings);
+        auto radius128 = Frame(renderer, scene);
+        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
+        auto radiusHalfSpacing = Frame(renderer, scene);
+        Require(radiusHalfSpacing.rgba != radius128.rgba,
+            "radius debug view shows effective PCF tap spacing");
+        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        Require(Frame(renderer, scene).rgba == radius128.rgba,
+            "restoring tap spacing restores radius debug view");
+        Require(renderer.SetPcssPcfSampleCount(8), "restore 8 taps for radius comparison");
+        auto radius8 = Frame(renderer, scene);
+        Require(radius8.rgba == radius128.rgba,
+            "PCSS radius debug view is independent of final PCF sample count");
+        impl.ShadowSettings.minFilterRadiusWorld = impl.ShadowSettings.maxFilterRadiusWorld;
+        impl.ShadowSettings.pcfTapSpacingScale = 3.0f;
+        auto clampedRadius3 = Frame(renderer, scene);
+        impl.ShadowSettings.pcfTapSpacingScale = 4.0f;
+        Require(Frame(renderer, scene).rgba == clampedRadius3.rgba,
+            "final tap radius stays at the blocker search radius when spacing grows");
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.25f;
+        Require(Frame(renderer, scene).rgba != clampedRadius3.rgba,
+            "lower blocker search radius also limits the final tap radius");
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.4f;
+        impl.ShadowSettings.minFilterRadiusWorld = 0.0f;
+        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        Require(Frame(renderer, scene).rgba == radius128.rgba,
+            "restoring radius limits restores the debug view");
+        Require(PixelAt(radius128, scene, shadowPoint)[0] > 0,
+            "PCSS radius debug view displays the shadow filter footprint");
+        Save(radius128, "pcss-radius-texels");
+        pcfSettings.viewMode = DebugViewMode::ShadowDepth;
+        renderer.SetDebugSettings(pcfSettings);
+        impl.PcssRadiusViewOverride = true;
+        Require(Frame(renderer, scene).rgba == radius128.rgba,
+            "renderer-local radius shortcut overrides the engine debug selection");
+        impl.PcssRadiusViewOverride = false;
+        pcfSettings.viewMode = DebugViewMode::ShadowVisibility;
+        renderer.SetDebugSettings(pcfSettings);
+        Require(renderer.SetPcssPcfSampleCount(64), "restore 64-tap default");
+        impl.ShadowSettings.legacyPcf25 = true;
         auto partialPixels = [](const Image &image) {
             size_t count = 0;
             for (size_t i = 0; i < image.rgba.size(); i += 4)
@@ -454,11 +786,53 @@ void ShadowChecks()
             return count;
         };
         const auto hardPartial = partialPixels(pointVisibility), pcfPartial = partialPixels(pcfVisibility);
-        std::cout << "Visibility partial pixels: hard comparison " << hardPartial << ", hardware PCF " << pcfPartial
-                  << '\n';
+        const auto narrowPcssPartial = partialPixels(narrowPcssVisibility);
+        const auto widePcssPartial = partialPixels(widePcssVisibility);
+        std::cout << "Wide PCSS partial pixels: legacy 25 " << partialPixels(legacy25Visibility)
+                  << ", Vogel 25 " << partialPixels(vogel25Visibility)
+                  << ", Vogel 64 " << partialPixels(vogel64Visibility)
+                  << ", Vogel 128 " << partialPixels(vogel128Visibility) << '\n';
+        std::cout << "Visibility partial pixels: hard comparison " << hardPartial << ", 3x3 PCF " << pcfPartial
+                  << ", narrow PCSS " << narrowPcssPartial << ", wide PCSS " << widePcssPartial << '\n';
         Require(hardPartial == 0 && pcfPartial > 0, "PCF produces filtered visibility");
-        impl.ShadowSettings.resolution = 2048;
-        impl.ShadowSettings.debugView = Backend::ShadowDebugMode::None;
+        Require(widePcssPartial > narrowPcssPartial && widePcssPartial > pcfPartial,
+                "larger light angular radius widens the soft shadow boundary");
+        impl.ShadowSettings.lightAngularRadius = 0.15f;
+        auto contactVisibility = Frame(renderer, scene);
+        auto elevatedScene = scene;
+        elevatedScene.items[1].world = Matrix4::FromXM(DirectX::XMMatrixTranslation(0, 2, 0));
+        auto elevatedVisibility = Frame(renderer, elevatedScene);
+        Save(elevatedVisibility, "pcss-elevated-visibility");
+        const auto contactPartial = partialPixels(contactVisibility);
+        const auto elevatedPartial = partialPixels(elevatedVisibility);
+        std::cout << "PCSS partial pixels: contact " << contactPartial
+                  << ", elevated caster " << elevatedPartial << '\n';
+        Require(elevatedPartial > contactPartial,
+                "separating caster from receiver widens the penumbra");
+        impl.ShadowSettings.farPlane = 400.0f;
+        auto deeperProjectionVisibility = Frame(renderer, elevatedScene);
+        size_t depthRangeDifference = 0;
+        for (size_t i = 0; i < elevatedVisibility.rgba.size(); i += 4)
+            depthRangeDifference += std::abs(int(elevatedVisibility.rgba[i])
+                - int(deeperProjectionVisibility.rgba[i]));
+        std::cout << "PCSS mean visibility difference after Far change: "
+                  << float(depthRangeDifference) / (elevatedVisibility.width * elevatedVisibility.height) << '\n';
+        Require(depthRangeDifference < elevatedVisibility.width * elevatedVisibility.height * 2,
+                "changing shadow depth range preserves world-space softness");
+        impl.ShadowSettings.farPlane = 200.0f;
+        impl.ShadowSettings.resolution = 1024;
+        auto higherResolutionVisibility = Frame(renderer, elevatedScene);
+        size_t resolutionDifference = 0;
+        for (size_t i = 0; i < elevatedVisibility.rgba.size(); i += 4)
+            resolutionDifference += std::abs(int(elevatedVisibility.rgba[i])
+                - int(higherResolutionVisibility.rgba[i]));
+        std::cout << "PCSS mean visibility difference after resolution change: "
+                  << float(resolutionDifference) / (elevatedVisibility.width * elevatedVisibility.height) << '\n';
+        Require(resolutionDifference < elevatedVisibility.width * elevatedVisibility.height * 5,
+                "changing shadow resolution preserves approximate world-space softness");
+        impl.ShadowSettings.lightAngularRadius = 0.02f;
+        impl.ShadowSettings.resolution = 4096;
+        SetShadowDebugView(renderer, DebugViewMode::Final);
         impl.ShadowSettings.nearPlane = 20;
         impl.ShadowSettings.farPlane = 10;
         Frame(renderer, scene);
@@ -488,7 +862,7 @@ void ShadowChecks()
         Require(renderer.BeginFrame(), "resized frame");
         Require(renderer.GetWidth() == 192 && renderer.GetHeight() == 128, "resized camera targets");
         renderer.DrawScene(scene);
-        Require(impl.ShadowMap.Resolution == 2048, "shadow resolution independent of camera resize");
+        Require(impl.ShadowMap.Resolution == 4096, "shadow resolution independent of camera resize");
         renderer.EndFrame();
         Require(SetWindowPos(window, nullptr, 0, 0, 256, 256, SWP_NOMOVE | SWP_NOZORDER), "restore window size");
         Frame(renderer, scene);
@@ -504,7 +878,8 @@ int main()
     try
     {
         CpuChecks();
-        ShadowChecks();
+        TexelSnappingChecks();
+        if (!std::getenv("CANAPE_SHADOW_SNAP_ONLY")) ShadowChecks();
         return 0;
     }
     catch (const std::exception &e)

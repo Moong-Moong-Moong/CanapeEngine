@@ -38,6 +38,7 @@ namespace Canape
         m_DebugBaseTitle = title.data();
         m_DX11->SetDebugSettings(m_DebugSettings);
         CN_LOG_RENDERER("RenderDebug", "F1: view, F2: wireframe, F3: GPU timings, F4: depth range, F10: reset");
+        CN_LOG_RENDERER("RenderDebug", "Ctrl+F1: shadow cull, Ctrl+F2: slope bias, Ctrl+F3: receiver bias, Ctrl+F4: PCF");
         UpdateDebugTitle();
 #endif
         return true;
@@ -47,7 +48,8 @@ namespace Canape
     void Renderer::UpdateDebugControls(const InputManager& input)
     {
         bool changed = false;
-        if (input.IsKeyPressed(Key::F1))
+        const bool shadowKeys = input.IsKeyDown(Key::Ctrl);
+        if (!shadowKeys && input.IsKeyPressed(Key::F1))
         {
             switch (m_DebugSettings.viewMode)
             {
@@ -55,23 +57,25 @@ namespace Canape
             case DebugViewMode::CameraDepth: m_DebugSettings.viewMode = DebugViewMode::WorldNormal; break;
             case DebugViewMode::WorldNormal: m_DebugSettings.viewMode = DebugViewMode::UV; break;
             case DebugViewMode::UV: m_DebugSettings.viewMode = DebugViewMode::MipLOD; break;
+            case DebugViewMode::MipLOD: m_DebugSettings.viewMode = DebugViewMode::ShadowDepth; break;
+            case DebugViewMode::ShadowDepth: m_DebugSettings.viewMode = DebugViewMode::ShadowVisibility; break;
             default: m_DebugSettings.viewMode = DebugViewMode::Final; break;
             }
             m_DebugSettings.enabled = true;
             changed = true;
         }
-        if (input.IsKeyPressed(Key::F2))
+        if (!shadowKeys && input.IsKeyPressed(Key::F2))
         {
             m_DebugSettings.wireframe = !m_DebugSettings.wireframe;
             m_DebugSettings.enabled = true;
             changed = true;
         }
-        if (input.IsKeyPressed(Key::F3))
+        if (!shadowKeys && input.IsKeyPressed(Key::F3))
         {
             m_DebugSettings.captureGpuTimings = !m_DebugSettings.captureGpuTimings;
             changed = true;
         }
-        if (input.IsKeyPressed(Key::F4))
+        if (!shadowKeys && input.IsKeyPressed(Key::F4))
         {
             // Raw non-linear depth: progressively inspect geometry farther from the camera.
             const float min = m_DebugSettings.depthMin;
@@ -80,6 +84,36 @@ namespace Canape
             m_DebugSettings.depthMax = 1.0f;
             m_DebugSettings.viewMode = DebugViewMode::CameraDepth;
             m_DebugSettings.enabled = true;
+            changed = true;
+        }
+        if (shadowKeys && input.IsKeyPressed(Key::F1))
+        {
+            switch (m_DebugSettings.shadowCullMode)
+            {
+            case ShadowCullMode::None: m_DebugSettings.shadowCullMode = ShadowCullMode::Front; break;
+            case ShadowCullMode::Front: m_DebugSettings.shadowCullMode = ShadowCullMode::Back; break;
+            default: m_DebugSettings.shadowCullMode = ShadowCullMode::None; break;
+            }
+            changed = true;
+        }
+        if (shadowKeys && input.IsKeyPressed(Key::F2))
+        {
+            const float slope = m_DebugSettings.shadowSlopeBias;
+            m_DebugSettings.shadowSlopeBias = slope < 0.25f ? 0.5f
+                : slope < 0.75f ? 1.0f : slope < 1.5f ? 2.0f : 0.0f;
+            changed = true;
+        }
+        if (shadowKeys && input.IsKeyPressed(Key::F3))
+        {
+            const float bias = m_DebugSettings.shadowReceiverBias;
+            m_DebugSettings.shadowReceiverBias = bias < 0.00005f ? 0.0001f
+                : bias < 0.0002f ? 0.0003f : bias < 0.00045f ? 0.0006f
+                : bias < 0.0008f ? 0.001f : 0.0f;
+            changed = true;
+        }
+        if (shadowKeys && input.IsKeyPressed(Key::F4))
+        {
+            m_DebugSettings.shadowPcf = !m_DebugSettings.shadowPcf;
             changed = true;
         }
         if (input.IsKeyPressed(Key::F10))
@@ -111,12 +145,21 @@ namespace Canape
             case DebugViewMode::WorldNormal: view = L"WorldNormal"; break;
             case DebugViewMode::UV: view = L"UV"; break;
             case DebugViewMode::MipLOD: view = L"MipLOD"; break;
+            case DebugViewMode::ShadowDepth: view = L"ShadowDepth"; break;
+            case DebugViewMode::ShadowVisibility: view = L"ShadowVisibility"; break;
             default: break;
             }
         }
         const RendererDebugStats stats = m_DX11->GetDebugStats();
+        const wchar_t* shadowCull = L"None";
+        if (m_DebugSettings.shadowCullMode == ShadowCullMode::Front) shadowCull = L"Front";
+        else if (m_DebugSettings.shadowCullMode == ShadowCullMode::Back) shadowCull = L"Back";
         std::wostringstream title;
-        title << m_DebugBaseTitle << L" | " << view
+        title << m_DebugBaseTitle << L" | Shadow Cull " << shadowCull
+            << L" Slope " << std::fixed << std::setprecision(2)
+            << m_DebugSettings.shadowSlopeBias << L" Recv " << std::setprecision(4)
+            << m_DebugSettings.shadowReceiverBias << L" PCF " << (m_DebugSettings.shadowPcf ? L"ON" : L"OFF");
+        title << L" | " << view
             << L" | Wire " << (m_DebugSettings.enabled && m_DebugSettings.wireframe ? L"ON" : L"OFF")
             << L" | Draws " << stats.drawCalls << L" | Tris " << stats.triangleCount;
         if (m_DebugSettings.enabled && m_DebugSettings.viewMode == DebugViewMode::CameraDepth)
@@ -130,7 +173,7 @@ namespace Canape
                 << L" | GPU " << stats.gpuFrameMs << L" ms"
                 << L" (Scene " << stats.drawSceneMs << L", Output " << stats.finalOutputMs << L")"
                 << L" #" << stats.gpuFrameId;
-        title << L" | F1 View F2 Wire F3 GPU F4 Depth F10 Reset";
+        title << L" | Ctrl+F1 Cull F2 Slope F3 Recv F4 PCF | F10 Reset";
         SetWindowTextW(static_cast<HWND>(m_DebugWindow), title.str().c_str());
     }
 #endif

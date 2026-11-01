@@ -54,6 +54,9 @@ namespace Canape
         void SetCamera(const float* view, const float* projection);
         void SetDebugSettings(const RendererDebugSettings& settings);
         RendererDebugStats GetDebugStats() const;
+        // Final PCSS PCF only; supported counts: 8, 16, 25, 32, 64, 128.
+        bool SetPcssPcfSampleCount(uint32_t count);
+        uint32_t GetPcssPcfSampleCount() const;
 
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);

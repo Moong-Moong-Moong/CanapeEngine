@@ -10,8 +10,21 @@ namespace Canape
         CameraDepth = 1,
         WorldNormal = 2,
         UV = 3,
-        MipLOD = 4
+        MipLOD = 4,
+        ShadowDepth = 5,
+        ShadowVisibility = 6,
+        PcssFilterRadius = 7
     };
+
+    enum class ShadowCullMode : uint8_t
+    {
+        None,
+        Front,
+        Back
+    };
+
+    constexpr float DefaultShadowSlopeBias = 2.0f;
+    constexpr float DefaultShadowReceiverBias = 0.0003f;
 
     struct RendererDebugSettings
     {
@@ -22,5 +35,9 @@ namespace Canape
         float depthMax = 1.0f;
         bool wireframe = false;
         bool captureGpuTimings = false;
+        ShadowCullMode shadowCullMode = ShadowCullMode::Back;
+        float shadowSlopeBias = DefaultShadowSlopeBias;
+        float shadowReceiverBias = DefaultShadowReceiverBias;
+        bool shadowPcf = true;
     };
 }

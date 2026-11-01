@@ -17,6 +17,11 @@
 #include <cmath>
 #include <algorithm>
 #include <array>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <vector>
 
 #include "CNDebug/DebugLog.h"
 
@@ -29,6 +34,143 @@ namespace Canape
 {
     namespace
     {
+        // Temporary asset copied beside Game.exe by Game.vcxproj's Content post-build step.
+        constexpr wchar_t TestSkyboxDds[] = L"Content\\HDRI\\uffizi_cross.dds";
+
+        struct SkyboxVertex { float Position[2]; };
+        static_assert(sizeof(SkyboxVertex) == sizeof(float) * 2);
+
+        uint32_t DdsWord(const std::array<uint8_t, 128>& header, size_t offset)
+        {
+            uint32_t value;
+            std::memcpy(&value, header.data() + offset, sizeof(value));
+            return value;
+        }
+
+        bool LoadDDSCubeMap(ID3D11Device* device, const std::filesystem::path& path,
+            DX11TextureResource& output, std::string& error)
+        {
+            output = {};
+            const auto utf8Path = path.u8string();
+            const std::string name(utf8Path.begin(), utf8Path.end());
+            std::ifstream file(path, std::ios::binary | std::ios::ate);
+            if (!file)
+            {
+                error = "DDS CubeMap file missing or unreadable: " + name;
+                return false;
+            }
+            const auto fileSize = file.tellg();
+            if (fileSize < 128)
+            {
+                error = "DDS CubeMap header is truncated: " + name;
+                return false;
+            }
+            file.seekg(0);
+            std::array<uint8_t, 128> header{};
+            if (!file.read(reinterpret_cast<char*>(header.data()), header.size())
+                || std::memcmp(header.data(), "DDS ", 4) != 0
+                || DdsWord(header, 4) != 124 || DdsWord(header, 76) != 32)
+            {
+                error = "Invalid DDS header: " + name;
+                return false;
+            }
+            constexpr uint32_t AllCubeFaces = 0x0000FE00;
+            if ((DdsWord(header, 112) & AllCubeFaces) != AllCubeFaces)
+            {
+                error = "DDS is not a complete six-face CubeMap: " + name;
+                return false;
+            }
+            const uint32_t width = DdsWord(header, 16);
+            const uint32_t height = DdsWord(header, 12);
+            const uint32_t mipCount = DdsWord(header, 28);
+            if (!width || width != height || width > D3D11_REQ_TEXTURECUBE_DIMENSION
+                || mipCount > 1)
+            {
+                error = "DDS CubeMap needs square faces and a single mip level: " + name;
+                return false;
+            }
+            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+            uint32_t bytesPerPixel = 0;
+            const uint32_t pixelFlags = DdsWord(header, 80);
+            if ((pixelFlags & 0x4) && DdsWord(header, 84) == 113) // D3DFMT_A16B16G16R16F.
+            {
+                format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+                bytesPerPixel = 8;
+            }
+            else if ((pixelFlags & 0x41) == 0x41 && DdsWord(header, 88) == 32
+                && DdsWord(header, 92) == 0x00FF0000 && DdsWord(header, 96) == 0x0000FF00
+                && DdsWord(header, 100) == 0x000000FF && DdsWord(header, 104) == 0xFF000000)
+            {
+                format = DXGI_FORMAT_B8G8R8A8_UNORM;
+                bytesPerPixel = 4;
+            }
+            if (format == DXGI_FORMAT_UNKNOWN)
+            {
+                error = "Unsupported DDS CubeMap pixel format: " + name;
+                return false;
+            }
+            const uint64_t rowBytes = uint64_t(width) * bytesPerPixel;
+            const uint64_t faceBytes = rowBytes * height;
+            const uint64_t totalBytes = faceBytes * 6;
+            if (totalBytes > 512ull * 1024 * 1024 || uint64_t(fileSize) < 128 + totalBytes)
+            {
+                error = "DDS CubeMap pixel data is truncated or too large: " + name;
+                return false;
+            }
+            std::vector<uint8_t> pixels(static_cast<size_t>(totalBytes));
+            if (!file.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(totalBytes)))
+            {
+                error = "Failed to read DDS CubeMap pixels: " + name;
+                return false;
+            }
+            std::array<D3D11_SUBRESOURCE_DATA, 6> faces{};
+            for (size_t face = 0; face < faces.size(); ++face)
+            {
+                faces[face].pSysMem = pixels.data() + face * faceBytes;
+                faces[face].SysMemPitch = static_cast<UINT>(rowBytes);
+            }
+            D3D11_TEXTURE2D_DESC textureDesc{};
+            textureDesc.Width = width;
+            textureDesc.Height = height;
+            textureDesc.MipLevels = 1;
+            textureDesc.ArraySize = 6;
+            textureDesc.Format = format;
+            textureDesc.SampleDesc.Count = 1;
+            textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+            textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+            DX11TextureResource pending;
+            HRESULT result = device->CreateTexture2D(&textureDesc, faces.data(), &pending.Texture);
+            if (FAILED(result))
+            {
+                error = "CreateTexture2D(DDS CubeMap) failed for " + name
+                    + " (HRESULT " + std::to_string(static_cast<unsigned long>(result)) + ')';
+                return false;
+            }
+            D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+            viewDesc.Format = format;
+            viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+            viewDesc.TextureCube.MipLevels = 1;
+            result = device->CreateShaderResourceView(pending.Texture.Get(), &viewDesc,
+                &pending.ShaderResourceView);
+            if (FAILED(result))
+            {
+                error = "CreateShaderResourceView(DDS CubeMap) failed for " + name
+                    + " (HRESULT " + std::to_string(static_cast<unsigned long>(result)) + ')';
+                return false;
+            }
+            D3D11_SHADER_RESOURCE_VIEW_DESC actualView{};
+            pending.ShaderResourceView->GetDesc(&actualView);
+            if (actualView.ViewDimension != D3D11_SRV_DIMENSION_TEXTURECUBE)
+            {
+                error = "DDS CubeMap SRV has an unexpected dimension: " + name;
+                return false;
+            }
+            output = std::move(pending);
+            error.clear();
+            return true;
+        }
+
         // All temporary light values live here, outside GPU packing/upload code.
         std::array<RenderLight, 2> CreateTestLights()
         {
@@ -75,23 +217,29 @@ namespace Canape
 
     struct DX11Renderer::Impl
     {
-        enum class ShadowDebugMode { None, MapDepth, Visibility };
-
-        // Renderer-local settings. Scene/camera-bound fitting can later replace only
-        // BuildDirectionalShadowView; no light direction is duplicated here.
+        // Renderer-local settings. The camera frustum determines the XY extent;
+        // lightDistance and farPlane retain depth room for off-screen casters.
         struct DirectionalShadowSettings
         {
             bool enabled = true;
-            uint32_t resolution = 2048;
-            bool pcf = true; // Hardware 2x2 PCF; false selects a single comparison.
-            Vector3 center{};
-            float width = 80.0f;
-            float height = 80.0f;
+            uint32_t resolution = 4096*2;
+            bool pcf = true; // 3x3 taps with hardware comparison filtering; false selects a single comparison.
+            float shadowDistance = 40.0f; // Camera-space extent covered by this shadow map.
+            Vector3 center{}; // Legacy fixed-frustum values; fitted projection uses the camera.
+            float width = 40.0f;
+            float height = 40.0f;
             float lightDistance = 80.0f;
             float nearPlane = 0.1f;
             float farPlane = 200.0f;
-            float depthBias = 0.0005f; // Receiver depth only; rasterizer bias remains zero.
-            ShadowDebugMode debugView = ShadowDebugMode::None; // Debug/Release only.
+            float depthBias = DefaultShadowReceiverBias; // Receiver comparison bias.
+            bool pcss = true; // Ctrl+Shift+P switches between the existing PCF and PCSS.
+            float lightAngularRadius = 0.02f; // Radians; directional light's virtual angular radius.
+            float blockerSearchRadiusWorld = 0.4f;
+            float minFilterRadiusWorld = 0.0f; // One shadow texel is the shader-side floor.
+            float maxFilterRadiusWorld = 0.4f / 1.5f; // 0.4-world effective cap at the default 1.5x spacing.
+            float pcfTapSpacingScale = 1.5f; // Diagnostic multiplier after penumbra estimation.
+            uint32_t pcfSampleCount = 64;
+            bool legacyPcf25 = true; // Original 25 offsets remain available for comparison.
         };
 
         struct ShadowMapResources
@@ -99,10 +247,11 @@ namespace Canape
             ComPtr<ID3D11Texture2D> Texture;
             ComPtr<ID3D11DepthStencilView> DepthView;
             ComPtr<ID3D11ShaderResourceView> ShaderView;
-            ComPtr<ID3D11SamplerState> Sampler;
+            ComPtr<ID3D11SamplerState> PointSampler;
+            ComPtr<ID3D11SamplerState> PcfSampler;
             ComPtr<ID3D11Buffer> Constants;
+            ComPtr<ID3D11Buffer> PcssConstants;
             uint32_t Resolution = 0;
-            bool Pcf = false;
         };
 
         struct alignas(16) ObjectConstants
@@ -125,6 +274,16 @@ namespace Canape
         static_assert(offsetof(ViewConstants, Projection) == 64);
         static_assert(offsetof(ViewConstants, ViewProjection) == 128);
         static_assert(offsetof(ViewConstants, CameraPosition) == 192);
+
+        // Matches Skybox.hlsl b6: two row-major float4x4 matrices, updated in stage 5.
+        struct alignas(16) SkyboxViewConstants
+        {
+            DirectX::XMFLOAT4X4 InverseProjection{};
+            DirectX::XMFLOAT4X4 InverseView{};
+        };
+        static_assert(sizeof(SkyboxViewConstants) == 128);
+        static_assert(alignof(SkyboxViewConstants) == 16);
+        static_assert(offsetof(SkyboxViewConstants, InverseView) == 64);
 
         // Initial fixed capacities. Keep these in sync with Constants.hlsli.
         static constexpr uint32_t MaxDirectionalLights = 4;
@@ -198,13 +357,35 @@ namespace Canape
         struct alignas(16) ShadowConstants
         {
             uint32_t ViewCount = 0;
-            uint32_t Padding[3]{};
+            uint32_t PcfEnabled = 0;
+            uint32_t Padding[2]{};
             // Directional/Spot use one view. Point uses six in +X,-X,+Y,-Y,+Z,-Z order.
             ShadowViewGpu Views[MaxShadowViews]{};
         };
+        static_assert(offsetof(ShadowConstants, PcfEnabled) == 4);
         static_assert(offsetof(ShadowConstants, Views) == 16);
         static_assert(sizeof(ShadowConstants) == 16 + 80 * MaxShadowViews);
         static_assert(sizeof(LightConstants) <= 65536 && sizeof(ShadowConstants) <= 65536);
+
+        // Mesh.hlsl b7. b5 remains unchanged for all existing shadow consumers.
+        struct alignas(16) PcssConstants
+        {
+            DirectX::XMFLOAT2 OrthoSize{};
+            float TanLightAngularRadius = 0.0f;
+            float BlockerSearchRadiusWorld = 0.0f;
+            float MinFilterRadiusWorld = 0.0f;
+            float MaxFilterRadiusWorld = 0.0f;
+            uint32_t FilterMode = 0; // 0: single, 1: 3x3 PCF, 2: Vogel PCSS, 3: legacy 25 PCSS.
+            uint32_t PcfSampleCount = 64;
+            float PcfTapSpacingScale = 1.5f;
+            float Padding[3]{};
+        };
+        static_assert(sizeof(PcssConstants) == 48);
+        static_assert(offsetof(PcssConstants, TanLightAngularRadius) == 8);
+        static_assert(offsetof(PcssConstants, MinFilterRadiusWorld) == 16);
+        static_assert(offsetof(PcssConstants, FilterMode) == 24);
+        static_assert(offsetof(PcssConstants, PcfSampleCount) == 28);
+        static_assert(offsetof(PcssConstants, PcfTapSpacingScale) == 32);
 
         struct alignas(16) SceneConstants
         {
@@ -268,15 +449,177 @@ namespace Canape
         bool SceneDirty = true;
         RenderScene QueuedScene;
         DirectionalShadowSettings ShadowSettings{};
+        bool ShadowDistancePlusHeld = false;
+        bool ShadowDistanceMinusHeld = false;
+        bool PcssToggleHeld = false;
+        bool PcfCountDecreaseHeld = false;
+        bool PcfCountIncreaseHeld = false;
+        bool Legacy25ToggleHeld = false;
+        bool PcfSpacingDecreaseHeld = false;
+        bool PcfSpacingIncreaseHeld = false;
+        bool BlockerRadiusDecreaseHeld = false;
+        bool BlockerRadiusIncreaseHeld = false;
+        float LastSourceShadowSlopeBias = DefaultShadowSlopeBias;
+        bool ShadowSlopeShortcutOverride = false;
+        bool ShadowDiagnosticsDirty = true;
+#if CANAPE_RENDER_DEBUG
+        bool PcssRadiusViewHeld = false;
+        bool PcssRadiusViewOverride = false;
+#endif
         bool ShadowActive = false;
         uint32_t AttemptedShadowResolution = UINT32_MAX;
-        bool AttemptedShadowPcf = false;
+
+        static constexpr std::array<uint32_t, 6> PcfSampleOptions{ 8, 16, 25, 32, 64, 128 };
+        static constexpr std::array<float, 10> ShadowSlopeBiasOptions{ 0.0f, 0.5f, 1.0f,
+            2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
+        static constexpr std::array<float, 11> PcfSpacingOptions{ 0.25f, 0.5f,
+            1.0f, 1.2f, 1.4f, 1.5f, 1.6f, 1.8f, 2.0f, 3.0f, 4.0f };
+        static constexpr std::array<float, 7> BlockerRadiusOptions{ 0.125f, 0.25f, 0.4f, 0.5f,
+            0.75f, 1.0f, 1.5f };
+
+        template <size_t N>
+        static float AdjacentOption(const std::array<float, N>& options, float current, bool increase)
+        {
+            const auto it = std::find(options.begin(), options.end(), current);
+            if (it == options.end()) return current;
+            return increase ? (it + 1 == options.end() ? options.front() : *(it + 1))
+                : (it == options.begin() ? options.back() : *(it - 1));
+        }
+
+        bool SetPcssPcfSampleCount(uint32_t count)
+        {
+            if (std::find(PcfSampleOptions.begin(), PcfSampleOptions.end(), count) == PcfSampleOptions.end())
+                return false;
+            if (ShadowSettings.pcfSampleCount == count) return true;
+            ShadowSettings.pcfSampleCount = count;
+            CN_LOG_RENDERER("Shadow", "PCSS final PCF samples: ", count,
+                count == 25 && ShadowSettings.legacyPcf25 ? " (legacy)" : " (Vogel)");
+            return true;
+        }
+
+        void UpdateShadowDistanceShortcut()
+        {
+            const auto keyDown = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
+            const bool focused = GetFocus() == Window;
+            const bool ctrlDown = focused && keyDown(VK_CONTROL);
+            const bool plusDown = ctrlDown && (keyDown(VK_OEM_PLUS) || keyDown(VK_ADD));
+            const bool minusDown = ctrlDown && (keyDown(VK_OEM_MINUS) || keyDown(VK_SUBTRACT));
+            const bool increase = plusDown && !ShadowDistancePlusHeld;
+            const bool decrease = minusDown && !ShadowDistanceMinusHeld;
+            ShadowDistancePlusHeld = plusDown;
+            ShadowDistanceMinusHeld = minusDown;
+
+            if (increase == decrease) return;
+            constexpr float step = 5.0f;
+            const float previous = ShadowSettings.shadowDistance;
+            ShadowSettings.shadowDistance = increase ? previous + step : std::max(5.0f, previous - step);
+            if (ShadowSettings.shadowDistance != previous)
+            {
+                ShadowDiagnosticsDirty = true;
+                CN_LOG_RENDERER("Shadow", "Distance: ", ShadowSettings.shadowDistance);
+            }
+        }
+
+        void UpdatePcssShortcut()
+        {
+            const bool down = GetFocus() == Window
+                && (GetAsyncKeyState(VK_CONTROL) & 0x8000)
+                && (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+                && (GetAsyncKeyState('P') & 0x8000);
+            if (down && !PcssToggleHeld)
+            {
+                ShadowSettings.pcss = !ShadowSettings.pcss;
+                CN_LOG_RENDERER("Shadow", ShadowSettings.pcss ? "PCSS" : "3x3 PCF");
+            }
+            PcssToggleHeld = down;
+        }
+
+        void UpdatePcfSampleShortcuts()
+        {
+            const auto keyDown = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
+            const bool ctrl = GetFocus() == Window && keyDown(VK_CONTROL);
+            const bool shift = ctrl && keyDown(VK_SHIFT);
+            const bool decrease = ctrl && !shift && keyDown(VK_NEXT); // PageDown.
+            const bool increase = ctrl && !shift && keyDown(VK_PRIOR); // PageUp.
+            const bool toggleLegacy = shift && keyDown(VK_PRIOR);
+            if (decrease != increase)
+            {
+                const bool pressed = decrease ? !PcfCountDecreaseHeld : !PcfCountIncreaseHeld;
+                if (pressed)
+                {
+                    const auto it = std::find(PcfSampleOptions.begin(), PcfSampleOptions.end(),
+                        ShadowSettings.pcfSampleCount);
+                    if (it != PcfSampleOptions.end())
+                    {
+                        const auto next = decrease ? (it == PcfSampleOptions.begin() ? it : it - 1)
+                            : (it + 1 == PcfSampleOptions.end() ? it : it + 1);
+                        SetPcssPcfSampleCount(*next);
+                    }
+                }
+            }
+            if (toggleLegacy && !Legacy25ToggleHeld && ShadowSettings.pcfSampleCount == 25)
+            {
+                ShadowSettings.legacyPcf25 = !ShadowSettings.legacyPcf25;
+                CN_LOG_RENDERER("Shadow", "PCSS 25-tap pattern: ",
+                    ShadowSettings.legacyPcf25 ? "legacy" : "Vogel");
+            }
+            PcfCountDecreaseHeld = decrease;
+            PcfCountIncreaseHeld = increase;
+            Legacy25ToggleHeld = toggleLegacy;
+#if CANAPE_RENDER_DEBUG
+            const bool radiusView = shift && keyDown(VK_NEXT);
+            if (radiusView && !PcssRadiusViewHeld)
+            {
+                PcssRadiusViewOverride = !PcssRadiusViewOverride;
+                CN_LOG_RENDERER("Shadow", "PCSS filter radius view: ",
+                    PcssRadiusViewOverride ? "ON (log2 texels)" : "OFF");
+            }
+            PcssRadiusViewHeld = radiusView;
+#endif
+        }
+
+        void UpdatePcssDiagnosticShortcuts()
+        {
+            const auto keyDown = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
+            const bool ctrl = GetFocus() == Window && keyDown(VK_CONTROL);
+            const bool shift = ctrl && keyDown(VK_SHIFT);
+            const bool alt = ctrl && keyDown(VK_MENU);
+            const bool spacingDown = shift && !alt && keyDown(VK_HOME);
+            const bool spacingUp = shift && !alt && keyDown(VK_END);
+            const bool searchDown = alt && !shift && keyDown(VK_HOME);
+            const bool searchUp = alt && !shift && keyDown(VK_END);
+            if ((spacingDown && !PcfSpacingDecreaseHeld) || (spacingUp && !PcfSpacingIncreaseHeld))
+            {
+                ShadowSettings.pcfTapSpacingScale = AdjacentOption(PcfSpacingOptions,
+                    ShadowSettings.pcfTapSpacingScale, spacingUp);
+                CN_LOG_RENDERER("Shadow", "PCSS final PCF tap spacing: ",
+                    ShadowSettings.pcfTapSpacingScale, "x (base radius unchanged)");
+                ShadowDiagnosticsDirty = true;
+            }
+            if ((searchDown && !BlockerRadiusDecreaseHeld) || (searchUp && !BlockerRadiusIncreaseHeld))
+            {
+                ShadowSettings.blockerSearchRadiusWorld = AdjacentOption(BlockerRadiusOptions,
+                    ShadowSettings.blockerSearchRadiusWorld, searchUp);
+                CN_LOG_RENDERER("Shadow", "PCSS blocker search radius: ",
+                    ShadowSettings.blockerSearchRadiusWorld, " world units");
+                ShadowDiagnosticsDirty = true;
+            }
+            PcfSpacingDecreaseHeld = spacingDown;
+            PcfSpacingIncreaseHeld = spacingUp;
+            BlockerRadiusDecreaseHeld = searchDown;
+            BlockerRadiusIncreaseHeld = searchUp;
+        }
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
         // Reverse member destruction releases cached resources before Context and Device.
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
         DX11ResourceCache Resources;
+        // Temporary skybox asset; kept separate from material Texture2D IDs.
+        DX11TextureResource TestSkyboxCube;
+        ComPtr<ID3D11Buffer> SkyboxVertexBuffer;
+        ComPtr<ID3D11Buffer> SkyboxIndexBuffer;
+        static constexpr UINT SkyboxIndexCount = 6;
         DX11PipelineState Pipelines;
         ShadowMapResources ShadowMap;
         ComPtr<ID3D11SamplerState> FallbackShadowSampler;
@@ -293,6 +636,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> ObjectBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
+        ComPtr<ID3D11Buffer> SkyboxViewBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
 #if CANAPE_RENDER_DEBUG
@@ -355,13 +699,10 @@ namespace Canape
 
         bool EnsureShadowResources()
         {
-            if (ShadowMap.Texture && ShadowMap.Resolution == ShadowSettings.resolution
-                && ShadowMap.Pcf == ShadowSettings.pcf) return true;
-            // Retry after settings change or renderer reinitialization, without logging every frame.
-            if (AttemptedShadowResolution == ShadowSettings.resolution && AttemptedShadowPcf == ShadowSettings.pcf)
-                return false;
+            if (ShadowMap.Texture && ShadowMap.Resolution == ShadowSettings.resolution) return true;
+            // Retry after a resolution change or renderer reinitialization, without logging every frame.
+            if (AttemptedShadowResolution == ShadowSettings.resolution) return false;
             AttemptedShadowResolution = ShadowSettings.resolution;
-            AttemptedShadowPcf = ShadowSettings.pcf;
             auto failed = [](const char* operation, HRESULT result)
             {
                 CN_LOG_RENDERER("Shadow", HResultMessage(operation, result), "; rendering without shadows");
@@ -395,47 +736,163 @@ namespace Canape
             result = Device->CreateShaderResourceView(pending.Texture.Get(), &srv, &pending.ShaderView);
             if (FAILED(result)) return failed("CreateShaderResourceView(shadow)", result);
             D3D11_SAMPLER_DESC sampler{};
-            sampler.Filter = ShadowSettings.pcf ? D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT
-                : D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+            sampler.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
             sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
             sampler.BorderColor[0] = sampler.BorderColor[1] = sampler.BorderColor[2] = sampler.BorderColor[3] = 1.0f;
             sampler.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
             sampler.MaxAnisotropy = 1;
             sampler.MaxLOD = D3D11_FLOAT32_MAX;
-            result = Device->CreateSamplerState(&sampler, &pending.Sampler);
-            if (FAILED(result)) return failed("CreateSamplerState(shadow comparison)", result);
+            result = Device->CreateSamplerState(&sampler, &pending.PointSampler);
+            if (FAILED(result)) return failed("CreateSamplerState(shadow point comparison)", result);
+            sampler.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+            result = Device->CreateSamplerState(&sampler, &pending.PcfSampler);
+            if (FAILED(result)) return failed("CreateSamplerState(shadow PCF comparison)", result);
             D3D11_BUFFER_DESC buffer{};
             buffer.ByteWidth = sizeof(ShadowConstants);
             buffer.Usage = D3D11_USAGE_DEFAULT;
             buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             result = Device->CreateBuffer(&buffer, nullptr, &pending.Constants);
             if (FAILED(result)) return failed("CreateBuffer(shadow constants)", result);
+            buffer.ByteWidth = sizeof(PcssConstants);
+            result = Device->CreateBuffer(&buffer, nullptr, &pending.PcssConstants);
+            if (FAILED(result)) return failed("CreateBuffer(PCSS constants)", result);
             pending.Resolution = ShadowSettings.resolution;
-            pending.Pcf = ShadowSettings.pcf;
             ID3D11ShaderResourceView* unbound = nullptr;
             Context->PSSetShaderResources(1, 1, &unbound);
             ShadowMap = std::move(pending);
             return true;
         }
 
-        static bool BuildDirectionalShadowView(const Vector3& direction,
-            const DirectionalShadowSettings& settings, ShadowViewGpu& output)
+        static bool BuildFrustumBoundingSphere(const ViewConstants& camera, float shadowDistance, Vector3& center,
+            float& radius, double& fittedRadius)
         {
-            if (!IsFinite(direction) || direction.LengthSquared() < 1e-12f || !IsFinite(settings.center)
-                || !std::isfinite(settings.width) || settings.width <= 0.0f
-                || !std::isfinite(settings.height) || settings.height <= 0.0f
+            using namespace DirectX;
+            const XMMATRIX projection = XMLoadFloat4x4(&camera.Projection);
+            const XMMATRIX view = XMLoadFloat4x4(&camera.View);
+            XMVECTOR projectionDeterminant, viewDeterminant;
+            const XMMATRIX inverseProjection = XMMatrixInverse(&projectionDeterminant, projection);
+            const XMMATRIX inverseView = XMMatrixInverse(&viewDeterminant, view);
+            const float projectionDet = XMVectorGetX(projectionDeterminant);
+            const float viewDet = XMVectorGetX(viewDeterminant);
+            if (!std::isfinite(projectionDet) || projectionDet == 0.0f
+                || !std::isfinite(viewDet) || viewDet == 0.0f
+                || XMMatrixIsNaN(inverseProjection) || XMMatrixIsInfinite(inverseProjection)
+                || XMMatrixIsNaN(inverseView) || XMMatrixIsInfinite(inverseView)) return false;
+
+            const XMVECTOR nearCenter = XMVector3TransformCoord(XMVectorSet(0, 0, 0, 1), inverseProjection);
+            const XMVECTOR farCenter = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 1), inverseProjection);
+            const float cameraNear = XMVectorGetZ(nearCenter);
+            const float cameraFar = XMVectorGetZ(farCenter);
+            if (!std::isfinite(shadowDistance) || !std::isfinite(cameraNear) || !std::isfinite(cameraFar)
+                || cameraNear < 0.0f || cameraFar <= cameraNear) return false;
+            const float shadowFar = std::min(cameraFar, shadowDistance);
+            if (shadowFar <= cameraNear) return false;
+            const float farFraction = (shadowFar - cameraNear) / (cameraFar - cameraNear);
+
+            std::array<XMFLOAT3, 8> viewCorners{};
+            double worldX = 0.0, worldY = 0.0, worldZ = 0.0;
+            double viewX = 0.0, viewY = 0.0, viewZ = 0.0;
+            size_t index = 0;
+            // DirectX LH clip space has x/y in [-1,1] and z in [0,1].
+            // Interpolating each near-to-far edge caps the camera frustum without
+            // changing its projection or requiring a separate camera matrix.
+            for (float z : { 0.0f, 1.0f })
+                for (float y : { -1.0f, 1.0f })
+                    for (float x : { -1.0f, 1.0f })
+                    {
+                        const XMVECTOR nearCorner = XMVector3TransformCoord(XMVectorSet(x, y, 0, 1), inverseProjection);
+                        const XMVECTOR farCorner = XMVector3TransformCoord(XMVectorSet(x, y, 1, 1), inverseProjection);
+                        const XMVECTOR viewCorner = z == 0.0f ? nearCorner
+                            : XMVectorLerp(nearCorner, farCorner, farFraction);
+                        const XMVECTOR worldCorner = XMVector3TransformCoord(viewCorner, inverseView);
+                        XMFLOAT3 worldPoint;
+                        XMStoreFloat3(&viewCorners[index++], viewCorner);
+                        XMStoreFloat3(&worldPoint, worldCorner);
+                        if (!std::isfinite(worldPoint.x) || !std::isfinite(worldPoint.y)
+                            || !std::isfinite(worldPoint.z)) return false;
+                        worldX += worldPoint.x; worldY += worldPoint.y; worldZ += worldPoint.z;
+                        viewX += XMVectorGetX(viewCorner);
+                        viewY += XMVectorGetY(viewCorner);
+                        viewZ += XMVectorGetZ(viewCorner);
+                    }
+            center = { static_cast<float>(worldX / 8.0), static_cast<float>(worldY / 8.0),
+                static_cast<float>(worldZ / 8.0) };
+            if (!IsFinite(center)) return false;
+
+            // Distances in camera space are rotation invariant. Computing them from
+            // world corners would introduce view-inverse rounding into the radius.
+            double radiusSquared = 0.0;
+            for (const XMFLOAT3& corner : viewCorners)
+            {
+                const double dx = corner.x - viewX / 8.0;
+                const double dy = corner.y - viewY / 8.0;
+                const double dz = corner.z - viewZ / 8.0;
+                radiusSquared = std::max(radiusSquared, dx * dx + dy * dy + dz * dz);
+            }
+            fittedRadius = std::sqrt(radiusSquared);
+            // Fixed, projection-dependent margin covers float transforms of the
+            // center and corners without allowing camera rotation to resize XY.
+            radius = static_cast<float>(fittedRadius * 1.001 + 0.01);
+            return std::isfinite(radius) && radius > 0.0f;
+        }
+
+        bool BuildDirectionalShadowView(const Vector3& direction,
+            const DirectionalShadowSettings& settings, ShadowViewGpu& output, PcssConstants& pcssOutput)
+        {
+            if (!IsFinite(direction) || direction.LengthSquared() < 1e-12f
                 || !std::isfinite(settings.lightDistance) || settings.lightDistance <= 0.0f
                 || !std::isfinite(settings.nearPlane) || settings.nearPlane < 0.0f
                 || !std::isfinite(settings.farPlane) || settings.farPlane <= settings.nearPlane
                 || !std::isfinite(settings.depthBias) || settings.depthBias < 0.0f) return false;
             using namespace DirectX;
+            Vector3 center;
+            float radius;
+            double fittedRadius;
+            if (!BuildFrustumBoundingSphere(ViewData, settings.shadowDistance, center, radius, fittedRadius)
+                || ShadowMap.Resolution == 0) return false;
+            // A snapped center can move by half a texel on each light-space axis.
+            // Expand XY only when the sphere's existing padding is insufficient.
+            const double resolution = static_cast<double>(ShadowMap.Resolution);
+            const double requiredRadius = ShadowMap.Resolution > 1
+                ? fittedRadius / (1.0 - 1.0 / resolution) : fittedRadius;
+            const float projectionRadius = requiredRadius > radius
+                ? std::nextafter(static_cast<float>(requiredRadius), std::numeric_limits<float>::infinity())
+                : radius;
+            const float projectionWidth = 2.0f * projectionRadius;
+            const float projectionHeight = 2.0f * projectionRadius;
+            const float texelSizeX = projectionWidth / ShadowMap.Resolution;
+            const float texelSizeY = projectionHeight / ShadowMap.Resolution;
+            if (!std::isfinite(projectionWidth) || !std::isfinite(projectionHeight)
+                || !std::isfinite(texelSizeX) || !std::isfinite(texelSizeY)
+                || texelSizeX <= 0.0f || texelSizeY <= 0.0f) return false;
+            // Snapping changes only XY; retain the existing depth placement and range.
+            const float lightDistance = radius + settings.lightDistance;
+            const float farPlane = 2.0f * radius + settings.farPlane;
+            if (!std::isfinite(lightDistance) || !std::isfinite(farPlane)
+                || farPlane <= settings.nearPlane) return false;
             const XMVECTOR forward = XMVector3Normalize(direction.ToXM());
-            const XMVECTOR eye = XMVectorSubtract(settings.center.ToXM(), XMVectorScale(forward, settings.lightDistance));
             const XMVECTOR up = std::abs(XMVectorGetY(forward)) > 0.99f
                 ? XMVectorSet(0, 0, 1, 0) : XMVectorSet(0, 1, 0, 0);
+            // A light view at the world origin supplies fixed axes. A view centered
+            // on the sphere would always report (0,0) and cannot define a grid.
+            const XMMATRIX lightAxes = XMMatrixLookToLH(XMVectorZero(), forward, up);
+            const XMVECTOR centerLS = XMVector3TransformNormal(center.ToXM(), lightAxes);
+            const float originalX = XMVectorGetX(centerLS);
+            const float originalY = XMVectorGetY(centerLS);
+            const float snappedX = ShadowMap.Resolution > 1
+                ? std::round(originalX / texelSizeX) * texelSizeX : originalX;
+            const float snappedY = ShadowMap.Resolution > 1
+                ? std::round(originalY / texelSizeY) * texelSizeY : originalY;
+            const XMVECTOR offsetLS = XMVectorSet(snappedX - originalX, snappedY - originalY, 0.0f, 0.0f);
+            const XMVECTOR snappedCenter = XMVectorAdd(center.ToXM(),
+                XMVector3TransformNormal(offsetLS, XMMatrixTranspose(lightAxes)));
+            if (!std::isfinite(snappedX) || !std::isfinite(snappedY)
+                || !IsFinite(Vector3::FromXM(snappedCenter))) return false;
+            const XMVECTOR eye = XMVectorSubtract(snappedCenter, XMVectorScale(forward, lightDistance));
             const XMMATRIX view = XMMatrixLookToLH(eye, forward, up);
-            const XMMATRIX projection = XMMatrixOrthographicLH(settings.width, settings.height,
-                settings.nearPlane, settings.farPlane);
+            const XMMATRIX projection = XMMatrixOrthographicOffCenterLH(-projectionRadius, projectionRadius,
+                -projectionRadius, projectionRadius,
+                settings.nearPlane, farPlane);
             const XMMATRIX viewProjection = view * projection;
             if (XMMatrixIsNaN(viewProjection) || XMMatrixIsInfinite(viewProjection)) return false;
             // Row-major, left-handed, z [0,1], no upload transpose, same as the camera.
@@ -443,7 +900,8 @@ namespace Canape
             output.DepthBias = settings.depthBias;
             output.MapIndex = 0;
             output.NearPlane = settings.nearPlane;
-            output.FarPlane = settings.farPlane;
+            output.FarPlane = farPlane;
+            pcssOutput.OrthoSize = { projectionWidth, projectionHeight };
             return true;
         }
 
@@ -452,21 +910,47 @@ namespace Canape
             uint32_t shadowIndex = InvalidShadowView;
             LightConstants data = BuildLightConstants(lights, &shadowIndex);
             ShadowConstants shadowData{};
+            shadowData.PcfEnabled = ShadowSettings.pcf ? 1u : 0u;
+            PcssConstants pcssData{};
+            pcssData.TanLightAngularRadius = std::tan(ShadowSettings.lightAngularRadius);
+            pcssData.BlockerSearchRadiusWorld = ShadowSettings.blockerSearchRadiusWorld;
+            pcssData.MinFilterRadiusWorld = ShadowSettings.minFilterRadiusWorld;
+            pcssData.MaxFilterRadiusWorld = ShadowSettings.maxFilterRadiusWorld;
+            pcssData.PcfSampleCount = ShadowSettings.pcfSampleCount;
+            pcssData.PcfTapSpacingScale = ShadowSettings.pcfTapSpacingScale;
+            pcssData.FilterMode = !ShadowSettings.pcf ? 0u : !ShadowSettings.pcss ? 1u
+                : ShadowSettings.pcfSampleCount == 25 && ShadowSettings.legacyPcf25 ? 3u : 2u;
             ShadowActive = scene && ShadowSettings.enabled && shadowIndex != InvalidShadowView
                 && Pipelines.ShadowsAvailable() && EnsureShadowResources()
                 && BuildDirectionalShadowView(data.DirectionalLights[shadowIndex].Direction,
-                    ShadowSettings, shadowData.Views[0]);
+                    ShadowSettings, shadowData.Views[0], pcssData);
             if (ShadowActive)
             {
                 shadowData.ViewCount = 1;
                 auto& light = data.DirectionalLights[shadowIndex];
                 light.ShadowViewOffset = 0;
                 light.ShadowViewCount = 1;
+#if defined(_DEBUG) && CANAPE_RENDER_DEBUG
+                if (ShadowDiagnosticsDirty)
+                {
+                    const float texelsPerWorld = ShadowMap.Resolution / pcssData.OrthoSize.x;
+                    CN_LOG_RENDERER("Shadow", "PCSS footprint: world/texel ",
+                        1.0f / texelsPerWorld, ", search ",
+                        std::max(ShadowSettings.blockerSearchRadiusWorld * texelsPerWorld, 2.0f),
+                        " texels, max final tap radius ",
+                        std::min(ShadowSettings.maxFilterRadiusWorld * ShadowSettings.pcfTapSpacingScale,
+                            ShadowSettings.blockerSearchRadiusWorld) * texelsPerWorld,
+                        " texels");
+                    ShadowDiagnosticsDirty = false;
+                }
+#endif
             }
             // Full uploads clear old views/metadata on every frame and every scene, including fallback.
             Context->UpdateSubresource(LightBuffer.Get(), 0, nullptr, &data, 0, 0);
             if (ShadowMap.Constants)
                 Context->UpdateSubresource(ShadowMap.Constants.Get(), 0, nullptr, &shadowData, 0, 0);
+            if (ShadowMap.PcssConstants)
+                Context->UpdateSubresource(ShadowMap.PcssConstants.Get(), 0, nullptr, &pcssData, 0, 0);
             if (ShadowActive) RenderShadowPass(*scene);
         }
 
@@ -596,8 +1080,12 @@ namespace Canape
             ID3D11Buffer* shadowBuffer = ShadowMap.Constants.Get();
             Context->VSSetConstantBuffers(5, 1, &shadowBuffer);
             Context->PSSetConstantBuffers(5, 1, &shadowBuffer);
+            ID3D11Buffer* pcssBuffer = ShadowMap.PcssConstants.Get();
+            Context->PSSetConstantBuffers(7, 1, &pcssBuffer);
             ID3D11ShaderResourceView* shadowView = ShadowActive ? ShadowMap.ShaderView.Get() : nullptr;
-            ID3D11SamplerState* shadowSampler = ShadowMap.Sampler ? ShadowMap.Sampler.Get() : FallbackShadowSampler.Get();
+            ID3D11SamplerState* shadowSampler = ShadowSettings.pcf
+                ? ShadowMap.PcfSampler.Get() : ShadowMap.PointSampler.Get();
+            if (!shadowSampler) shadowSampler = FallbackShadowSampler.Get();
             Context->PSSetShaderResources(1, 1, &shadowView);
             Context->PSSetSamplers(1, 1, &shadowSampler);
         }
@@ -613,6 +1101,58 @@ namespace Canape
             Context->PSSetSamplers(0, 1, &pipeline.Sampler);
         }
 
+        void DrawSkybox()
+        {
+            if (!TestSkyboxCube.ShaderResourceView || !SkyboxVertexBuffer || !SkyboxIndexBuffer
+                || !SkyboxViewBuffer) return;
+
+            using namespace DirectX;
+            const XMMATRIX projection = XMLoadFloat4x4(&ViewData.Projection);
+            const XMMATRIX view = XMLoadFloat4x4(&ViewData.View);
+            XMVECTOR projectionDeterminant;
+            XMVECTOR viewDeterminant;
+            const XMMATRIX inverseProjection = XMMatrixInverse(&projectionDeterminant, projection);
+            const XMMATRIX inverseView = XMMatrixInverse(&viewDeterminant, view);
+            const float projectionDet = XMVectorGetX(projectionDeterminant);
+            const float viewDet = XMVectorGetX(viewDeterminant);
+            if (!std::isfinite(projectionDet) || projectionDet == 0.0f
+                || !std::isfinite(viewDet) || viewDet == 0.0f
+                || XMMatrixIsNaN(inverseProjection) || XMMatrixIsInfinite(inverseProjection)
+                || XMMatrixIsNaN(inverseView) || XMMatrixIsInfinite(inverseView)) return;
+
+            SkyboxViewConstants constants{};
+            // Existing shaders use row-major mul(vector, matrix); upload without a transpose.
+            XMStoreFloat4x4(&constants.InverseProjection, inverseProjection);
+            XMStoreFloat4x4(&constants.InverseView, inverseView);
+            Context->UpdateSubresource(SkyboxViewBuffer.Get(), 0, nullptr, &constants, 0, 0);
+
+            BindMainTargets();
+            const DX11PipelineSelection pipeline = Pipelines.ResolveSkybox();
+            BindPipeline(pipeline);
+            const UINT stride = sizeof(SkyboxVertex);
+            constexpr UINT offset = 0;
+            ID3D11Buffer* vertexBuffer = SkyboxVertexBuffer.Get();
+            Context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+            Context->IASetIndexBuffer(SkyboxIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+            Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            ID3D11Buffer* viewBuffer = SkyboxViewBuffer.Get();
+            Context->VSSetConstantBuffers(6, 1, &viewBuffer);
+            ID3D11ShaderResourceView* cubeView = TestSkyboxCube.ShaderResourceView.Get();
+            Context->PSSetShaderResources(2, 1, &cubeView);
+            Context->PSSetSamplers(2, 1, &pipeline.Sampler);
+            Context->DrawIndexed(SkyboxIndexCount, 0, 0);
+#if CANAPE_RENDER_DEBUG
+            ++CurrentStats.drawCalls;
+            CurrentStats.triangleCount += SkyboxIndexCount / 3;
+#endif
+            ID3D11ShaderResourceView* unboundView = nullptr;
+            ID3D11SamplerState* unboundSampler = nullptr;
+            ID3D11Buffer* unboundBuffer = nullptr;
+            Context->PSSetShaderResources(2, 1, &unboundView);
+            Context->PSSetSamplers(2, 1, &unboundSampler);
+            Context->VSSetConstantBuffers(6, 1, &unboundBuffer);
+        }
+
         void RenderFinalOutput()
         {
             // Rebinding the back buffer unbinds both SceneColor RTV and depth DSV before SRV reads.
@@ -626,8 +1166,11 @@ namespace Canape
             Context->RSSetViewports(1, &viewport);
 
 #if CANAPE_RENDER_DEBUG
-            const bool cameraDepth = DebugSettings.enabled && DebugSettings.viewMode == DebugViewMode::CameraDepth;
-            const bool shadowDepth = !cameraDepth && ShadowActive && ShadowSettings.debugView == ShadowDebugMode::MapDepth;
+            const bool cameraDepth = !PcssRadiusViewOverride && DebugSettings.enabled
+                && DebugSettings.viewMode == DebugViewMode::CameraDepth;
+            const bool shadowDepth = !PcssRadiusViewOverride && DebugSettings.enabled
+                && DebugSettings.viewMode == DebugViewMode::ShadowDepth
+                && ShadowActive;
             BindPipeline(Pipelines.ResolveFinalOutput(cameraDepth || shadowDepth));
             ID3D11ShaderResourceView* output = shadowDepth ? ShadowMap.ShaderView.Get()
                 : cameraDepth ? DepthShaderResourceView.Get() : SceneColorShaderResourceView.Get();
@@ -802,6 +1345,49 @@ namespace Canape
             return CreateTargets(width, height);
         }
 
+        bool CreateSkyboxQuad()
+        {
+            constexpr std::array<SkyboxVertex, 4> vertices{{
+                {{ -1.0f,  1.0f }},
+                {{  1.0f,  1.0f }},
+                {{  1.0f, -1.0f }},
+                {{ -1.0f, -1.0f }}
+            }};
+            constexpr std::array<uint32_t, SkyboxIndexCount> indices{ 0, 1, 2, 0, 2, 3 };
+
+            D3D11_BUFFER_DESC vertexDesc{};
+            vertexDesc.ByteWidth = sizeof(vertices);
+            vertexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+            vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+            D3D11_SUBRESOURCE_DATA vertexData{ vertices.data() };
+            ComPtr<ID3D11Buffer> vertexBuffer;
+            HRESULT result = Device->CreateBuffer(&vertexDesc, &vertexData, &vertexBuffer);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(skybox vertices)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+
+            D3D11_BUFFER_DESC indexDesc{};
+            indexDesc.ByteWidth = sizeof(indices);
+            indexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+            indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+            D3D11_SUBRESOURCE_DATA indexData{ indices.data() };
+            ComPtr<ID3D11Buffer> indexBuffer;
+            result = Device->CreateBuffer(&indexDesc, &indexData, &indexBuffer);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(skybox indices)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+
+            SkyboxVertexBuffer = std::move(vertexBuffer);
+            SkyboxIndexBuffer = std::move(indexBuffer);
+            return true;
+        }
+
         bool CreatePipeline()
         {
             if (!Pipelines.Initialize(Device.Get(), LastError)) return false;
@@ -833,6 +1419,15 @@ namespace Canape
             if (FAILED(result))
             {
                 LastError = HResultMessage("ID3D11Device::CreateBuffer(view constants)", result);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+
+            constantBufferDesc.ByteWidth = sizeof(SkyboxViewConstants);
+            result = Device->CreateBuffer(&constantBufferDesc, nullptr, &SkyboxViewBuffer);
+            if (FAILED(result))
+            {
+                LastError = HResultMessage("ID3D11Device::CreateBuffer(skybox view constants)", result);
                 CN_LOG_RENDERER("Error", LastError);
                 return false;
             }
@@ -939,7 +1534,32 @@ namespace Canape
             return false;
         }
 
-        if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()) return false;
+        if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()
+            || !m_Impl->CreateSkyboxQuad()) return false;
+        std::vector<wchar_t> executablePath(32768);
+        const DWORD pathLength = GetModuleFileNameW(nullptr, executablePath.data(),
+            static_cast<DWORD>(executablePath.size()));
+        std::string skyboxError;
+        if (!pathLength || pathLength >= executablePath.size())
+        {
+            skyboxError = "GetModuleFileNameW failed while resolving test skybox DDS";
+        }
+        else
+        {
+            const auto path = std::filesystem::path(executablePath.data()).parent_path() / TestSkyboxDds;
+            LoadDDSCubeMap(m_Impl->Device.Get(), path, m_Impl->TestSkyboxCube, skyboxError);
+        }
+        if (!skyboxError.empty())
+        {
+            // Skybox is optional until its render pass exists; keep existing rendering available.
+            CN_LOG_RENDERER("Skybox", skyboxError);
+            OutputDebugStringA(("[DX11Renderer][Skybox] " + skyboxError + "\r\n").c_str());
+        }
+        else
+        {
+            CN_LOG_RENDERER("Skybox", "DDS TextureCube SRV loaded");
+            OutputDebugStringA("[DX11Renderer][Skybox] DDS TextureCube SRV loaded\r\n");
+        }
 #if CANAPE_RENDER_DEBUG
         std::string profilerError;
         m_Impl->ProfilerAvailable = m_Impl->Profiler.Initialize(m_Impl->Device.Get(), profilerError);
@@ -1017,18 +1637,66 @@ namespace Canape
         RendererDebugSettings valid = settings;
         if (valid.viewMode != DebugViewMode::Final && valid.viewMode != DebugViewMode::CameraDepth
             && valid.viewMode != DebugViewMode::WorldNormal && valid.viewMode != DebugViewMode::UV
-            && valid.viewMode != DebugViewMode::MipLOD)
+            && valid.viewMode != DebugViewMode::MipLOD && valid.viewMode != DebugViewMode::ShadowDepth
+            && valid.viewMode != DebugViewMode::ShadowVisibility
+            && valid.viewMode != DebugViewMode::PcssFilterRadius)
             valid.viewMode = DebugViewMode::Final;
+        const RendererDebugSettings defaults;
         if (!std::isfinite(valid.depthMin) || !std::isfinite(valid.depthMax)
             || valid.depthMin < 0.0f || valid.depthMax > 1.0f || valid.depthMin >= valid.depthMax)
         {
-            const RendererDebugSettings defaults;
             valid.depthMin = defaults.depthMin;
             valid.depthMax = defaults.depthMax;
         }
+        if (valid.shadowCullMode != ShadowCullMode::None && valid.shadowCullMode != ShadowCullMode::Front
+            && valid.shadowCullMode != ShadowCullMode::Back)
+            valid.shadowCullMode = defaults.shadowCullMode;
+        if (!std::isfinite(valid.shadowSlopeBias) || valid.shadowSlopeBias < 0.0f)
+            valid.shadowSlopeBias = defaults.shadowSlopeBias;
+        if (!std::isfinite(valid.shadowReceiverBias) || valid.shadowReceiverBias < 0.0f)
+            valid.shadowReceiverBias = defaults.shadowReceiverBias;
+        const float sourceSlope = valid.shadowSlopeBias;
+        const auto keyDown = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
+        const bool focused = m_Impl->Window && GetFocus() == m_Impl->Window;
+        const bool sourceCtrlF2 = focused && keyDown(VK_CONTROL) && keyDown(VK_F2);
+        const bool sourceReset = focused && keyDown(VK_F10);
+        bool slopeShortcutAdvanced = false;
+        if (sourceReset)
+            m_Impl->ShadowSlopeShortcutOverride = false;
+        else if (sourceCtrlF2 && sourceSlope != m_Impl->LastSourceShadowSlopeBias)
+        {
+            valid.shadowSlopeBias = Impl::AdjacentOption(Impl::ShadowSlopeBiasOptions,
+                m_Impl->DebugSettings.shadowSlopeBias, true);
+            m_Impl->ShadowSlopeShortcutOverride = true;
+            slopeShortcutAdvanced = true;
+        }
+        else if (m_Impl->ShadowSlopeShortcutOverride
+            && sourceSlope == m_Impl->LastSourceShadowSlopeBias)
+            valid.shadowSlopeBias = m_Impl->DebugSettings.shadowSlopeBias;
+        else if (sourceSlope != m_Impl->LastSourceShadowSlopeBias)
+            m_Impl->ShadowSlopeShortcutOverride = false;
+        m_Impl->LastSourceShadowSlopeBias = sourceSlope;
+        if (m_Impl->Device && m_Impl->Pipelines.ShadowsAvailable()
+            && (valid.shadowCullMode != m_Impl->DebugSettings.shadowCullMode
+                || valid.shadowSlopeBias != m_Impl->DebugSettings.shadowSlopeBias))
+        {
+            std::string error;
+            if (!m_Impl->Pipelines.SetShadowRasterizer(m_Impl->Device.Get(),
+                valid.shadowCullMode, valid.shadowSlopeBias, error))
+            {
+                CN_LOG_RENDERER("Shadow", error);
+                valid.shadowCullMode = m_Impl->DebugSettings.shadowCullMode;
+                valid.shadowSlopeBias = m_Impl->DebugSettings.shadowSlopeBias;
+            }
+        }
+        m_Impl->ShadowSettings.depthBias = valid.shadowReceiverBias;
+        m_Impl->ShadowSettings.pcf = valid.shadowPcf;
         if (valid.captureGpuTimings && !m_Impl->DebugSettings.captureGpuTimings)
             m_Impl->MinGpuFrameId = m_Impl->NextFrameId + 1;
         m_Impl->DebugSettings = valid;
+        if (slopeShortcutAdvanced)
+            CN_LOG_RENDERER("Shadow", "Active slope-scaled rasterizer bias: ",
+                valid.shadowSlopeBias, " (Ctrl+F2; engine title retains its 0..2 value)");
 #else
         (void)settings;
 #endif
@@ -1054,6 +1722,17 @@ namespace Canape
         }
 #endif
         return stats;
+    }
+
+    bool DX11Renderer::SetPcssPcfSampleCount(uint32_t count)
+    {
+        if (!m_Impl) m_Impl = std::make_unique<Impl>();
+        return m_Impl->SetPcssPcfSampleCount(count);
+    }
+
+    uint32_t DX11Renderer::GetPcssPcfSampleCount() const
+    {
+        return m_Impl ? m_Impl->ShadowSettings.pcfSampleCount : 64u;
     }
 
     void DX11Renderer::SetRenderView(const RenderView& view)
@@ -1136,6 +1815,11 @@ namespace Canape
         {
             return false;
         }
+
+        m_Impl->UpdateShadowDistanceShortcut();
+        m_Impl->UpdatePcssShortcut();
+        m_Impl->UpdatePcfSampleShortcuts();
+        m_Impl->UpdatePcssDiagnosticShortcuts();
 
         ID3D11DeviceContext* context = m_Impl->Context.Get();
 
@@ -1228,6 +1912,7 @@ namespace Canape
         auto draw = [&](const RenderItem* item) { DrawMesh(item->mesh, item->world.Data(), item->submeshIndex, item->material); };
         for (const auto* item : opaque) draw(item);
         for (const auto* item : masked) draw(item);
+        m_Impl->DrawSkybox();
         for (const auto& entry : transparent) draw(entry.Item);
 #if CANAPE_RENDER_DEBUG
         if (m_Impl->ProfilerAvailable) m_Impl->Profiler.EndDrawScene(m_Impl->Context.Get());
@@ -1258,12 +1943,12 @@ namespace Canape
         const MaterialDesc materialDesc = m_Impl->BindMaterial(material);
         // Bind every draw, including direct DrawMesh calls, so prior pipeline state cannot leak.
 #if CANAPE_RENDER_DEBUG
-        const DebugViewMode meshView = m_Impl->DebugSettings.enabled
-            ? m_Impl->DebugSettings.viewMode : DebugViewMode::Final;
+        const DebugViewMode meshView = m_Impl->PcssRadiusViewOverride
+            ? DebugViewMode::PcssFilterRadius
+            : m_Impl->DebugSettings.enabled ? m_Impl->DebugSettings.viewMode : DebugViewMode::Final;
         const bool wireframe = m_Impl->DebugSettings.enabled && m_Impl->DebugSettings.wireframe;
-        const bool shadowVisibility = m_Impl->ShadowSettings.debugView == Impl::ShadowDebugMode::Visibility;
         m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode, meshView,
-            wireframe, shadowVisibility));
+            wireframe));
 #else
         m_Impl->BindPipeline(m_Impl->Pipelines.Resolve(gpuMesh.Format, materialDesc.alphaMode));
 #endif
