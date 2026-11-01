@@ -16,7 +16,8 @@ cbuffer PcssBuffer : register(b7)
     uint ShadowFilterMode;
     uint PcssPcfSampleCount;
     float PcssPcfTapSpacingScale;
-    float3 PcssPadding;
+    uint BlockerSearchSampleCount;
+    float2 PcssPadding;
 };
 
 // Fixed shadow-space pattern avoids screen-space noise as the camera moves.
@@ -42,24 +43,56 @@ float2 GetPcssBlockerSearchRadiusUV(uint2 mapSize)
     return max(BlockerSearchRadiusWorld / orthoSize, 2.0f * rcp(float2(mapSize)));
 }
 
+void AccumulateBlockerDepth(float2 sampleUV, float receiverDepth, float bias,
+    uint2 mapSize, inout float totalDepth, inout uint blockerCount)
+{
+    if (any(sampleUV < 0.0f) || any(sampleUV >= 1.0f)) return;
+    int2 pixel = int2(sampleUV * float2(mapSize));
+    float depth = DirectionalShadowMap.Load(int3(pixel, 0));
+    // Rasterizer bias is already present in the stored depth. The receiver
+    // comparison bias prevents a surface from finding itself as a blocker.
+    if (depth < receiverDepth - bias)
+    {
+        totalDepth += depth;
+        ++blockerCount;
+    }
+}
+
 bool FindAverageBlockerDepth(float2 uv, float receiverDepth, float bias,
     float2 searchRadiusUV, uint2 mapSize, out float averageDepth)
 {
     float totalDepth = 0.0f;
     uint blockerCount = 0;
-    [unroll]
-    for (uint index = 0; index < 25; ++index)
+    [branch]
+    if (BlockerSearchSampleCount == 25u)
     {
-        float2 sampleUV = uv + ShadowDisk[index] * searchRadiusUV;
-        if (any(sampleUV < 0.0f) || any(sampleUV >= 1.0f)) continue;
-        int2 pixel = int2(sampleUV * float2(mapSize));
-        float depth = DirectionalShadowMap.Load(int3(pixel, 0));
-        // Rasterizer bias is already present in the stored depth. The receiver
-        // comparison bias prevents a surface from finding itself as a blocker.
-        if (depth < receiverDepth - bias)
+        // Preserve the original 25 offsets exactly for A/B comparisons.
+        [unroll]
+        for (uint index = 0; index < 25; ++index)
+            AccumulateBlockerDepth(uv + ShadowDisk[index] * searchRadiusUV,
+                receiverDepth, bias, mapSize, totalDepth, blockerCount);
+    }
+    else
+    {
+        // A center tap catches small blockers; the remaining taps fill the
+        // same disk without repeating the 25-point pattern.
+        const uint sampleCount = min(max(BlockerSearchSampleCount, 1u), 128u);
+        const float2 rotation = float2(-0.7373688781f, 0.6754902943f);
+        float2 direction = float2(1.0f, 0.0f);
+        [loop]
+        for (uint index = 0; index < sampleCount; ++index)
         {
-            totalDepth += depth;
-            ++blockerCount;
+            float2 offset = 0.0f;
+            if (index > 0u)
+            {
+                float radius = sqrt(max(float(index) - 0.5f, 0.0f)
+                    / float(max(sampleCount - 1u, 1u)));
+                offset = direction * radius;
+                direction = float2(direction.x * rotation.x - direction.y * rotation.y,
+                    direction.x * rotation.y + direction.y * rotation.x);
+            }
+            AccumulateBlockerDepth(uv + offset * searchRadiusUV,
+                receiverDepth, bias, mapSize, totalDepth, blockerCount);
         }
     }
     averageDepth = totalDepth / float(max(blockerCount, 1u));

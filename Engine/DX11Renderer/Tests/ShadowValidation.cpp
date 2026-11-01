@@ -687,6 +687,7 @@ void ShadowChecks()
             && std::abs(defaultPcss.MaxFilterRadiusWorld * defaultPcss.PcfTapSpacingScale
                 - defaultPcss.BlockerSearchRadiusWorld) < 1e-6f
             && defaultPcss.PcfSampleCount == 64
+            && defaultPcss.BlockerSampleCount == 25
             && defaultPcss.FilterMode == 2,
             "configured PCSS defaults reach the GPU");
         impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
@@ -750,6 +751,22 @@ void ShadowChecks()
         auto radius8 = Frame(renderer, scene);
         Require(radius8.rgba == radius128.rgba,
             "PCSS radius debug view is independent of final PCF sample count");
+        Image radiusBlocker128{};
+        for (uint32_t count : { 8u, 16u, 25u, 32u, 64u, 128u })
+        {
+            impl.ShadowSettings.blockerSampleCount = count;
+            auto image = Frame(renderer, scene);
+            const auto gpu = ReadPcssConstants(impl);
+            Require(gpu.BlockerSampleCount == count && gpu.PcfSampleCount == 8
+                && gpu.FilterMode == 2,
+                "blocker sample count uploads independently of final PCF count");
+            if (count == 128) radiusBlocker128 = std::move(image);
+        }
+        Require(radiusBlocker128.rgba != radius8.rgba,
+            "blocker count changes the radius debug view without shader recompilation");
+        impl.ShadowSettings.blockerSampleCount = 25;
+        Require(Frame(renderer, scene).rgba == radius8.rgba,
+            "restoring 25 blocker samples restores the original radius view");
         impl.ShadowSettings.minFilterRadiusWorld = impl.ShadowSettings.maxFilterRadiusWorld;
         impl.ShadowSettings.pcfTapSpacingScale = 3.0f;
         auto clampedRadius3 = Frame(renderer, scene);
