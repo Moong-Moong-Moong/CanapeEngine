@@ -26,6 +26,6 @@ namespace Canape
 	private:
 		float m_FieldOfView = 60.0f;
 		float m_NearClip = 0.1f;
-		float m_FarClip = 1000.0f;
+		float m_FarClip = 150.0f;
 	};
 }

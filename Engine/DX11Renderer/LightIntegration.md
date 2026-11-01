@@ -69,7 +69,7 @@ now includes both ShadowPass and MainPass. No separate timing/UI system was adde
 
 ## Shadow map and binding slots
 
-The map is a single 2048x2048 Texture2D by default, one mip, SampleCount=1:
+The map is a single 4096x4096 Texture2D by default, one mip, SampleCount=1:
 
 | Resource | Format / slot |
 | --- | --- |
@@ -108,9 +108,10 @@ divides xyz by w, maps XY to UV using `(0.5, -0.5) + 0.5`, and uses NDC z direct
 Coordinates outside XY [-1,1], z [0,1], or with invalid forward w return visibility 1.
 
 SampleCmpLevelZero compares `currentDepth - DepthBias <= storedDepth`. Thus a
-fragment is occluded when currentDepth exceeds storedDepth + bias. With PCF enabled,
-the comparison sampler performs hardware 2x2 filtering; disabling PCF selects a
-single point comparison. Rasterizer bias remains zero, avoiding duplicate bias.
+fragment is occluded when currentDepth exceeds storedDepth + bias. PCSS uses the
+existing comparison sampler for its variable-radius final PCF; the fixed 3x3 PCF
+remains selectable. Disabling PCF selects a single point comparison. The ShadowPass
+also uses slope-scaled rasterizer bias.
 
 Visibility multiplies only the owning Directional light's diffuse contribution.
 Other Directional lights, Point lights and Ambient remain independent. Transparent
@@ -120,26 +121,93 @@ are preserved; fog shading was not implemented before this work and is still abs
 
 ## Renderer-local settings and debug views
 
-Change DirectionalShadowSettings / Impl::ShadowSettings in DX11Renderer.cpp, or
-inspect/edit the instance in a debugger. No engine API or new UI is required.
+The renderer-local defaults live in DirectionalShadowSettings. In debug builds,
+RendererDebugSettings also exposes shadow controls through the existing input path.
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
 | enabled | true | Shadow rendering switch |
-| resolution | 2048 | Square map; 1..16384 supported |
-| pcf | true | Hardware 2x2 comparison filtering; false = point comparison |
-| center | (0,0,0) | Fixed world-space coverage center |
-| width / height | 80 / 80 | Orthographic coverage in world units |
-| lightDistance | 80 | Distance upstream from center |
-| nearPlane / farPlane | 0.1 / 200 | Light-view depth interval |
-| depthBias | 0.0005 | Receiver offset in normalized light depth |
-| debugView | None | None / MapDepth / Visibility |
+| resolution | 8192 | Square map; 1..16384 supported |
+| pcf | true | PCSS by default; false = point comparison |
+| shadowDistance | 40 | Camera-frustum distance fitted into the shadow projection |
+| center | (0,0,0) | Legacy field; fitted projection does not use it |
+| width / height | 40 / 40 | Legacy fields; fitted projection does not use them |
+| lightDistance | 80 | Offset upstream from the fitted sphere |
+| nearPlane / farPlane | 0.1 / 200 | Near plane and base far value; actual far adds twice the fitted radius |
+| lightAngularRadius | 0.02 rad | Virtual directional-light angular radius |
+| blockerSearchRadiusWorld | 0.4 | World-space blocker search radius; diagnostic options 0.125 / 0.25 / 0.4 / 0.5 / 0.75 / 1 / 1.5 |
+| maxFilterRadiusWorld | 0.4 / 1.5 (about 0.267) | Base world-space penumbra cap; 1.5x spacing produces a 0.4-world final radius |
+| pcfTapSpacingScale | 1.5 | Diagnostic multiplier on final PCF offsets only; options 0.25 / 0.5 / 1 / 1.2 / 1.4 / 1.5 / 1.6 / 1.8 / 2 / 3 / 4 |
+| pcfSampleCount | 64 | Final PCSS comparison taps; blocker search remains 25 |
+| shadowCullMode | Back | Cull back faces in the shadow pass |
+| shadowSlopeBias | 2.0 | Slope-scaled rasterizer depth bias |
+| depthBias | 0.0003 | Receiver offset in normalized light depth |
+
+Ctrl+F1 cycles shadow culling None / Front / Back (the names indicate which face is
+culled). Ctrl+F2 applies slope bias 0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8. Ctrl+F3 cycles receiver bias
+0 / 0.0001 / 0.0003 / 0.0006 / 0.001. Ctrl+F4 toggles PCF. F10 resets all renderer
+debug settings. Because the Engine/Source control still stores only the original
+0 / 0.5 / 1 / 2 cycle, its window title shows that stored value for slope bias;
+the `Shadow` debug log reports the actual DX11 rasterizer bias through 8. F10
+resets the backend override. Resolution stays
+at the configured value; PCF toggling switches samplers without rebuilding the map.
 
 MapDepth uses the existing fullscreen depth display with [0,1] range. Visibility
-shows white=lit and black=occluded. Both internal debug selections are active only
-with CANAPE_RENDER_DEBUG; existing CameraDepth, WorldNormal, UV, MipLOD and wireframe
-controls remain available. Existing non-Final debug modes take precedence over the
-visibility override, and CameraDepth takes precedence over MapDepth.
+shows white=lit and black=occluded. The shadow visibility and PCSS radius shader
+views are active only with CANAPE_RENDER_DEBUG; existing CameraDepth, WorldNormal,
+UV, MipLOD and wireframe controls remain available.
+
+### PCSS sample-density experiment
+
+The final PCF tap count is 64 by default and can be set to 8, 16, 25, 32, 64,
+or 128 without recompiling shaders. `DX11Renderer::SetPcssPcfSampleCount` also
+accepts those values at runtime. Blocker search remains 25 raw-depth taps. The
+default 64-tap mode uses the Vogel pattern. The original 25-tap pattern remains
+available when selecting 25 taps. The Vogel pattern fills the same filter disk
+at every supported count. Neither pattern changes the
+penumbra radius or blocker search.
+
+With the game window focused, Ctrl+PageDown/Up decreases/increases the final
+PCF count one step per press. At 25 taps, Ctrl+Shift+PageUp switches between the
+original and Vogel patterns. Ctrl+Shift+PageDown toggles the filter-radius debug
+view; pressing it again returns to the engine-selected view. The renderer debug
+log reports the active count and pattern on change. These Page keys avoid the
+Application's unmodified F5-F8 debug-log shortcuts. Ctrl+Shift+P still switches
+PCSS and the fixed 3x3 PCF; `shadowPcf=false` still selects one comparison.
+
+### PCSS bias and footprint diagnostics
+
+Ctrl+Shift+Home/End decreases/increases the final PCF tap spacing multiplier.
+This multiplies the calculated filter radius only at the final comparison taps;
+the blocker search, estimated depth gap, angular radius, sample count, and base
+penumbra radius remain fixed. Ctrl+Alt+Home/End independently changes the
+world-space blocker search radius. Each key chord advances once per press and
+reports its actual value in the `Shadow` debug log. The existing radius debug
+view (Ctrl+Shift+PageDown) reports the effective final tap footprint in texels,
+including the spacing multiplier. Final tap offsets are clamped to the current
+blocker search radius, including when either debug control changes. The configured
+defaults are 1.5x spacing and matching 0.4-world search/final maximum radii.
+On startup and whenever shadow distance, tap
+spacing, or search radius changes, the log also reports world units per shadow
+texel, blocker search radius in texels, and the maximum final tap radius in
+texels for the fitted projection.
+
+For the overlapping-silhouette experiment, hold camera, light, receiver bias,
+and tap count fixed. First compare 1.2x / 1.5x / 1.8x tap spacing in a penumbra
+below the search-radius clamp. If ghost positions move with spacing while the base
+radius remains fixed, sparse final comparisons are visible. Then restore 1.5x
+and compare 0.25 / 0.4 / 0.5 blocker search radius.
+If contact softening or isolated dark patches change with search radius, nearby
+geometry or receiver self-depth enters the blocker average. Ctrl+F2 changes the
+depth stored in the shadow map, so it affects both blocker classification and
+final comparison; Ctrl+F3 changes the receiver comparison threshold. Neither
+is a blocker-only bias control.
+
+The radius debug view is grayscale: shader gray is `log2(1 + radiusTexels) / 10`,
+with black for no blocker and white at 1023 texels or more. For a non-square map,
+it displays the larger of the X/Y radii. F3 enables the existing GPU timings in
+the window title; compare Scene milliseconds after queries settle in the same
+scene and camera. Scene timing includes both the shadow pass and mesh lighting.
 
 ## Reproducible verification
 
@@ -150,7 +218,7 @@ From the repository root in PowerShell:
 ```
 
 The runner discovers Visual Studio with vswhere, builds DX11Renderer Debug, compiles
-13 FXC shader variants with /WX /Zpr, and runs a hidden-window D3D11 WARP device with
+14 FXC shader variants with /WX /Zpr, and runs a hidden-window D3D11 WARP device with
 the debug layer. It uses /Z7 for the installed PDB-manager C1902 issue, without
 changing project settings. Visual Studio C++ tools, Windows SDK FXC, and the D3D11
 debug layer (Windows Graphics Tools) are required. Outputs/readbacks are placed
@@ -162,7 +230,7 @@ Executed successfully:
 - DX11Renderer x64 Debug, Release and Shipping builds (/Z7 environment override).
   The existing Impl alignment/padding warning C4324 remains; /Z7 also emits an
   override warning. No project build settings were changed.
-- All 13 shader variants, including both vertex formats, masked shadow and existing
+- All 14 shader variants, including both vertex formats, masked shadow and existing
   debug/final-output entry points, compiled with warnings treated as errors.
 - GPU depth readback confirmed real caster geometry (minimum depth 0.36736).
   The same receiver changed from RGB (255,239,233) without shadows to

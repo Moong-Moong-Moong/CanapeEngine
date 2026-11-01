@@ -99,7 +99,8 @@ struct ShadowViewGpu
 cbuffer ShadowBuffer : register(b5)
 {
     uint ShadowViewCount;
-    uint3 ShadowPadding;
+    uint ShadowPcfEnabled;
+    uint2 ShadowPadding;
     ShadowViewGpu ShadowViews[MAX_SHADOW_VIEWS];
 };
 

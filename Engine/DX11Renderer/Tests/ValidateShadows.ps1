@@ -22,7 +22,7 @@ if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
 "$msbuild" Engine\DX11Renderer\DX11Renderer.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-for %%E in (PSMain PSShadowMasked PSDebugShadowVisibility PSDebugWorldNormal PSDebugUV PSDebugMipLOD) do (
+for %%E in (PSMain PSShadowMasked PSDebugShadowVisibility PSDebugPcssFilterRadius PSDebugWorldNormal PSDebugUV PSDebugMipLOD) do (
   fxc /nologo /WX /Zpr /T ps_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
   if errorlevel 1 exit /b 1
 )

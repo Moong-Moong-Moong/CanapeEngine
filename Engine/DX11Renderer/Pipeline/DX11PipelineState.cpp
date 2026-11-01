@@ -5,6 +5,7 @@
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
 
 #include <iterator>
+#include <cmath>
 #include <sstream>
 #include <utility>
 
@@ -183,6 +184,38 @@ namespace Canape
         }
 #endif
 
+        if (!CompileShaderFile(L"Shaders/Skybox.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, vertexBytecode, error)) return false;
+        result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
+            nullptr, &pending.SkyboxVertexShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateVertexShader(skybox)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+        constexpr D3D11_INPUT_ELEMENT_DESC skyboxElements[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+        result = device->CreateInputLayout(skyboxElements, static_cast<UINT>(std::size(skyboxElements)),
+            vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.SkyboxInputLayout);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateInputLayout(skybox)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+        if (!CompileShaderFile(L"Shaders/Skybox.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error)) return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.SkyboxPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(skybox)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+
         D3D11_BLEND_DESC blendDesc{};
         auto& blend = blendDesc.RenderTarget[0];
         blend.SrcBlend = blend.SrcBlendAlpha = D3D11_BLEND_ONE;
@@ -232,7 +265,17 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+        depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        depthDesc.StencilEnable = FALSE;
+        result = device->CreateDepthStencilState(&depthDesc, &pending.SkyboxDepthState);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateDepthStencilState(skybox)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
         depthDesc.DepthEnable = FALSE;
+        depthDesc.DepthFunc = D3D11_COMPARISON_LESS;
         depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         result = device->CreateDepthStencilState(&depthDesc, &pending.FinalOutputDepthState);
         if (FAILED(result))
@@ -252,6 +295,14 @@ namespace Canape
         if (FAILED(result))
         {
             error = HResultMessage("ID3D11Device::CreateSamplerState(linear wrap)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        result = device->CreateSamplerState(&samplerDesc, &pending.SkyboxSampler);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateSamplerState(skybox linear clamp)", result);
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
@@ -322,13 +373,50 @@ namespace Canape
         result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
             nullptr, &pending.ShadowVisibilityPixelShader);
         if (FAILED(result)) { error = HResultMessage("CreatePixelShader(shadow visibility)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugPcssFilterRadius", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.PcssFilterRadiusPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(PCSS filter radius)", result); return false; }
         ShadowVisibilityPixelShader = std::move(pending.ShadowVisibilityPixelShader);
+        PcssFilterRadiusPixelShader = std::move(pending.PcssFilterRadiusPixelShader);
 #endif
+        if (!SetShadowRasterizer(device, ShadowCullMode::Back, DefaultShadowSlopeBias, error)) return false;
         ShadowVertexShader = std::move(pending.ShadowVertexShader);
         StaticShadowVertexShader = std::move(pending.StaticShadowVertexShader);
         MaskedShadowPixelShader = std::move(pending.MaskedShadowPixelShader);
         ShadowInputLayout = std::move(pending.ShadowInputLayout);
         StaticShadowInputLayout = std::move(pending.StaticShadowInputLayout);
+        return true;
+    }
+
+    bool DX11PipelineState::SetShadowRasterizer(ID3D11Device* device, ShadowCullMode cullMode,
+        float slopeBias, std::string& error)
+    {
+        if (!device || !RasterizerState || !std::isfinite(slopeBias) || slopeBias < 0.0f)
+        {
+            error = "Invalid shadow rasterizer settings";
+            return false;
+        }
+        D3D11_RASTERIZER_DESC desc{};
+        RasterizerState->GetDesc(&desc);
+        switch (cullMode)
+        {
+        case ShadowCullMode::None: desc.CullMode = D3D11_CULL_NONE; break;
+        case ShadowCullMode::Front: desc.CullMode = D3D11_CULL_FRONT; break;
+        case ShadowCullMode::Back: desc.CullMode = D3D11_CULL_BACK; break;
+        default: error = "Invalid shadow cull mode"; return false;
+        }
+        desc.SlopeScaledDepthBias = slopeBias;
+        ComPtr<ID3D11RasterizerState> next;
+        const HRESULT result = device->CreateRasterizerState(&desc, &next);
+        if (FAILED(result))
+        {
+            error = HResultMessage("CreateRasterizerState(shadow)", result);
+            return false;
+        }
+        ShadowRasterizerState = std::move(next);
+        error.clear();
         return true;
     }
 
@@ -339,26 +427,27 @@ namespace Canape
             isStatic ? StaticShadowVertexShader.Get() : ShadowVertexShader.Get(),
             alphaMode == AlphaMode::Masked ? MaskedShadowPixelShader.Get() : nullptr,
             isStatic ? StaticShadowInputLayout.Get() : ShadowInputLayout.Get(),
-            RasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), LinearSampler.Get()
+            ShadowRasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), LinearSampler.Get()
         };
     }
 
     DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
-        DebugViewMode debugView, bool wireframe, bool shadowVisibility) const
+        DebugViewMode debugView, bool wireframe) const
     {
         const bool isStatic = vertexFormat == VertexFormat::Static;
         const bool transparent = alphaMode == AlphaMode::Transparent;
         ID3D11PixelShader* pixelShader = PixelShader.Get();
 #if CANAPE_RENDER_DEBUG
-        if (shadowVisibility && debugView == DebugViewMode::Final && ShadowVisibilityPixelShader)
+        if (debugView == DebugViewMode::ShadowVisibility && ShadowVisibilityPixelShader)
             pixelShader = ShadowVisibilityPixelShader.Get();
-        if (debugView == DebugViewMode::WorldNormal) pixelShader = WorldNormalPixelShader.Get();
+        else if (debugView == DebugViewMode::PcssFilterRadius && PcssFilterRadiusPixelShader)
+            pixelShader = PcssFilterRadiusPixelShader.Get();
+        else if (debugView == DebugViewMode::WorldNormal) pixelShader = WorldNormalPixelShader.Get();
         else if (debugView == DebugViewMode::UV) pixelShader = UVPixelShader.Get();
         else if (debugView == DebugViewMode::MipLOD) pixelShader = MipLODPixelShader.Get();
 #else
         (void)debugView;
         (void)wireframe;
-        (void)shadowVisibility;
 #endif
         return {
             isStatic ? StaticVertexShader.Get() : VertexShader.Get(),
@@ -391,6 +480,14 @@ namespace Canape
             OpaqueBlendState.Get(),
             FinalOutputDepthState.Get(),
             LinearSampler.Get()
+        };
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveSkybox() const
+    {
+        return {
+            SkyboxVertexShader.Get(), SkyboxPixelShader.Get(), SkyboxInputLayout.Get(),
+            RasterizerState.Get(), OpaqueBlendState.Get(), SkyboxDepthState.Get(), SkyboxSampler.Get()
         };
     }
 }
