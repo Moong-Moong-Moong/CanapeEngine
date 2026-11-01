@@ -239,6 +239,7 @@ namespace Canape
             float maxFilterRadiusWorld = 0.4f / 1.5f; // 0.4-world effective cap at the default 1.5x spacing.
             float pcfTapSpacingScale = 1.5f; // Diagnostic multiplier after penumbra estimation.
             uint32_t pcfSampleCount = 64;
+            uint32_t blockerSampleCount = 25;
             bool legacyPcf25 = true; // Original 25 offsets remain available for comparison.
         };
 
@@ -378,7 +379,8 @@ namespace Canape
             uint32_t FilterMode = 0; // 0: single, 1: 3x3 PCF, 2: Vogel PCSS, 3: legacy 25 PCSS.
             uint32_t PcfSampleCount = 64;
             float PcfTapSpacingScale = 1.5f;
-            float Padding[3]{};
+            uint32_t BlockerSampleCount = 25;
+            float Padding[2]{};
         };
         static_assert(sizeof(PcssConstants) == 48);
         static_assert(offsetof(PcssConstants, TanLightAngularRadius) == 8);
@@ -386,6 +388,7 @@ namespace Canape
         static_assert(offsetof(PcssConstants, FilterMode) == 24);
         static_assert(offsetof(PcssConstants, PcfSampleCount) == 28);
         static_assert(offsetof(PcssConstants, PcfTapSpacingScale) == 32);
+        static_assert(offsetof(PcssConstants, BlockerSampleCount) == 36);
 
         struct alignas(16) SceneConstants
         {
@@ -459,6 +462,8 @@ namespace Canape
         bool PcfSpacingIncreaseHeld = false;
         bool BlockerRadiusDecreaseHeld = false;
         bool BlockerRadiusIncreaseHeld = false;
+        bool BlockerCountDecreaseHeld = false;
+        bool BlockerCountIncreaseHeld = false;
         float LastSourceShadowSlopeBias = DefaultShadowSlopeBias;
         bool ShadowSlopeShortcutOverride = false;
         bool ShadowDiagnosticsDirty = true;
@@ -470,6 +475,7 @@ namespace Canape
         uint32_t AttemptedShadowResolution = UINT32_MAX;
 
         static constexpr std::array<uint32_t, 6> PcfSampleOptions{ 8, 16, 25, 32, 64, 128 };
+        static constexpr std::array<uint32_t, 6> BlockerSampleOptions{ 8, 16, 25, 32, 64, 128 };
         static constexpr std::array<float, 10> ShadowSlopeBiasOptions{ 0.0f, 0.5f, 1.0f,
             2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
         static constexpr std::array<float, 11> PcfSpacingOptions{ 0.25f, 0.5f,
@@ -539,9 +545,10 @@ namespace Canape
             const auto keyDown = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
             const bool ctrl = GetFocus() == Window && keyDown(VK_CONTROL);
             const bool shift = ctrl && keyDown(VK_SHIFT);
-            const bool decrease = ctrl && !shift && keyDown(VK_NEXT); // PageDown.
-            const bool increase = ctrl && !shift && keyDown(VK_PRIOR); // PageUp.
-            const bool toggleLegacy = shift && keyDown(VK_PRIOR);
+            const bool alt = ctrl && keyDown(VK_MENU);
+            const bool decrease = ctrl && !shift && !alt && keyDown(VK_NEXT); // PageDown.
+            const bool increase = ctrl && !shift && !alt && keyDown(VK_PRIOR); // PageUp.
+            const bool toggleLegacy = shift && !alt && keyDown(VK_PRIOR);
             if (decrease != increase)
             {
                 const bool pressed = decrease ? !PcfCountDecreaseHeld : !PcfCountIncreaseHeld;
@@ -567,7 +574,7 @@ namespace Canape
             PcfCountIncreaseHeld = increase;
             Legacy25ToggleHeld = toggleLegacy;
 #if CANAPE_RENDER_DEBUG
-            const bool radiusView = shift && keyDown(VK_NEXT);
+            const bool radiusView = shift && !alt && keyDown(VK_NEXT);
             if (radiusView && !PcssRadiusViewHeld)
             {
                 PcssRadiusViewOverride = !PcssRadiusViewOverride;
@@ -588,6 +595,8 @@ namespace Canape
             const bool spacingUp = shift && !alt && keyDown(VK_END);
             const bool searchDown = alt && !shift && keyDown(VK_HOME);
             const bool searchUp = alt && !shift && keyDown(VK_END);
+            const bool countDown = alt && !shift && keyDown(VK_NEXT); // PageDown.
+            const bool countUp = alt && !shift && keyDown(VK_PRIOR); // PageUp.
             if ((spacingDown && !PcfSpacingDecreaseHeld) || (spacingUp && !PcfSpacingIncreaseHeld))
             {
                 ShadowSettings.pcfTapSpacingScale = AdjacentOption(PcfSpacingOptions,
@@ -604,10 +613,25 @@ namespace Canape
                     ShadowSettings.blockerSearchRadiusWorld, " world units");
                 ShadowDiagnosticsDirty = true;
             }
+            if ((countDown && !BlockerCountDecreaseHeld) || (countUp && !BlockerCountIncreaseHeld))
+            {
+                const auto it = std::find(BlockerSampleOptions.begin(), BlockerSampleOptions.end(),
+                    ShadowSettings.blockerSampleCount);
+                if (it != BlockerSampleOptions.end())
+                {
+                    const auto next = countDown ? (it == BlockerSampleOptions.begin() ? it : it - 1)
+                        : (it + 1 == BlockerSampleOptions.end() ? it : it + 1);
+                    ShadowSettings.blockerSampleCount = *next;
+                    CN_LOG_RENDERER("Shadow", "PCSS blocker search samples: ", *next,
+                        *next == 25 ? " (legacy disk)" : " (Vogel disk)");
+                }
+            }
             PcfSpacingDecreaseHeld = spacingDown;
             PcfSpacingIncreaseHeld = spacingUp;
             BlockerRadiusDecreaseHeld = searchDown;
             BlockerRadiusIncreaseHeld = searchUp;
+            BlockerCountDecreaseHeld = countDown;
+            BlockerCountIncreaseHeld = countUp;
         }
 
         ComPtr<ID3D11Device> Device;
@@ -918,6 +942,7 @@ namespace Canape
             pcssData.MaxFilterRadiusWorld = ShadowSettings.maxFilterRadiusWorld;
             pcssData.PcfSampleCount = ShadowSettings.pcfSampleCount;
             pcssData.PcfTapSpacingScale = ShadowSettings.pcfTapSpacingScale;
+            pcssData.BlockerSampleCount = ShadowSettings.blockerSampleCount;
             pcssData.FilterMode = !ShadowSettings.pcf ? 0u : !ShadowSettings.pcss ? 1u
                 : ShadowSettings.pcfSampleCount == 25 && ShadowSettings.legacyPcf25 ? 3u : 2u;
             ShadowActive = scene && ShadowSettings.enabled && shadowIndex != InvalidShadowView

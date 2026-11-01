@@ -138,7 +138,8 @@ RendererDebugSettings also exposes shadow controls through the existing input pa
 | blockerSearchRadiusWorld | 0.4 | World-space blocker search radius; diagnostic options 0.125 / 0.25 / 0.4 / 0.5 / 0.75 / 1 / 1.5 |
 | maxFilterRadiusWorld | 0.4 / 1.5 (about 0.267) | Base world-space penumbra cap; 1.5x spacing produces a 0.4-world final radius |
 | pcfTapSpacingScale | 1.5 | Diagnostic multiplier on final PCF offsets only; options 0.25 / 0.5 / 1 / 1.2 / 1.4 / 1.5 / 1.6 / 1.8 / 2 / 3 / 4 |
-| pcfSampleCount | 64 | Final PCSS comparison taps; blocker search remains 25 |
+| pcfSampleCount | 64 | Final PCSS comparison taps |
+| blockerSampleCount | 25 | Raw-depth blocker search taps; options 8 / 16 / 25 / 32 / 64 / 128 |
 | shadowCullMode | Back | Cull back faces in the shadow pass |
 | shadowSlopeBias | 2.0 | Slope-scaled rasterizer depth bias |
 | depthBias | 0.0003 | Receiver offset in normalized light depth |
@@ -161,11 +162,17 @@ UV, MipLOD and wireframe controls remain available.
 
 The final PCF tap count is 64 by default and can be set to 8, 16, 25, 32, 64,
 or 128 without recompiling shaders. `DX11Renderer::SetPcssPcfSampleCount` also
-accepts those values at runtime. Blocker search remains 25 raw-depth taps. The
+accepts those values at runtime. Blocker search starts at 25 raw-depth taps. The
 default 64-tap mode uses the Vogel pattern. The original 25-tap pattern remains
 available when selecting 25 taps. The Vogel pattern fills the same filter disk
 at every supported count. Neither pattern changes the
 penumbra radius or blocker search.
+
+With the game window focused, Ctrl+Alt+PageDown/Up decreases/increases the
+blocker search count through 8 / 16 / 25 / 32 / 64 / 128. The default 25-tap
+search keeps its original disk offsets; other counts use a fixed Vogel disk
+with a center tap. This control does not change the final PCF count, search
+radius, or receiver bias. The `Shadow` debug log reports the active count.
 
 With the game window focused, Ctrl+PageDown/Up decreases/increases the final
 PCF count one step per press. At 25 taps, Ctrl+Shift+PageUp switches between the
