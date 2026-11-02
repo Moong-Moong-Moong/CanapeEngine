@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{4CA9375C-C26D-71BE-4305-AC17F1B6E524}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Panels">
+      <UniqueIdentifier>{8ED2EFE8-15A5-2EB6-0837-4C91DC6CE8A5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{6CA63593-189A-603F-BED7-546F63440444}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\imgui">
+      <UniqueIdentifier>{35516602-3973-B9E8-4FED-443A52EC45DA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\EditorApp.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EditorContext.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EditorUtils.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\DebugConsolePanel.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\FileBrowserPanel.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\HierarchyPanel.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\InspectorPanel.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\RenderDebugMenu.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\SceneViewPanel.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imconfig.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imgui.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imgui_impl_dx11.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imgui_impl_win32.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imgui_internal.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imgui_stdlib.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imstb_rectpack.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imstb_textedit.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui\imstb_truetype.h">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="@(GameScriptSource)" />
+    <ClCompile Include="Source\EditorApp.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EditorContext.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EditorUtils.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\DebugConsolePanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\FileBrowserPanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\HierarchyPanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\InspectorPanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\RenderDebugMenu.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\SceneViewPanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_demo.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_draw.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_impl_dx11.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_impl_win32.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_stdlib.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_tables.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui\imgui_widgets.cpp">
+      <Filter>ThirdParty\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="@(RendererShader)" />
+    <None Include="ThirdParty\imgui\LICENSE.txt">
+      <Filter>ThirdParty\imgui</Filter>
+    </None>
+  </ItemGroup>
+</Project>

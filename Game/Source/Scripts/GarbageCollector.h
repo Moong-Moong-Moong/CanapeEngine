@@ -4,6 +4,9 @@
 
 class GarbageCollector final : public Canape::ScriptComponent
 {
+    RTTR_ENABLE(Canape::ScriptComponent)
+    RTTR_REGISTRATION_FRIEND
+
 public:
     explicit GarbageCollector(Canape::Key key = Canape::Key::Delete)
         : m_Key(key)

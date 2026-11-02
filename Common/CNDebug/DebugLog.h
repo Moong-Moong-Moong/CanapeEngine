@@ -1,10 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Canape::Debug
 {
@@ -15,6 +17,20 @@ namespace Canape::Debug
 		Game,
 		Count
 	};
+
+	struct LogEntry
+	{
+		uint64_t sequence;
+		MainTag tag;
+		std::string subTag;
+		std::string message;
+		std::string file;
+		int line;
+	};
+
+	const char* GetTagName(MainTag tag);
+	const std::deque<LogEntry>& GetLogHistory();
+	const std::vector<std::string>& GetSubTags(MainTag tag);
 
 	void Init();
 	void Shutdown();
@@ -28,6 +44,10 @@ namespace Canape::Debug
 	void BeginSubTagInput();
 	bool IsSubTagInputActive();
 	void CycleSubTag();
+
+	void BeginCommandInput();
+	bool IsCommandInputActive();
+	void SetCommandHandler(std::function<void(std::string_view)> handler);
 
 	uint32_t RegisterKeyCommand(uint16_t virtualKey, std::string_view description, std::function<void()> command);
 	void UnregisterKeyCommand(uint32_t commandId);

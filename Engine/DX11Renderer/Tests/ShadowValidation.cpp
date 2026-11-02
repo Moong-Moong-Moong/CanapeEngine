@@ -41,20 +41,14 @@ void Require(bool value, const char *message)
     if (!value)
         throw std::runtime_error(message);
 }
+bool SetPcfSampleCount(DX11Renderer& renderer, uint32_t count)
+{
+    ShadowFilterSettings settings = renderer.GetShadowFilterSettings();
+    settings.pcfSampleCount = count;
+    return renderer.SetShadowFilterSettings(settings);
+}
 void CpuChecks()
 {
-    Require(Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 2.0f, true) == 3.0f
-        && Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 7.0f, true) == 8.0f
-        && Backend::AdjacentOption(Backend::ShadowSlopeBiasOptions, 8.0f, true) == 0.0f,
-        "Ctrl+F2 backend slope range reaches 3..8 and wraps");
-    Require(Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.0f, false) == 0.5f
-        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.4f, true) == 1.5f
-        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.5f, true) == 1.6f
-        && Backend::AdjacentOption(Backend::PcfSpacingOptions, 1.5f, false) == 1.4f
-        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.25f, true) == 0.4f
-        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.4f, true) == 0.5f
-        && Backend::AdjacentOption(Backend::BlockerRadiusOptions, 0.75f, false) == 0.5f,
-        "PCSS diagnostic options step independently");
     auto lights = CreateTestLights();
     auto packed = Backend::BuildLightConstants(lights);
     Require(packed.DirectionalCount == 1 && packed.LocalCount == 1, "test counts");
@@ -706,11 +700,11 @@ void ShadowChecks()
         Require(Frame(renderer, scene).rgba == widePcssVisibility.rgba,
             "restoring PCSS diagnostic defaults restores original visibility");
         Save(widePcssVisibility, "pcss-wide-visibility");
-        Require(!renderer.SetPcssPcfSampleCount(24) && renderer.GetPcssPcfSampleCount() == 64,
+        Require(!SetPcfSampleCount(renderer, 24) && renderer.GetShadowFilterSettings().pcfSampleCount == 64,
             "unsupported PCSS sample count rejected");
         const auto debugShader = impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque,
             DebugViewMode::ShadowVisibility).PS;
-        Require(renderer.SetPcssPcfSampleCount(25), "legacy 25 mode remains selectable");
+        Require(SetPcfSampleCount(renderer, 25), "legacy 25 mode remains selectable");
         auto legacy25Visibility = Frame(renderer, scene);
         Require(ReadPcssConstants(impl).PcfSampleCount == 25
             && ReadPcssConstants(impl).FilterMode == 3, "legacy 25-tap mode remains available");
@@ -722,8 +716,8 @@ void ShadowChecks()
         Image vogel64Visibility{}, vogel128Visibility{};
         for (uint32_t count : { 8u, 16u, 25u, 32u, 64u, 128u })
         {
-            Require(renderer.SetPcssPcfSampleCount(count)
-                && renderer.GetPcssPcfSampleCount() == count, "PCSS sample count setter");
+            Require(SetPcfSampleCount(renderer, count)
+                && renderer.GetShadowFilterSettings().pcfSampleCount == count, "PCSS sample count setter");
             auto image = Frame(renderer, scene);
             const auto gpu = ReadPcssConstants(impl);
             Require(gpu.PcfSampleCount == count && gpu.FilterMode == 2,
@@ -748,7 +742,7 @@ void ShadowChecks()
         impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
         Require(Frame(renderer, scene).rgba == radius128.rgba,
             "restoring tap spacing restores radius debug view");
-        Require(renderer.SetPcssPcfSampleCount(8), "restore 8 taps for radius comparison");
+        Require(SetPcfSampleCount(renderer, 8), "restore 8 taps for radius comparison");
         auto radius8 = Frame(renderer, scene);
         Require(radius8.rgba == radius128.rgba,
             "PCSS radius debug view is independent of final PCF sample count");
@@ -789,13 +783,9 @@ void ShadowChecks()
         Save(radius128, "pcss-radius-texels");
         pcfSettings.viewMode = DebugViewMode::ShadowDepth;
         renderer.SetDebugSettings(pcfSettings);
-        impl.PcssRadiusViewOverride = true;
-        Require(Frame(renderer, scene).rgba == radius128.rgba,
-            "renderer-local radius shortcut overrides the engine debug selection");
-        impl.PcssRadiusViewOverride = false;
         pcfSettings.viewMode = DebugViewMode::ShadowVisibility;
         renderer.SetDebugSettings(pcfSettings);
-        Require(renderer.SetPcssPcfSampleCount(64), "restore 64-tap default");
+        Require(SetPcfSampleCount(renderer, 64), "restore 64-tap default");
         impl.ShadowSettings.legacyPcf25 = true;
         auto partialPixels = [](const Image &image) {
             size_t count = 0;

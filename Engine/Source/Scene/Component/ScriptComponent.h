@@ -11,6 +11,8 @@ namespace Canape
 {
 	class ScriptComponent : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		template<typename T>
 		T* GetComponent() const { return GetOwnerObject()->GetComponent<T>(); }

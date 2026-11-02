@@ -71,6 +71,8 @@ $header = New-Object System.Text.StringBuilder
 [void]$header.Append("#include <Engine.h>$newline$newline")
 [void]$header.Append("class $Name final : public Canape::ScriptComponent$newline")
 [void]$header.Append("{$newline")
+[void]$header.Append("$indent" + "RTTR_ENABLE(Canape::ScriptComponent)$newline")
+[void]$header.Append("$indent" + "RTTR_REGISTRATION_FRIEND$newline$newline")
 [void]$header.Append("protected:$newline")
 foreach ($function in $functions)
 {
@@ -99,6 +101,12 @@ if (-not $HeaderOnly)
 {
 	$source = New-Object System.Text.StringBuilder
 	[void]$source.Append("#include `"$includeFolder/$Name.h`"$newline")
+	[void]$source.Append($newline)
+	[void]$source.Append("RTTR_REGISTRATION$newline")
+	[void]$source.Append("{$newline")
+	[void]$source.Append("$indent" + "rttr::registration::class_<$Name>(`"$Name`")$newline")
+	[void]$source.Append("$indent$indent" + ".constructor<>()(rttr::policy::ctor::as_raw_ptr);$newline")
+	[void]$source.Append("}$newline")
 	foreach ($function in $functions)
 	{
 		[void]$source.Append($newline)

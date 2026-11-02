@@ -17,21 +17,12 @@ namespace Canape::Debug
 {
 	namespace
 	{
-		// 로그 한개의 데이터 구조
-		struct Entry
-		{
-			MainTag tag;
-			std::string subTag;
-			std::string message;
-			std::string file;
-			int line;
-		};
-
 		constexpr size_t kMaxHistory = 4096;
 		constexpr size_t kTagCount = static_cast<size_t>(MainTag::Count);
 		constexpr WORD kDefaultColor = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
 
-		std::deque<Entry> g_History;
+		std::deque<LogEntry> g_History;
+		uint64_t g_NextSequence = 0;
 		std::array<std::vector<std::string>, kTagCount> g_SubTags; // 상위태그별 하위태그 목록
 
 		// 현재 필터
@@ -42,9 +33,27 @@ namespace Canape::Debug
 		HANDLE g_Out = nullptr;
 		HANDLE g_In = nullptr;
 
-		bool g_SubTagInputActive = false;
-		std::wstring g_SubTagInput;
+		enum class PromptMode
+		{
+			None,
+			SubTag,
+			Command
+		};
+
+		constexpr size_t kMaxCommandHistory = 64;
+
+		PromptMode g_PromptMode = PromptMode::None;
+		std::wstring g_PromptInput;
 		HWND g_ReturnWindow = nullptr;
+
+		std::function<void(std::string_view)> g_CommandHandler;
+		std::vector<std::wstring> g_CommandHistory;
+		size_t g_CommandHistoryIndex = 0;
+
+		bool IsPromptActive()
+		{
+			return g_PromptMode != PromptMode::None;
+		}
 
 		struct KeyCommand
 		{
@@ -122,7 +131,7 @@ namespace Canape::Debug
 			return result;
 		}
 
-		bool Passes(const Entry& entry)
+		bool Passes(const LogEntry& entry)
 		{
 			if (!g_ShowAll && entry.tag != g_SelectedTag)
 			{
@@ -132,7 +141,7 @@ namespace Canape::Debug
 		}
 
 		// [Runtime][Asset] 메세지  (Engine\Source\...\File.cpp:123)
-		std::string Format(const Entry& entry)
+		std::string Format(const LogEntry& entry)
 		{
 			std::ostringstream stream;
 			stream << '[' << ToString(entry.tag) << ']';
@@ -189,7 +198,7 @@ namespace Canape::Debug
 			std::ostringstream header;
 			header << "===== Filter: " << (g_ShowAll ? "ALL" : ToString(g_SelectedTag))
 				<< " / " << (g_SelectedSubTag.empty() ? "*" : g_SelectedSubTag)
-				<< "  (F5 All | F6 Runtime | F7 DX11Renderer | F8 Game | F11 SubTag Input";
+				<< "  (F5 All | F6 Runtime | F7 DX11Renderer | F8 Game | F11 SubTag Input | ~ Command";
 			for (const KeyCommand& keyCommand : g_KeyCommands)
 			{
 				header << " | " << KeyName(keyCommand.virtualKey) << ' ' << keyCommand.description;
@@ -199,7 +208,7 @@ namespace Canape::Debug
 			header << '\n';
 			WriteConsole(header.str(), kDefaultColor | FOREGROUND_INTENSITY);
 
-			for (const Entry& entry : g_History)
+			for (const LogEntry& entry : g_History)
 			{
 				if (Passes(entry))
 				{
@@ -208,7 +217,7 @@ namespace Canape::Debug
 			}
 		}
 
-		void DrawSubTagPrompt()
+		void DrawPrompt()
 		{
 			CONSOLE_SCREEN_BUFFER_INFO info{};
 			if (!g_Out || !GetConsoleScreenBufferInfo(g_Out, &info))
@@ -219,17 +228,48 @@ namespace Canape::Debug
 			DWORD written = 0;
 			FillConsoleOutputCharacterA(g_Out, ' ', static_cast<DWORD>(info.dwSize.X), lineStart, &written);
 			SetConsoleCursorPosition(g_Out, lineStart);
-			WriteConsole("SubTag (Enter: apply, Esc: cancel)> " + ToUtf8(g_SubTagInput), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+			const std::string label = g_PromptMode == PromptMode::Command
+				? "Command (Enter: run, Esc: cancel, Up/Down: history)> "
+				: "SubTag (Enter: apply, Esc: cancel)> ";
+			const WORD color = g_PromptMode == PromptMode::Command
+				? FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY
+				: FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+			WriteConsole(label + ToUtf8(g_PromptInput), color);
 		}
 
-		void EndSubTagInput(bool apply)
+		void BeginPrompt(PromptMode mode)
 		{
-			g_SubTagInputActive = false;
-			if (apply)
+			if (!g_Out || IsPromptActive())
 			{
-				g_SelectedSubTag = ToUtf8(g_SubTagInput);
+				return;
 			}
-			g_SubTagInput.clear();
+			g_PromptMode = mode;
+			g_PromptInput.clear();
+			g_CommandHistoryIndex = g_CommandHistory.size();
+
+			const HWND consoleWindow = GetConsoleWindow();
+			const HWND foregroundWindow = GetForegroundWindow();
+			g_ReturnWindow = foregroundWindow != consoleWindow ? foregroundWindow : nullptr;
+			if (consoleWindow)
+			{
+				SetForegroundWindow(consoleWindow);
+			}
+
+			FlushConsoleInputBuffer(g_In);
+			DrawPrompt();
+		}
+
+		void EndPrompt(bool apply)
+		{
+			const PromptMode mode = g_PromptMode;
+			const std::wstring input = g_PromptInput;
+			g_PromptMode = PromptMode::None;
+			g_PromptInput.clear();
+
+			if (apply && mode == PromptMode::SubTag)
+			{
+				g_SelectedSubTag = ToUtf8(input);
+			}
 			RefreshLocked();
 
 			if (g_ReturnWindow)
@@ -237,11 +277,53 @@ namespace Canape::Debug
 				SetForegroundWindow(g_ReturnWindow);
 				g_ReturnWindow = nullptr;
 			}
+
+			if (!apply || mode != PromptMode::Command || input.empty())
+			{
+				return;
+			}
+
+			if (g_CommandHistory.empty() || g_CommandHistory.back() != input)
+			{
+				g_CommandHistory.push_back(input);
+				if (g_CommandHistory.size() > kMaxCommandHistory)
+				{
+					g_CommandHistory.erase(g_CommandHistory.begin());
+				}
+			}
+
+			if (g_CommandHandler)
+			{
+				g_CommandHandler(ToUtf8(input));
+			}
+		}
+
+		void RecallCommandHistory(bool older)
+		{
+			if (g_CommandHistory.empty())
+			{
+				return;
+			}
+
+			if (older)
+			{
+				if (g_CommandHistoryIndex > 0)
+				{
+					--g_CommandHistoryIndex;
+				}
+			}
+			else if (g_CommandHistoryIndex < g_CommandHistory.size())
+			{
+				++g_CommandHistoryIndex;
+			}
+
+			g_PromptInput = g_CommandHistoryIndex < g_CommandHistory.size() ? g_CommandHistory[g_CommandHistoryIndex] : std::wstring();
+			DrawPrompt();
 		}
 
 		void HandleKey(const KEY_EVENT_RECORD& key)
 		{
-			if (!g_SubTagInputActive)
+			if (!IsPromptActive())
 			{
 				switch (key.wVirtualKeyCode)
 				{
@@ -250,6 +332,7 @@ namespace Canape::Debug
 				case VK_F7: ShowOnly(MainTag::DX11Renderer); break;
 				case VK_F8: ShowOnly(MainTag::Game); break;
 				case VK_F11: BeginSubTagInput(); break;
+				case VK_OEM_3: BeginCommandInput(); break;
 				default:
 				{
 					const std::vector<KeyCommand> keyCommands = g_KeyCommands;
@@ -269,16 +352,23 @@ namespace Canape::Debug
 			switch (key.wVirtualKeyCode)
 			{
 			case VK_RETURN:
-				EndSubTagInput(true);
+				EndPrompt(true);
 				return;
 			case VK_ESCAPE:
-				EndSubTagInput(false);
+				EndPrompt(false);
 				return;
 			case VK_BACK:
-				if (!g_SubTagInput.empty())
+				if (!g_PromptInput.empty())
 				{
-					g_SubTagInput.pop_back();
-					DrawSubTagPrompt();
+					g_PromptInput.pop_back();
+					DrawPrompt();
+				}
+				return;
+			case VK_UP:
+			case VK_DOWN:
+				if (g_PromptMode == PromptMode::Command)
+				{
+					RecallCommandHistory(key.wVirtualKeyCode == VK_UP);
 				}
 				return;
 			default:
@@ -286,12 +376,30 @@ namespace Canape::Debug
 			}
 
 			const wchar_t character = key.uChar.UnicodeChar;
-			if (character >= L' ' && !std::iswspace(character))
+			const bool allowSpace = g_PromptMode == PromptMode::Command && character == L' ';
+			if (character >= L' ' && (allowSpace || !std::iswspace(character)))
 			{
-				g_SubTagInput.push_back(character);
-				DrawSubTagPrompt();
+				g_PromptInput.push_back(character);
+				DrawPrompt();
 			}
 		}
+	}
+
+	const char* GetTagName(MainTag tag)
+	{
+		return ToString(tag);
+	}
+
+	const std::deque<LogEntry>& GetLogHistory()
+	{
+		return g_History;
+	}
+
+	const std::vector<std::string>& GetSubTags(MainTag tag)
+	{
+		static const std::vector<std::string> empty;
+		const size_t index = static_cast<size_t>(tag);
+		return index < kTagCount ? g_SubTags[index] : empty;
 	}
 
 	void Init()
@@ -319,8 +427,10 @@ namespace Canape::Debug
 		g_History.clear();
 		g_Out = nullptr;
 		g_In = nullptr;
-		g_SubTagInputActive = false;
-		g_SubTagInput.clear();
+		g_PromptMode = PromptMode::None;
+		g_PromptInput.clear();
+		g_CommandHistory.clear();
+		g_CommandHandler = nullptr;
 		g_ReturnWindow = nullptr;
 		g_KeyCommands.clear();
 		FreeConsole();
@@ -330,7 +440,7 @@ namespace Canape::Debug
 	{
 		const uint32_t commandId = g_NextCommandId++;
 		g_KeyCommands.push_back({ commandId, virtualKey, std::string(description), std::move(command) });
-		if (!g_SubTagInputActive)
+		if (!IsPromptActive())
 		{
 			RefreshLocked();
 		}
@@ -368,7 +478,7 @@ namespace Canape::Debug
 
 	void Write(MainTag tag, std::string_view subTag, std::string message, const char* file, int line)
 	{
-		Entry entry{ tag, std::string(subTag), std::move(message), ShortenPath(file), line };
+		LogEntry entry{ ++g_NextSequence, tag, std::string(subTag), std::move(message), ShortenPath(file), line };
 		const std::string text = Format(entry);
 
 		// VS 출력 창에는 필터와 상관없이 항상 출력
@@ -381,7 +491,7 @@ namespace Canape::Debug
 			subTags.push_back(entry.subTag);
 		}
 
-		if (!g_SubTagInputActive && Passes(entry))
+		if (!IsPromptActive() && Passes(entry))
 		{
 			WriteConsole(text, ToColor(tag));
 		}
@@ -395,7 +505,7 @@ namespace Canape::Debug
 
 	void ShowAll()
 	{
-		if (g_SubTagInputActive)
+		if (IsPromptActive())
 		{
 			return;
 		}
@@ -409,7 +519,7 @@ namespace Canape::Debug
 
 	void ShowOnly(MainTag tag)
 	{
-		if (g_SubTagInputActive)
+		if (IsPromptActive())
 		{
 			return;
 		}
@@ -430,28 +540,27 @@ namespace Canape::Debug
 
 	void BeginSubTagInput()
 	{
-		if (!g_Out || g_SubTagInputActive)
-		{
-			return;
-		}
-		g_SubTagInputActive = true;
-		g_SubTagInput.clear();
+		BeginPrompt(PromptMode::SubTag);
+	}
 
-		const HWND consoleWindow = GetConsoleWindow();
-		const HWND foregroundWindow = GetForegroundWindow();
-		g_ReturnWindow = foregroundWindow != consoleWindow ? foregroundWindow : nullptr;
-		if (consoleWindow)
-		{
-			SetForegroundWindow(consoleWindow);
-		}
-
-		FlushConsoleInputBuffer(g_In);
-		DrawSubTagPrompt();
+	void BeginCommandInput()
+	{
+		BeginPrompt(PromptMode::Command);
 	}
 
 	bool IsSubTagInputActive()
 	{
-		return g_SubTagInputActive;
+		return g_PromptMode == PromptMode::SubTag;
+	}
+
+	bool IsCommandInputActive()
+	{
+		return g_PromptMode == PromptMode::Command;
+	}
+
+	void SetCommandHandler(std::function<void(std::string_view)> handler)
+	{
+		g_CommandHandler = std::move(handler);
 	}
 
 	void CycleSubTag()

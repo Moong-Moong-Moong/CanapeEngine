@@ -7,6 +7,8 @@ namespace Canape
 {
 	class CameraComponent final : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		CameraComponent() = default;
 

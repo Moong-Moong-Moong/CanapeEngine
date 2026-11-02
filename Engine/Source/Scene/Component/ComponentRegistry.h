@@ -40,6 +40,7 @@ namespace Canape
 		std::vector<LightComponent*> m_lights;
 		std::vector<FogComponent*> m_fogs;
 		std::vector<SkyboxComponent*> m_skyboxes;
+
 		std::vector<Component*> m_pendingAdd;
 		std::vector<Component*> m_pendingRemove;
 	};

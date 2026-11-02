@@ -13,6 +13,38 @@ namespace Canape
 		m_Components.push_back(std::move(transform));
 	}
 
+	Component* GameObject::AddComponent(std::unique_ptr<Component> component)
+	{
+		if (!component)
+		{
+			return nullptr;
+		}
+
+		Component* result = component.get();
+		result->m_GameObject = this;
+		result->m_Enabled = true;
+		if (m_Scene)
+		{
+			result->SetId(m_Scene->GenerateId());
+		}
+		m_Components.push_back(std::move(component));
+		RegisterComponent(result);
+		return result;
+	}
+
+	std::vector<Component*> GameObject::GetAllComponents() const
+	{
+		std::vector<Component*> result;
+		for (const std::unique_ptr<Component>& component : m_Components)
+		{
+			if (!component->m_PendingDestroy)
+			{
+				result.push_back(component.get());
+			}
+		}
+		return result;
+	}
+
 	bool GameObject::RemoveComponent(Component* component)
 	{
 		if (!component || component == m_Transform || component->m_GameObject != this || component->m_PendingDestroy)

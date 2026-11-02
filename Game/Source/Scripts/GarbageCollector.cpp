@@ -1,6 +1,13 @@
 #include "Scripts/GarbageCollector.h"
 #include "CNDebug/DebugLog.h"
 
+RTTR_REGISTRATION
+{
+    rttr::registration::class_<GarbageCollector>("GarbageCollector")
+        .constructor<>()(rttr::policy::ctor::as_raw_ptr)
+        .property("key", &GarbageCollector::m_Key);
+}
+
 void GarbageCollector::Update()
 {
     Canape::Application& application = Canape::Application::Get();

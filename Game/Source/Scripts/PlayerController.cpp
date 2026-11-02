@@ -1,5 +1,13 @@
 #include "Scripts/PlayerController.h"
 
+RTTR_REGISTRATION
+{
+    rttr::registration::class_<PlayerController>("PlayerController")
+        .constructor<>()(rttr::policy::ctor::as_raw_ptr)
+        .property("moveSpeed", &PlayerController::m_MoveSpeed)
+        .property("turnSpeedDegrees", &PlayerController::m_TurnSpeedDegrees);
+}
+
 void PlayerController::Awake()
 {
 }

@@ -1,0 +1,360 @@
+{
+    "version": 1,
+    "name": "SampleScene",
+    "mainCamera": 17,
+    "materials": [],
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Player",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Player.fbx",
+                        "materials": [
+                            "Content/Materials/M_Player.mat"
+                        ]
+                    }
+                },
+                {
+                    "type": "PlayerController",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "moveSpeed": 3.0,
+                        "turnSpeedDegrees": 540.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Enemy",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3.0,
+                            "Y": 0.0,
+                            "Z": 4.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.9486833,
+                            "Z": 0.0,
+                            "W": 0.3162278
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Enemy.fbx",
+                        "materials": [
+                            "Content/Materials/M_Enemy.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "Enemy Transparent",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 4.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Enemy.fbx",
+                        "materials": [
+                            "Content/Materials/M_Enemy_Transparent.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Enemy Masked",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.0,
+                            "Y": 0.0,
+                            "Z": 4.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.9486833,
+                            "Z": 0.0,
+                            "W": -0.3162278
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Enemy.fbx",
+                        "materials": [
+                            "Content/Materials/M_Enemy_Masked.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.4829457,
+                            "Y": 2.7949958,
+                            "Z": -2.7001798
+                        },
+                        "localRotation": {
+                            "X": 0.18973112,
+                            "Y": 0.35563976,
+                            "Z": -0.073973134,
+                            "W": 0.912168
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraController",
+                    "id": 16,
+                    "properties": {
+                        "enabled": true,
+                        "target": 1,
+                        "distance": 4.0,
+                        "pivotHeight": 1.2,
+                        "sensitivity": 0.15,
+                        "minPitch": -30.0,
+                        "maxPitch": 70.0,
+                        "yaw": 42.600037,
+                        "pitch": 23.49999
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 18,
+            "name": "Scene Changer",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SceneChanger",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "nextScene": "SampleScene2",
+                        "key": "Space"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 21,
+            "name": "Garbage Collector",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "GarbageCollector",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "key": "Delete"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 24,
+            "name": "Level",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": -2.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Level.fbx",
+                        "materials": []
+                    }
+                }
+            ]
+        }
+    ]
+}

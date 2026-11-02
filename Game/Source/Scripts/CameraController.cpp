@@ -1,5 +1,19 @@
 #include "Scripts/CameraController.h"
 
+RTTR_REGISTRATION
+{
+    rttr::registration::class_<CameraController>("CameraController")
+        .constructor<>()(rttr::policy::ctor::as_raw_ptr)
+        .property("target", &CameraController::m_Target)
+        .property("distance", &CameraController::m_Distance)
+        .property("pivotHeight", &CameraController::m_PivotHeight)
+        .property("sensitivity", &CameraController::m_Sensitivity)
+        .property("minPitch", &CameraController::m_MinPitch)
+        .property("maxPitch", &CameraController::m_MaxPitch)
+        .property("yaw", &CameraController::m_Yaw)
+        .property("pitch", &CameraController::m_Pitch);
+}
+
 void CameraController::Awake()
 {
 }

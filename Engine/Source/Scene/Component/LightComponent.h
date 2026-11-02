@@ -10,6 +10,8 @@ namespace Canape
 {
 	class LightComponent final : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		LightComponent();
 

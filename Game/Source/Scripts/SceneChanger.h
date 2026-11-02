@@ -2,13 +2,17 @@
 
 #include <Engine.h>
 
+#include <string>
+#include <utility>
+
 class SceneChanger final : public Canape::ScriptComponent
 {
-public:
-    using SceneFactory = Canape::Scene* (*)(Canape::SceneManager&);
+    RTTR_ENABLE(Canape::ScriptComponent)
+    RTTR_REGISTRATION_FRIEND
 
-    explicit SceneChanger(SceneFactory nextScene, Canape::Key key = Canape::Key::Space)
-        : m_NextScene(nextScene)
+public:
+    explicit SceneChanger(std::string nextScene = {}, Canape::Key key = Canape::Key::Space)
+        : m_NextScene(std::move(nextScene))
         , m_Key(key)
     {
     }
@@ -17,6 +21,6 @@ protected:
     void Update() override;
 
 private:
-    SceneFactory m_NextScene;
+    std::string m_NextScene;
     Canape::Key m_Key;
 };

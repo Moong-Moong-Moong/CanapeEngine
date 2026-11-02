@@ -4,20 +4,20 @@
     <Filter Include="Content">
       <UniqueIdentifier>{47790819-4050-550B-B6F5-7009048EF9D7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Content\HDRI">
-      <UniqueIdentifier>{24B591E0-980C-4D60-851A-68D3180A81D8}</UniqueIdentifier>
+    <Filter Include="Content\Materials">
+      <UniqueIdentifier>{0739A6A8-8217-8EFA-5121-3C911B01D3D3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Content\Models">
       <UniqueIdentifier>{847B5F28-E2FE-3F94-107C-F31CED166020}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Scenes">
+      <UniqueIdentifier>{406256D1-096B-FCA5-5737-F059656F9BC7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Content\Texture">
       <UniqueIdentifier>{568F0B1E-69C6-71C8-9733-41AC29664C29}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{D5F4A14A-296F-C4CD-3A23-84F6F0C3C3C1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Scenes">
-      <UniqueIdentifier>{AFEFE455-32E3-4766-9CF5-55B02D650CA6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Scripts">
       <UniqueIdentifier>{0BA211BE-3D2B-B761-B652-2DC5B033D0FD}</UniqueIdentifier>
@@ -26,12 +26,6 @@
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h">
       <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Scenes\SampleScene.h">
-      <Filter>Source\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Scenes\SampleScene2.h">
-      <Filter>Source\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
@@ -53,12 +47,6 @@
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scenes\SampleScene.cpp">
-      <Filter>Source\Scenes</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Scenes\SampleScene2.cpp">
-      <Filter>Source\Scenes</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Scripts\CameraController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
@@ -74,23 +62,20 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="@(RendererShader)" />
-    <None Include="Content\HDRI\galileo_cross.dds">
-      <Filter>Content\HDRI</Filter>
+    <None Include="Content\Game.json">
+      <Filter>Content</Filter>
     </None>
-    <None Include="Content\HDRI\grace_cross.dds">
-      <Filter>Content\HDRI</Filter>
+    <None Include="Content\Materials\M_Enemy.mat">
+      <Filter>Content\Materials</Filter>
     </None>
-    <None Include="Content\HDRI\rnl_cross.dds">
-      <Filter>Content\HDRI</Filter>
+    <None Include="Content\Materials\M_Enemy_Masked.mat">
+      <Filter>Content\Materials</Filter>
     </None>
-    <None Include="Content\HDRI\stpeters_cross.dds">
-      <Filter>Content\HDRI</Filter>
+    <None Include="Content\Materials\M_Enemy_Transparent.mat">
+      <Filter>Content\Materials</Filter>
     </None>
-    <None Include="Content\HDRI\uffizi_cross.dds">
-      <Filter>Content\HDRI</Filter>
-    </None>
-    <None Include="Content\HDRI\uffizi_cross_Mark.dds">
-      <Filter>Content\HDRI</Filter>
+    <None Include="Content\Materials\M_Player.mat">
+      <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
@@ -100,6 +85,12 @@
     </None>
     <None Include="Content\Models\Player.fbx">
       <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Scenes\SampleScene.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\SampleScene2.json">
+      <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Texture\Enemy_BaseColor.png">
       <Filter>Content\Texture</Filter>

@@ -12,6 +12,8 @@ namespace Canape
 {
 	class TransformComponent final : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		~TransformComponent() override;
 

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <rttr/rttr_enable.h>
+
+#include <cstdint>
+
 namespace Canape
 {
 	class GameObject;
@@ -7,6 +11,8 @@ namespace Canape
 
 	class Component
 	{
+		RTTR_ENABLE()
+
 	public:
 		virtual ~Component() = default;
 
@@ -15,6 +21,9 @@ namespace Canape
 
 		GameObject* GetOwnerObject() const { return m_GameObject; }
 		TransformComponent* GetTransform() const;
+
+		uint64_t GetId() const { return m_Id; }
+		void SetId(uint64_t id) { m_Id = id; }
 
 		bool IsEnabled() const { return m_Enabled; }
 		void SetEnabled(bool enabled) { m_Enabled = enabled; }
@@ -27,6 +36,7 @@ namespace Canape
 		friend class GameObject;
 
 		GameObject* m_GameObject = nullptr;
+		uint64_t m_Id = 0;
 		bool m_Enabled = true;
 		bool m_PendingDestroy = false;
 	};
