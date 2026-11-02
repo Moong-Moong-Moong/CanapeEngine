@@ -28,6 +28,8 @@ namespace Canape
 		void SetScene(Scene* scene) { m_Scene = scene; }
 		void SetHandle(const Handle<GameObject>& handle) { m_handle = handle; }
 		const Handle<GameObject>& GetHandle() const { return m_handle; }
+		uint64_t GetId() const { return m_Id; }
+		void SetId(uint64_t id) { m_Id = id; }
 		bool IsActive() const { return m_Active; }
 		void SetActive(bool active) { m_Active = active; }
 		bool IsPendingDestroy() const { return m_PendingDestroy; }
@@ -42,6 +44,8 @@ namespace Canape
 		template<typename T>
 		bool RemoveComponent();
 
+		Component* AddComponent(std::unique_ptr<Component> component);
+		std::vector<Component*> GetAllComponents() const;
 		bool RemoveComponent(Component* component);
 		void DestroyComponent(Component* component);
 
@@ -54,6 +58,7 @@ namespace Canape
 		std::string m_Name;
 		Scene* m_Scene = nullptr;
 		Handle<GameObject> m_handle = {};
+		uint64_t m_Id = 0;
 
 		bool m_Active = true;
 		bool m_PendingDestroy = false;
@@ -68,13 +73,7 @@ namespace Canape
 		static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 		static_assert(!std::is_same_v<T, TransformComponent>, "TransformComponent is added automatically");
 
-		auto component = std::make_unique<T>(std::forward<Args>(args)...);
-		T* result = component.get();
-		component->m_GameObject = this;
-		component->m_Enabled = true;
-		m_Components.push_back(std::move(component));
-		RegisterComponent(result);
-		return result;
+		return static_cast<T*>(AddComponent(std::make_unique<T>(std::forward<Args>(args)...)));
 	}
 
 	template<typename T>

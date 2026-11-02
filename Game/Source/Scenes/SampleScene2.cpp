@@ -10,7 +10,7 @@ Canape::Scene* SampleScene2::Create(Canape::SceneManager& sceneManager)
     Canape::Scene* scene = sceneManager.CreateScene(Name);
 
     Canape::GameObject* sceneChanger = scene->GetGameObject(scene->AddGameObject("Scene Changer"));
-    sceneChanger->AddComponent<SceneChanger>(&SampleScene::Create, Canape::Key::Space);
+    sceneChanger->AddComponent<SceneChanger>(SampleScene::Name, Canape::Key::Space);
 
     Canape::GameObject* garbageCollector = scene->GetGameObject(scene->AddGameObject("Garbage Collector"));
     garbageCollector->AddComponent<GarbageCollector>(Canape::Key::Delete);

@@ -29,6 +29,10 @@ namespace Canape::Debug
 	bool IsSubTagInputActive();
 	void CycleSubTag();
 
+	void BeginCommandInput();
+	bool IsCommandInputActive();
+	void SetCommandHandler(std::function<void(std::string_view)> handler);
+
 	uint32_t RegisterKeyCommand(uint16_t virtualKey, std::string_view description, std::function<void()> command);
 	void UnregisterKeyCommand(uint32_t commandId);
 

@@ -11,11 +11,15 @@ namespace Canape
 {
 	class SkyboxComponent final : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		SkyboxComponent() = default;
 
 		bool SetCubemap(const std::string& path);
 		const CubemapAssetHandle& GetCubemap() const { return m_Cubemap; }
+		const std::string& GetCubemapPath() const { return m_CubemapPath; }
+		void SetCubemapPath(const std::string& path);
 
 		float GetBrightness() const { return m_Brightness; }
 		void SetBrightness(float brightness) { m_Brightness = brightness; }
@@ -33,6 +37,7 @@ namespace Canape
 
 	private:
 		CubemapAssetHandle m_Cubemap;
+		std::string m_CubemapPath;
 		float m_Brightness = 1.0f;
 		float m_RotationRadians = 0.0f;
 		Vector3 m_AmbientColor{ 1.0f, 1.0f, 1.0f };

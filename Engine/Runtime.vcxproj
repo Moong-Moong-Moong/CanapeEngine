@@ -51,7 +51,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;$(ProjectDir)Source\ThirdParty\rttr;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -119,6 +119,11 @@
     <ClInclude Include="Source\Scene\Component\FogComponent.h" />
     <ClInclude Include="Source\Scene\Component\SkyboxComponent.h" />
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h" />
+    <ClInclude Include="Source\Core\Reflection\Reflection.h" />
+    <ClInclude Include="Source\Core\Console\CommandRegistry.h" />
+    <ClInclude Include="Source\Core\Console\EngineCommands.h" />
+    <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h" />
+    <ClInclude Include="Source\ThirdParty\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
@@ -148,6 +153,134 @@
     <ClCompile Include="Source\Scene\Scene.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\Component\TransformComponent.cpp" />
+    <ClCompile Include="Source\Core\Reflection\EngineReflection.cpp" />
+    <ClCompile Include="Source\Core\Console\CommandRegistry.cpp" />
+    <ClCompile Include="Source\Core\Console\EngineCommands.cpp" />
+    <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp" />
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\constructor.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\destructor.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\comparison\compare_equal.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\comparison\compare_less.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\constructor\constructor_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\conversion\std_conversion_functions.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\destructor\destructor_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\enumeration\enumeration_helper.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\enumeration\enumeration_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\library\library_unix.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\library\library_win.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\method\method_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\misc\standard_types.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\parameter_info\parameter_info_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\property\property_wrapper_base.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\registration\registration_executer.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\registration\registration_state_saver.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\type\type_data.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\type\type_register.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\variant\variant_compare.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\enumeration.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\library.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\method.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\parameter_info.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\policy.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\property.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\registration.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\type.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant_associative_view.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant_sequential_view.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>

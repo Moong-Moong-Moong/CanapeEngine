@@ -23,6 +23,7 @@ namespace Canape
 		void RemoveGameObject(Handle<GameObject> handle);
 		GameObject* GetGameObject(Handle<GameObject> handle);
 		Handle<GameObject> FindGameObjectByName(const std::string& name);
+		std::vector<GameObject*> GetAllGameObjects() { return m_gameObjects.GetAll(); }
 
 		void FlushPending();
 

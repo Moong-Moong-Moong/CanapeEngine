@@ -39,6 +39,8 @@ namespace Canape
 		AssetManager(const AssetManager&) = delete;
 		AssetManager& operator=(const AssetManager&) = delete;
 
+		static std::string ToAssetPath(const std::string& path);
+
 		//***** Release
 		size_t ReleaseUnusedAssets();
 
@@ -49,6 +51,7 @@ namespace Canape
 		//***** Texture
 		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const TextureAsset* GetTexture(const TextureAssetHandle& handle) const;
+		std::string GetTexturePath(const TextureAssetHandle& handle) const;
 
 		CubemapAssetHandle GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const CubemapAsset* GetCubemap(const CubemapAssetHandle& handle) const;
@@ -58,6 +61,7 @@ namespace Canape
 			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner);
 		MaterialAssetHandle GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner);
 		const MaterialAsset* GetMaterial(const MaterialAssetHandle& handle) const;
+		const MaterialAsset* FindMaterialByName(const std::string& name) const;
 
 		//***** Asset Tracker
 		const AssetTracker& GetTracker() const { return m_Tracker; }

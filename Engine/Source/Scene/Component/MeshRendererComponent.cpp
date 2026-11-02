@@ -52,7 +52,8 @@ namespace Canape
 			return false;
 		}
 
-		m_Mesh = Application::Get().GetAssetManager().GetMeshHandle(path, MakeOwnerInfo(*gameObject));
+		m_MeshPath = AssetManager::ToAssetPath(path);
+		m_Mesh = Application::Get().GetAssetManager().GetMeshHandle(m_MeshPath, MakeOwnerInfo(*gameObject));
 		return m_Mesh.IsValid();
 	}
 
@@ -65,8 +66,39 @@ namespace Canape
 		}
 
 		if (slot >= m_Materials.size()) m_Materials.resize(size_t(slot) + 1);
+		if (slot >= m_MaterialNames.size()) m_MaterialNames.resize(size_t(slot) + 1);
+		m_MaterialNames[slot] = materialName;
 		m_Materials[slot] = Application::Get().GetAssetManager().GetMaterialHandle(materialName, MakeOwnerInfo(*gameObject));
 		return m_Materials[slot].IsValid();
+	}
+
+	void MeshRendererComponent::SetMeshPath(const std::string& path)
+	{
+		if (path.empty())
+		{
+			m_MeshPath.clear();
+			m_Mesh.Reset();
+			return;
+		}
+
+		SetMesh(path);
+	}
+
+	void MeshRendererComponent::SetMaterialNames(const std::vector<std::string>& names)
+	{
+		m_Materials.clear();
+		m_MaterialNames.clear();
+		for (uint32_t slot = 0; slot < static_cast<uint32_t>(names.size()); ++slot)
+		{
+			if (names[slot].empty())
+			{
+				m_Materials.resize(size_t(slot) + 1);
+				m_MaterialNames.resize(size_t(slot) + 1);
+				continue;
+			}
+
+			SetMaterial(slot, names[slot]);
+		}
 	}
 
 	const MaterialAssetHandle& MeshRendererComponent::GetMaterial(uint32_t slot) const

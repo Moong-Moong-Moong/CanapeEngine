@@ -11,7 +11,7 @@ namespace
     constexpr char kPlayerModelPath[] = "Content/Models/Player.fbx";
     constexpr char kEnemyModelPath[] = "Content/Models/Enemy.fbx";
     constexpr char kLevelModelPath[] = "Content/Models/Level.fbx";
-    constexpr char kPlayerTexturePath[] = "Content/Texture/Player_BaseColor.png";
+    constexpr char kPlayerTexturePath[] = "Content/Texture/Player_BaseColor.png";   
     constexpr char kEnemyTexturePath[] = "Content/Texture/Enemy_BaseColor.png";
 }
 
@@ -62,7 +62,7 @@ Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
     scene->SetMainCamera(camera->AddComponent<Canape::CameraComponent>());
 
     Canape::GameObject* sceneChanger = scene->GetGameObject(scene->AddGameObject("Scene Changer"));
-    sceneChanger->AddComponent<SceneChanger>(&SampleScene2::Create, Canape::Key::Space);
+    sceneChanger->AddComponent<SceneChanger>(SampleScene2::Name, Canape::Key::Space);
 
     Canape::GameObject* garbageCollector = scene->GetGameObject(scene->AddGameObject("Garbage Collector"));
     garbageCollector->AddComponent<GarbageCollector>(Canape::Key::Delete);

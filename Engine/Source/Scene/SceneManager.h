@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace Canape
@@ -13,6 +14,8 @@ namespace Canape
 	class SceneManager final
 	{
 	public:
+		using SceneFactory = Scene* (*)(SceneManager&);
+
 		SceneManager() = default;
 		~SceneManager();
 
@@ -23,10 +26,21 @@ namespace Canape
 		Scene* GetScene(std::string_view name) const;
 		Scene* GetActiveScene() const { return m_activeScene; }
 		std::size_t GetSceneCount() const { return m_Scenes.size(); }
+		const std::vector<std::unique_ptr<Scene>>& GetScenes() const { return m_Scenes; }
 
 		void SetActiveScene(Scene* scene);
 		void LoadScene(std::string_view name);
 		void UnloadScene(std::string_view name);
+		void UnloadScene(Scene* scene);
+
+		void RegisterSceneFactory(const std::string& name, SceneFactory factory);
+		Scene* OpenScene(const std::string& name);
+
+		Scene* LoadSceneFromFile(const std::string& path);
+		bool SaveSceneToFile(Scene& scene, const std::string& path) const;
+
+		void SetSceneDirectory(std::string directory) { m_SceneDirectory = std::move(directory); }
+		const std::string& GetSceneDirectory() const { return m_SceneDirectory; }
 
 	private:
 		friend class Application;
@@ -39,5 +53,7 @@ namespace Canape
 		Scene* m_activeScene = nullptr;
 		Scene* m_PendingActiveScene = nullptr;
 		std::vector<Scene*> m_PendingUnloadScenes;
+		std::unordered_map<std::string, SceneFactory> m_SceneFactories;
+		std::string m_SceneDirectory = "Content/Scenes/";
 	};
 }

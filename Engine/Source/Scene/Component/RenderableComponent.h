@@ -9,6 +9,8 @@ namespace Canape
 
 	class RenderableComponent : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		virtual ~RenderableComponent() = default;
 		virtual void AddRenderItem(const AssetManager& assets, Renderer& renderer) const = 0;

@@ -4,6 +4,9 @@
 
 class CameraController final : public Canape::ScriptComponent
 {
+    RTTR_ENABLE(Canape::ScriptComponent)
+    RTTR_REGISTRATION_FRIEND
+
 public:
 	 explicit CameraController(Handle<Canape::GameObject> target = {}, float initialPitch = 15.0f)
         : m_Target(target), m_Pitch(initialPitch)

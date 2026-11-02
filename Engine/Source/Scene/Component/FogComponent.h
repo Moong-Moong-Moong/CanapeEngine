@@ -8,6 +8,8 @@ namespace Canape
 {
 	class FogComponent final : public Component
 	{
+		RTTR_ENABLE(Component)
+
 	public:
 		FogComponent() = default;
 

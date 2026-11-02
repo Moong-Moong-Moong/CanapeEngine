@@ -1,4 +1,6 @@
 ﻿#include "Core/Application.h"
+#include "Core/Console/EngineCommands.h"
+#include "Core/Reflection/Reflection.h"
 #include "Core/Time.h"
 #include "CNDebug/DebugLog.h"
 
@@ -20,6 +22,7 @@ namespace Canape
             if (input.IsKeyPressed(Key::F7)) Debug::ShowOnly(Debug::MainTag::DX11Renderer);
             if (input.IsKeyPressed(Key::F8)) Debug::ShowOnly(Debug::MainTag::Game);
             if (input.IsKeyPressed(Key::F11)) Debug::BeginSubTagInput();
+            if (input.IsKeyPressed(Key::Backquote)) Debug::BeginCommandInput();
 
             Debug::Update();
         }
@@ -33,8 +36,11 @@ namespace Canape
         m_InputManager(std::make_unique<InputManager>()),
         m_Renderer(std::make_unique<Renderer>()),
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
-        m_SceneManager(std::make_unique<SceneManager>())
+        m_SceneManager(std::make_unique<SceneManager>()),
+        m_Commands(std::make_unique<CommandRegistry>())
     {
+        RegisterEngineTypes();
+
         m_InputManager->InitInput(m_Window->GetNativeHandle());
         m_Window->SetMessageObserver([this](const MSG& msg) { m_InputManager->ObserveInput(msg); });
 
@@ -49,14 +55,18 @@ namespace Canape
         }
         s_Instance = this;
 
+        RegisterEngineCommands(*this);
+
 #if defined(_DEBUG)
         m_PrintAssetsCommand = Debug::RegisterKeyCommand(VK_F9, "AssetTracker", [this] { m_AssetManager->PrintAssetRecords(); });
+        Debug::SetCommandHandler([this](std::string_view line) { m_Commands->Submit(line); });
 #endif
     }
 
     Application::~Application()
     {
 #if defined(_DEBUG)
+        Debug::SetCommandHandler(nullptr);
         Debug::UnregisterKeyCommand(m_PrintAssetsCommand);
 #endif
 
@@ -89,6 +99,8 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
             m_Renderer->UpdateDebugControls(*m_InputManager);
 #endif
+
+            m_Commands->ExecutePending();
 
             m_SceneManager->Update();
 
