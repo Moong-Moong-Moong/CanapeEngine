@@ -11,9 +11,16 @@ constant-buffer slots are unchanged. No engine-side light collection is added.
   Object/material/geometry submission is shared by the shadow and main draws.
 - `Pipeline/DX11PipelineState.h/.cpp`: optional shadow shaders/input layouts,
   depth-only/alpha-masked selections, and an internal visibility-debug selection.
-- `Shader/Mesh.hlsl`: shadow depth shaders, comparison/PCF, selected-light shading,
-  and visibility debugging; existing main/debug entry points are retained.
-- `Shader/Common/Constants.hlsli`: updated usage comments; binary layouts unchanged.
+- `Shader/Mesh.hlsl`: main mesh vertex/pixel entry points.
+- `Shader/Common/`: shared constants, mesh/fullscreen types, surface normals,
+  material resources/alpha handling, and direct lighting.
+- `Shader/Shadow/`: shadow constants/resources, comparison/PCF, PCSS, and
+  shadow-depth entry points.
+- `Shader/Debug/`: mesh debug entry points and camera/shadow depth visualization.
+- `Shader/FinalOutput.hlsl` and `Shader/Skybox.hlsl`: final color output and skybox.
+  Existing entry-point names, register slots and binary layouts are retained.
+- `Pipeline/DX11ShaderCompiler.cpp`: resolves nested includes relative to their
+  parent files while preserving Unicode paths.
 - `Tests/ShadowValidation.cpp` and `Tests/ValidateShadows.ps1`: standalone WARP
   integration tests and a runner; neither is compiled into the renderer library.
 - `LightIntegration.md`: implementation, settings, limitations and verification.

@@ -47,7 +47,8 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(SkyboxViewConstants, Brightness) == 128);
     static_assert(offsetof(SkyboxViewConstants, RotationSin) == 136);
 
-    // Initial fixed capacities. Keep these in sync with Constants.hlsli.
+    // Initial fixed capacities. Keep these in sync with Common/Constants.hlsli
+    // and Shadow/ShadowConstants.hlsli.
     inline constexpr uint32_t MaxDirectionalLights = 4;
     inline constexpr uint32_t MaxLocalLights = 64;
     inline constexpr uint32_t MaxShadowViews = 64;
@@ -129,7 +130,7 @@ namespace Canape::ShaderConstants
     static_assert(sizeof(ShadowConstants) == 16 + 80 * MaxShadowViews);
     static_assert(sizeof(LightConstants) <= 65536 && sizeof(ShadowConstants) <= 65536);
 
-    // Mesh.hlsl b7. b5 remains unchanged for all existing shadow consumers.
+    // Shadow/ShadowConstants.hlsli b7. b5 remains unchanged for all existing shadow consumers.
     struct alignas(16) PcssConstants
     {
         DirectX::XMFLOAT2 OrthoSize{};

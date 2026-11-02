@@ -22,22 +22,28 @@ if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
 "$msbuild" Engine\DX11Renderer\DX11Renderer.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-for %%E in (PSMain PSShadowMasked PSDebugShadowVisibility PSDebugPcssFilterRadius PSDebugWorldNormal PSDebugUV PSDebugMipLOD) do (
-  fxc /nologo /WX /Zpr /T ps_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
+fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
+if errorlevel 1 exit /b %errorlevel%
+for %%E in (PSDebugShadowVisibility PSDebugPcssFilterRadius PSDebugWorldNormal PSDebugUV PSDebugMipLOD) do (
+  fxc /nologo /WX /Zpr /T ps_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\Debug\MeshDebug.hlsl
   if errorlevel 1 exit /b 1
 )
-for %%E in (VSMain VSShadow) do (
-  fxc /nologo /WX /Zpr /T vs_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
-  if errorlevel 1 exit /b 1
-  fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
-  if errorlevel 1 exit /b 1
-)
+fxc /nologo /WX /Zpr /T ps_5_0 /E PSShadowMasked /Fo NUL Engine\DX11Renderer\Shader\Shadow\ShadowDepth.hlsl
+if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
+if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\Mesh.hlsl
+if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /T vs_5_0 /E VSShadow /Fo NUL Engine\DX11Renderer\Shader\Shadow\ShadowDepth.hlsl
+if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Engine\DX11Renderer\Shader\Shadow\ShadowDepth.hlsl
+if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\FinalOutput.hlsl
 if errorlevel 1 exit /b %errorlevel%
-for %%E in (PSMain PSCameraDepth) do (
-  fxc /nologo /WX /Zpr /T ps_5_0 /E %%E /Fo NUL Engine\DX11Renderer\Shader\FinalOutput.hlsl
-  if errorlevel 1 exit /b 1
-)
+fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\FinalOutput.hlsl
+if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /T ps_5_0 /E PSCameraDepth /Fo NUL Engine\DX11Renderer\Shader\Debug\DepthDebug.hlsl
+if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\Skybox.hlsl
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\Skybox.hlsl

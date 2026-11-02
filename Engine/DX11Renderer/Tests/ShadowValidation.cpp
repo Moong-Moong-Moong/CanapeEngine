@@ -31,7 +31,7 @@ namespace Canape::Debug
 {
 void Write(MainTag, std::string_view tag, std::string message, const char *, int)
 {
-    if (tag == "Error" || tag == "Shadow")
+    if (tag == "Error" || tag == "Shadow" || tag == "Shader")
         std::cerr << message << '\n';
 }
 } // namespace Canape::Debug

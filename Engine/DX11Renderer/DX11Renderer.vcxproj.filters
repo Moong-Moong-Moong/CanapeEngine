@@ -7,6 +7,12 @@
     <Filter Include="Shader\Common">
       <UniqueIdentifier>{F10A155D-27BC-386F-8252-E3DF0B632F7A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader\Shadow">
+      <UniqueIdentifier>{445E46AB-19AD-54A4-85E6-6A21BAB3CF98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Debug">
+      <UniqueIdentifier>{ECF1BD8A-AF37-517D-9394-83AEAAFE91CE}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{C03BBF4F-45B9-FAAF-09CD-1359DB769F58}</UniqueIdentifier>
     </Filter>
@@ -97,13 +103,49 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\FinalOutput.hlsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\FullscreenTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Lighting.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Material.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\MeshSurface.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\MeshTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Debug\DepthDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="Shader\Debug\MeshDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Shadow\PCSS.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowConstants.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowDepth.hlsl">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowSampling.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Skybox.hlsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

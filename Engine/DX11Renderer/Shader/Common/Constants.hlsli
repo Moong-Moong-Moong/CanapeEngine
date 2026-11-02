@@ -28,11 +28,9 @@ cbuffer ViewBuffer : register(b2)
     float ViewPadding;
 };
 
-// Initial fixed capacities. Keep these in sync with DX11Renderer::Impl.
+// Initial fixed capacities. Keep these in sync with Data/ShaderConstants.h.
 static const uint MAX_DIRECTIONAL_LIGHTS = 4;
 static const uint MAX_LOCAL_LIGHTS = 64;
-static const uint MAX_SHADOW_VIEWS = 64;
-static const uint INVALID_SHADOW_VIEW = 0xffffffffu;
 static const uint LOCAL_LIGHT_POINT = 0;
 static const uint LOCAL_LIGHT_SPOT = 1;
 
@@ -80,28 +78,6 @@ cbuffer SceneBuffer : register(b4)
     float FogEndDistance;
     uint FogMode;
     float ScenePadding;
-};
-
-struct ShadowViewGpu
-{
-    float4x4 LightViewProjection;
-    float DepthBias;
-    uint MapIndex;
-    float NearPlane;
-    float FarPlane;
-};
-
-// Uploaded per frame/scene; VS/PS b5. CPU layout: 5136 bytes.
-// Currently one Directional view at index 0, with Texture2D depth at t1 / sampler s1.
-// No CSM: Directional/Spot use one view; Point uses six in +X,-X,+Y,-Y,+Z,-Z order.
-// MapIndex selects a 2D-array slice or cube, according to light type.
-// The six views of one Point light share the same cube index.
-cbuffer ShadowBuffer : register(b5)
-{
-    uint ShadowViewCount;
-    uint ShadowPcfEnabled;
-    uint2 ShadowPadding;
-    ShadowViewGpu ShadowViews[MAX_SHADOW_VIEWS];
 };
 
 #endif

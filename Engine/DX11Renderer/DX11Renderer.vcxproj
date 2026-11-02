@@ -105,9 +105,21 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader\Common\Constants.hlsli" />
+    <None Include="Shader\Common\FullscreenTypes.hlsli" />
+    <None Include="Shader\Common\Lighting.hlsli" />
+    <None Include="Shader\Common\Material.hlsli" />
+    <None Include="Shader\Common\MeshSurface.hlsli" />
+    <None Include="Shader\Common\MeshTypes.hlsli" />
+    <None Include="Shader\Debug\DepthDebug.hlsl" />
+    <None Include="Shader\Debug\MeshDebug.hlsl" />
     <None Include="Shader\FinalOutput.hlsl" />
     <None Include="Shader\Mesh.hlsl" />
-    <None Include="Shader\Common\Constants.hlsli" />
+    <None Include="Shader\Shadow\PCSS.hlsli" />
+    <None Include="Shader\Shadow\ShadowConstants.hlsli" />
+    <None Include="Shader\Shadow\ShadowDepth.hlsl" />
+    <None Include="Shader\Shadow\ShadowSampling.hlsli" />
+    <None Include="Shader\Skybox.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
