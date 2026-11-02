@@ -39,6 +39,9 @@
     <ClInclude Include="Data\TextureData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\ShaderConstants.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="DX11Renderer.h">
       <Filter>Source</Filter>
     </ClInclude>

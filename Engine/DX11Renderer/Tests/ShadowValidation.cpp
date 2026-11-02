@@ -7,6 +7,7 @@
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/TextureData.h"
+#include "DX11Renderer/Data/ShaderConstants.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include <array>
 #include <cmath>
@@ -35,6 +36,7 @@ void Write(MainTag, std::string_view tag, std::string message, const char *, int
 }
 } // namespace Canape::Debug
 using namespace Canape;
+namespace SC = Canape::ShaderConstants;
 using Backend = DX11Renderer::Impl;
 void Require(bool value, const char *message)
 {
@@ -102,20 +104,20 @@ void TexelSnappingChecks()
     };
     auto build = [&]()
     {
-        Backend::ShadowViewGpu shadow{};
-        Backend::PcssConstants pcss{};
+        SC::ShadowViewGpu shadow{};
+        SC::PcssConstants pcss{};
         Require(impl.BuildDirectionalShadowView(lightDirection, impl.ShadowSettings, shadow, pcss),
             "build snapped shadow view");
         Require(pcss.OrthoSize.x > 0.0f && pcss.OrthoSize.y > 0.0f,
             "PCSS receives the actual orthographic projection extent");
         return shadow;
     };
-    auto width = [](const Backend::ShadowViewGpu& shadow)
+    auto width = [](const SC::ShadowViewGpu& shadow)
     {
         const auto& m = shadow.LightViewProjection;
         return 2.0f / std::sqrt(m._11 * m._11 + m._21 * m._21 + m._31 * m._31);
     };
-    auto checkFrustum = [&](const Backend::ShadowViewGpu& shadow)
+    auto checkFrustum = [&](const SC::ShadowViewGpu& shadow)
     {
         XMVECTOR determinant;
         const XMMATRIX inverseCamera = XMMatrixInverse(&determinant,
@@ -223,7 +225,7 @@ void TexelSnappingChecks()
     checkFrustum(lowerResolution);
     std::cout << "CPU: texel snapping, rotation-stable width, frustum XY containment PASS\n";
 }
-Backend::LightConstants ReadLights(Backend &impl)
+SC::LightConstants ReadLights(Backend &impl)
 {
     D3D11_BUFFER_DESC desc{};
     impl.LightBuffer->GetDesc(&desc);
@@ -236,7 +238,7 @@ Backend::LightConstants ReadLights(Backend &impl)
     impl.Context->CopyResource(staging.Get(), impl.LightBuffer.Get());
     D3D11_MAPPED_SUBRESOURCE mapped{};
     Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)), "map light buffer");
-    const auto result = *static_cast<const Backend::LightConstants *>(mapped.pData);
+    const auto result = *static_cast<const SC::LightConstants *>(mapped.pData);
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
@@ -284,7 +286,7 @@ std::vector<float> ReadShadowDepth(Backend &impl)
     impl.Context->Unmap(staging.Get(), 0);
     return out;
 }
-Backend::ShadowConstants ReadShadowConstants(Backend &impl)
+SC::ShadowConstants ReadShadowConstants(Backend &impl)
 {
     D3D11_BUFFER_DESC desc{};
     impl.ShadowMap.Constants->GetDesc(&desc);
@@ -297,15 +299,15 @@ Backend::ShadowConstants ReadShadowConstants(Backend &impl)
     impl.Context->CopyResource(staging.Get(), impl.ShadowMap.Constants.Get());
     D3D11_MAPPED_SUBRESOURCE map{};
     Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &map)), "shadow constants map");
-    const auto result = *static_cast<const Backend::ShadowConstants *>(map.pData);
+    const auto result = *static_cast<const SC::ShadowConstants *>(map.pData);
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
-Backend::PcssConstants ReadPcssConstants(Backend &impl)
+SC::PcssConstants ReadPcssConstants(Backend &impl)
 {
     D3D11_BUFFER_DESC desc{};
     impl.ShadowMap.PcssConstants->GetDesc(&desc);
-    Require(desc.ByteWidth == sizeof(Backend::PcssConstants), "PCSS constant layout");
+    Require(desc.ByteWidth == sizeof(SC::PcssConstants), "PCSS constant layout");
     desc.Usage = D3D11_USAGE_STAGING;
     desc.BindFlags = 0;
     desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -314,7 +316,7 @@ Backend::PcssConstants ReadPcssConstants(Backend &impl)
     impl.Context->CopyResource(staging.Get(), impl.ShadowMap.PcssConstants.Get());
     D3D11_MAPPED_SUBRESOURCE map{};
     Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &map)), "PCSS constants map");
-    const auto result = *static_cast<const Backend::PcssConstants *>(map.pData);
+    const auto result = *static_cast<const SC::PcssConstants *>(map.pData);
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
@@ -330,7 +332,7 @@ std::array<int, 3> PixelAt(const Image &image, const RenderScene &scene, Vector3
     const size_t offset = (y * image.width + x) * 4;
     return {image.rgba[offset], image.rgba[offset + 1], image.rgba[offset + 2]};
 }
-float DepthAt(const std::vector<float> &depth, Backend &impl, const Backend::ShadowConstants &constants, Vector3 point)
+float DepthAt(const std::vector<float> &depth, Backend &impl, const SC::ShadowConstants &constants, Vector3 point)
 {
     const auto ndc = Project(point, Matrix4::FromXM(DirectX::XMLoadFloat4x4(&constants.Views[0].LightViewProjection)));
     const int resolution = int(impl.ShadowMap.Resolution);
@@ -402,6 +404,72 @@ void CheckMessages(ID3D11InfoQueue *queue)
     Require(warnings == 0, "D3D11 debug-layer warning/error");
     std::cout << "D3D11 debug layer: zero warnings/errors (including SRV/DSV hazards)\n";
 }
+void SkyboxChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    const std::array<uint8_t, 24> faces{
+        255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,
+        255, 255, 0, 255, 255, 0, 255, 255, 0, 255, 255, 255 };
+    const auto cubemap = renderer.CreateCubemap(1, 1, TextureFormat::RGBA8_SRGB, faces);
+    Require(renderer.IsCubemapValid(cubemap), "skybox cubemap creation");
+    RenderScene scene;
+    scene.camera.view = Matrix4::LookTo({0, 0, 0}, {0, 0, 1});
+    scene.camera.projection = Matrix4::Perspective(0.95f, 1, .1f, 100);
+    const auto empty = Frame(renderer, scene);
+    const auto depthWithoutSkybox = ReadImage(impl, impl.DepthTexture.Get()).rgba;
+    auto center = [](const Image& image) {
+        const size_t offset = ((image.height / 2) * image.width + image.width / 2) * 4;
+        return std::array<int, 3>{ image.rgba[offset], image.rgba[offset + 1], image.rgba[offset + 2] };
+    };
+    scene.skybox.cubemap = cubemap;
+    const auto baseline = Frame(renderer, scene);
+    Require(center(baseline) == std::array<int, 3>{255, 0, 255}, "scene skybox selects +Z face");
+    Require(ReadImage(impl, impl.DepthTexture.Get()).rgba == depthWithoutSkybox, "skybox preserves camera depth");
+    scene.skybox.brightness = 0.25f;
+    const auto dimmed = center(Frame(renderer, scene));
+    Require(dimmed[0] >= 136 && dimmed[0] <= 138 && dimmed[1] == 0 && dimmed[2] == dimmed[0],
+        "skybox brightness scales linear color before sRGB encoding");
+    scene.skybox.brightness = 0.0f;
+    Require(center(Frame(renderer, scene)) == std::array<int, 3>{0, 0, 0}, "zero skybox brightness");
+    scene.skybox.brightness = -1.0f;
+    Require(center(Frame(renderer, scene)) == std::array<int, 3>{0, 0, 0}, "negative skybox brightness clamps");
+    scene.skybox.brightness = 1.0f;
+    scene.skybox.rotationRadians = DirectX::XM_PIDIV2;
+    Require(center(Frame(renderer, scene)) == std::array<int, 3>{0, 255, 0}, "positive yaw samples inverse-rotated -X face");
+    scene.skybox.brightness = std::numeric_limits<float>::quiet_NaN();
+    scene.skybox.rotationRadians = std::numeric_limits<float>::quiet_NaN();
+    Require(Frame(renderer, scene).rgba == baseline.rgba, "invalid skybox settings use defaults");
+    scene.skybox.brightness = 1.0f;
+    scene.skybox.rotationRadians = 0.0f;
+    scene.camera.view = Matrix4::LookTo({50, 20, -30}, {0, 0, 1});
+    scene.camera.cameraPosition = {50, 20, -30};
+    Require(Frame(renderer, scene).rgba == baseline.rgba, "skybox ignores camera translation");
+    scene.camera.view = Matrix4::LookTo({0, 0, 0}, {0, 0, -1});
+    Require(center(Frame(renderer, scene)) == std::array<int, 3>{0, 255, 255}, "skybox follows camera rotation");
+    scene.camera.view = Matrix4::LookTo({0, 0, 0}, {0, 0, 1});
+    scene.camera.cameraPosition = {};
+    const std::array<uint8_t, 24> alternateFaces{
+        0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255,
+        0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255 };
+    const auto alternate = renderer.CreateCubemap(1, 1, TextureFormat::RGBA8_SRGB, alternateFaces);
+    scene.skybox.cubemap = alternate;
+    Require(center(Frame(renderer, scene)) == std::array<int, 3>{0, 0, 255}, "scene selects a different cubemap resource");
+    renderer.DestroyCubemap(alternate);
+    Require(Frame(renderer, scene).rgba == empty.rgba, "destroyed cubemap skips skybox without stale texture");
+    scene.skybox.cubemap = cubemap;
+    Require(renderer.BeginFrame(), "queued skybox frame");
+    renderer.SetRenderView(scene.camera);
+    renderer.SetSkybox(scene.skybox);
+    renderer.DrawScene();
+    Require(ReadImage(impl, impl.SceneColorTexture.Get()).rgba == baseline.rgba, "queued skybox matches explicit RenderScene");
+    renderer.EndFrame();
+    Require(renderer.BeginFrame(), "frame after queued skybox");
+    renderer.DrawScene();
+    Require(ReadImage(impl, impl.SceneColorTexture.Get()).rgba == empty.rgba, "queued skybox clears each frame");
+    renderer.EndFrame();
+    renderer.DestroyCubemap(cubemap);
+    std::cout << "Skybox GPU integration: cubemap selection, brightness, yaw, camera, depth, missing resource, queue reset PASS\n";
+}
 void ShadowChecks()
 {
     const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -435,7 +503,8 @@ void ShadowChecks()
                 "WARP debug device");
         ComPtr<ID3D11InfoQueue> queue;
         Require(SUCCEEDED(impl.Device.As(&queue)), "debug info queue");
-        Require(impl.CreateTargets(256, 256) && impl.CreatePipeline(), "targets and pipeline");
+        Require(impl.CreateTargets(256, 256) && impl.CreatePipeline() && impl.CreateSkyboxQuad(), "targets and pipeline");
+        SkyboxChecks(renderer);
         if (!impl.Pipelines.ShadowsAvailable())
             CheckMessages(queue.Get());
         Require(impl.Pipelines.ShadowsAvailable(), "shadow pipeline compiled");
@@ -464,6 +533,8 @@ void ShadowChecks()
         const auto cube = renderer.CreateMesh(cubeVertices, cubeIndices);
         Require(renderer.IsMeshValid(ground) && renderer.IsMeshValid(cube), "scene meshes");
         RenderScene scene;
+        const auto sceneLights = CreateTestLights();
+        scene.lights.assign(sceneLights.begin(), sceneLights.end());
         scene.camera.view = Matrix4::LookTo({-12, 15, -18}, {12, -15, 18});
         scene.camera.projection = Matrix4::Perspective(0.95f, 1, .1f, 100);
         scene.camera.cameraPosition = {-12, 15, -18};
@@ -874,7 +945,9 @@ void ShadowChecks()
             Frame(renderer, scene);
         }
         renderer.SetDebugSettings({});
-        Frame(renderer, RenderScene{});
+        RenderScene emptyScene;
+        emptyScene.lights = scene.lights;
+        Frame(renderer, emptyScene);
         Require(ReadShadowConstants(impl).ViewCount == 1, "empty scene clears shadow map");
         depth = ReadShadowDepth(impl);
         Require(*std::min_element(depth.begin(), depth.end()) == 1.0f, "empty map reset");

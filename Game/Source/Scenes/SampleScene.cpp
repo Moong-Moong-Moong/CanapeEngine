@@ -5,9 +5,12 @@
 #include "Scripts/PlayerController.h"
 #include "Scripts/SceneChanger.h"
 #include "CNDebug/DebugLog.h"
+#include "Scene/Component/LightComponent.h"
+#include "Scene/Component/SkyboxComponent.h"
 
 namespace
 {
+    constexpr char kSkyboxPath[] = "Content/HDRI/uffizi_cross_Mark.dds";
     constexpr char kPlayerModelPath[] = "Content/Models/Player.fbx";
     constexpr char kEnemyModelPath[] = "Content/Models/Enemy.fbx";
     constexpr char kLevelModelPath[] = "Content/Models/Level.fbx";
@@ -19,6 +22,27 @@ Canape::Scene* SampleScene::Create(Canape::SceneManager& sceneManager)
 {
     CN_LOG_GAME("init", "Sample Scene 1 로드중");
     Canape::Scene* scene = sceneManager.CreateScene(Name);
+
+    Canape::GameObject* directionalLightObject = scene->GetGameObject(scene->AddGameObject("Directional Light"));
+    directionalLightObject->GetTransform()->LookAt({ -0.4f, -1.0f, 0.6f });
+    auto* directionalLight = directionalLightObject->AddComponent<Canape::LightComponent>();
+    directionalLight->SetType(Canape::LightType::Directional);
+    directionalLight->SetColor({ 0.85f, 0.85f, 0.9f });
+    directionalLight->SetIntensity(0.9f);
+    directionalLight->SetCastShadow(true);
+
+    Canape::GameObject* pointLightObject = scene->GetGameObject(scene->AddGameObject("Point Light"));
+    pointLightObject->GetTransform()->SetLocalPosition({ 20.0f, 3.0f, -2.0f });
+    auto* pointLight = pointLightObject->AddComponent<Canape::LightComponent>();
+    pointLight->SetType(Canape::LightType::Point);
+    pointLight->SetColor({ 1.0f, 0.45f, 0.18f });
+    pointLight->SetIntensity(2.0f);
+    pointLight->SetRange(12.0f);
+
+    Canape::GameObject* skyboxObject = scene->GetGameObject(scene->AddGameObject("Skybox"));
+    auto* skybox = skyboxObject->AddComponent<Canape::SkyboxComponent>();
+    if (!skybox->SetCubemap(kSkyboxPath))
+        CN_LOG_GAME("init", "Sample scene skybox cubemap failed to load: ", kSkyboxPath);
 
     Canape::AssetManager& assets = Canape::Application::Get().GetAssetManager();
     const Canape::AssetOwnerInfo materialOwner{ Name, "SampleScene", "MaterialSetup" };

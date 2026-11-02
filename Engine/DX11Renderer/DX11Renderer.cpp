@@ -1,4 +1,5 @@
 #include "DX11Renderer/DX11Renderer.h"
+#include "DX11Renderer/Data/ShaderConstants.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -17,9 +18,6 @@
 #include <cmath>
 #include <algorithm>
 #include <array>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
 #include <limits>
 #include <vector>
 
@@ -32,144 +30,12 @@ using Microsoft::WRL::ComPtr;
 
 namespace Canape
 {
+    namespace SC = ShaderConstants;
+
     namespace
     {
-        // Temporary asset copied beside Game.exe by Game.vcxproj's Content post-build step.
-        constexpr wchar_t TestSkyboxDds[] = L"Content\\HDRI\\uffizi_cross.dds";
-
         struct SkyboxVertex { float Position[2]; };
         static_assert(sizeof(SkyboxVertex) == sizeof(float) * 2);
-
-        uint32_t DdsWord(const std::array<uint8_t, 128>& header, size_t offset)
-        {
-            uint32_t value;
-            std::memcpy(&value, header.data() + offset, sizeof(value));
-            return value;
-        }
-
-        bool LoadDDSCubeMap(ID3D11Device* device, const std::filesystem::path& path,
-            DX11TextureResource& output, std::string& error)
-        {
-            output = {};
-            const auto utf8Path = path.u8string();
-            const std::string name(utf8Path.begin(), utf8Path.end());
-            std::ifstream file(path, std::ios::binary | std::ios::ate);
-            if (!file)
-            {
-                error = "DDS CubeMap file missing or unreadable: " + name;
-                return false;
-            }
-            const auto fileSize = file.tellg();
-            if (fileSize < 128)
-            {
-                error = "DDS CubeMap header is truncated: " + name;
-                return false;
-            }
-            file.seekg(0);
-            std::array<uint8_t, 128> header{};
-            if (!file.read(reinterpret_cast<char*>(header.data()), header.size())
-                || std::memcmp(header.data(), "DDS ", 4) != 0
-                || DdsWord(header, 4) != 124 || DdsWord(header, 76) != 32)
-            {
-                error = "Invalid DDS header: " + name;
-                return false;
-            }
-            constexpr uint32_t AllCubeFaces = 0x0000FE00;
-            if ((DdsWord(header, 112) & AllCubeFaces) != AllCubeFaces)
-            {
-                error = "DDS is not a complete six-face CubeMap: " + name;
-                return false;
-            }
-            const uint32_t width = DdsWord(header, 16);
-            const uint32_t height = DdsWord(header, 12);
-            const uint32_t mipCount = DdsWord(header, 28);
-            if (!width || width != height || width > D3D11_REQ_TEXTURECUBE_DIMENSION
-                || mipCount > 1)
-            {
-                error = "DDS CubeMap needs square faces and a single mip level: " + name;
-                return false;
-            }
-            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-            uint32_t bytesPerPixel = 0;
-            const uint32_t pixelFlags = DdsWord(header, 80);
-            if ((pixelFlags & 0x4) && DdsWord(header, 84) == 113) // D3DFMT_A16B16G16R16F.
-            {
-                format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-                bytesPerPixel = 8;
-            }
-            else if ((pixelFlags & 0x41) == 0x41 && DdsWord(header, 88) == 32
-                && DdsWord(header, 92) == 0x00FF0000 && DdsWord(header, 96) == 0x0000FF00
-                && DdsWord(header, 100) == 0x000000FF && DdsWord(header, 104) == 0xFF000000)
-            {
-                format = DXGI_FORMAT_B8G8R8A8_UNORM;
-                bytesPerPixel = 4;
-            }
-            if (format == DXGI_FORMAT_UNKNOWN)
-            {
-                error = "Unsupported DDS CubeMap pixel format: " + name;
-                return false;
-            }
-            const uint64_t rowBytes = uint64_t(width) * bytesPerPixel;
-            const uint64_t faceBytes = rowBytes * height;
-            const uint64_t totalBytes = faceBytes * 6;
-            if (totalBytes > 512ull * 1024 * 1024 || uint64_t(fileSize) < 128 + totalBytes)
-            {
-                error = "DDS CubeMap pixel data is truncated or too large: " + name;
-                return false;
-            }
-            std::vector<uint8_t> pixels(static_cast<size_t>(totalBytes));
-            if (!file.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(totalBytes)))
-            {
-                error = "Failed to read DDS CubeMap pixels: " + name;
-                return false;
-            }
-            std::array<D3D11_SUBRESOURCE_DATA, 6> faces{};
-            for (size_t face = 0; face < faces.size(); ++face)
-            {
-                faces[face].pSysMem = pixels.data() + face * faceBytes;
-                faces[face].SysMemPitch = static_cast<UINT>(rowBytes);
-            }
-            D3D11_TEXTURE2D_DESC textureDesc{};
-            textureDesc.Width = width;
-            textureDesc.Height = height;
-            textureDesc.MipLevels = 1;
-            textureDesc.ArraySize = 6;
-            textureDesc.Format = format;
-            textureDesc.SampleDesc.Count = 1;
-            textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
-            textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-            DX11TextureResource pending;
-            HRESULT result = device->CreateTexture2D(&textureDesc, faces.data(), &pending.Texture);
-            if (FAILED(result))
-            {
-                error = "CreateTexture2D(DDS CubeMap) failed for " + name
-                    + " (HRESULT " + std::to_string(static_cast<unsigned long>(result)) + ')';
-                return false;
-            }
-            D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
-            viewDesc.Format = format;
-            viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-            viewDesc.TextureCube.MipLevels = 1;
-            result = device->CreateShaderResourceView(pending.Texture.Get(), &viewDesc,
-                &pending.ShaderResourceView);
-            if (FAILED(result))
-            {
-                error = "CreateShaderResourceView(DDS CubeMap) failed for " + name
-                    + " (HRESULT " + std::to_string(static_cast<unsigned long>(result)) + ')';
-                return false;
-            }
-            D3D11_SHADER_RESOURCE_VIEW_DESC actualView{};
-            pending.ShaderResourceView->GetDesc(&actualView);
-            if (actualView.ViewDimension != D3D11_SRV_DIMENSION_TEXTURECUBE)
-            {
-                error = "DDS CubeMap SRV has an unexpected dimension: " + name;
-                return false;
-            }
-            output = std::move(pending);
-            error.clear();
-            return true;
-        }
 
         // All temporary light values live here, outside GPU packing/upload code.
         [[maybe_unused]] std::array<RenderLight, 2> CreateTestLights()
@@ -253,182 +119,6 @@ namespace Canape
             uint32_t Resolution = 0;
         };
 
-        struct alignas(16) ObjectConstants
-        {
-            DirectX::XMFLOAT4X4 World;
-            DirectX::XMFLOAT4X4 WorldInverseTranspose;
-        };
-        static_assert(sizeof(ObjectConstants) == 128);
-        static_assert(offsetof(ObjectConstants, WorldInverseTranspose) == 64);
-
-        struct alignas(16) ViewConstants
-        {
-            DirectX::XMFLOAT4X4 View{};
-            DirectX::XMFLOAT4X4 Projection{};
-            DirectX::XMFLOAT4X4 ViewProjection{};
-            Vector3 CameraPosition{};
-            float Padding = 0.0f;
-        };
-        static_assert(sizeof(ViewConstants) == 208);
-        static_assert(offsetof(ViewConstants, Projection) == 64);
-        static_assert(offsetof(ViewConstants, ViewProjection) == 128);
-        static_assert(offsetof(ViewConstants, CameraPosition) == 192);
-
-        // Matches Skybox.hlsl b6: two row-major float4x4 matrices, updated in stage 5.
-        struct alignas(16) SkyboxViewConstants
-        {
-            DirectX::XMFLOAT4X4 InverseProjection{};
-            DirectX::XMFLOAT4X4 InverseView{};
-        };
-        static_assert(sizeof(SkyboxViewConstants) == 128);
-        static_assert(alignof(SkyboxViewConstants) == 16);
-        static_assert(offsetof(SkyboxViewConstants, InverseView) == 64);
-
-        // Initial fixed capacities. Keep these in sync with Constants.hlsli.
-        static constexpr uint32_t MaxDirectionalLights = 4;
-        static constexpr uint32_t MaxLocalLights = 64;
-        static constexpr uint32_t MaxShadowViews = 64;
-        static constexpr uint32_t InvalidShadowView = UINT32_MAX;
-
-        enum class LocalLightType : uint32_t { Point = 0, Spot = 1 };
-
-        struct alignas(16) DirectionalLightGpu
-        {
-            Vector3 Direction{ 0.0f, -1.0f, 0.0f }; // Normalized world travel direction.
-            uint32_t ShadowViewOffset = InvalidShadowView;
-            Vector3 ColorIntensity{}; // Linear color multiplied by intensity.
-            uint32_t ShadowViewCount = 0; // No shadow: 0. Directional shadow: 1.
-        };
-        static_assert(sizeof(DirectionalLightGpu) == 32);
-        static_assert(offsetof(DirectionalLightGpu, ShadowViewOffset) == 12);
-        static_assert(offsetof(DirectionalLightGpu, ColorIntensity) == 16);
-        static_assert(offsetof(DirectionalLightGpu, ShadowViewCount) == 28);
-
-        struct alignas(16) LocalLightGpu
-        {
-            Vector3 Position{};
-            float Range = 10.0f;
-            Vector3 Direction{ 0.0f, -1.0f, 0.0f }; // Spot only; normalized.
-            float OuterAngleCos = 1.0f; // Spot only; cosine of the half-angle.
-            Vector3 ColorIntensity{};
-            float InnerAngleCos = 1.0f;
-            uint32_t Type = static_cast<uint32_t>(LocalLightType::Point);
-            uint32_t ShadowViewOffset = InvalidShadowView;
-            uint32_t ShadowViewCount = 0; // No shadow: 0. Spot: 1. Point cubemap: 6.
-            uint32_t Padding = 0;
-        };
-        static_assert(sizeof(LocalLightGpu) == 64);
-        static_assert(offsetof(LocalLightGpu, Range) == 12);
-        static_assert(offsetof(LocalLightGpu, Direction) == 16);
-        static_assert(offsetof(LocalLightGpu, OuterAngleCos) == 28);
-        static_assert(offsetof(LocalLightGpu, ColorIntensity) == 32);
-        static_assert(offsetof(LocalLightGpu, InnerAngleCos) == 44);
-        static_assert(offsetof(LocalLightGpu, Type) == 48);
-        static_assert(offsetof(LocalLightGpu, ShadowViewOffset) == 52);
-        static_assert(offsetof(LocalLightGpu, ShadowViewCount) == 56);
-
-        struct alignas(16) LightConstants
-        {
-            uint32_t DirectionalCount = 0;
-            uint32_t LocalCount = 0;
-            uint32_t Padding[2]{};
-            DirectionalLightGpu DirectionalLights[MaxDirectionalLights]{};
-            LocalLightGpu LocalLights[MaxLocalLights]{};
-        };
-        static_assert(offsetof(LightConstants, DirectionalLights) == 16);
-        static_assert(offsetof(LightConstants, LocalLights) == 16 + 32 * MaxDirectionalLights);
-        static_assert(sizeof(LightConstants) == 16 + 32 * MaxDirectionalLights + 64 * MaxLocalLights);
-
-        struct alignas(16) ShadowViewGpu
-        {
-            DirectX::XMFLOAT4X4 LightViewProjection{}; // LightView * LightProjection.
-            float DepthBias = 0.0f;
-            uint32_t MapIndex = UINT32_MAX; // 2D-array slice or cube index, according to light type.
-            float NearPlane = 0.1f;
-            float FarPlane = 10.0f;
-        };
-        static_assert(sizeof(ShadowViewGpu) == 80);
-        static_assert(offsetof(ShadowViewGpu, DepthBias) == 64);
-        static_assert(offsetof(ShadowViewGpu, MapIndex) == 68);
-        static_assert(offsetof(ShadowViewGpu, NearPlane) == 72);
-        static_assert(offsetof(ShadowViewGpu, FarPlane) == 76);
-
-        struct alignas(16) ShadowConstants
-        {
-            uint32_t ViewCount = 0;
-            uint32_t PcfEnabled = 0;
-            uint32_t Padding[2]{};
-            // Directional/Spot use one view. Point uses six in +X,-X,+Y,-Y,+Z,-Z order.
-            ShadowViewGpu Views[MaxShadowViews]{};
-        };
-        static_assert(offsetof(ShadowConstants, PcfEnabled) == 4);
-        static_assert(offsetof(ShadowConstants, Views) == 16);
-        static_assert(sizeof(ShadowConstants) == 16 + 80 * MaxShadowViews);
-        static_assert(sizeof(LightConstants) <= 65536 && sizeof(ShadowConstants) <= 65536);
-
-        // Mesh.hlsl b7. b5 remains unchanged for all existing shadow consumers.
-        struct alignas(16) PcssConstants
-        {
-            DirectX::XMFLOAT2 OrthoSize{};
-            float TanLightAngularRadius = 0.0f;
-            float BlockerSearchRadiusWorld = 0.0f;
-            float MinFilterRadiusWorld = 0.0f;
-            float MaxFilterRadiusWorld = 0.0f;
-            uint32_t FilterMode = 0; // 0: single, 1: 3x3 PCF, 2: Vogel PCSS, 3: legacy 25 PCSS.
-            uint32_t PcfSampleCount = 64;
-            float PcfTapSpacingScale = 1.0f;
-            uint32_t BlockerSampleCount = 25;
-            float Padding[2]{};
-        };
-        static_assert(sizeof(PcssConstants) == 48);
-        static_assert(offsetof(PcssConstants, TanLightAngularRadius) == 8);
-        static_assert(offsetof(PcssConstants, MinFilterRadiusWorld) == 16);
-        static_assert(offsetof(PcssConstants, FilterMode) == 24);
-        static_assert(offsetof(PcssConstants, PcfSampleCount) == 28);
-        static_assert(offsetof(PcssConstants, PcfTapSpacingScale) == 32);
-        static_assert(offsetof(PcssConstants, BlockerSampleCount) == 36);
-
-        struct alignas(16) SceneConstants
-        {
-            Vector3 AmbientColor{ 1.0f, 1.0f, 1.0f };
-            float AmbientIntensity = 0.1f;
-            Vector3 FogColor{ 0.5f, 0.5f, 0.5f };
-            float FogDensity = 0.01f;
-            float FogStartDistance = 0.0f;
-            float FogEndDistance = 100.0f;
-            uint32_t FogMode = static_cast<uint32_t>(Canape::FogMode::Disabled);
-            float Padding = 0.0f;
-        };
-        static_assert(sizeof(SceneConstants) == 48);
-        static_assert(offsetof(SceneConstants, AmbientIntensity) == 12);
-        static_assert(offsetof(SceneConstants, FogColor) == 16);
-        static_assert(offsetof(SceneConstants, FogDensity) == 28);
-        static_assert(offsetof(SceneConstants, FogStartDistance) == 32);
-        static_assert(offsetof(SceneConstants, FogEndDistance) == 36);
-        static_assert(offsetof(SceneConstants, FogMode) == 40);
-
-        struct MaterialConstants
-        {
-            Vector4 BaseColor;
-            uint32_t Mode;
-            float AlphaCutoff;
-            uint32_t HasBaseColorTexture = 0;
-            float Padding = 0.0f;
-        };
-        static_assert(sizeof(MaterialConstants) == 32);
-        static_assert(offsetof(MaterialConstants, Mode) == 16 && offsetof(MaterialConstants, AlphaCutoff) == 20);
-        static_assert(offsetof(MaterialConstants, HasBaseColorTexture) == 24);
-
-#if CANAPE_RENDER_DEBUG
-        struct alignas(16) DepthDisplayConstants
-        {
-            float Min;
-            float Max;
-            float Padding[2]{};
-        };
-        static_assert(sizeof(DepthDisplayConstants) == 16);
-#endif
-
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
@@ -444,8 +134,8 @@ namespace Canape
         uint64_t MinGpuFrameId = 0;
 #endif
 
-        ViewConstants ViewData{};
-        SceneConstants SceneData{};
+        SC::ViewConstants ViewData{};
+        SC::SceneConstants SceneData{};
         bool ViewDirty = true;
         bool SceneDirty = true;
         RenderScene QueuedScene;
@@ -637,8 +327,6 @@ namespace Canape
         // Reverse member destruction releases cached resources before Context and Device.
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
         DX11ResourceCache Resources;
-        // Temporary skybox asset; kept separate from material Texture2D IDs.
-        DX11TextureResource TestSkyboxCube;
         ComPtr<ID3D11Buffer> SkyboxVertexBuffer;
         ComPtr<ID3D11Buffer> SkyboxIndexBuffer;
         static constexpr UINT SkyboxIndexCount = 6;
@@ -678,12 +366,12 @@ namespace Canape
             if (Context) Context->ClearState();
         }
 
-        static LightConstants BuildLightConstants(std::span<const RenderLight> lights,
+        static SC::LightConstants BuildLightConstants(std::span<const RenderLight> lights,
             uint32_t* shadowDirectionalIndex = nullptr)
         {
-            if (shadowDirectionalIndex) *shadowDirectionalIndex = InvalidShadowView;
+            if (shadowDirectionalIndex) *shadowDirectionalIndex = SC::InvalidShadowView;
             // Rebuild the entire buffer, including unused entries and shadow metadata.
-            LightConstants data{};
+            SC::LightConstants data{};
             for (const RenderLight& light : lights)
             {
                 if (!IsFinite(light.color) || !std::isfinite(light.intensity) || light.intensity <= 0.0f)
@@ -693,7 +381,7 @@ namespace Canape
 
                 if (light.type == LightType::Directional)
                 {
-                    if (data.DirectionalCount == MaxDirectionalLights || !IsFinite(light.direction)) continue;
+                    if (data.DirectionalCount == SC::MaxDirectionalLights || !IsFinite(light.direction)) continue;
                     const float lengthSquared = light.direction.LengthSquared();
                     if (!std::isfinite(lengthSquared) || lengthSquared <= 1e-12f) continue;
                     // The first accepted Directional light owns the one shadow map.
@@ -706,13 +394,13 @@ namespace Canape
                 }
                 else if (light.type == LightType::Point)
                 {
-                    if (data.LocalCount == MaxLocalLights || !IsFinite(light.position)
+                    if (data.LocalCount == SC::MaxLocalLights || !IsFinite(light.position)
                         || !std::isfinite(light.range) || light.range <= 0.0f) continue;
                     auto& gpu = data.LocalLights[data.LocalCount++];
                     gpu.Position = light.position;
                     gpu.Range = light.range;
                     gpu.ColorIntensity = colorIntensity;
-                    gpu.Type = static_cast<uint32_t>(LocalLightType::Point);
+                    gpu.Type = static_cast<uint32_t>(SC::LocalLightType::Point);
                 }
                 // Spot shading is future work. Shadow metadata is published only after a valid pass.
             }
@@ -770,12 +458,12 @@ namespace Canape
             result = Device->CreateSamplerState(&sampler, &pending.PcfSampler);
             if (FAILED(result)) return failed("CreateSamplerState(shadow PCF comparison)", result);
             D3D11_BUFFER_DESC buffer{};
-            buffer.ByteWidth = sizeof(ShadowConstants);
+            buffer.ByteWidth = sizeof(SC::ShadowConstants);
             buffer.Usage = D3D11_USAGE_DEFAULT;
             buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             result = Device->CreateBuffer(&buffer, nullptr, &pending.Constants);
             if (FAILED(result)) return failed("CreateBuffer(shadow constants)", result);
-            buffer.ByteWidth = sizeof(PcssConstants);
+            buffer.ByteWidth = sizeof(SC::PcssConstants);
             result = Device->CreateBuffer(&buffer, nullptr, &pending.PcssConstants);
             if (FAILED(result)) return failed("CreateBuffer(PCSS constants)", result);
             pending.Resolution = ShadowSettings.resolution;
@@ -785,7 +473,7 @@ namespace Canape
             return true;
         }
 
-        static bool BuildFrustumBoundingSphere(const ViewConstants& camera, float shadowDistance, Vector3& center,
+        static bool BuildFrustumBoundingSphere(const SC::ViewConstants& camera, float shadowDistance, Vector3& center,
             float& radius, double& fittedRadius)
         {
             using namespace DirectX;
@@ -859,7 +547,7 @@ namespace Canape
         }
 
         bool BuildDirectionalShadowView(const Vector3& direction,
-            const DirectionalShadowSettings& settings, ShadowViewGpu& output, PcssConstants& pcssOutput)
+            const DirectionalShadowSettings& settings, SC::ShadowViewGpu& output, SC::PcssConstants& pcssOutput)
         {
             if (!IsFinite(direction) || direction.LengthSquared() < 1e-12f
                 || !std::isfinite(settings.lightDistance) || settings.lightDistance <= 0.0f
@@ -929,11 +617,11 @@ namespace Canape
 
         void UploadLights(std::span<const RenderLight> lights, const RenderScene* scene = nullptr)
         {
-            uint32_t shadowIndex = InvalidShadowView;
-            LightConstants data = BuildLightConstants(lights, &shadowIndex);
-            ShadowConstants shadowData{};
+            uint32_t shadowIndex = SC::InvalidShadowView;
+            SC::LightConstants data = BuildLightConstants(lights, &shadowIndex);
+            SC::ShadowConstants shadowData{};
             shadowData.PcfEnabled = ShadowSettings.pcf ? 1u : 0u;
-            PcssConstants pcssData{};
+            SC::PcssConstants pcssData{};
             pcssData.TanLightAngularRadius = std::tan(ShadowSettings.lightAngularRadius);
             pcssData.BlockerSearchRadiusWorld = ShadowSettings.blockerSearchRadiusWorld;
             pcssData.MinFilterRadiusWorld = ShadowSettings.minFilterRadiusWorld;
@@ -943,7 +631,7 @@ namespace Canape
             pcssData.BlockerSampleCount = ShadowSettings.blockerSampleCount;
             pcssData.FilterMode = !ShadowSettings.pcf ? 0u : !ShadowSettings.pcss ? 1u
                 : ShadowSettings.pcfSampleCount == 25 && ShadowSettings.legacyPcf25 ? 3u : 2u;
-            ShadowActive = scene && ShadowSettings.enabled && shadowIndex != InvalidShadowView
+            ShadowActive = scene && ShadowSettings.enabled && shadowIndex != SC::InvalidShadowView
                 && Pipelines.ShadowsAvailable() && EnsureShadowResources()
                 && BuildDirectionalShadowView(data.DirectionalLights[shadowIndex].Direction,
                     ShadowSettings, shadowData.Views[0], pcssData);
@@ -993,7 +681,7 @@ namespace Canape
         {
             using namespace DirectX;
             const XMMATRIX worldMatrix = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(world));
-            ObjectConstants constants{};
+            SC::ObjectConstants constants{};
             XMStoreFloat4x4(&constants.World, worldMatrix);
             XMVECTOR determinant;
             const XMMATRIX inverseWorld = XMMatrixInverse(&determinant, worldMatrix);
@@ -1022,7 +710,7 @@ namespace Canape
 #endif
                 }
             }
-            const MaterialConstants constants{ desc.baseColor, static_cast<uint32_t>(desc.alphaMode),
+            const SC::MaterialConstants constants{ desc.baseColor, static_cast<uint32_t>(desc.alphaMode),
                 desc.alphaCutoff, hasTexture };
             Context->UpdateSubresource(MaterialBuffer.Get(), 0, nullptr, &constants, 0, 0);
             ID3D11Buffer* buffer = MaterialBuffer.Get();
@@ -1124,9 +812,10 @@ namespace Canape
             Context->PSSetSamplers(0, 1, &pipeline.Sampler);
         }
 
-        void DrawSkybox()
+        void DrawSkybox(const RenderSkybox& skybox)
         {
-            if (!TestSkyboxCube.ShaderResourceView || !SkyboxVertexBuffer || !SkyboxIndexBuffer
+            const DX11CubemapResource* cubemap = Resources.GetCubemap(skybox.cubemap);
+            if (!cubemap || !cubemap->ShaderResourceView || !SkyboxVertexBuffer || !SkyboxIndexBuffer
                 || !SkyboxViewBuffer) return;
 
             using namespace DirectX;
@@ -1143,10 +832,14 @@ namespace Canape
                 || XMMatrixIsNaN(inverseProjection) || XMMatrixIsInfinite(inverseProjection)
                 || XMMatrixIsNaN(inverseView) || XMMatrixIsInfinite(inverseView)) return;
 
-            SkyboxViewConstants constants{};
+            SC::SkyboxViewConstants constants{};
             // Existing shaders use row-major mul(vector, matrix); upload without a transpose.
             XMStoreFloat4x4(&constants.InverseProjection, inverseProjection);
             XMStoreFloat4x4(&constants.InverseView, inverseView);
+            constants.Brightness = std::isfinite(skybox.brightness) ? std::max(0.0f, skybox.brightness) : 1.0f;
+            const float rotation = std::isfinite(skybox.rotationRadians) ? skybox.rotationRadians : 0.0f;
+            constants.RotationCos = std::cos(rotation);
+            constants.RotationSin = std::sin(rotation);
             Context->UpdateSubresource(SkyboxViewBuffer.Get(), 0, nullptr, &constants, 0, 0);
 
             BindMainTargets();
@@ -1160,7 +853,8 @@ namespace Canape
             Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             ID3D11Buffer* viewBuffer = SkyboxViewBuffer.Get();
             Context->VSSetConstantBuffers(6, 1, &viewBuffer);
-            ID3D11ShaderResourceView* cubeView = TestSkyboxCube.ShaderResourceView.Get();
+            Context->PSSetConstantBuffers(6, 1, &viewBuffer);
+            ID3D11ShaderResourceView* cubeView = cubemap->ShaderResourceView.Get();
             Context->PSSetShaderResources(2, 1, &cubeView);
             Context->PSSetSamplers(2, 1, &pipeline.Sampler);
             Context->DrawIndexed(SkyboxIndexCount, 0, 0);
@@ -1174,6 +868,7 @@ namespace Canape
             Context->PSSetShaderResources(2, 1, &unboundView);
             Context->PSSetSamplers(2, 1, &unboundSampler);
             Context->VSSetConstantBuffers(6, 1, &unboundBuffer);
+            Context->PSSetConstantBuffers(6, 1, &unboundBuffer);
         }
 
         void RenderFinalOutput()
@@ -1206,7 +901,7 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
             if (cameraDepth || shadowDepth)
             {
-                const DepthDisplayConstants display{ shadowDepth ? 0.0f : DebugSettings.depthMin,
+                const SC::DepthDisplayConstants display{ shadowDepth ? 0.0f : DebugSettings.depthMin,
                     shadowDepth ? 1.0f : DebugSettings.depthMax };
                 Context->UpdateSubresource(DepthDisplayBuffer.Get(), 0, nullptr, &display, 0, 0);
                 ID3D11Buffer* buffer = DepthDisplayBuffer.Get();
@@ -1416,7 +1111,7 @@ namespace Canape
             if (!Pipelines.Initialize(Device.Get(), LastError)) return false;
 
             D3D11_BUFFER_DESC constantBufferDesc{};
-            constantBufferDesc.ByteWidth = sizeof(ObjectConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::ObjectConstants);
             constantBufferDesc.Usage = D3D11_USAGE_DEFAULT;
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             HRESULT result = Device->CreateBuffer(&constantBufferDesc, nullptr, &ObjectBuffer);
@@ -1428,7 +1123,7 @@ namespace Canape
             }
 
             static_assert(sizeof(Vector4) == 16);
-            constantBufferDesc.ByteWidth = sizeof(MaterialConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::MaterialConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &MaterialBuffer);
             if (FAILED(result))
             {
@@ -1437,7 +1132,7 @@ namespace Canape
                 return false;
             }
 
-            constantBufferDesc.ByteWidth = sizeof(ViewConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::ViewConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &ViewBuffer);
             if (FAILED(result))
             {
@@ -1446,7 +1141,7 @@ namespace Canape
                 return false;
             }
 
-            constantBufferDesc.ByteWidth = sizeof(SkyboxViewConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::SkyboxViewConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &SkyboxViewBuffer);
             if (FAILED(result))
             {
@@ -1455,7 +1150,7 @@ namespace Canape
                 return false;
             }
 
-            constantBufferDesc.ByteWidth = sizeof(LightConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::LightConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &LightBuffer);
             if (FAILED(result))
             {
@@ -1464,7 +1159,7 @@ namespace Canape
                 return false;
             }
 
-            constantBufferDesc.ByteWidth = sizeof(SceneConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::SceneConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &SceneBuffer);
             if (FAILED(result))
             {
@@ -1474,7 +1169,7 @@ namespace Canape
             }
 
 #if CANAPE_RENDER_DEBUG
-            constantBufferDesc.ByteWidth = sizeof(DepthDisplayConstants);
+            constantBufferDesc.ByteWidth = sizeof(SC::DepthDisplayConstants);
             result = Device->CreateBuffer(&constantBufferDesc, nullptr, &DepthDisplayBuffer);
             if (FAILED(result))
             {
@@ -1559,30 +1254,6 @@ namespace Canape
 
         if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()
             || !m_Impl->CreateSkyboxQuad()) return false;
-        std::vector<wchar_t> executablePath(32768);
-        const DWORD pathLength = GetModuleFileNameW(nullptr, executablePath.data(),
-            static_cast<DWORD>(executablePath.size()));
-        std::string skyboxError;
-        if (!pathLength || pathLength >= executablePath.size())
-        {
-            skyboxError = "GetModuleFileNameW failed while resolving test skybox DDS";
-        }
-        else
-        {
-            const auto path = std::filesystem::path(executablePath.data()).parent_path() / TestSkyboxDds;
-            LoadDDSCubeMap(m_Impl->Device.Get(), path, m_Impl->TestSkyboxCube, skyboxError);
-        }
-        if (!skyboxError.empty())
-        {
-            // Skybox is optional until its render pass exists; keep existing rendering available.
-            CN_LOG_RENDERER("Skybox", skyboxError);
-            OutputDebugStringA(("[DX11Renderer][Skybox] " + skyboxError + "\r\n").c_str());
-        }
-        else
-        {
-            CN_LOG_RENDERER("Skybox", "DDS TextureCube SRV loaded");
-            OutputDebugStringA("[DX11Renderer][Skybox] DDS TextureCube SRV loaded\r\n");
-        }
 #if CANAPE_RENDER_DEBUG
         std::string profilerError;
         m_Impl->ProfilerAvailable = m_Impl->Profiler.Initialize(m_Impl->Device.Get(), profilerError);
@@ -1974,7 +1645,7 @@ namespace Canape
         auto draw = [&](const RenderItem* item) { DrawMesh(item->mesh, item->world.Data(), item->submeshIndex, item->material); };
         for (const auto* item : opaque) draw(item);
         for (const auto* item : masked) draw(item);
-        m_Impl->DrawSkybox();
+        m_Impl->DrawSkybox(scene.skybox);
         for (const auto& entry : transparent) draw(entry.Item);
 #if CANAPE_RENDER_DEBUG
         if (m_Impl->ProfilerAvailable) m_Impl->Profiler.EndDrawScene(m_Impl->Context.Get());
