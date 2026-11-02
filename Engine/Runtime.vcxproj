@@ -82,6 +82,7 @@
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
+    <ClInclude Include="Source\Asset\Material\MaterialFile.h" />
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
     <ClInclude Include="Source\Asset\Texture\TextureImporter.h" />
     <ClInclude Include="Source\Asset\Texture\CubemapAsset.h" />
@@ -129,6 +130,7 @@
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
+    <ClCompile Include="Source\Asset\Material\MaterialFile.cpp" />
     <ClCompile Include="..\Common\CNDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />

@@ -2,6 +2,8 @@
 #include "Scene/Serialization/SceneSerializer.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 namespace Canape
 {
@@ -75,11 +77,18 @@ namespace Canape
 	Scene* SceneManager::OpenScene(const std::string& name)
 	{
 		const auto found = m_SceneFactories.find(name);
-		if (found == m_SceneFactories.end() || !found->second)
+		if (found != m_SceneFactories.end() && found->second)
+		{
+			return found->second(*this);
+		}
+
+		const std::string path = m_SceneDirectory + name + ".json";
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(path), error))
 		{
 			return nullptr;
 		}
-		return found->second(*this);
+		return LoadSceneFromFile(path);
 	}
 
 	Scene* SceneManager::LoadSceneFromFile(const std::string& path)
@@ -105,11 +114,19 @@ namespace Canape
 		return SceneSerializer::Save(scene, path);
 	}
 
-	void SceneManager::Update()
+	void SceneManager::Update(bool runScripts)
 	{
 		if (m_activeScene)
 		{
-			m_activeScene->Update();
+			if (runScripts)
+			{
+				m_activeScene->Update();
+			}
+			else
+			{
+				m_activeScene->BeginUpdate();
+				m_activeScene->EndUpdate();
+			}
 		}
 
 		ApplyPendingChanges();

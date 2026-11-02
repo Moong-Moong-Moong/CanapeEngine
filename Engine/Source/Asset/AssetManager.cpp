@@ -1,4 +1,5 @@
 ﻿#include "Asset/AssetManager.h"
+#include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
@@ -38,9 +39,9 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
-		const std::filesystem::path& GetAssetRoot()
+		std::filesystem::path& GetAssetRoot()
 		{
-			static const std::filesystem::path root = []
+			static std::filesystem::path root = []
 			{
 				std::wstring buffer(MAX_PATH, L'\0');
 				for (;;)
@@ -189,6 +190,16 @@ namespace Canape
 	AssetManager::AssetManager(GpuResourceRegistry& gpuRegistry)
 		: m_GpuRegistry(gpuRegistry)
 	{
+	}
+
+	void AssetManager::SetAssetRoot(const std::filesystem::path& root)
+	{
+		GetAssetRoot() = std::filesystem::absolute(root).lexically_normal();
+	}
+
+	std::filesystem::path AssetManager::GetAssetFile(const std::string& path)
+	{
+		return ToAbsoluteAssetFile(path);
 	}
 
 	std::string AssetManager::ToAssetPath(const std::string& path)
@@ -508,13 +519,62 @@ namespace Canape
 
 	MaterialAssetHandle AssetManager::GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner)
 	{
-		const MaterialAssetId id = FindMaterial(name);
-		if (!id.IsValid())
+		const bool isFile = MaterialFile::IsMaterialPath(name);
+		const std::string key = isFile ? ToAssetPath(name) : name;
+		const MaterialAssetId id = FindMaterial(key);
+		if (id.IsValid())
 		{
-			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
+			return CreateMaterialHandle(id, owner);
+		}
+		if (isFile)
+		{
+			return LoadMaterialFile(key, owner);
+		}
+
+		CN_LOG_RUNTIME("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
+		return {};
+	}
+
+	MaterialAssetHandle AssetManager::LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner)
+	{
+		MaterialFileData data;
+		if (!MaterialFile::Load(GetAssetFile(assetPath), data))
+		{
+			CN_LOG_RUNTIME("Asset", "머티리얼 파일 로드 실패 : ", assetPath);
 			return {};
 		}
-		return CreateMaterialHandle(id, owner);
+
+		TextureAssetHandle texture;
+		if (!data.baseColorTexture.empty())
+		{
+			texture = GetTextureHandle(data.baseColorTexture, owner);
+		}
+		return CreateMaterial(assetPath, data.desc, texture, owner);
+	}
+
+	bool AssetManager::UpdateMaterial(const std::string& name, const MaterialFileData& data)
+	{
+		const std::string key = MaterialFile::IsMaterialPath(name) ? ToAssetPath(name) : name;
+		const MaterialAssetId id = FindMaterial(key);
+		const auto found = m_MaterialsById.find(id);
+		if (found == m_MaterialsById.end())
+		{
+			return false;
+		}
+
+		TextureAssetHandle texture;
+		if (!data.baseColorTexture.empty())
+		{
+			texture = GetTextureHandle(data.baseColorTexture, { "", "Material:" + key, "MaterialAsset" });
+		}
+
+		MaterialAsset& material = *found->second.asset;
+		material.SetDesc(data.desc);
+		material.SetBaseColorTexture(std::move(texture));
+
+		const MaterialAssetId ids[] = { id };
+		m_GpuRegistry.ReleaseMaterials(ids);
+		return m_GpuRegistry.CreateMaterialResource(material).IsValid();
 	}
 
 	const MaterialAsset* AssetManager::GetMaterial(const MaterialAssetHandle& handle) const

@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "baseColorTexture": "Content/Texture/Enemy_BaseColor.png",
+    "desc": {
+        "baseColor": {
+            "X": 1.0,
+            "Y": 1.0,
+            "Z": 1.0,
+            "W": 0.5
+        },
+        "roughness": 0.5,
+        "metallic": 0.0,
+        "alphaMode": "Transparent",
+        "alphaCutoff": 0.5
+    }
+}

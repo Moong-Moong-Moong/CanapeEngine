@@ -2,72 +2,7 @@
     "version": 1,
     "name": "SampleScene",
     "mainCamera": 17,
-    "materials": [
-        {
-            "name": "M_Player",
-            "baseColorTexture": "Content/Texture/Player_BaseColor.png",
-            "desc": {
-                "baseColor": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0,
-                    "W": 1.0
-                },
-                "roughness": 0.5,
-                "metallic": 0.0,
-                "alphaMode": "Opaque",
-                "alphaCutoff": 0.5
-            }
-        },
-        {
-            "name": "M_Enemy",
-            "baseColorTexture": "Content/Texture/Enemy_BaseColor.png",
-            "desc": {
-                "baseColor": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0,
-                    "W": 1.0
-                },
-                "roughness": 0.5,
-                "metallic": 0.0,
-                "alphaMode": "Opaque",
-                "alphaCutoff": 0.5
-            }
-        },
-        {
-            "name": "M_Enemy_Transparent",
-            "baseColorTexture": "Content/Texture/Enemy_BaseColor.png",
-            "desc": {
-                "baseColor": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0,
-                    "W": 0.5
-                },
-                "roughness": 0.5,
-                "metallic": 0.0,
-                "alphaMode": "Transparent",
-                "alphaCutoff": 0.5
-            }
-        },
-        {
-            "name": "M_Enemy_Masked",
-            "baseColorTexture": "Content/Texture/Enemy_BaseColor.png",
-            "desc": {
-                "baseColor": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0,
-                    "W": 1.0
-                },
-                "roughness": 0.5,
-                "metallic": 0.0,
-                "alphaMode": "Masked",
-                "alphaCutoff": 0.5
-            }
-        }
-    ],
+    "materials": [],
     "gameObjects": [
         {
             "id": 1,
@@ -105,7 +40,7 @@
                         "enabled": true,
                         "mesh": "Content/Models/Player.fbx",
                         "materials": [
-                            "M_Player"
+                            "Content/Materials/M_Player.mat"
                         ]
                     }
                 },
@@ -156,7 +91,7 @@
                         "enabled": true,
                         "mesh": "Content/Models/Enemy.fbx",
                         "materials": [
-                            "M_Enemy"
+                            "Content/Materials/M_Enemy.mat"
                         ]
                     }
                 }
@@ -198,7 +133,7 @@
                         "enabled": true,
                         "mesh": "Content/Models/Enemy.fbx",
                         "materials": [
-                            "M_Enemy_Transparent"
+                            "Content/Materials/M_Enemy_Transparent.mat"
                         ]
                     }
                 }
@@ -240,7 +175,7 @@
                         "enabled": true,
                         "mesh": "Content/Models/Enemy.fbx",
                         "materials": [
-                            "M_Enemy_Masked"
+                            "Content/Materials/M_Enemy_Masked.mat"
                         ]
                     }
                 }

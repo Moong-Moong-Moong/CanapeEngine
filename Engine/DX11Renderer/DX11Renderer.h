@@ -4,11 +4,13 @@
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
+#include "DX11Renderer/Data/ShadowFilterSettings.h"
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Resource/DX11ResourceId.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -57,10 +59,10 @@ namespace Canape
 
         void SetCamera(const float* view, const float* projection);
         void SetDebugSettings(const RendererDebugSettings& settings);
+        RendererDebugSettings GetDebugSettings() const;
         RendererDebugStats GetDebugStats() const;
-        // Final PCSS PCF only; supported counts: 8, 16, 25, 32, 64, 128.
-        bool SetPcssPcfSampleCount(uint32_t count);
-        uint32_t GetPcssPcfSampleCount() const;
+        bool SetShadowFilterSettings(const ShadowFilterSettings& settings);
+        ShadowFilterSettings GetShadowFilterSettings() const;
 
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);
@@ -77,6 +79,12 @@ namespace Canape
         void DrawScene(const RenderScene& scene);
         void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex = 0, MaterialResourceId material = {});
         void EndFrame();
+
+        void SetSceneSize(uint32_t width, uint32_t height);
+        void SetOverlay(std::function<void()> overlay);
+        void* GetNativeDevice() const;
+        void* GetNativeContext() const;
+        void* GetSceneTexture() const;
 
         uint32_t GetWidth() const;
         uint32_t GetHeight() const;

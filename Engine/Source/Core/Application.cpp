@@ -58,7 +58,6 @@ namespace Canape
         RegisterEngineCommands(*this);
 
 #if defined(_DEBUG)
-        m_PrintAssetsCommand = Debug::RegisterKeyCommand(VK_F9, "AssetTracker", [this] { m_AssetManager->PrintAssetRecords(); });
         Debug::SetCommandHandler([this](std::string_view line) { m_Commands->Submit(line); });
 #endif
     }
@@ -67,7 +66,6 @@ namespace Canape
     {
 #if defined(_DEBUG)
         Debug::SetCommandHandler(nullptr);
-        Debug::UnregisterKeyCommand(m_PrintAssetsCommand);
 #endif
 
         m_SceneManager.reset();
@@ -96,13 +94,9 @@ namespace Canape
             UpdateDebugConsole(*m_InputManager);
 #endif
 
-#if CANAPE_RENDER_DEBUG
-            m_Renderer->UpdateDebugControls(*m_InputManager);
-#endif
-
             m_Commands->ExecutePending();
 
-            m_SceneManager->Update();
+            m_SceneManager->Update(m_RunSceneScripts);
 
             m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
 

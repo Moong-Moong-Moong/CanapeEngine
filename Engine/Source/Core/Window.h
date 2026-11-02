@@ -27,6 +27,9 @@ namespace Canape
         bool PumpMessages();
         void SetMessageObserver(std::function<void(const MSG&)> observer) { m_MessageObserver = std::move(observer); }
 
+        using NativeMessageHandler = std::function<bool(void* hwnd, uint32_t message, uint64_t wParam, int64_t lParam)>;
+        void SetNativeMessageHandler(NativeMessageHandler handler) { m_NativeMessageHandler = std::move(handler); }
+
         bool ShouldClose() const { return m_ShouldClose; }
         uint32_t GetWidth() const { return m_Width; }
         uint32_t GetHeight() const { return m_Height; }
@@ -40,5 +43,6 @@ namespace Canape
         uint32_t m_Height = 0;
         bool m_ShouldClose = false;
         std::function<void(const MSG&)> m_MessageObserver;
+        NativeMessageHandler m_NativeMessageHandler;
     };
 }

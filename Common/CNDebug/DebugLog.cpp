@@ -17,21 +17,12 @@ namespace Canape::Debug
 {
 	namespace
 	{
-		// 로그 한개의 데이터 구조
-		struct Entry
-		{
-			MainTag tag;
-			std::string subTag;
-			std::string message;
-			std::string file;
-			int line;
-		};
-
 		constexpr size_t kMaxHistory = 4096;
 		constexpr size_t kTagCount = static_cast<size_t>(MainTag::Count);
 		constexpr WORD kDefaultColor = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
 
-		std::deque<Entry> g_History;
+		std::deque<LogEntry> g_History;
+		uint64_t g_NextSequence = 0;
 		std::array<std::vector<std::string>, kTagCount> g_SubTags; // 상위태그별 하위태그 목록
 
 		// 현재 필터
@@ -140,7 +131,7 @@ namespace Canape::Debug
 			return result;
 		}
 
-		bool Passes(const Entry& entry)
+		bool Passes(const LogEntry& entry)
 		{
 			if (!g_ShowAll && entry.tag != g_SelectedTag)
 			{
@@ -150,7 +141,7 @@ namespace Canape::Debug
 		}
 
 		// [Runtime][Asset] 메세지  (Engine\Source\...\File.cpp:123)
-		std::string Format(const Entry& entry)
+		std::string Format(const LogEntry& entry)
 		{
 			std::ostringstream stream;
 			stream << '[' << ToString(entry.tag) << ']';
@@ -217,7 +208,7 @@ namespace Canape::Debug
 			header << '\n';
 			WriteConsole(header.str(), kDefaultColor | FOREGROUND_INTENSITY);
 
-			for (const Entry& entry : g_History)
+			for (const LogEntry& entry : g_History)
 			{
 				if (Passes(entry))
 				{
@@ -394,6 +385,23 @@ namespace Canape::Debug
 		}
 	}
 
+	const char* GetTagName(MainTag tag)
+	{
+		return ToString(tag);
+	}
+
+	const std::deque<LogEntry>& GetLogHistory()
+	{
+		return g_History;
+	}
+
+	const std::vector<std::string>& GetSubTags(MainTag tag)
+	{
+		static const std::vector<std::string> empty;
+		const size_t index = static_cast<size_t>(tag);
+		return index < kTagCount ? g_SubTags[index] : empty;
+	}
+
 	void Init()
 	{
 		if (!AllocConsole())
@@ -470,7 +478,7 @@ namespace Canape::Debug
 
 	void Write(MainTag tag, std::string_view subTag, std::string message, const char* file, int line)
 	{
-		Entry entry{ tag, std::string(subTag), std::move(message), ShortenPath(file), line };
+		LogEntry entry{ ++g_NextSequence, tag, std::string(subTag), std::move(message), ShortenPath(file), line };
 		const std::string text = Format(entry);
 
 		// VS 출력 창에는 필터와 상관없이 항상 출력

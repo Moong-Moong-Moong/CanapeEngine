@@ -67,8 +67,8 @@ namespace Canape
 
 		if (slot >= m_Materials.size()) m_Materials.resize(size_t(slot) + 1);
 		if (slot >= m_MaterialNames.size()) m_MaterialNames.resize(size_t(slot) + 1);
-		m_MaterialNames[slot] = materialName;
-		m_Materials[slot] = Application::Get().GetAssetManager().GetMaterialHandle(materialName, MakeOwnerInfo(*gameObject));
+		m_MaterialNames[slot] = MaterialFile::IsMaterialPath(materialName) ? AssetManager::ToAssetPath(materialName) : materialName;
+		m_Materials[slot] = Application::Get().GetAssetManager().GetMaterialHandle(m_MaterialNames[slot], MakeOwnerInfo(*gameObject));
 		return m_Materials[slot].IsValid();
 	}
 

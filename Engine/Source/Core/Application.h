@@ -37,6 +37,8 @@ namespace Canape
         virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
         virtual void OnShutdown() {}
 
+        void SetRunSceneScripts(bool run) { m_RunSceneScripts = run; }
+
     private:
         static Application* s_Instance;
 
@@ -48,6 +50,6 @@ namespace Canape
         std::unique_ptr<CommandRegistry> m_Commands;
 
         bool m_Running = false;
-        uint32_t m_PrintAssetsCommand = 0;
+        bool m_RunSceneScripts = true;
     };
 }

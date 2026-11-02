@@ -159,6 +159,9 @@
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h">
       <Filter>Source\Asset\Material</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Material\MaterialFile.h">
+      <Filter>Source\Asset\Material</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h">
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
@@ -273,6 +276,9 @@
       <Filter>Source\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp">
+      <Filter>Source\Asset\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Material\MaterialFile.cpp">
       <Filter>Source\Asset\Material</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp">

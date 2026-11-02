@@ -26,6 +26,11 @@ namespace Canape
             auto* window = reinterpret_cast<Window*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (window)
             {
+                if (window->m_NativeMessageHandler && window->m_NativeMessageHandler(hwnd, msg, wParam, lParam))
+                {
+                    return 1;
+                }
+
                 switch (msg)
                 {
                 case WM_SIZE:

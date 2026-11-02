@@ -80,6 +80,7 @@
     <ClInclude Include="Data\MeshData.h" />
     <ClInclude Include="Data\RendererDebugSettings.h" />
     <ClInclude Include="Data\RendererDebugStats.h" />
+    <ClInclude Include="Data\ShadowFilterSettings.h" />
     <ClInclude Include="Data\MaterialDesc.h" />
     <ClInclude Include="Data\TextureData.h" />
     <ClInclude Include="Scene\RenderItem.h" />

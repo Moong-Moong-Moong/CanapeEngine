@@ -112,7 +112,7 @@ namespace Canape
 					{
 						for (const std::string& name : renderer->GetMaterialNames())
 						{
-							if (name.empty() || !written.insert(name).second)
+							if (name.empty() || MaterialFile::IsMaterialPath(name) || !written.insert(name).second)
 							{
 								continue;
 							}

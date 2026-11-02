@@ -45,7 +45,7 @@ namespace Canape
 	private:
 		friend class Application;
 
-		void Update();
+		void Update(bool runScripts);
 		void ApplyPendingChanges();
 		bool Owns(const Scene* scene) const;
 

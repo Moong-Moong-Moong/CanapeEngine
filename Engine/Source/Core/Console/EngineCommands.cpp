@@ -97,6 +97,15 @@ namespace Canape
 					}
 				});
 		}
+
+		void RegisterAssetCommands(CommandRegistry& commands, Application& application)
+		{
+			commands.Register("asset.tracker", "asset.tracker", "로드된 에셋과 참조 기록 출력", 0,
+				[&application](const CommandArgs&)
+				{
+					application.GetAssetManager().PrintAssetRecords();
+				});
+		}
 	}
 
 	void RegisterEngineCommands(Application& application)
@@ -104,5 +113,6 @@ namespace Canape
 		CommandRegistry& commands = application.GetCommands();
 		RegisterHelpCommand(commands);
 		RegisterSceneCommands(commands, application);
+		RegisterAssetCommands(commands, application);
 	}
 }
