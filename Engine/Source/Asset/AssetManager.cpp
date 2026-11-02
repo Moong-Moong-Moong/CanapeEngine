@@ -1,4 +1,5 @@
 ﻿#include "Asset/AssetManager.h"
+#include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
@@ -21,6 +22,7 @@ namespace Canape
 		{
 			std::string utf8File; // 절대 경로
 			std::string key;      // 소문자로 변환된 키 용 경로
+			std::string assetPath;
 		};
 
 		std::string ToLowerAscii(std::string text)
@@ -37,26 +39,64 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
+		std::filesystem::path& GetAssetRoot()
+		{
+			static std::filesystem::path root = []
+			{
+				std::wstring buffer(MAX_PATH, L'\0');
+				for (;;)
+				{
+					const DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+					if (length == 0)
+					{
+						std::error_code error;
+						return std::filesystem::current_path(error).lexically_normal();
+					}
+					if (length < buffer.size())
+					{
+						buffer.resize(length);
+						break;
+					}
+					buffer.resize(buffer.size() * 2);
+				}
+				return std::filesystem::path(buffer).parent_path().lexically_normal();
+			}();
+			return root;
+		}
+
+		std::filesystem::path ToAbsoluteAssetFile(const std::string& path)
+		{
+			const std::filesystem::path input(std::u8string(path.begin(), path.end()));
+			return (input.is_absolute() ? input : GetAssetRoot() / input).lexically_normal();
+		}
+
+		bool TryMakeRelativeAssetPath(const std::filesystem::path& file, std::string& assetPath)
+		{
+			const std::filesystem::path relative = file.lexically_relative(GetAssetRoot());
+			if (relative.empty() || *relative.begin() == "..")
+			{
+				assetPath = ToUtf8(file.generic_u8string());
+				return false;
+			}
+			assetPath = ToUtf8(relative.generic_u8string());
+			return true;
+		}
+
 		bool ResolveAssetPath(const std::string& path, ResolvedAssetPath& resolved)
 		{
 			//*** 에셋 경로 가공
 			//std::u8string, utf-8, char8_t
 			//std::filesystem::absolute, 상대 -> 절대
 			//std::filesystem::path.lexically_normal(), 경로 정규화
-			std::error_code pathError;
-			const std::filesystem::path file = 
-				std::filesystem::absolute(
-					std::filesystem::path(std::u8string(path.begin(), path.end())),
-					pathError
-				).lexically_normal();
-
-			if (pathError)
+			if (path.empty())
 			{
 				return false;
 			}
 
+			const std::filesystem::path file = ToAbsoluteAssetFile(path);
 			resolved.utf8File = ToUtf8(file.generic_u8string());
 			resolved.key = ToLowerAscii(resolved.utf8File);
+			TryMakeRelativeAssetPath(file, resolved.assetPath);
 			return true;
 		}
 
@@ -152,6 +192,31 @@ namespace Canape
 	{
 	}
 
+	void AssetManager::SetAssetRoot(const std::filesystem::path& root)
+	{
+		GetAssetRoot() = std::filesystem::absolute(root).lexically_normal();
+	}
+
+	std::filesystem::path AssetManager::GetAssetFile(const std::string& path)
+	{
+		return ToAbsoluteAssetFile(path);
+	}
+
+	std::string AssetManager::ToAssetPath(const std::string& path)
+	{
+		if (path.empty())
+		{
+			return {};
+		}
+
+		std::string assetPath;
+		if (!TryMakeRelativeAssetPath(ToAbsoluteAssetFile(path), assetPath))
+		{
+			CN_LOG_RUNTIME("Asset", "에셋 경로가 실행 폴더 밖에 있어 절대 경로로 유지됨 : ", assetPath);
+		}
+		return assetPath;
+	}
+
 	// Mesh
 	MeshAssetHandle AssetManager::GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner)
 	{
@@ -165,7 +230,7 @@ namespace Canape
 		MeshAssetId id = FindMesh(resolved.key);
 		if (!id.IsValid())
 		{
-			id = LoadMesh(path, resolved.key, resolved.utf8File);
+			id = LoadMesh(resolved.assetPath, resolved.key, resolved.utf8File);
 			if (!id.IsValid())
 			{
 				return {};
@@ -212,7 +277,7 @@ namespace Canape
 
 		const MeshAssetId id = mesh->GetAssetId();
 		m_MeshIdByPath.emplace(pathKey, id);
-		m_MeshesById.emplace(id, AssetEntry<MeshAsset>{ std::move(mesh), filePath, pathKey }).first->second.gpuUploaded = true;
+		m_MeshesById.emplace(id, AssetEntry<MeshAsset>{ std::move(mesh), path, pathKey }).first->second.gpuUploaded = true;
 		return id;
 	}	
 
@@ -253,7 +318,7 @@ namespace Canape
 		TextureAssetId id = FindTexture(resolved.key);
 		if (!id.IsValid())
 		{
-			id = LoadTexture(path, resolved.key, resolved.utf8File);
+			id = LoadTexture(resolved.assetPath, resolved.key, resolved.utf8File);
 			if (!id.IsValid())
 			{
 				return {};
@@ -300,7 +365,7 @@ namespace Canape
 
 		const TextureAssetId id = texture->GetAssetId();
 		m_TextureIdByPath.emplace(pathKey, id);
-		m_TexturesById.emplace(id, AssetEntry<TextureAsset>{ std::move(texture), filePath, pathKey }).first->second.gpuUploaded = true;
+		m_TexturesById.emplace(id, AssetEntry<TextureAsset>{ std::move(texture), path, pathKey }).first->second.gpuUploaded = true;
 		return id;
 	}
 
@@ -338,7 +403,7 @@ namespace Canape
 		CubemapAssetId id = FindCubemap(resolved.key);
 		if (!id.IsValid())
 		{
-			id = LoadCubemap(path, resolved.key, resolved.utf8File);
+			id = LoadCubemap(resolved.assetPath, resolved.key, resolved.utf8File);
 			if (!id.IsValid())
 			{
 				return {};
@@ -386,7 +451,7 @@ namespace Canape
 
 		const CubemapAssetId id = cubemap->GetAssetId();
 		m_CubemapIdByPath.emplace(pathKey, id);
-		m_CubemapsById.emplace(id, AssetEntry<CubemapAsset>{ std::move(cubemap), filePath, pathKey }).first->second.gpuUploaded = true;
+		m_CubemapsById.emplace(id, AssetEntry<CubemapAsset>{ std::move(cubemap), path, pathKey }).first->second.gpuUploaded = true;
 		return id;
 	}
 
@@ -454,18 +519,79 @@ namespace Canape
 
 	MaterialAssetHandle AssetManager::GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner)
 	{
-		const MaterialAssetId id = FindMaterial(name);
-		if (!id.IsValid())
+		const bool isFile = MaterialFile::IsMaterialPath(name);
+		const std::string key = isFile ? ToAssetPath(name) : name;
+		const MaterialAssetId id = FindMaterial(key);
+		if (id.IsValid())
 		{
-			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
+			return CreateMaterialHandle(id, owner);
+		}
+		if (isFile)
+		{
+			return LoadMaterialFile(key, owner);
+		}
+
+		CN_LOG_RUNTIME("Asset", "머티리얼 에셋 조회 오류 : 존재하지 않음, ", name);
+		return {};
+	}
+
+	MaterialAssetHandle AssetManager::LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner)
+	{
+		MaterialFileData data;
+		if (!MaterialFile::Load(GetAssetFile(assetPath), data))
+		{
+			CN_LOG_RUNTIME("Asset", "머티리얼 파일 로드 실패 : ", assetPath);
 			return {};
 		}
-		return CreateMaterialHandle(id, owner);
+
+		TextureAssetHandle texture;
+		if (!data.baseColorTexture.empty())
+		{
+			texture = GetTextureHandle(data.baseColorTexture, owner);
+		}
+		return CreateMaterial(assetPath, data.desc, texture, owner);
+	}
+
+	bool AssetManager::UpdateMaterial(const std::string& name, const MaterialFileData& data)
+	{
+		const std::string key = MaterialFile::IsMaterialPath(name) ? ToAssetPath(name) : name;
+		const MaterialAssetId id = FindMaterial(key);
+		const auto found = m_MaterialsById.find(id);
+		if (found == m_MaterialsById.end())
+		{
+			return false;
+		}
+
+		TextureAssetHandle texture;
+		if (!data.baseColorTexture.empty())
+		{
+			texture = GetTextureHandle(data.baseColorTexture, { "", "Material:" + key, "MaterialAsset" });
+		}
+
+		MaterialAsset& material = *found->second.asset;
+		material.SetDesc(data.desc);
+		material.SetBaseColorTexture(std::move(texture));
+
+		const MaterialAssetId ids[] = { id };
+		m_GpuRegistry.ReleaseMaterials(ids);
+		return m_GpuRegistry.CreateMaterialResource(material).IsValid();
 	}
 
 	const MaterialAsset* AssetManager::GetMaterial(const MaterialAssetHandle& handle) const
 	{
 		return FindAsset(m_MaterialsById, handle);
+	}
+
+	const MaterialAsset* AssetManager::FindMaterialByName(const std::string& name) const
+	{
+		const auto found = m_MaterialsById.find(FindMaterial(name));
+		return found != m_MaterialsById.end() ? found->second.asset.get() : nullptr;
+	}
+
+	std::string AssetManager::GetTexturePath(const TextureAssetHandle& handle) const
+	{
+		const auto found = m_TexturesById.find(handle.GetId());
+		return found != m_TexturesById.end() ? found->second.path : std::string();
 	}
 
 	MaterialAssetId AssetManager::FindMaterial(const std::string& name) const

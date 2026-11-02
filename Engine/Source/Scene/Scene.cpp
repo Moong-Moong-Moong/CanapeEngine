@@ -22,7 +22,7 @@ namespace Canape
 
 	void Scene::BeginUpdate()
 	{
-		//***** Component 지연 처리
+		//***** Component
 		std::vector<Component*> pendingRemoveComps = m_componentRegistry.GetPendingRemove();
 		//*** ComponentRegistry 정리
 		m_componentRegistry.FlushPending();
@@ -32,7 +32,7 @@ namespace Canape
 			comp->GetOwnerObject()->DestroyComponent(comp);
 		}
 
-		//***** GameObject 지연 처리
+		//***** GameObject
 		m_gameObjects.FlushPending();
 	}
 
@@ -45,11 +45,13 @@ namespace Canape
 
 	void Scene::EndUpdate()
 	{
+		//***파괴된 스크립트의 OnDestroy 실행
 		OnDestroyScripts();
 	}
 
 	void Scene::OnDestroyScripts()
 	{
+		//*** 연쇄 OnDestroy를 처리
 		while (!m_onDestroyQueue.empty())
 		{
 			Component* component = m_onDestroyQueue.front();
@@ -67,6 +69,7 @@ namespace Canape
 	{
 		std::span<ScriptComponent* const> scripts = m_componentRegistry.GetScripts();
 
+		//***Awake
 		for (ScriptComponent* script : scripts)
 		{
 			if (!IsRunnable(script) || script->GetAwoken())
@@ -75,6 +78,7 @@ namespace Canape
 			script->SetAwoken(true);
 		}
 
+		//***Start
 		for (ScriptComponent* script : scripts)
 		{
 			if (!IsRunnable(script) || script->GetStarted())
@@ -83,12 +87,14 @@ namespace Canape
 			script->SetStarted(true);
 		}
 
+		//***Update
 		for (ScriptComponent* script : scripts)
 		{
 			if (IsRunnable(script))
 				script->Update();
 		}
 
+		//***LateUpdate
 		for (ScriptComponent* script : scripts)
 		{
 			if (IsRunnable(script))
@@ -98,18 +104,21 @@ namespace Canape
 
 	void Scene::BuildRenderScene(const AssetManager& assets, Renderer& renderer)
 	{
+		//***Mesh
 		for (RenderableComponent* renderable : m_componentRegistry.GetRenderables())
 		{
 			if (IsRunnable(renderable))
 				renderable->AddRenderItem(assets, renderer);
 		}
 
+		//***Light
 		for (LightComponent* light : m_componentRegistry.GetLights())
 		{
 			if (IsRunnable(light))
 				renderer.AddLight(light->BuildRenderLight());
 		}
 
+		//***Fog
 		for (FogComponent* fog : m_componentRegistry.GetFogs())
 		{
 			if (IsRunnable(fog))
@@ -119,6 +128,7 @@ namespace Canape
 			}
 		}
 
+		//***SkyBox
 		for (SkyboxComponent* skybox : m_componentRegistry.GetSkyboxes())
 		{
 			if (IsRunnable(skybox))
@@ -151,7 +161,13 @@ namespace Canape
 
 	Handle<GameObject> Scene::AddGameObject(const std::string& name)
 	{
-		return m_gameObjects.AddGameObject(name, this);
+		Handle<GameObject> handle = m_gameObjects.AddGameObject(name, this);
+		if (GameObject* gameObject = m_gameObjects.GetGameObject(handle))
+		{
+			gameObject->SetId(GenerateId());
+			gameObject->GetTransform()->SetId(GenerateId());
+		}
+		return handle;
 	}
 
 	void Scene::RemoveGameObject(const Handle<GameObject> handle)
@@ -167,6 +183,23 @@ namespace Canape
 	Handle<GameObject> Scene::FindGameObjectByName(const std::string& name)
 	{
 		return m_gameObjects.FindGameObjectByName(name);
+	}
+
+	Handle<GameObject> Scene::FindGameObjectById(uint64_t id)
+	{
+		for (GameObject* gameObject : m_gameObjects.GetAllGameObjects())
+		{
+			if (gameObject->GetId() == id && !gameObject->IsPendingDestroy())
+			{
+				return gameObject->GetHandle();
+			}
+		}
+		return {};
+	}
+
+	std::vector<GameObject*> Scene::GetAllGameObjects()
+	{
+		return m_gameObjects.GetAllGameObjects();
 	}
 
 	CameraComponent* Scene::GetMainCamera()

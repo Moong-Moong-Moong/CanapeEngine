@@ -3,11 +3,13 @@
 #include "Asset/AssetHandle.h"
 #include "Asset/AssetTracker.h"
 #include "Asset/Material/MaterialAsset.h"
+#include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Texture/CubemapAsset.h"
 #include "Asset/Texture/TextureAsset.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -39,6 +41,10 @@ namespace Canape
 		AssetManager(const AssetManager&) = delete;
 		AssetManager& operator=(const AssetManager&) = delete;
 
+		static void SetAssetRoot(const std::filesystem::path& root);
+		static std::filesystem::path GetAssetFile(const std::string& path);
+		static std::string ToAssetPath(const std::string& path);
+
 		//***** Release
 		size_t ReleaseUnusedAssets();
 
@@ -49,6 +55,7 @@ namespace Canape
 		//***** Texture
 		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const TextureAsset* GetTexture(const TextureAssetHandle& handle) const;
+		std::string GetTexturePath(const TextureAssetHandle& handle) const;
 
 		CubemapAssetHandle GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const CubemapAsset* GetCubemap(const CubemapAssetHandle& handle) const;
@@ -57,7 +64,9 @@ namespace Canape
 		MaterialAssetHandle CreateMaterial(const std::string& name, const MaterialDesc& desc,
 			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner);
 		MaterialAssetHandle GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner);
+		bool UpdateMaterial(const std::string& name, const MaterialFileData& data);
 		const MaterialAsset* GetMaterial(const MaterialAssetHandle& handle) const;
+		const MaterialAsset* FindMaterialByName(const std::string& name) const;
 
 		//***** Asset Tracker
 		const AssetTracker& GetTracker() const { return m_Tracker; }
@@ -77,6 +86,7 @@ namespace Canape
 		CubemapAssetId FindCubemap(const std::string& pathKey) const;
 		MaterialAssetId FindMaterial(const std::string& name) const;
 
+		MaterialAssetHandle LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner);
 		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
 		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath);
 		CubemapAssetId LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath);

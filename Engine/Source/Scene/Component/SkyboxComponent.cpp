@@ -18,8 +18,21 @@ namespace Canape
 		owner.sceneName = gameObject->GetScene() ? gameObject->GetScene()->GetName() : std::string();
 		owner.objectName = gameObject->GetName();
 		owner.componentName = "SkyboxComponent";
-		m_Cubemap = Application::Get().GetAssetManager().GetCubemapHandle(path, owner);
+		m_CubemapPath = AssetManager::ToAssetPath(path);
+		m_Cubemap = Application::Get().GetAssetManager().GetCubemapHandle(m_CubemapPath, owner);
 		return m_Cubemap.IsValid();
+	}
+
+	void SkyboxComponent::SetCubemapPath(const std::string& path)
+	{
+		if (path.empty())
+		{
+			m_CubemapPath.clear();
+			m_Cubemap.Reset();
+			return;
+		}
+
+		SetCubemap(path);
 	}
 
 	RenderSkybox SkyboxComponent::BuildRenderSkybox() const

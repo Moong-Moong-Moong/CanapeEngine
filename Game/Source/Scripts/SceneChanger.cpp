@@ -1,16 +1,26 @@
 #include "Scripts/SceneChanger.h"
 
+RTTR_REGISTRATION
+{
+    rttr::registration::class_<SceneChanger>("SceneChanger")
+        .constructor<>()(rttr::policy::ctor::as_raw_ptr)
+        .property("nextScene", &SceneChanger::m_NextScene)
+        .property("key", &SceneChanger::m_Key);
+}
+
 void SceneChanger::Update()
 {
     Canape::Application& application = Canape::Application::Get();
-    if (!m_NextScene || !application.GetInputManager().IsKeyPressed(m_Key))
+    if (m_NextScene.empty() || !application.GetInputManager().IsKeyPressed(m_Key))
     {
         return;
     }
 
     Canape::SceneManager& sceneManager = application.GetSceneManager();
-    const std::string currentScene = GetOwnerObject()->GetScene()->GetName();
+    Canape::Scene* currentScene = GetOwnerObject()->GetScene();
 
-    m_NextScene(sceneManager);
-    sceneManager.UnloadScene(currentScene);
+    if (sceneManager.OpenScene(m_NextScene))
+    {
+        sceneManager.UnloadScene(currentScene);
+    }
 }

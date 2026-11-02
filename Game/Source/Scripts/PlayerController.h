@@ -4,6 +4,9 @@
 
 class PlayerController final : public Canape::ScriptComponent
 {
+    RTTR_ENABLE(Canape::ScriptComponent)
+    RTTR_REGISTRATION_FRIEND
+
 public:
     explicit PlayerController(float moveSpeed = 3.0f, float turnSpeedDegrees = 540.0f)
         : m_MoveSpeed(moveSpeed)

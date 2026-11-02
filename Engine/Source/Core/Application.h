@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset/AssetManager.h"
+#include "Core/Console/CommandRegistry.h"
 #include "Core/Window.h"
 #include "Input/InputManager.h"
 #include "Renderer/Renderer.h"
@@ -29,11 +30,14 @@ namespace Canape
         InputManager& GetInputManager() { return *m_InputManager; }
         Renderer& GetRenderer() { return *m_Renderer; }
         AssetManager& GetAssetManager() { return *m_AssetManager; }
+        CommandRegistry& GetCommands() { return *m_Commands; }
 
     protected:
         virtual void OnInit() {}
         virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
         virtual void OnShutdown() {}
+
+        void SetRunSceneScripts(bool run) { m_RunSceneScripts = run; }
 
     private:
         static Application* s_Instance;
@@ -43,8 +47,9 @@ namespace Canape
         std::unique_ptr<Renderer> m_Renderer;
         std::unique_ptr<AssetManager> m_AssetManager;
         std::unique_ptr<SceneManager> m_SceneManager;
+        std::unique_ptr<CommandRegistry> m_Commands;
 
         bool m_Running = false;
-        uint32_t m_PrintAssetsCommand = 0;
+        bool m_RunSceneScripts = true;
     };
 }

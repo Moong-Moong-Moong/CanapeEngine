@@ -1,6 +1,9 @@
 #include "Scene/SceneManager.h"
+#include "Scene/Serialization/SceneSerializer.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 namespace Canape
 {
@@ -55,17 +58,75 @@ namespace Canape
 
 	void SceneManager::UnloadScene(std::string_view name)
 	{
-		if (Scene* scene = GetScene(name))
+		UnloadScene(GetScene(name));
+	}
+
+	void SceneManager::UnloadScene(Scene* scene)
+	{
+		if (Owns(scene))
 		{
 			m_PendingUnloadScenes.push_back(scene);
 		}
 	}
 
-	void SceneManager::Update()
+	void SceneManager::RegisterSceneFactory(const std::string& name, SceneFactory factory)
+	{
+		m_SceneFactories[name] = factory;
+	}
+
+	Scene* SceneManager::OpenScene(const std::string& name)
+	{
+		const auto found = m_SceneFactories.find(name);
+		if (found != m_SceneFactories.end() && found->second)
+		{
+			return found->second(*this);
+		}
+
+		const std::string path = m_SceneDirectory + name + ".json";
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(path), error))
+		{
+			return nullptr;
+		}
+		return LoadSceneFromFile(path);
+	}
+
+	Scene* SceneManager::LoadSceneFromFile(const std::string& path)
+	{
+		std::unique_ptr<Scene> loaded = SceneSerializer::Load(path);
+		if (!loaded)
+		{
+			return nullptr;
+		}
+
+		m_Scenes.push_back(std::move(loaded));
+		Scene* scene = m_Scenes.back().get();
+		if (!m_activeScene)
+		{
+			m_activeScene = scene;
+		}
+		SetActiveScene(scene);
+		return scene;
+	}
+
+	bool SceneManager::SaveSceneToFile(Scene& scene, const std::string& path) const
+	{
+		return SceneSerializer::Save(scene, path);
+	}
+
+	void SceneManager::Update(bool runScripts)
 	{
 		if (m_activeScene)
 		{
-			m_activeScene->Update();
+			if (runScripts)
+			{
+				m_activeScene->Update();
+			}
+			else
+			{
+				m_activeScene->BeginUpdate();
+				m_activeScene->EndUpdate();
+			}
 		}
 
 		ApplyPendingChanges();

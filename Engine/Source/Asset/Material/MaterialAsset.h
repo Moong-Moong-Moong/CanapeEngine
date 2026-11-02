@@ -4,6 +4,8 @@
 #include "Asset/AssetId.h"
 #include "DX11Renderer/Data/MaterialDesc.h"
 
+#include <utility>
+
 namespace Canape
 {
     // Immutable after creation. Created only by AssetManager::CreateMaterial.
@@ -19,6 +21,9 @@ namespace Canape
         MaterialAssetId GetAssetId() const { return m_AssetId; }
         const MaterialDesc& GetDesc() const { return m_Desc; }
         const TextureAssetHandle& GetBaseColorTexture() const { return m_BaseColorTexture; }
+
+        void SetDesc(const MaterialDesc& desc) { m_Desc = desc; }
+        void SetBaseColorTexture(TextureAssetHandle texture) { m_BaseColorTexture = std::move(texture); }
 
     private:
         static MaterialAssetId AllocateAssetId();

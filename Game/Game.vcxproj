@@ -53,7 +53,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(CanapeRoot)Engine\Source\ThirdParty\rttr;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -66,7 +66,7 @@ exit /b 0</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;CANAPE_GAME_CONTENT_DIR="$(ProjectDir.Replace('\','/'))Content/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -78,7 +78,7 @@ exit /b 0</Command>
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;CANAPE_GAME_CONTENT_DIR="$(ProjectDir.Replace('\','/'))Content/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -100,8 +100,6 @@ exit /b 0</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h" />
-    <ClInclude Include="Source\Scenes\SampleScene.h" />
-    <ClInclude Include="Source\Scenes\SampleScene2.h" />
     <ClInclude Include="Source\Scripts\PlayerController.h" />
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
@@ -109,8 +107,6 @@ exit /b 0</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
-    <ClCompile Include="Source\Scenes\SampleScene.cpp" />
-    <ClCompile Include="Source\Scenes\SampleScene2.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Scripts\PlayerController.cpp" />
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
@@ -118,15 +114,16 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Content\HDRI\galileo_cross.dds" />
-    <None Include="Content\HDRI\grace_cross.dds" />
-    <None Include="Content\HDRI\rnl_cross.dds" />
-    <None Include="Content\HDRI\stpeters_cross.dds" />
-    <None Include="Content\HDRI\uffizi_cross.dds" />
-    <None Include="Content\HDRI\uffizi_cross_Mark.dds" />
+    <None Include="Content\Materials\M_Enemy.mat" />
+    <None Include="Content\Materials\M_Enemy_Masked.mat" />
+    <None Include="Content\Materials\M_Enemy_Transparent.mat" />
+    <None Include="Content\Materials\M_Player.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />
+    <None Include="Content\Game.json" />
+    <None Include="Content\Scenes\SampleScene.json" />
+    <None Include="Content\Scenes\SampleScene2.json" />
     <None Include="Content\Texture\Enemy_BaseColor.png" />
     <None Include="Content\Texture\Player_BaseColor.png" />
     <None Include="Content\Texture\README.md" />
