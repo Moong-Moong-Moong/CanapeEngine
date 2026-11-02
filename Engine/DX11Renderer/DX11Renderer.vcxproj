@@ -77,6 +77,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DX11Renderer.h" />
+    <ClInclude Include="Internal\DX11RendererImpl.h" />
+    <ClInclude Include="Pass\DX11FinalOutputPass.h" />
+    <ClInclude Include="Pass\DX11SkyboxPass.h" />
+    <ClInclude Include="Pass\DX11MainPass.h" />
+    <ClInclude Include="Pass\DX11ShadowPass.h" />
+    <ClInclude Include="Pipeline\DX11MeshDraw.h" />
+    <ClInclude Include="Pipeline\DX11RenderBindings.h" />
+    <ClInclude Include="Pipeline\DX11ConstantBuffers.h" />
+    <ClInclude Include="Frame\DX11ScenePreparation.h" />
     <ClInclude Include="Data\MeshData.h" />
     <ClInclude Include="Data\RendererDebugSettings.h" />
     <ClInclude Include="Data\RendererDebugStats.h" />
@@ -98,6 +107,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DX11Renderer.cpp" />
+    <ClCompile Include="Frame\DX11FrameExecutor.cpp" />
+    <ClCompile Include="Internal\DX11RendererImpl.cpp" />
+    <ClCompile Include="Pass\DX11FinalOutputPass.cpp" />
+    <ClCompile Include="Pass\DX11SkyboxPass.cpp" />
+    <ClCompile Include="Pass\DX11MainPass.cpp" />
+    <ClCompile Include="Pass\DX11ShadowPass.cpp" />
+    <ClCompile Include="Pipeline\DX11MeshDraw.cpp" />
+    <ClCompile Include="Pipeline\DX11RenderBindings.cpp" />
+    <ClCompile Include="Pipeline\DX11ConstantBuffers.cpp" />
+    <ClCompile Include="Frame\DX11ScenePreparation.cpp" />
     <ClCompile Include="Resource\DX11ResourceCache.cpp" />
     <ClCompile Include="Pipeline\DX11PipelineState.cpp" />
     <ClCompile Include="Pipeline\DX11ShaderCompiler.cpp" />

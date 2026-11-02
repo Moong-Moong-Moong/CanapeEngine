@@ -1,6 +1,7 @@
 // Standalone backend integration test; intentionally not part of DX11Renderer.vcxproj.
 // The private-access include is confined to this test translation unit. It permits
 // GPU readback/failure injection without adding an engine-facing testing interface.
+// Link the actual renderer library; do not include its implementation CPP.
 #define NOMINMAX
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Data/MeshData.h"
@@ -9,6 +10,7 @@
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Data/ShaderConstants.h"
 #include "DX11Renderer/Scene/RenderScene.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -26,7 +28,8 @@
 #define private public
 #include "DX11Renderer/DX11Renderer.h"
 #undef private
-#include "DX11Renderer/DX11Renderer.cpp"
+#include "DX11Renderer/Internal/DX11RendererImpl.h"
+#include "CNDebug/DebugLog.h"
 namespace Canape::Debug
 {
 void Write(MainTag, std::string_view tag, std::string message, const char *, int)
@@ -49,22 +52,43 @@ bool SetPcfSampleCount(DX11Renderer& renderer, uint32_t count)
     settings.pcfSampleCount = count;
     return renderer.SetShadowFilterSettings(settings);
 }
+    // Deterministic fixtures belong to the tests, not the runtime renderer.
+    [[maybe_unused]] std::array<RenderLight, 2> CreateTestLights()
+    {
+        RenderLight directional;
+        directional.id = 1;
+        directional.type = LightType::Directional;
+        directional.direction = { -0.4f, -1.0f, 0.6f };
+        directional.color = { 0.85f, 0.85f, 0.9f };
+        directional.intensity = 0.9f;
+        directional.castShadow = true;
+
+        RenderLight point;
+        point.id = 2;
+        point.type = LightType::Point;
+        point.position = { 2.0f, 3.0f, -2.0f };
+        point.color = { 1.0f, 0.45f, 0.18f };
+        point.intensity = 2.0f;
+        point.range = 12.0f;
+        return { directional, point };
+    }
+
 void CpuChecks()
 {
     auto lights = CreateTestLights();
-    auto packed = Backend::BuildLightConstants(lights);
+    auto packed = ScenePreparation::BuildLightConstants(lights);
     Require(packed.DirectionalCount == 1 && packed.LocalCount == 1, "test counts");
     Require(std::abs(packed.DirectionalLights[0].Direction.Length() - 1.0f) < 1e-6f, "normalized direction");
     Require(std::abs(packed.LocalLights[0].ColorIntensity.X - 2.0f) < 1e-6f, "color * intensity");
     std::vector<RenderLight> overflow(100, lights[0]);
     overflow.insert(overflow.end(), 100, lights[1]);
-    packed = Backend::BuildLightConstants(overflow);
+    packed = ScenePreparation::BuildLightConstants(overflow);
     Require(packed.DirectionalCount == 4 && packed.LocalCount == 64, "capacity clamp");
     for (const auto &light : packed.DirectionalLights)
         Require(light.ShadowViewCount == 0 && light.ShadowViewOffset == UINT32_MAX, "directional shadow sentinel");
     for (const auto &light : packed.LocalLights)
         Require(light.ShadowViewCount == 0 && light.ShadowViewOffset == UINT32_MAX, "point shadow sentinel");
-    packed = Backend::BuildLightConstants({});
+    packed = ScenePreparation::BuildLightConstants({});
     Require(packed.DirectionalCount == 0 && packed.LocalCount == 0, "empty counts");
     for (const auto &light : packed.LocalLights)
         Require(light.ColorIntensity.LengthSquared() == 0, "unused point cleared");
@@ -77,7 +101,7 @@ void CpuChecks()
     invalid[3].position.Y = std::numeric_limits<float>::quiet_NaN();
     invalid[4].intensity = -1;
     invalid[5].type = LightType::Spot;
-    packed = Backend::BuildLightConstants(invalid);
+    packed = ScenePreparation::BuildLightConstants(invalid);
     Require(packed.DirectionalCount == 0 && packed.LocalCount == 0, "invalid lights rejected");
     std::cout << "CPU: test source, normalization, intensity, capacities, empty reset, shadow sentinels, invalid input "
                  "PASS\n";
@@ -100,7 +124,8 @@ void TexelSnappingChecks()
     {
         SC::ShadowViewGpu shadow{};
         SC::PcssConstants pcss{};
-        Require(impl.BuildDirectionalShadowView(lightDirection, impl.ShadowSettings, shadow, pcss),
+        Require(ScenePreparation::BuildDirectionalShadowView(impl.ViewData, impl.ShadowMap.Resolution,
+            lightDirection, impl.ShadowSettings, shadow, pcss),
             "build snapped shadow view");
         Require(pcss.OrthoSize.x > 0.0f && pcss.OrthoSize.y > 0.0f,
             "PCSS receives the actual orthographic projection extent");
@@ -145,7 +170,7 @@ void TexelSnappingChecks()
     for (float distance : {20.0f, 40.0f, 80.0f, 100.0f, 120.0f})
     {
         impl.ShadowSettings.shadowDistance = distance;
-        Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, distance, center, radius, fittedRadius),
+        Require(ScenePreparation::BuildFrustumBoundingSphere(impl.ViewData, distance, center, radius, fittedRadius),
             "shadow-distance frustum sphere");
         const float effectiveFar = std::min(distance, 100.0f);
         const double farX = effectiveFar * halfFovTangent * 1.5f;
@@ -167,7 +192,7 @@ void TexelSnappingChecks()
     }
     impl.ShadowSettings.shadowDistance = 40.0f;
     impl.ShadowMap.Resolution = 1024;
-    Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
+    Require(ScenePreparation::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
         "frustum sphere");
     const XMVECTOR forward = XMVector3Normalize(lightDirection.ToXM());
     const XMMATRIX lightAxes = XMMatrixLookToLH(XMVectorZero(), forward, XMVectorSet(0, 1, 0, 0));
@@ -185,7 +210,7 @@ void TexelSnappingChecks()
     const auto baseline = build();
     const float texelSize = width(baseline) / impl.ShadowMap.Resolution;
     checkFrustum(baseline);
-    Require(Backend::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
+    Require(ScenePreparation::BuildFrustumBoundingSphere(impl.ViewData, 40.0f, center, radius, fittedRadius),
         "aligned frustum sphere");
     const XMVECTOR caster = XMVectorSubtract(center.ToXM(), XMVectorScale(forward, radius + 40.0f));
     const XMVECTOR casterCamera = XMVector3TransformCoord(caster, cameraView.ToXM());
@@ -352,7 +377,11 @@ Image Frame(DX11Renderer &renderer, const RenderScene &scene, const std::vector<
         impl.SceneData.AmbientColor = scene.ambientColor;
         impl.SceneData.AmbientIntensity = scene.ambientIntensity;
         impl.SceneDirty = true;
-        impl.UploadLights(*lights, &scene);
+        const auto lighting = impl.ResolveLighting(*lights, true);
+        ConstantBuffers::UploadLighting(*impl.Context.Get(), impl.GetSceneBuffers(), lighting);
+        if (lighting.ShadowActive)
+            impl.RenderShadowPass(ScenePreparation::PrepareScene(scene, impl.Resources, impl.LastError));
+        impl.UploadPendingConstants();
         impl.BindSharedConstants();
         for (const auto &item : scene.items)
             renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
@@ -372,6 +401,86 @@ Image Frame(DX11Renderer &renderer, const RenderScene &scene, const std::vector<
     renderer.EndFrame();
     return image;
 }
+SC::ViewConstants ReadViewConstants(Backend& impl)
+{
+    D3D11_BUFFER_DESC desc{};
+    impl.ViewBuffer->GetDesc(&desc);
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    ComPtr<ID3D11Buffer> staging;
+    Require(SUCCEEDED(impl.Device->CreateBuffer(&desc, nullptr, &staging)), "view staging buffer");
+    impl.Context->CopyResource(staging.Get(), impl.ViewBuffer.Get());
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)), "read camera constants");
+    const auto result = *static_cast<const SC::ViewConstants*>(mapped.pData);
+    impl.Context->Unmap(staging.Get(), 0);
+    return result;
+}
+
+void FrameContractChecks(DX11Renderer& renderer, const RenderScene& scene)
+{
+    auto& impl = *renderer.m_Impl;
+    const auto reference = Frame(renderer, scene);
+    const auto referenceStats = renderer.GetDebugStats();
+    Require(renderer.BeginFrame(), "multiple scene frame");
+    RenderScene empty;
+    renderer.DrawScene(empty);
+    Require(!impl.ShadowActive && ReadLights(impl).DirectionalCount == 0
+        && ReadShadowConstants(impl).ViewCount == 0, "empty first scene clears shared data");
+    renderer.DrawScene(scene);
+    Require(ReadImage(impl, impl.SceneColorTexture.Get()).rgba == reference.rgba,
+        "second scene uses its own camera, lighting, shadow map and draw lists");
+    renderer.EndFrame();
+    const auto multipleStats = renderer.GetDebugStats();
+    Require(multipleStats.drawCalls == referenceStats.drawCalls
+        && multipleStats.triangleCount == referenceStats.triangleCount, "pass draw statistics preserved");
+
+    Require(renderer.BeginFrame(), "direct mesh frame");
+    const auto& item = scene.items.front();
+    const Matrix4 firstView = Matrix4::LookTo({1, 2, -3}, {0, 0, 1});
+    renderer.SetCamera(firstView.Data(), scene.camera.projection.Data());
+    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+    auto camera = ReadViewConstants(impl);
+    Require(std::memcmp(&camera.View, firstView.Data(), sizeof(camera.View)) == 0
+        && std::memcmp(&camera.Projection, scene.camera.projection.Data(), sizeof(camera.Projection)) == 0,
+        "direct draw uploads camera constants before binding");
+    renderer.SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
+    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+    camera = ReadViewConstants(impl);
+    Require(std::memcmp(&camera.View, scene.camera.view.Data(), sizeof(camera.View)) == 0,
+        "second direct draw observes a changed camera in the same frame");
+    Require(!impl.ShadowActive, "direct frame does not inherit previous scene shadows");
+    renderer.EndFrame();
+
+    std::string profilerError;
+    Require(impl.Profiler.Initialize(impl.Device.Get(), profilerError), "GPU profiler initialization");
+    impl.ProfilerAvailable = true;
+    auto debug = renderer.GetDebugSettings();
+    debug.captureGpuTimings = true;
+    renderer.SetDebugSettings(debug);
+    for (unsigned frame = 0; frame < 16 && !renderer.GetDebugStats().gpuTimingValid; ++frame)
+        Frame(renderer, scene);
+    Require(renderer.GetDebugStats().gpuTimingValid, "GPU scene/final-output timing remains available");
+    renderer.SetDebugSettings({});
+    Require(!renderer.GetDebugStats().gpuTimingValid, "GPU timing capture can be disabled");
+
+    unsigned overlayCalls = 0;
+    renderer.SetOverlay([&] { ++overlayCalls; });
+    renderer.SetSceneSize(192, 128);
+    Require(renderer.BeginFrame(), "overlay frame");
+    Require(renderer.GetWidth() == 192 && renderer.GetHeight() == 128, "independent scene target dimensions");
+    renderer.DrawScene(scene);
+    renderer.EndFrame();
+    Require(overlayCalls == 1 && renderer.GetSceneTexture() != nullptr,
+        "final output reaches the display texture before the overlay callback");
+    renderer.SetOverlay({});
+    renderer.SetSceneSize(0, 0);
+    Frame(renderer, scene);
+    Require(renderer.GetWidth() == 256 && renderer.GetHeight() == 256, "scene size follows the window again");
+    std::cout << "Frame contracts: multiple scenes, direct camera changes, statistics, GPU timings, overlay PASS\n";
+}
+
 void SetShadowDebugView(DX11Renderer &renderer, DebugViewMode mode)
 {
     RendererDebugSettings settings;
@@ -950,6 +1059,7 @@ void ShadowChecks()
         renderer.EndFrame();
         Require(SetWindowPos(window, nullptr, 0, 0, 256, 256, SWP_NOMOVE | SWP_NOZORDER), "restore window size");
         Frame(renderer, scene);
+        FrameContractChecks(renderer, scene);
         CheckMessages(queue.Get());
         std::cout << "Shadow GPU integration: geometry, light view, receiver, alpha mask, transparent exclusion, "
                      "flags, fallback, recreation, debug modes PASS\n";
