@@ -118,6 +118,12 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Content\HDRI\galileo_cross.dds" />
+    <None Include="Content\HDRI\grace_cross.dds" />
+    <None Include="Content\HDRI\rnl_cross.dds" />
+    <None Include="Content\HDRI\stpeters_cross.dds" />
+    <None Include="Content\HDRI\uffizi_cross.dds" />
+    <None Include="Content\HDRI\uffizi_cross_Mark.dds" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />

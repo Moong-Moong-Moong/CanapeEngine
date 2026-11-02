@@ -4,6 +4,9 @@
     <Filter Include="Content">
       <UniqueIdentifier>{47790819-4050-550B-B6F5-7009048EF9D7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Content\HDRI">
+      <UniqueIdentifier>{24B591E0-980C-4D60-851A-68D3180A81D8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Content\Models">
       <UniqueIdentifier>{847B5F28-E2FE-3F94-107C-F31CED166020}</UniqueIdentifier>
     </Filter>
@@ -71,6 +74,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="@(RendererShader)" />
+    <None Include="Content\HDRI\galileo_cross.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
+    <None Include="Content\HDRI\grace_cross.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
+    <None Include="Content\HDRI\rnl_cross.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
+    <None Include="Content\HDRI\stpeters_cross.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
+    <None Include="Content\HDRI\uffizi_cross.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
+    <None Include="Content\HDRI\uffizi_cross_Mark.dds">
+      <Filter>Content\HDRI</Filter>
+    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>
