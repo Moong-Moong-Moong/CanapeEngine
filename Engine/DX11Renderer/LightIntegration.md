@@ -129,17 +129,17 @@ RendererDebugSettings also exposes shadow controls through the existing input pa
 | enabled | true | Shadow rendering switch |
 | resolution | 8192 | Square map; 1..16384 supported |
 | pcf | true | PCSS by default; false = point comparison |
-| shadowDistance | 40 | Camera-frustum distance fitted into the shadow projection |
+| shadowDistance | 25 | Camera-frustum distance fitted into the shadow projection |
 | center | (0,0,0) | Legacy field; fitted projection does not use it |
 | width / height | 40 / 40 | Legacy fields; fitted projection does not use them |
 | lightDistance | 80 | Offset upstream from the fitted sphere |
 | nearPlane / farPlane | 0.1 / 200 | Near plane and base far value; actual far adds twice the fitted radius |
 | lightAngularRadius | 0.02 rad | Virtual directional-light angular radius |
-| blockerSearchRadiusWorld | 0.4 | World-space blocker search radius; diagnostic options 0.125 / 0.25 / 0.4 / 0.5 / 0.75 / 1 / 1.5 |
-| maxFilterRadiusWorld | 0.4 / 1.5 (about 0.267) | Base world-space penumbra cap; 1.5x spacing produces a 0.4-world final radius |
-| pcfTapSpacingScale | 1.5 | Diagnostic multiplier on final PCF offsets only; options 0.25 / 0.5 / 1 / 1.2 / 1.4 / 1.5 / 1.6 / 1.8 / 2 / 3 / 4 |
+| blockerSearchRadiusWorld | 0.125 | World-space blocker search radius; diagnostic options 0.125 / 0.25 / 0.4 / 0.5 / 0.75 / 1 / 1.5 |
+| maxFilterRadiusWorld | 0.4 / 1.5 (about 0.267) | Base world-space penumbra cap; final taps are also clamped to the current blocker search radius |
+| pcfTapSpacingScale | 1 | Diagnostic multiplier on final PCF offsets only; options 0.25 / 0.5 / 1 / 1.2 / 1.4 / 1.5 / 1.6 / 1.8 / 2 / 3 / 4 |
 | pcfSampleCount | 64 | Final PCSS comparison taps |
-| blockerSampleCount | 25 | Raw-depth blocker search taps; options 8 / 16 / 25 / 32 / 64 / 128 |
+| blockerSampleCount | 128 | Raw-depth blocker search taps; options 8 / 16 / 25 / 32 / 64 / 128 |
 | shadowCullMode | Back | Cull back faces in the shadow pass |
 | shadowSlopeBias | 2.0 | Slope-scaled rasterizer depth bias |
 | depthBias | 0.0003 | Receiver offset in normalized light depth |
@@ -162,14 +162,14 @@ UV, MipLOD and wireframe controls remain available.
 
 The final PCF tap count is 64 by default and can be set to 8, 16, 25, 32, 64,
 or 128 without recompiling shaders. `DX11Renderer::SetPcssPcfSampleCount` also
-accepts those values at runtime. Blocker search starts at 25 raw-depth taps. The
+accepts those values at runtime. Blocker search starts at 128 raw-depth taps. The
 default 64-tap mode uses the Vogel pattern. The original 25-tap pattern remains
 available when selecting 25 taps. The Vogel pattern fills the same filter disk
 at every supported count. Neither pattern changes the
 penumbra radius or blocker search.
 
 With the game window focused, Ctrl+Alt+PageDown/Up decreases/increases the
-blocker search count through 8 / 16 / 25 / 32 / 64 / 128. The default 25-tap
+blocker search count through 8 / 16 / 25 / 32 / 64 / 128. The 25-tap
 search keeps its original disk offsets; other counts use a fixed Vogel disk
 with a center tap. This control does not change the final PCF count, search
 radius, or receiver bias. The `Shadow` debug log reports the active count.
@@ -193,7 +193,9 @@ reports its actual value in the `Shadow` debug log. The existing radius debug
 view (Ctrl+Shift+PageDown) reports the effective final tap footprint in texels,
 including the spacing multiplier. Final tap offsets are clamped to the current
 blocker search radius, including when either debug control changes. The configured
-defaults are 1.5x spacing and matching 0.4-world search/final maximum radii.
+defaults are 1x spacing and a 0.125-world blocker search radius, which also
+limits the final tap radius to 0.125 world units, subject to the shader
+minimum search radius of two shadow texels.
 On startup and whenever shadow distance, tap
 spacing, or search radius changes, the log also reports world units per shadow
 texel, blocker search radius in texels, and the maximum final tap radius in
@@ -202,8 +204,8 @@ texels for the fitted projection.
 For the overlapping-silhouette experiment, hold camera, light, receiver bias,
 and tap count fixed. First compare 1.2x / 1.5x / 1.8x tap spacing in a penumbra
 below the search-radius clamp. If ghost positions move with spacing while the base
-radius remains fixed, sparse final comparisons are visible. Then restore 1.5x
-and compare 0.25 / 0.4 / 0.5 blocker search radius.
+radius remains fixed, sparse final comparisons are visible. Then restore 1x
+and compare 0.125 / 0.25 / 0.4 blocker search radius.
 If contact softening or isolated dark patches change with search radius, nearby
 geometry or receiver self-depth enters the blocker average. Ctrl+F2 changes the
 depth stored in the shadow map, so it affects both blocker classification and
