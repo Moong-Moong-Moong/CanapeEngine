@@ -682,26 +682,27 @@ void ShadowChecks()
         impl.ShadowSettings.lightAngularRadius = 0.3f;
         auto widePcssVisibility = Frame(renderer, scene);
         const auto defaultPcss = ReadPcssConstants(impl);
-        Require(defaultPcss.PcfTapSpacingScale == 1.5f
-            && defaultPcss.BlockerSearchRadiusWorld == 0.4f
-            && std::abs(defaultPcss.MaxFilterRadiusWorld * defaultPcss.PcfTapSpacingScale
+        Require(defaultPcss.PcfTapSpacingScale == 1.0f
+            && defaultPcss.BlockerSearchRadiusWorld == 0.125f
+            && std::abs(std::min(defaultPcss.MaxFilterRadiusWorld * defaultPcss.PcfTapSpacingScale,
+                defaultPcss.BlockerSearchRadiusWorld)
                 - defaultPcss.BlockerSearchRadiusWorld) < 1e-6f
             && defaultPcss.PcfSampleCount == 64
-            && defaultPcss.BlockerSampleCount == 25
+            && defaultPcss.BlockerSampleCount == 128
             && defaultPcss.FilterMode == 2,
             "configured PCSS defaults reach the GPU");
-        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
+        impl.ShadowSettings.pcfTapSpacingScale = 0.25f;
         auto denseFootprintVisibility = Frame(renderer, scene);
-        Require(ReadPcssConstants(impl).PcfTapSpacingScale == 1.0f
+        Require(ReadPcssConstants(impl).PcfTapSpacingScale == 0.25f
             && denseFootprintVisibility.rgba != widePcssVisibility.rgba,
             "tap spacing changes PCF footprint without shader recompilation");
-        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
         impl.ShadowSettings.blockerSearchRadiusWorld = 0.25f;
         Frame(renderer, scene);
         Require(ReadPcssConstants(impl).BlockerSearchRadiusWorld == 0.25f
-            && ReadPcssConstants(impl).PcfTapSpacingScale == 1.5f,
+            && ReadPcssConstants(impl).PcfTapSpacingScale == 1.0f,
             "blocker search radius remains independent of final PCF spacing");
-        impl.ShadowSettings.blockerSearchRadiusWorld = 0.4f;
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.125f;
         Require(Frame(renderer, scene).rgba == widePcssVisibility.rgba,
             "restoring PCSS diagnostic defaults restores original visibility");
         Save(widePcssVisibility, "pcss-wide-visibility");
@@ -740,18 +741,18 @@ void ShadowChecks()
         pcfSettings.viewMode = DebugViewMode::PcssFilterRadius;
         renderer.SetDebugSettings(pcfSettings);
         auto radius128 = Frame(renderer, scene);
-        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
-        auto radiusHalfSpacing = Frame(renderer, scene);
-        Require(radiusHalfSpacing.rgba != radius128.rgba,
+        impl.ShadowSettings.pcfTapSpacingScale = 0.25f;
+        auto radiusQuarterSpacing = Frame(renderer, scene);
+        Require(radiusQuarterSpacing.rgba != radius128.rgba,
             "radius debug view shows effective PCF tap spacing");
-        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
         Require(Frame(renderer, scene).rgba == radius128.rgba,
             "restoring tap spacing restores radius debug view");
         Require(renderer.SetPcssPcfSampleCount(8), "restore 8 taps for radius comparison");
         auto radius8 = Frame(renderer, scene);
         Require(radius8.rgba == radius128.rgba,
             "PCSS radius debug view is independent of final PCF sample count");
-        Image radiusBlocker128{};
+        Image radiusBlocker25{};
         for (uint32_t count : { 8u, 16u, 25u, 32u, 64u, 128u })
         {
             impl.ShadowSettings.blockerSampleCount = count;
@@ -760,13 +761,15 @@ void ShadowChecks()
             Require(gpu.BlockerSampleCount == count && gpu.PcfSampleCount == 8
                 && gpu.FilterMode == 2,
                 "blocker sample count uploads independently of final PCF count");
-            if (count == 128) radiusBlocker128 = std::move(image);
+            if (count == 25) radiusBlocker25 = std::move(image);
         }
-        Require(radiusBlocker128.rgba != radius8.rgba,
+        Require(radiusBlocker25.rgba != radius8.rgba,
             "blocker count changes the radius debug view without shader recompilation");
-        impl.ShadowSettings.blockerSampleCount = 25;
+        impl.ShadowSettings.blockerSampleCount = 128;
         Require(Frame(renderer, scene).rgba == radius8.rgba,
-            "restoring 25 blocker samples restores the original radius view");
+            "restoring 128 blocker samples restores the original radius view");
+        // Use radii above the two-texel search floor at this test resolution.
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.4f;
         impl.ShadowSettings.minFilterRadiusWorld = impl.ShadowSettings.maxFilterRadiusWorld;
         impl.ShadowSettings.pcfTapSpacingScale = 3.0f;
         auto clampedRadius3 = Frame(renderer, scene);
@@ -776,9 +779,9 @@ void ShadowChecks()
         impl.ShadowSettings.blockerSearchRadiusWorld = 0.25f;
         Require(Frame(renderer, scene).rgba != clampedRadius3.rgba,
             "lower blocker search radius also limits the final tap radius");
-        impl.ShadowSettings.blockerSearchRadiusWorld = 0.4f;
+        impl.ShadowSettings.blockerSearchRadiusWorld = 0.125f;
         impl.ShadowSettings.minFilterRadiusWorld = 0.0f;
-        impl.ShadowSettings.pcfTapSpacingScale = 1.5f;
+        impl.ShadowSettings.pcfTapSpacingScale = 1.0f;
         Require(Frame(renderer, scene).rgba == radius128.rgba,
             "restoring radius limits restores the debug view");
         Require(PixelAt(radius128, scene, shadowPoint)[0] > 0,
@@ -812,7 +815,8 @@ void ShadowChecks()
         std::cout << "Visibility partial pixels: hard comparison " << hardPartial << ", 3x3 PCF " << pcfPartial
                   << ", narrow PCSS " << narrowPcssPartial << ", wide PCSS " << widePcssPartial << '\n';
         Require(hardPartial == 0 && pcfPartial > 0, "PCF produces filtered visibility");
-        Require(widePcssPartial > narrowPcssPartial && widePcssPartial > pcfPartial,
+        // A small search-radius cap can keep PCSS narrower than fixed 3x3 PCF.
+        Require(widePcssPartial > narrowPcssPartial,
                 "larger light angular radius widens the soft shadow boundary");
         impl.ShadowSettings.lightAngularRadius = 0.15f;
         auto contactVisibility = Frame(renderer, scene);

@@ -37,8 +37,35 @@ namespace Canape
         GetWindowTextW(window, title.data(), static_cast<int>(title.size()));
         m_DebugBaseTitle = title.data();
         m_DX11->SetDebugSettings(m_DebugSettings);
-        CN_LOG_RENDERER("RenderDebug", "F1: view, F2: wireframe, F3: GPU timings, F4: depth range, F10: reset");
-        CN_LOG_RENDERER("RenderDebug", "Ctrl+F1: shadow cull, Ctrl+F2: slope bias, Ctrl+F3: receiver bias, Ctrl+F4: PCF");
+        CN_LOG_RENDERER("RenderDebug", "Keyboard controls\n"
+            "  Focus the game window to use these shortcuts.\n"
+            "\n"
+            "  [View / display]\n"
+            "    F1                     Cycle debug view\n"
+            "      Final -> CameraDepth -> WorldNormal -> UV -> MipLOD\n"
+            "      -> ShadowDepth -> ShadowVisibility -> Final\n"
+            "    F2                     Toggle wireframe\n"
+            "    F3                     Toggle GPU timings\n"
+            "    F4                     Cycle camera depth range\n"
+            "    F10                    Reset F1-F4 / Ctrl+F1-F4 settings\n"
+            "\n"
+            "  [Shadow]\n"
+            "    Ctrl+F1                Cycle shadow cull (None / Front / Back)\n"
+            "    Ctrl+F2                Cycle slope bias (0 / 0.5 / 1 / 2 / ... / 8)\n"
+            "    Ctrl+F3                Cycle receiver bias\n"
+            "    Ctrl+F4                Toggle shadow filtering\n"
+            "    Ctrl+- / Ctrl++        Decrease / increase shadow distance by 5\n"
+            "    Ctrl+Shift+P           Switch PCSS / 3x3 PCF\n"
+            "\n"
+            "  [PCSS]\n"
+            "    Ctrl+PageDown/Up       Decrease / increase final PCF samples\n"
+            "    Ctrl+Alt+PageDown/Up   Decrease / increase blocker search samples\n"
+            "      Sample counts: 8 / 16 / 25 / 32 / 64 / 128\n"
+            "    Ctrl+Shift+PageUp      Switch legacy / Vogel pattern (25 PCF samples)\n"
+            "    Ctrl+Shift+PageDown    Toggle filter radius view (log2 texels)\n"
+            "    Ctrl+Shift+Home/End    Decrease / increase final PCF tap spacing\n"
+            "    Ctrl+Alt+Home/End      Decrease / increase blocker search radius\n"
+            "\n");
         UpdateDebugTitle();
 #endif
         return true;
