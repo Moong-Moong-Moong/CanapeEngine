@@ -223,7 +223,7 @@ namespace Canape
             bool enabled = true;
             uint32_t resolution = 4096*2;
             bool pcf = true; // 3x3 taps with hardware comparison filtering; false selects a single comparison.
-            float shadowDistance = 40.0f; // Camera-space extent covered by this shadow map.
+            float shadowDistance = 25.0f; // Camera-space extent covered by this shadow map.
             Vector3 center{}; // Legacy fixed-frustum values; fitted projection uses the camera.
             float width = 40.0f;
             float height = 40.0f;
@@ -233,12 +233,12 @@ namespace Canape
             float depthBias = DefaultShadowReceiverBias; // Receiver comparison bias.
             bool pcss = true;
             float lightAngularRadius = 0.02f; // Radians; directional light's virtual angular radius.
-            float blockerSearchRadiusWorld = 0.4f;
+            float blockerSearchRadiusWorld = 0.125f;
             float minFilterRadiusWorld = 0.0f; // One shadow texel is the shader-side floor.
-            float maxFilterRadiusWorld = 0.4f / 1.5f; // 0.4-world effective cap at the default 1.5x spacing.
-            float pcfTapSpacingScale = 1.5f; // Diagnostic multiplier after penumbra estimation.
+            float maxFilterRadiusWorld = 0.4f / 1.5f; // Base penumbra cap; final taps are also clamped to the search radius.
+            float pcfTapSpacingScale = 1.0f; // Diagnostic multiplier after penumbra estimation.
             uint32_t pcfSampleCount = 64;
-            uint32_t blockerSampleCount = 25;
+            uint32_t blockerSampleCount = 128;
             bool legacyPcf25 = true; // Original 25 offsets remain available for comparison.
         };
 
@@ -377,7 +377,7 @@ namespace Canape
             float MaxFilterRadiusWorld = 0.0f;
             uint32_t FilterMode = 0; // 0: single, 1: 3x3 PCF, 2: Vogel PCSS, 3: legacy 25 PCSS.
             uint32_t PcfSampleCount = 64;
-            float PcfTapSpacingScale = 1.5f;
+            float PcfTapSpacingScale = 1.0f;
             uint32_t BlockerSampleCount = 25;
             float Padding[2]{};
         };
