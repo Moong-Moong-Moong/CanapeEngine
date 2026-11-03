@@ -430,3 +430,7 @@ FodyWeavers.xsd
 # Canape build outputs (all configurations, including Shipping)
 /Binaries/
 /Intermediate/
+
+# Renderer debug shader sources
+!/Engine/DX11Renderer/Shader/Debug/
+!/Engine/DX11Renderer/Shader/Debug/*.hlsl

@@ -10,6 +10,21 @@
     <Filter Include="Shader\Common">
       <UniqueIdentifier>{F10A155D-27BC-386F-8252-E3DF0B632F7A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader\Shadow">
+      <UniqueIdentifier>{445E46AB-19AD-54A4-85E6-6A21BAB3CF98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Debug">
+      <UniqueIdentifier>{ECF1BD8A-AF37-517D-9394-83AEAAFE91CE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Frame">
+      <UniqueIdentifier>{A78A07DC-C3B2-5159-B393-448034A0D004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Pass">
+      <UniqueIdentifier>{0371351F-4331-5462-A34F-3F365A8D3E09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Internal">
+      <UniqueIdentifier>{0E8632E5-7C1F-562F-9525-ABEE88182F7E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{C03BBF4F-45B9-FAAF-09CD-1359DB769F58}</UniqueIdentifier>
     </Filter>
@@ -44,6 +59,36 @@
     </ClInclude>
     <ClInclude Include="Data\TextureData.h">
       <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\ShaderConstants.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Frame\DX11ScenePreparation.h">
+      <Filter>Source\Frame</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\DX11ConstantBuffers.h">
+      <Filter>Source\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\DX11RenderBindings.h">
+      <Filter>Source\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\DX11MeshDraw.h">
+      <Filter>Source\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11ShadowPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11MainPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11SkyboxPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11FinalOutputPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\DX11RendererImpl.h">
+      <Filter>Source\Internal</Filter>
     </ClInclude>
     <ClInclude Include="DX11Renderer.h">
       <Filter>Source</Filter>
@@ -83,6 +128,36 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Frame\DX11ScenePreparation.cpp">
+      <Filter>Source\Frame</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\DX11ConstantBuffers.cpp">
+      <Filter>Source\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\DX11RenderBindings.cpp">
+      <Filter>Source\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\DX11MeshDraw.cpp">
+      <Filter>Source\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11ShadowPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11MainPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11SkyboxPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11FinalOutputPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\DX11RendererImpl.cpp">
+      <Filter>Source\Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Frame\DX11FrameExecutor.cpp">
+      <Filter>Source\Frame</Filter>
+    </ClCompile>
     <ClCompile Include="DX11Renderer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -103,10 +178,46 @@
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\FullscreenTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Lighting.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Material.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\MeshSurface.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\MeshTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Debug\DepthDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="Shader\Debug\MeshDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
     <None Include="Shader\FinalOutput.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Shadow\PCSS.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowConstants.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowDepth.hlsl">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Shadow\ShadowSampling.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="Shader\Skybox.hlsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>
