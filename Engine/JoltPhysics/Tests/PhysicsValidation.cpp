@@ -3,6 +3,7 @@
 #include "JoltPhysics/JoltRuntime.h"
 #include "JoltPhysics/JoltWorld.h"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -247,7 +248,7 @@ namespace
             {
                 m_Ids[ReplacedIndex] = m_World.CreateBody(BoxBody({ 0.0f, 6.0f, 0.0f }));
             }
-            m_Errors = m_Errors | m_World.Step(Dt);
+            m_Errors |= m_World.Step(Dt);
             ++m_Tick;
             StateHash hash;
             hash.Add(m_Digest);
@@ -575,6 +576,9 @@ namespace
         JoltWorld world(second);
         Check(!world.CreateBody(BoxBody({ 0, 1, 0 })).IsValid(), "no body can be created");
         Check(HasStepError(world.Step(Dt), PhysicsStepError::NoRuntime), "stepping reports NoRuntime");
+        const PhysicsStepError badStep = world.Step(-1.0f);
+        Check(HasStepError(badStep, PhysicsStepError::NoRuntime) && HasStepError(badStep, PhysicsStepError::InvalidTimeStep),
+            "a bad time step on an invalid runtime reports both errors");
         Check(world.GetBodyCount() == 0 && world.GetStats().bodyCount == 0 && world.GetStats().activeBodies == 0, "stats are empty");
         Check(world.QueryBox({ 0, 0, 0 }, { 1, 1, 1 }).empty(), "queries find nothing");
         Check(!world.IsValid(PhysicsBodyId{}), "the default id is not valid");
@@ -701,6 +705,571 @@ namespace
         Check(HasStepError(PhysicsStepError::BodyPairCacheFull | PhysicsStepError::NoRuntime, PhysicsStepError::NoRuntime), "step error flags combine");
         Check(StepFailed(world.Step(-1.0f)) && StepFailed(world.Step(std::numeric_limits<float>::infinity())), "a bad time step is reported");
     }
+
+    Vector3 Rotate(const Quaternion& rotation, const Vector3& v)
+    {
+        return ToCanape(ToJolt(rotation) * ToJolt(v));
+    }
+
+    PhysicsBodyId MakeFloor(JoltWorld& world)
+    {
+        return world.CreateBody(BoxBody({ 0.0f, -0.5f, 0.0f }, { 40.0f, 0.5f, 20.0f }, PhysicsMotion::Static));
+    }
+
+    float SphereMassAtDensity(float radius, float density)
+    {
+        return density * 4.0f / 3.0f * Pi * radius * radius * radius;
+    }
+
+    PhysicsBodyDesc SphereBody(const Vector3& position, float radius, float density)
+    {
+        PhysicsBodyDesc desc = BodyOf({ SpherePart(radius) }, position);
+        desc.mass = SphereMassAtDensity(radius, density);
+        return desc;
+    }
+
+    // A lever of half length 1 whose pivot is its end at -x, hinged about +z; falling swings it to negative angles.
+    PhysicsHingeDesc LeverHinge(PhysicsBodyId body, const Vector3& pivot, float minAngle, float maxAngle)
+    {
+        PhysicsHingeDesc desc;
+        desc.body = body;
+        desc.pivot = pivot;
+        desc.axis = { 0.0f, 0.0f, 1.0f };
+        desc.normal = { 1.0f, 0.0f, 0.0f };
+        desc.minAngle = minAngle;
+        desc.maxAngle = maxAngle;
+        return desc;
+    }
+
+    PhysicsBodyDesc LeverBody(const Vector3& pivot)
+    {
+        return BoxBody(pivot + Vector3(1.0f, 0.0f, 0.0f), { 1.0f, 0.1f, 0.1f });
+    }
+
+    void KinematicHeldTargetLeavesZeroVelocity(JoltRuntime& runtime)
+    {
+        BeginCase("a kinematic target held every step leaves the velocity exactly zero");
+        JoltWorld world(runtime);
+        const Quaternion rotation = AxisAngle({ 0.0f, 1.0f, 0.0f }, 0.9f);
+        const PhysicsBodyId body = world.CreateBody(BoxBody({ 1.3f, 7.7f, -2.1f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic, rotation));
+        const PhysicsPose start = world.GetPose(body);
+        bool exactlyZero = true;
+        for (int i = 0; i < 120; ++i)
+        {
+            world.MoveKinematic(body, start, Dt);
+            world.Step(Dt);
+            exactlyZero = exactlyZero && Bits(world.GetLinearVelocity(body).Length()) == Bits(0.0f) && Bits(world.GetAngularVelocity(body).Length()) == Bits(0.0f);
+        }
+        Check(exactlyZero, "the velocity read after every step is exactly zero");
+        const PhysicsPose end = world.GetPose(body);
+        Check(Near(end.position.X, start.position.X, 1.0e-5f) && Near(end.position.Y, start.position.Y, 1.0e-5f) && Near(end.position.Z, start.position.Z, 1.0e-5f),
+            "gravity did not move the kinematic body");
+    }
+
+    void KinematicMovingTargetGivesDeltaOverDt(JoltRuntime& runtime)
+    {
+        BeginCase("a moving kinematic target gives velocity delta over dt and arrives; holding it then stops the body");
+        JoltWorld world(runtime);
+        const PhysicsBodyId body = world.CreateBody(BoxBody({ 0.0f, 2.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        const Vector3 stepDelta(0.05f, 0.0f, -0.02f);
+        bool velocityMatches = true;
+        for (int i = 1; i <= 100; ++i)
+        {
+            const Vector3 target = Vector3(0.0f, 2.0f, 0.0f) + stepDelta * static_cast<float>(i);
+            world.MoveKinematic(body, PhysicsPose{ target, Quaternion{} }, Dt);
+            world.Step(Dt);
+            const Vector3 velocity = world.GetLinearVelocity(body);
+            velocityMatches = velocityMatches && Near(velocity.X, stepDelta.X / Dt, 2.0e-3f) && Near(velocity.Z, stepDelta.Z / Dt, 2.0e-3f) && Near(velocity.Y, 0.0f, 1.0e-3f);
+        }
+        Check(velocityMatches, "every step reads (delta / dt)");
+        const Vector3 goal = Vector3(0.0f, 2.0f, 0.0f) + stepDelta * 100.0f;
+        const PhysicsPose arrived = world.GetPose(body);
+        Check(Near(arrived.position.X, goal.X, 1.0e-3f) && Near(arrived.position.Y, goal.Y, 1.0e-3f) && Near(arrived.position.Z, goal.Z, 1.0e-3f),
+            "the pose arrived at the target");
+
+        for (int i = 0; i < 5; ++i)
+        {
+            world.MoveKinematic(body, PhysicsPose{ goal, Quaternion{} }, Dt);
+            world.Step(Dt);
+        }
+        Check(Bits(world.GetLinearVelocity(body).Length()) == Bits(0.0f), "the velocity drops to exactly zero once the target is held");
+    }
+
+    void KinematicRotationArrives(JoltRuntime& runtime)
+    {
+        BeginCase("a kinematic rotation target arrives and a non-normalised quaternion is normalised");
+        JoltWorld world(runtime);
+        const PhysicsBodyId body = world.CreateBody(BoxBody({ 0.0f, 2.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        const Quaternion unit = AxisAngle({ 0.0f, 0.0f, 1.0f }, 0.6f);
+        const float scale = 1.0004f;
+        const Quaternion loose(unit.X * scale, unit.Y * scale, unit.Z * scale, unit.W * scale);
+        for (int i = 0; i < 90; ++i)
+        {
+            world.MoveKinematic(body, PhysicsPose{ { 0.0f, 2.0f, 0.0f }, loose }, Dt);
+            world.Step(Dt);
+        }
+        const Quaternion rotation = world.GetPose(body).rotation;
+        Check(Near(rotation.X, unit.X, 1.0e-4f) && Near(rotation.Y, unit.Y, 1.0e-4f) && Near(rotation.Z, unit.Z, 1.0e-4f) && Near(rotation.W, unit.W, 1.0e-4f),
+            "the body reached the normalised target rotation");
+        Check(world.GetAngularVelocity(body).Length() == 0.0f, "the held rotation leaves no spin");
+
+        const Quaternion wild(unit.X * 3.0f, unit.Y * 3.0f, unit.Z * 3.0f, unit.W * 3.0f);
+        world.MoveKinematic(body, PhysicsPose{ { 5.0f, 2.0f, 0.0f }, wild }, Dt);
+        world.Step(Dt);
+        Check(Near(world.GetPose(body).position.X, 0.0f, 1.0e-5f), "a target far from unit length is ignored");
+    }
+
+    void KinematicMisuseIsHarmless(JoltRuntime& runtime)
+    {
+        BeginCase("moving a non-kinematic, stale or invalid target is a safe no-op");
+        JoltWorld world(runtime);
+        const PhysicsBodyId dynamic = world.CreateBody(BoxBody({ 0.0f, 2.0f, 0.0f }));
+        const PhysicsBodyId fixed = world.CreateBody(BoxBody({ 5.0f, 0.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
+        const PhysicsBodyId kinematic = world.CreateBody(BoxBody({ 0.0f, 9.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        const PhysicsBodyId gone = world.CreateBody(BoxBody({ 0.0f, 20.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        world.DestroyBody(gone);
+
+        const PhysicsPose far{ { 50.0f, 50.0f, 50.0f }, Quaternion{} };
+        world.MoveKinematic(dynamic, far, Dt);
+        world.MoveKinematic(fixed, far, Dt);
+        world.MoveKinematic(gone, far, Dt);
+        world.MoveKinematic(PhysicsBodyId{}, far, Dt);
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        world.MoveKinematic(kinematic, PhysicsPose{ { nan, 0.0f, 0.0f }, Quaternion{} }, Dt);
+        world.MoveKinematic(kinematic, PhysicsPose{ { 0.0f, 0.0f, 0.0f }, Quaternion{ nan, 0.0f, 0.0f, 1.0f } }, Dt);
+        world.MoveKinematic(kinematic, far, 0.0f);
+        world.MoveKinematic(kinematic, far, -1.0f);
+        world.MoveKinematic(kinematic, far, nan);
+        world.Step(Dt);
+        Check(world.GetPose(dynamic).position.X == 0.0f && world.GetPose(fixed).position.X == 5.0f, "dynamic and static bodies did not move");
+        Check(world.GetLinearVelocity(kinematic).Length() == 0.0f && world.GetPose(kinematic).position.Y == 9.0f, "bad targets and time steps changed nothing");
+    }
+
+    void DefaultHingeDescCreatesAFullRangeHinge(JoltRuntime& runtime)
+    {
+        BeginCase("a default hinge desc with only the body, pivot and axis set creates a hinge");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        PhysicsHingeDesc desc;
+        desc.body = lever;
+        desc.pivot = pivot;
+        desc.axis = { 0.0f, 0.0f, 1.0f };
+        const PhysicsHingeId hinge = world.CreateHinge(desc);
+        Check(hinge.IsValid() && world.IsValid(hinge) && world.IsHingeHeld(hinge), "the default limits are accepted");
+    }
+
+    void HingeHoldsThePivotAndStopsAtTheLimit(JoltRuntime& runtime)
+    {
+        BeginCase("a held hinge keeps the pivot fixed and its limit stops a falling lever");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        Check(hinge.IsValid() && world.IsValid(hinge) && world.IsHingeHeld(hinge), "the hinge is created and held");
+        Check(Near(world.GetHingeAngle(hinge), 0.0f, 1.0e-6f), "the angle reads 0 at creation");
+
+        float worstPivotError = 0.0f;
+        float lowestAngle = 0.0f;
+        float highestAngle = 0.0f;
+        for (int i = 0; i < 300; ++i)
+        {
+            world.Step(Dt);
+            const PhysicsPose pose = world.GetPose(lever);
+            const Vector3 pivotPoint = pose.position + Rotate(pose.rotation, { -1.0f, 0.0f, 0.0f });
+            worstPivotError = std::max(worstPivotError, (pivotPoint - pivot).Length());
+            lowestAngle = std::min(lowestAngle, world.GetHingeAngle(hinge));
+            highestAngle = std::max(highestAngle, world.GetHingeAngle(hinge));
+        }
+        Check(worstPivotError < 0.02f, std::format("the pivot point stayed fixed, even at the impact on the limit (worst error {})", worstPivotError));
+        const PhysicsPose rest = world.GetPose(lever);
+        Check(((rest.position + Rotate(rest.rotation, { -1.0f, 0.0f, 0.0f })) - pivot).Length() < 2.0e-3f, "the pivot point is exact once the lever rests");
+        Check(highestAngle < 0.02f, std::format("the angle never passed the upper limit ({})", highestAngle));
+        Check(lowestAngle > -Pi / 4.0f - 0.05f, std::format("the angle never passed the lower limit ({})", lowestAngle));
+        Check(Near(world.GetHingeAngle(hinge), -Pi / 4.0f, 0.05f), std::format("the lever rests on the lower limit ({})", world.GetHingeAngle(hinge)));
+        Check(world.IsHingeHeld(hinge), "the hinge is still held");
+    }
+
+    void HingeReleaseFreesAndWakesTheBody(JoltRuntime& runtime)
+    {
+        BeginCase("releasing a hinge wakes the body and lets it fall; ids survive and a second release is a no-op");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        for (int i = 0; i < 900 && world.IsAwake(lever); ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(!world.IsAwake(lever), "the held lever came to rest and sleeps");
+
+        world.ReleaseHinge(hinge);
+        Check(world.IsValid(hinge) && !world.IsHingeHeld(hinge), "the id stays valid and the hinge is no longer held");
+        Check(world.IsAwake(lever), "the release woke the body");
+        const float heightBefore = world.GetPose(lever).position.Y;
+        for (int i = 0; i < 30; ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(heightBefore - world.GetPose(lever).position.Y > 0.5f, "the released lever falls freely");
+
+        world.ReleaseHinge(hinge);
+        world.ReleaseHinge(hinge);
+        Check(world.IsValid(hinge) && !world.IsHingeHeld(hinge), "releasing again changes nothing");
+        world.ReleaseHinge(PhysicsHingeId{});
+        Check(!world.IsValid(PhysicsHingeId{}) && !world.IsHingeHeld(PhysicsHingeId{}) && world.GetHingeAngle(PhysicsHingeId{}) == 0.0f,
+            "an invalid hinge id reads defaults");
+    }
+
+    void HingeSecondReleaseDoesNotWakeASleeper(JoltRuntime& runtime)
+    {
+        BeginCase("a second release does not wake a body that fell asleep after the first");
+        PhysicsWorldDesc desc;
+        desc.gravity = { 0.0f, 0.0f, 0.0f };
+        JoltWorld world(runtime, desc);
+        const PhysicsBodyId body = world.CreateBody(LeverBody({ 0.0f, 5.0f, 0.0f }));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(body, { 0.0f, 5.0f, 0.0f }, -Pi / 4.0f, 0.0f));
+        world.ReleaseHinge(hinge);
+        for (int i = 0; i < 300 && world.IsAwake(body); ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(!world.IsAwake(body), "the released body in zero gravity sleeps");
+        world.ReleaseHinge(hinge);
+        Check(!world.IsAwake(body), "the second release left it asleep");
+    }
+
+    void HingeFailuresReturnInvalidIds(JoltRuntime& runtime)
+    {
+        BeginCase("invalid hinge input returns an invalid id and creates nothing");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsBodyId fixed = world.CreateBody(BoxBody({ 5.0f, 0.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
+        const PhysicsBodyId moving = world.CreateBody(BoxBody({ 8.0f, 0.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        const PhysicsBodyId gone = world.CreateBody(BoxBody({ 12.0f, 0.0f, 0.0f }));
+        world.DestroyBody(gone);
+
+        const PhysicsHingeDesc good = LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f);
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        const auto rejects = [&world](const PhysicsHingeDesc& desc) { return !world.CreateHinge(desc).IsValid(); };
+        const auto with = [&good](auto change)
+        {
+            PhysicsHingeDesc desc = good;
+            change(desc);
+            return desc;
+        };
+
+        Check(rejects(LeverHinge(fixed, pivot, -Pi / 4.0f, 0.0f)), "a static body is refused");
+        Check(rejects(LeverHinge(moving, pivot, -Pi / 4.0f, 0.0f)), "a kinematic body is refused");
+        Check(rejects(LeverHinge(gone, pivot, -Pi / 4.0f, 0.0f)), "a destroyed body is refused");
+        Check(rejects(LeverHinge(PhysicsBodyId{}, pivot, -Pi / 4.0f, 0.0f)), "the default id is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.axis = { 0.0f, 0.0f, 0.0f }; })), "a zero axis is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.axis = { 0.0f, 0.0f, 2.0f }; })), "a long axis is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.normal = { 0.0f, 0.0f, 1.0f }; })), "a normal parallel to the axis is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.normal = { 0.7071f, 0.0f, 0.7071f }; })), "a normal that is not perpendicular is refused");
+        Check(rejects(with([nan](PhysicsHingeDesc& d) { d.axis = { nan, 0.0f, 1.0f }; })), "a NaN axis is refused");
+        Check(rejects(with([nan](PhysicsHingeDesc& d) { d.pivot = { nan, 0.0f, 0.0f }; })), "a NaN pivot is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.minAngle = 0.1f; })), "a positive minimum is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.minAngle = -Pi - 0.01f; })), "a minimum below -pi is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.maxAngle = -0.1f; })), "a negative maximum is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.maxAngle = Pi + 0.01f; })), "a maximum above pi is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.minAngle = 0.0f; d.maxAngle = 0.0f; })), "empty limits are refused");
+        Check(rejects(with([nan](PhysicsHingeDesc& d) { d.maxAngle = nan; })), "a NaN limit is refused");
+        Check(rejects(with([](PhysicsHingeDesc& d) { d.maxFrictionTorque = -1.0f; })), "a negative friction torque is refused");
+
+        const PhysicsHingeId first = world.CreateHinge(good);
+        Check(first.IsValid(), "the unmodified description is accepted");
+        Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi, Pi)).IsValid(), "full-range limits are accepted");
+        Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi / 2.0f, Pi / 2.0f)).IsValid(), "symmetric limits are accepted");
+    }
+
+    void HingeDiesWithItsBody(JoltRuntime& runtime)
+    {
+        BeginCase("destroying the body of a hinge retires the hinge and the world keeps stepping");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        world.Step(Dt);
+        world.DestroyBody(lever);
+        Check(!world.IsValid(hinge) && !world.IsHingeHeld(hinge) && world.GetHingeAngle(hinge) == 0.0f, "the hinge is invalid once its body is gone");
+        world.ReleaseHinge(hinge);
+        Check(!StepFailed(world.Step(Dt)), "stepping after the body is gone is fine");
+
+        const PhysicsBodyId reused = world.CreateBody(LeverBody(pivot));
+        Check(reused.index == lever.index && !world.IsValid(hinge), "the stale hinge does not attach to the body that reuses the slot");
+        const PhysicsHingeId again = world.CreateHinge(LeverHinge(reused, pivot, -Pi / 4.0f, 0.0f));
+        Check(again.IsValid() && again != hinge, "a new hinge gets a fresh id");
+        world.Step(Dt);
+        Check(world.IsHingeHeld(again), "the new hinge is held");
+    }
+
+    void HingeWorldTeardownWithLiveHinges(JoltRuntime& runtime)
+    {
+        BeginCase("a world with live and released hinges tears down cleanly");
+        {
+            JoltWorld world(runtime);
+            const PhysicsBodyId a = world.CreateBody(LeverBody({ 0.0f, 5.0f, 0.0f }));
+            const PhysicsBodyId b = world.CreateBody(LeverBody({ 0.0f, 8.0f, 0.0f }));
+            world.CreateHinge(LeverHinge(a, { 0.0f, 5.0f, 0.0f }, -Pi / 4.0f, 0.0f));
+            world.ReleaseHinge(world.CreateHinge(LeverHinge(b, { 0.0f, 8.0f, 0.0f }, -Pi / 4.0f, 0.0f)));
+            world.Step(Dt);
+        }
+        JoltWorld again(runtime);
+        Check(again.GetBodyCount() == 0, "a new world is fine after the teardown");
+    }
+
+    PhysicsWaterDesc Pool()
+    {
+        PhysicsWaterDesc water;
+        water.center = { 0.0f, 2.0f, 0.0f };
+        water.halfExtent = { 5.0f, 2.0f, 5.0f };
+        return water;
+    }
+
+    PhysicsWaterDesc FarPool()
+    {
+        PhysicsWaterDesc water;
+        water.center = { 100.0f, 2.0f, 0.0f };
+        water.halfExtent = { 1.0f, 1.0f, 1.0f };
+        return water;
+    }
+
+    void RunWater(JoltWorld& world, const PhysicsWaterDesc& water, int ticks)
+    {
+        for (int i = 0; i < ticks; ++i)
+        {
+            world.ApplyWater(water, Dt);
+            world.Step(Dt);
+        }
+    }
+
+    void WaterFloatsLightAndSinksHeavy(JoltRuntime& runtime)
+    {
+        BeginCase("a light sphere rises to the surface and a heavy one sinks to the floor");
+        JoltWorld world(runtime);
+        MakeFloor(world);
+        const PhysicsBodyId light = world.CreateBody(SphereBody({ -2.0f, 1.0f, 0.0f }, 0.5f, 500.0f));
+        const PhysicsBodyId heavy = world.CreateBody(SphereBody({ 2.0f, 3.0f, 0.0f }, 0.5f, 2000.0f));
+        Check(Near(world.GetMass(light), SphereMassAtDensity(0.5f, 500.0f), 1.0e-4f), "the light sphere has the requested mass");
+        RunWater(world, Pool(), 600);
+        const float lightY = world.GetPose(light).position.Y;
+        const float heavyY = world.GetPose(heavy).position.Y;
+        Check(lightY > 3.4f && lightY < 4.6f, std::format("the light sphere floats at the surface (y = {})", lightY));
+        Check(heavyY > 0.45f && heavyY < 0.6f, std::format("the heavy sphere rests on the floor (y = {})", heavyY));
+        Check(Near(world.GetPose(light).position.X, -2.0f, 0.05f) && Near(world.GetPose(heavy).position.X, 2.0f, 0.05f), "neither sphere drifted sideways");
+    }
+
+    void WaterLeavesSleepersAlone(JoltRuntime& runtime)
+    {
+        BeginCase("a sleeping body inside the water stays asleep and unmoved");
+        JoltWorld world(runtime);
+        MakeFloor(world);
+        PhysicsBodyDesc desc = BoxBody({ 0.0f, 0.5f, 0.0f });
+        desc.mass = 500.0f;
+        const PhysicsBodyId sleeper = world.CreateBody(desc);
+        const PhysicsBodyId bystander = world.CreateBody(BoxBody({ 3.0f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
+        for (int i = 0; i < 600 && world.IsAwake(sleeper); ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(!world.IsAwake(sleeper), "the body at rest sleeps");
+        const PhysicsPose before = world.GetPose(sleeper);
+        RunWater(world, Pool(), 120);
+        const PhysicsPose after = world.GetPose(sleeper);
+        Check(!world.IsAwake(sleeper), "the water did not wake it");
+        Check(Bits(before.position.X) == Bits(after.position.X) && Bits(before.position.Y) == Bits(after.position.Y) && Bits(before.position.Z) == Bits(after.position.Z)
+                && Bits(before.rotation.W) == Bits(after.rotation.W),
+            "the sleeper did not move a bit");
+        const Vector3 linear = world.GetLinearVelocity(sleeper);
+        const Vector3 angular = world.GetAngularVelocity(sleeper);
+        Check(Bits(linear.X) == 0u && Bits(linear.Y) == 0u && Bits(linear.Z) == 0u && Bits(angular.X) == 0u && Bits(angular.Y) == 0u && Bits(angular.Z) == 0u,
+            "the sleeper's velocities stayed exactly zero");
+        Check(world.GetLinearVelocity(bystander).Length() == 0.0f && world.GetPose(bystander).position.Y == 0.5f, "a kinematic body in the water is untouched");
+    }
+
+    std::uint64_t HashAfterWater(JoltRuntime& runtime, const PhysicsWaterDesc& water, const Vector3& spherePosition, float waterDt)
+    {
+        JoltWorld world(runtime);
+        MakeFloor(world);
+        const PhysicsBodyId sphere = world.CreateBody(SphereBody(spherePosition, 0.5f, 500.0f));
+        for (int i = 0; i < 120; ++i)
+        {
+            world.ApplyWater(water, waterDt);
+            world.Step(Dt);
+        }
+        return HashBodies(world, { sphere });
+    }
+
+    void WaterOutsideTheBoxAndBadDescsChangeNothing(JoltRuntime& runtime)
+    {
+        BeginCase("water does nothing to a body outside the box, and a degenerate water does nothing at all");
+        const Vector3 inside(0.0f, 1.0f, 0.0f);
+        const Vector3 outside(12.0f, 1.0f, 0.0f);
+        const PhysicsWaterDesc pool = Pool();
+        const std::uint64_t dryOutside = HashAfterWater(runtime, FarPool(), outside, Dt);
+        const std::uint64_t dryInside = HashAfterWater(runtime, FarPool(), inside, Dt);
+        Check(HashAfterWater(runtime, pool, outside, Dt) == dryOutside, "a body outside the box is unaffected");
+        Check(HashAfterWater(runtime, pool, inside, Dt) != dryInside, "the same body inside the box is affected");
+
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        const auto degenerate = [&](auto change)
+        {
+            PhysicsWaterDesc water = pool;
+            change(water);
+            return HashAfterWater(runtime, water, inside, Dt) == dryInside;
+        };
+        Check(degenerate([](PhysicsWaterDesc& w) { w.halfExtent.Y = 0.0f; }), "a flat box (zero volume) does nothing");
+        Check(degenerate([](PhysicsWaterDesc& w) { w.halfExtent.X = -1.0f; }), "a negative extent does nothing");
+        Check(degenerate([](PhysicsWaterDesc& w) { w.density = 0.0f; }), "zero density does nothing");
+        Check(degenerate([nan](PhysicsWaterDesc& w) { w.density = nan; }), "NaN density does nothing");
+        Check(degenerate([](PhysicsWaterDesc& w) { w.linearDrag = -1.0f; }), "negative drag does nothing");
+        Check(degenerate([nan](PhysicsWaterDesc& w) { w.center.X = nan; }), "a NaN centre does nothing");
+        Check(HashAfterWater(runtime, pool, inside, 0.0f) == dryInside && HashAfterWater(runtime, pool, inside, nan) == dryInside, "a bad dt does nothing");
+    }
+
+    void WaterBodyLeavingTheBoxFallsBack(JoltRuntime& runtime)
+    {
+        BeginCase("a body thrown out of the water falls back in and is handled each tick");
+        JoltWorld world(runtime);
+        MakeFloor(world);
+        const PhysicsBodyId sphere = world.CreateBody(SphereBody({ 0.0f, 1.0f, 0.0f }, 0.5f, 500.0f));
+        const PhysicsWaterDesc pool = Pool();
+        world.AddImpulse(sphere, { 0.0f, world.GetMass(sphere) * 14.0f, 0.0f });
+        float highest = 0.0f;
+        bool finite = true;
+        for (int i = 0; i < 400; ++i)
+        {
+            world.ApplyWater(pool, Dt);
+            world.Step(Dt);
+            const Vector3 position = world.GetPose(sphere).position;
+            highest = std::max(highest, position.Y);
+            finite = finite && std::isfinite(position.X) && std::isfinite(position.Y) && std::isfinite(position.Z);
+        }
+        Check(highest > 4.6f, std::format("the sphere left the box through the top (highest {})", highest));
+        Check(finite, "the pose stayed finite");
+        const float y = world.GetPose(sphere).position.Y;
+        Check(y > 3.2f && y < 4.8f, std::format("it settled back at the surface (y = {})", y));
+    }
+
+    // Kinematic track, a held-then-released hinge lever and a pool, all stepped through ApplyWater and MoveKinematic like a game tick.
+    class BackendScene
+    {
+    public:
+        static constexpr int ReleaseTick = 200;
+        static constexpr int TrackTicks = 300;
+
+        explicit BackendScene(JoltRuntime& runtime, int releaseTick = ReleaseTick)
+            : m_World(runtime)
+            , m_ReleaseTick(releaseTick)
+        {
+            MakeFloor(m_World);
+            m_Track = m_World.CreateBody(BoxBody({ -10.0f, 0.5f, 0.0f }, { 1.5f, 0.1f, 1.0f }, PhysicsMotion::Kinematic));
+            m_Ids.push_back(m_Track);
+            m_Ids.push_back(m_World.CreateBody(BoxBody({ -10.0f, 1.2f, 0.0f }, { 0.4f, 0.4f, 0.4f })));
+
+            const Vector3 pivot(0.0f, 3.0f, 5.0f);
+            PhysicsHingeDesc hinge = LeverHinge(m_World.CreateBody(LeverBody(pivot)), pivot, -Pi / 3.0f, 0.0f);
+            hinge.maxFrictionTorque = 0.5f;
+            m_Ids.push_back(hinge.body);
+            m_Hinge = m_World.CreateHinge(hinge);
+
+            m_Ids.push_back(m_World.CreateBody(SphereBody({ 9.0f, 1.0f, 0.0f }, 0.5f, 500.0f)));
+            m_Ids.push_back(m_World.CreateBody(SphereBody({ 11.0f, 3.0f, 0.0f }, 0.5f, 2000.0f)));
+            PhysicsBodyDesc neutral = BoxBody({ 10.0f, 2.0f, 2.0f }, { 0.3f, 0.3f, 0.3f });
+            neutral.mass = 216.0f;
+            m_Ids.push_back(m_World.CreateBody(neutral));
+            m_Water.center = { 10.0f, 2.0f, 0.0f };
+            m_Water.halfExtent = { 3.0f, 2.0f, 3.0f };
+        }
+
+        void Tick()
+        {
+            if (m_Tick == m_ReleaseTick)
+            {
+                m_World.ReleaseHinge(m_Hinge);
+            }
+            m_World.ApplyWater(m_Water, Dt);
+            const float progress = static_cast<float>(std::min(m_Tick + 1, TrackTicks)) / static_cast<float>(TrackTicks);
+            m_World.MoveKinematic(m_Track, PhysicsPose{ { -10.0f + 4.0f * progress, 0.5f, 0.0f }, Quaternion{} }, Dt);
+            m_Errors |= m_World.Step(Dt);
+            ++m_Tick;
+
+            StateHash hash;
+            hash.Add(m_Digest);
+            hash.Add(HashBodies(m_World, m_Ids));
+            hash.Add(m_World.GetHingeAngle(m_Hinge));
+            hash.Add(static_cast<std::uint32_t>(m_World.IsHingeHeld(m_Hinge)));
+            m_Digest = hash.Value();
+        }
+
+        void Run(int ticks)
+        {
+            for (int i = 0; i < ticks; ++i)
+            {
+                Tick();
+            }
+        }
+
+        const JoltWorld& World() const { return m_World; }
+        const PhysicsBodyIds& Ids() const { return m_Ids; }
+        PhysicsHingeId Hinge() const { return m_Hinge; }
+        std::uint64_t Digest() const { return m_Digest; }
+        std::uint64_t FinalState() const { return HashBodies(m_World, m_Ids); }
+        PhysicsStepError Errors() const { return m_Errors; }
+
+    private:
+        JoltWorld m_World;
+        PhysicsWaterDesc m_Water;
+        PhysicsBodyIds m_Ids;
+        PhysicsBodyId m_Track;
+        PhysicsHingeId m_Hinge;
+        int m_ReleaseTick = ReleaseTick;
+        int m_Tick = 0;
+        std::uint64_t m_Digest = 0;
+        PhysicsStepError m_Errors = PhysicsStepError::None;
+    };
+
+    void BackendSceneRebuildsBitIdentical(JoltRuntime& runtime)
+    {
+        BeginCase("a kinematic track, a hinge release and water give identical bits in fresh worlds");
+        std::uint64_t digest = 0;
+        std::uint64_t finalState = 0;
+        {
+            BackendScene a(runtime);
+            BackendScene b(runtime);
+            bool lockstep = true;
+            for (int tick = 0; tick < 600; ++tick)
+            {
+                a.Tick();
+                b.Tick();
+                lockstep = lockstep && a.Digest() == b.Digest();
+            }
+            Check(lockstep, "the running digests match after every tick");
+            Check(a.FinalState() == b.FinalState(), "the final states match");
+            Check(!StepFailed(a.Errors()) && !StepFailed(b.Errors()), "no step reported an error");
+            Check(!a.World().IsHingeHeld(a.Hinge()), "the hinge was released at its tick");
+            const Vector3 track = a.World().GetPose(a.Ids()[0]).position;
+            Check(Near(track.X, -6.0f, 1.0e-3f) && a.World().GetLinearVelocity(a.Ids()[0]).Length() == 0.0f, "the track arrived and stopped");
+            const float sphereY = a.World().GetPose(a.Ids()[3]).position.Y;
+            const float heavyY = a.World().GetPose(a.Ids()[4]).position.Y;
+            Check(sphereY > 3.2f && heavyY < 0.6f, "the light sphere floats and the heavy one sank");
+            digest = a.Digest();
+            finalState = a.FinalState();
+        }
+        std::cout << "DIGEST backend ticks=600 bodies=7 running=" << Hex(digest) << " final=" << Hex(finalState) << '\n';
+
+        BeginCase("destroying the scene and building it again gives the same bits");
+        BackendScene again(runtime);
+        again.Run(600);
+        Check(again.Digest() == digest && again.FinalState() == finalState, "the rebuilt scene has the same digest and final state");
+
+        BeginCase("the backend digest reacts to the release tick");
+        BackendScene later(runtime, BackendScene::ReleaseTick + 1);
+        later.Run(600);
+        Check(later.Digest() != digest, "releasing a tick later changes the digest");
+    }
 }
 
 int main()
@@ -733,6 +1302,22 @@ int main()
     ImpulsesMoveOnlyDynamicBodies(runtime);
     StatsCountBodies(runtime);
     ThinBoxesAreAccepted(runtime);
+    KinematicHeldTargetLeavesZeroVelocity(runtime);
+    KinematicMovingTargetGivesDeltaOverDt(runtime);
+    KinematicRotationArrives(runtime);
+    KinematicMisuseIsHarmless(runtime);
+    HingeHoldsThePivotAndStopsAtTheLimit(runtime);
+    DefaultHingeDescCreatesAFullRangeHinge(runtime);
+    HingeReleaseFreesAndWakesTheBody(runtime);
+    HingeSecondReleaseDoesNotWakeASleeper(runtime);
+    HingeFailuresReturnInvalidIds(runtime);
+    HingeDiesWithItsBody(runtime);
+    HingeWorldTeardownWithLiveHinges(runtime);
+    WaterFloatsLightAndSinksHeavy(runtime);
+    WaterLeavesSleepersAlone(runtime);
+    WaterOutsideTheBoxAndBadDescsChangeNothing(runtime);
+    WaterBodyLeavingTheBoxFallsBack(runtime);
+    BackendSceneRebuildsBitIdentical(runtime);
 
     if (g_failures != 0)
     {

@@ -24,11 +24,20 @@ namespace Canape
 
         PhysicsBodyId CreateBody(const PhysicsBodyDesc& desc);
         void DestroyBody(PhysicsBodyId id);
+        PhysicsHingeId CreateHinge(const PhysicsHingeDesc& desc);
+        void ReleaseHinge(PhysicsHingeId id);
 
-        PhysicsStepError Step(float dt);
-
+        // Changes a dynamic body's velocity at once and wakes it;
+        // call before ApplyWater so a woken body floats on this Step.
         void AddImpulse(PhysicsBodyId id, const Vector3& impulse);
         void AddImpulseAt(PhysicsBodyId id, const Vector3& impulse, const Vector3& worldPoint);
+        // Sets the velocity that brings a kinematic body to the pose over the next Step, which must use the same dt.
+        // A no-op for any other body.
+        void MoveKinematic(PhysicsBodyId id, const PhysicsPose& target, float dt);
+        // Buoyancy and drag over the next Step, which must use the same dt, for the awake dynamic bodies in the box, in creation order.
+        void ApplyWater(const PhysicsWaterDesc& water, float dt);
+
+        PhysicsStepError Step(float dt);
 
         bool IsValid(PhysicsBodyId id) const;
         PhysicsPose GetPose(PhysicsBodyId id) const;
@@ -37,6 +46,10 @@ namespace Canape
         float GetMass(PhysicsBodyId id) const;
         bool IsAwake(PhysicsBodyId id) const;
         PhysicsMotion GetMotion(PhysicsBodyId id) const;
+
+        bool IsValid(PhysicsHingeId id) const;
+        bool IsHingeHeld(PhysicsHingeId id) const;
+        float GetHingeAngle(PhysicsHingeId id) const;
 
         std::size_t GetBodyCount() const;
         PhysicsWorldStats GetStats() const;

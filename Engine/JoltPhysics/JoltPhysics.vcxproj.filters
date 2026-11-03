@@ -11,6 +11,7 @@
     <ClInclude Include="JoltRuntimeImpl.h" />
     <ClInclude Include="JoltWorld.h" />
     <ClInclude Include="PhysicsTypes.h" />
+    <ClInclude Include="SlotMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JoltRuntime.cpp" />

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <numbers>
 #include <optional>
 #include <vector>
 
@@ -10,6 +11,14 @@
 
 namespace Canape
 {
+    struct PhysicsWorldDesc
+    {
+        Vector3 gravity{ 0.0f, -9.81f, 0.0f };
+        std::uint32_t maxBodies = 1024;
+        std::uint32_t maxBodyPairs = 1024;
+        std::uint32_t maxContactConstraints = 1024;
+    };
+
     enum class PhysicsMotion : std::uint8_t
     {
         Static,
@@ -52,14 +61,6 @@ namespace Canape
         float angularDamping = 0.05f;
     };
 
-    struct PhysicsWorldDesc
-    {
-        Vector3 gravity{ 0.0f, -9.81f, 0.0f };
-        std::uint32_t maxBodies = 1024;
-        std::uint32_t maxBodyPairs = 1024;
-        std::uint32_t maxContactConstraints = 1024;
-    };
-
     // Names a body of one world; stale and foreign ids are invalid and every query on them returns defaults.
     struct PhysicsBodyId
     {
@@ -69,6 +70,42 @@ namespace Canape
 
         constexpr bool IsValid() const { return world != 0; }
         constexpr bool operator==(const PhysicsBodyId&) const = default;
+    };
+
+    // A hinge fixed to the world holding a dynamic body.
+    struct PhysicsHingeDesc
+    {
+        PhysicsBodyId body{};
+        // world space
+        Vector3 pivot{};
+        // axis and normal are unit and perpendicular
+        Vector3 axis{ 0.0f, 1.0f, 0.0f };
+        Vector3 normal{ 1.0f, 0.0f, 0.0f };
+        // minAngle in [-pi, 0], maxAngle in [0, pi], minAngle < maxAngle
+        float minAngle = -std::numbers::pi_v<float>;
+        float maxAngle = std::numbers::pi_v<float>;
+        float maxFrictionTorque = 0.0f;
+    };
+
+    // Names a hinge of one world; a released hinge keeps its id, a hinge whose body was destroyed does not.
+    struct PhysicsHingeId
+    {
+        std::uint32_t index = 0;
+        std::uint32_t generation = 0;
+        std::uint32_t world = 0;
+
+        constexpr bool IsValid() const { return world != 0; }
+        constexpr bool operator==(const PhysicsHingeId&) const = default;
+    };
+
+    // The box selects awake dynamic bodies; the submerged volume is measured against the infinite plane through its top.
+    struct PhysicsWaterDesc
+    {
+        Vector3 center{};
+        Vector3 halfExtent{ 0.5f, 0.5f, 0.5f };
+        float density = 1000.0f;
+        float linearDrag = 0.05f;
+        float angularDrag = 0.01f;
     };
 
     struct PhysicsWorldStats
@@ -91,6 +128,11 @@ namespace Canape
     constexpr PhysicsStepError operator|(PhysicsStepError a, PhysicsStepError b)
     {
         return static_cast<PhysicsStepError>(static_cast<std::uint8_t>(a) | static_cast<std::uint8_t>(b));
+    }
+
+    constexpr PhysicsStepError& operator|=(PhysicsStepError& a, PhysicsStepError b)
+    {
+        return a = a | b;
     }
 
     constexpr PhysicsStepError operator&(PhysicsStepError a, PhysicsStepError b)
