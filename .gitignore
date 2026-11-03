@@ -430,3 +430,4 @@ FodyWeavers.xsd
 # Canape build outputs (all configurations, including Shipping)
 /Binaries/
 /Intermediate/
+/vcpkg_installed/
