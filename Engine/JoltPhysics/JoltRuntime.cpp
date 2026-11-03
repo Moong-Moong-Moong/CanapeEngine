@@ -22,6 +22,8 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "JoltPhysics/JoltRuntimeImpl.h"
+
 namespace Canape
 {
     namespace
@@ -107,33 +109,27 @@ namespace Canape
         return text;
     }
 
-    struct JoltRuntime::Impl
+    JoltRuntime::Impl::Impl()
     {
-        std::unique_ptr<JPH::TempAllocatorImpl> tempAllocator;
-        std::unique_ptr<JPH::JobSystemSingleThreaded> jobSystem;
-
-        Impl()
-        {
-            JPH::RegisterDefaultAllocator();
-            JPH::Trace = TraceToDebugger;
+        JPH::RegisterDefaultAllocator();
+        JPH::Trace = TraceToDebugger;
 #ifdef JPH_ENABLE_ASSERTS
-            JPH::AssertFailed = AssertToDebugger;
+        JPH::AssertFailed = AssertToDebugger;
 #endif
-            JPH::Factory::sInstance = new JPH::Factory();
-            JPH::RegisterTypes();
-            tempAllocator = std::make_unique<JPH::TempAllocatorImpl>(TempAllocatorBytes);
-            jobSystem = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
-        }
+        JPH::Factory::sInstance = new JPH::Factory();
+        JPH::RegisterTypes();
+        tempAllocator = std::make_unique<JPH::TempAllocatorImpl>(TempAllocatorBytes);
+        jobSystem = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
+    }
 
-        ~Impl()
-        {
-            jobSystem.reset();
-            tempAllocator.reset();
-            JPH::UnregisterTypes();
-            delete JPH::Factory::sInstance;
-            JPH::Factory::sInstance = nullptr;
-        }
-    };
+    JoltRuntime::Impl::~Impl()
+    {
+        jobSystem.reset();
+        tempAllocator.reset();
+        JPH::UnregisterTypes();
+        delete JPH::Factory::sInstance;
+        JPH::Factory::sInstance = nullptr;
+    }
 
     JoltRuntime::JoltRuntime()
     {

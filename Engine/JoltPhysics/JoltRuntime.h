@@ -6,6 +6,8 @@
 
 namespace Canape
 {
+    class JoltWorld;
+
     // Names the feature bits that differ between two Jolt version IDs. Empty when the feature bits match.
     std::string DescribeJoltFeatureMismatch(std::uint64_t expectedId, std::uint64_t actualId);
 
@@ -24,6 +26,8 @@ namespace Canape
         const std::string& GetError() const { return m_Error; }
 
     private:
+        friend class JoltWorld;
+
         struct Impl;
         std::unique_ptr<Impl> m_Impl;
         std::string m_Error;

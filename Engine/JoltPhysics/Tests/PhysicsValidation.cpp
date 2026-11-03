@@ -1,10 +1,23 @@
 // Standalone backend validation; intentionally not part of JoltPhysics.vcxproj.
+// It includes the private conversion header (and so Jolt) to prove the Canape and Jolt rotation conventions agree.
 #include "JoltPhysics/JoltRuntime.h"
+#include "JoltPhysics/JoltWorld.h"
 
+#include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <format>
 #include <iostream>
+#include <limits>
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
+
+#include <Jolt/Jolt.h>
+
+#include "JoltPhysics/JoltConvert.h"
 
 using namespace Canape;
 
@@ -78,6 +91,616 @@ namespace
         Check(text.find("JPH_FLOATING_POINT_EXCEPTIONS_ENABLED") != std::string::npos, "bit 3 is named");
         Check(text.find("JPH_CROSS_PLATFORM_DETERMINISTIC") == std::string::npos, "bit 2 is not named");
     }
+
+    constexpr float Dt = 1.0f / 60.0f;
+    constexpr float Pi = 3.14159265358979f;
+
+    void Check(bool value, const std::string& message)
+    {
+        Check(value, message.c_str());
+    }
+
+    bool Near(float a, float b, float tolerance)
+    {
+        return std::abs(a - b) <= tolerance;
+    }
+
+    std::uint32_t Bits(float value)
+    {
+        return std::bit_cast<std::uint32_t>(value);
+    }
+
+    Quaternion AxisAngle(const Vector3& axis, float angle)
+    {
+        const float s = std::sin(angle * 0.5f);
+        return Quaternion(axis.X * s, axis.Y * s, axis.Z * s, std::cos(angle * 0.5f));
+    }
+
+    PhysicsShapePart BoxPart(const Vector3& halfExtent, const Vector3& localPosition = {}, std::optional<float> friction = std::nullopt,
+        const Quaternion& localRotation = {})
+    {
+        PhysicsShapePart part;
+        part.type = PhysicsShapeType::Box;
+        part.halfExtent = halfExtent;
+        part.localPose = PhysicsPose{ localPosition, localRotation };
+        part.friction = friction;
+        return part;
+    }
+
+    PhysicsShapePart SpherePart(float radius)
+    {
+        PhysicsShapePart part;
+        part.type = PhysicsShapeType::Sphere;
+        part.radius = radius;
+        return part;
+    }
+
+    PhysicsBodyDesc BodyOf(std::vector<PhysicsShapePart> parts, const Vector3& position, PhysicsMotion motion = PhysicsMotion::Dynamic,
+        const Quaternion& rotation = {})
+    {
+        PhysicsBodyDesc desc;
+        desc.parts = std::move(parts);
+        desc.pose = PhysicsPose{ position, rotation };
+        desc.motion = motion;
+        return desc;
+    }
+
+    PhysicsBodyDesc BoxBody(const Vector3& position, const Vector3& halfExtent = { 0.5f, 0.5f, 0.5f },
+        PhysicsMotion motion = PhysicsMotion::Dynamic, const Quaternion& rotation = {})
+    {
+        return BodyOf({ BoxPart(halfExtent) }, position, motion, rotation);
+    }
+
+    class StateHash
+    {
+    public:
+        void Add(std::uint32_t word)
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                m_Value = (m_Value ^ ((word >> (8 * i)) & 0xffu)) * 1099511628211ull;
+            }
+        }
+
+        void Add(float value) { Add(Bits(value)); }
+        void Add(const Vector3& v) { Add(v.X); Add(v.Y); Add(v.Z); }
+        void Add(const Quaternion& q) { Add(q.X); Add(q.Y); Add(q.Z); Add(q.W); }
+        void Add(std::uint64_t value) { Add(static_cast<std::uint32_t>(value)); Add(static_cast<std::uint32_t>(value >> 32)); }
+
+        std::uint64_t Value() const { return m_Value; }
+
+    private:
+        std::uint64_t m_Value = 14695981039346656037ull;
+    };
+
+    std::uint64_t HashBodies(const JoltWorld& world, const PhysicsBodyIds& ids)
+    {
+        StateHash hash;
+        for (const PhysicsBodyId id : ids)
+        {
+            const PhysicsPose pose = world.GetPose(id);
+            hash.Add(pose.position);
+            hash.Add(pose.rotation);
+            hash.Add(world.GetLinearVelocity(id));
+            hash.Add(world.GetAngularVelocity(id));
+        }
+        return hash.Value();
+    }
+
+    // A floor, a 5x5x2 grid of boxes, rolling spheres, a mixed-friction compound and a heavy box; scripted impulses and a destroy/create.
+    class Simulation
+    {
+    public:
+        static constexpr int GridFirst = 1;
+        static constexpr int SphereFirst = 51;
+        static constexpr int ReplacedIndex = 7;
+
+        Simulation(JoltRuntime& runtime, float impulseScale = 1.0f)
+            : m_World(runtime)
+            , m_ImpulseScale(impulseScale)
+        {
+            m_Ids.push_back(m_World.CreateBody(BoxBody({ 0.0f, -0.5f, 0.0f }, { 20.0f, 0.5f, 20.0f }, PhysicsMotion::Static)));
+            for (int layer = 0; layer < 2; ++layer)
+            {
+                for (int row = 0; row < 5; ++row)
+                {
+                    for (int column = 0; column < 5; ++column)
+                    {
+                        const Vector3 position(-2.4f + 1.2f * static_cast<float>(column), 0.5f + 1.1f * static_cast<float>(layer),
+                            -2.4f + 1.2f * static_cast<float>(row));
+                        m_Ids.push_back(m_World.CreateBody(BoxBody(position)));
+                    }
+                }
+            }
+            for (int i = 0; i < 5; ++i)
+            {
+                m_Ids.push_back(m_World.CreateBody(BodyOf({ SpherePart(0.3f) }, { -2.0f + static_cast<float>(i), 0.3f, -5.0f })));
+            }
+            m_Ids.push_back(m_World.CreateBody(BodyOf(
+                { BoxPart({ 1.0f, 0.1f, 0.3f }, {}, 0.0f), BoxPart({ 0.3f, 0.4f, 0.3f }, { 0.5f, 0.5f, 0.0f }, std::nullopt, AxisAngle({ 0, 0, 1 }, 0.5f)) },
+                { 3.0f, 2.0f, 3.0f }, PhysicsMotion::Dynamic, AxisAngle({ 0, 1, 0 }, 0.7f))));
+            PhysicsBodyDesc heavy = BoxBody({ -3.0f, 1.0f, 3.0f });
+            heavy.mass = 3.0f;
+            m_Ids.push_back(m_World.CreateBody(heavy));
+        }
+
+        void Tick()
+        {
+            if (m_Tick == 0)
+            {
+                for (int i = 0; i < 5; ++i)
+                {
+                    m_World.AddImpulse(m_Ids[SphereFirst + i], { 0.0f, 0.0f, 400.0f * m_ImpulseScale });
+                }
+            }
+            if (m_Tick == 100)
+            {
+                const PhysicsBodyId target = m_Ids[GridFirst + 9];
+                m_World.AddImpulseAt(target, { 30.0f, 0.0f, 0.0f }, m_World.GetPose(target).position + Vector3(0.0f, 0.4f, 0.0f));
+            }
+            if (m_Tick == 200)
+            {
+                m_World.DestroyBody(m_Ids[ReplacedIndex]);
+                m_Ids[ReplacedIndex] = PhysicsBodyId{};
+            }
+            if (m_Tick == 201)
+            {
+                m_Ids[ReplacedIndex] = m_World.CreateBody(BoxBody({ 0.0f, 6.0f, 0.0f }));
+            }
+            m_Errors = m_Errors | m_World.Step(Dt);
+            ++m_Tick;
+            StateHash hash;
+            hash.Add(m_Digest);
+            hash.Add(HashBodies(m_World, m_Ids));
+            m_Digest = hash.Value();
+        }
+
+        void Run(int ticks)
+        {
+            for (int i = 0; i < ticks; ++i)
+            {
+                Tick();
+            }
+        }
+
+        const JoltWorld& World() const { return m_World; }
+        const PhysicsBodyIds& Ids() const { return m_Ids; }
+        std::uint64_t Digest() const { return m_Digest; }
+        std::uint64_t FinalState() const { return HashBodies(m_World, m_Ids); }
+        PhysicsStepError Errors() const { return m_Errors; }
+
+        std::vector<std::uint32_t> FinalBits() const
+        {
+            std::vector<std::uint32_t> bits;
+            for (const PhysicsBodyId id : m_Ids)
+            {
+                const PhysicsPose pose = m_World.GetPose(id);
+                const Vector3 linear = m_World.GetLinearVelocity(id);
+                const Vector3 angular = m_World.GetAngularVelocity(id);
+                for (const float value : { pose.position.X, pose.position.Y, pose.position.Z, pose.rotation.X, pose.rotation.Y, pose.rotation.Z,
+                         pose.rotation.W, linear.X, linear.Y, linear.Z, angular.X, angular.Y, angular.Z })
+                {
+                    bits.push_back(Bits(value));
+                }
+            }
+            return bits;
+        }
+
+    private:
+        JoltWorld m_World;
+        PhysicsBodyIds m_Ids;
+        float m_ImpulseScale = 1.0f;
+        int m_Tick = 0;
+        std::uint64_t m_Digest = 0;
+        PhysicsStepError m_Errors = PhysicsStepError::None;
+    };
+
+    std::string Hex(std::uint64_t value)
+    {
+        return std::format("{:016x}", value);
+    }
+
+    void QuaternionRotationMatchesJolt()
+    {
+        BeginCase("Canape Quaternion::Rotate and Jolt rotate a vector the same way");
+        const Quaternion rotations[] = {
+            AxisAngle({ 0, 1, 0 }, Pi * 0.5f),
+            AxisAngle({ 1, 0, 0 }, 0.7f),
+            AxisAngle({ 0, 0, 1 }, -2.1f),
+            AxisAngle(Vector3(1, 2, 3).Normalized(), 1.3f),
+            AxisAngle(Vector3(-2, 0.5f, 1).Normalized(), -0.4f),
+        };
+        const Vector3 vectors[] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 1.5f, -2.0f, 0.25f } };
+        bool same = true;
+        bool nontrivial = false;
+        for (const Quaternion& q : rotations)
+        {
+            for (const Vector3& v : vectors)
+            {
+                const Vector3 canape = q.Rotate(v);
+                const Vector3 jolt = ToCanape(ToJolt(q) * ToJolt(v));
+                same = same && Near(canape.X, jolt.X, 1.0e-5f) && Near(canape.Y, jolt.Y, 1.0e-5f) && Near(canape.Z, jolt.Z, 1.0e-5f);
+                nontrivial = nontrivial || !Near(canape.X, v.X, 0.1f) || !Near(canape.Y, v.Y, 0.1f) || !Near(canape.Z, v.Z, 0.1f);
+            }
+        }
+        Check(same, "Canape and Jolt rotations agree");
+        Check(nontrivial, "the rotations actually move vectors");
+        const Quaternion q = rotations[3];
+        const Quaternion roundTrip = ToCanape(ToJolt(q));
+        Check(Bits(roundTrip.X) == Bits(q.X) && Bits(roundTrip.Y) == Bits(q.Y) && Bits(roundTrip.Z) == Bits(q.Z) && Bits(roundTrip.W) == Bits(q.W),
+            "quaternion conversion round trips bit for bit");
+    }
+
+    void CompoundPartFollowsBodyRotation(JoltRuntime& runtime)
+    {
+        BeginCase("a compound part lands where Canape Rotate says after the body rotates");
+        JoltWorld world(runtime);
+        const Quaternion rotation = AxisAngle({ 0, 1, 0 }, Pi * 0.5f);
+        const Vector3 origin(10.0f, 5.0f, -3.0f);
+        const Vector3 local(2.0f, 0.0f, 0.0f);
+        PhysicsBodyDesc desc = BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }, local) }, origin, PhysicsMotion::Dynamic, rotation);
+        desc.parts.push_back(BoxPart({ 0.1f, 0.1f, 0.1f }));
+        const PhysicsBodyId id = world.CreateBody(desc);
+        Check(id.IsValid(), "compound created");
+        const Vector3 expected = origin + rotation.Rotate(local);
+        const Vector3 mirror = origin - rotation.Rotate(local);
+        Check(world.QueryBox(expected, { 0.1f, 0.1f, 0.1f }).size() == 1, "the part is where Canape Rotate predicts");
+        Check(world.QueryBox(mirror, { 0.1f, 0.1f, 0.1f }).empty(), "nothing is at the mirrored position");
+        const PhysicsPose pose = world.GetPose(id);
+        Check(Bits(pose.position.X) == Bits(origin.X) && Bits(pose.position.Y) == Bits(origin.Y) && Bits(pose.position.Z) == Bits(origin.Z),
+            "the pose reads the body origin (pivot), not the centre of mass");
+    }
+
+    void TwoWorldsStayBitIdentical(JoltRuntime& runtime)
+    {
+        BeginCase("two worlds fed the same input for 600 ticks stay bit-identical every tick");
+        std::uint64_t digest = 0;
+        std::uint64_t finalState = 0;
+        std::vector<std::uint32_t> finalBits;
+        std::vector<std::uint32_t> startBits;
+        {
+            Simulation a(runtime);
+            Simulation b(runtime);
+            startBits = a.FinalBits();
+            bool lockstep = true;
+            for (int tick = 0; tick < 600; ++tick)
+            {
+                a.Tick();
+                b.Tick();
+                lockstep = lockstep && a.Digest() == b.Digest();
+            }
+            Check(lockstep, "the running digests match after every tick");
+            Check(a.FinalBits() == b.FinalBits(), "final poses and velocities match as raw bits");
+            Check(!StepFailed(a.Errors()) && !StepFailed(b.Errors()), "no step reported an error");
+            Check(a.World().GetBodyCount() == 58, "the scene holds 58 bodies");
+            Check(a.FinalBits() != startBits, "the scene moved");
+            digest = a.Digest();
+            finalState = a.FinalState();
+            finalBits = a.FinalBits();
+        }
+        std::cout << "DIGEST scene ticks=600 bodies=58 running=" << Hex(digest) << " final=" << Hex(finalState) << '\n';
+
+        BeginCase("destroying the world and building it again in the same order gives the same bits");
+        Simulation again(runtime);
+        again.Run(600);
+        Check(again.Digest() == digest, "the rebuilt world has the same running digest");
+        Check(again.FinalBits() == finalBits, "the rebuilt world has the same final raw bits");
+
+        BeginCase("the digest reacts to the input");
+        Simulation different(runtime, 1.01f);
+        different.Run(600);
+        Check(different.Digest() != digest, "a different impulse changes the digest");
+    }
+
+    float SlideAfter(JoltRuntime& runtime, float bodyFriction, std::optional<float> partFriction, int ticks = 30)
+    {
+        constexpr float Sin = 0.34202014f;
+        constexpr float Cos = 0.93969262f;
+        const Quaternion slope(0.0f, 0.0f, 0.17364818f, 0.98480775f);
+        JoltWorld world(runtime);
+        PhysicsBodyDesc slopeDesc = BodyOf({ BoxPart({ 1.0f, 0.05f, 0.5f }, {}, partFriction) }, { 0.0f, 1.0f, 0.0f }, PhysicsMotion::Static, slope);
+        slopeDesc.friction = bodyFriction;
+        world.CreateBody(slopeDesc);
+        PhysicsBodyDesc blockDesc = BoxBody({ -0.15f * Sin, 1.0f + 0.15f * Cos, 0.0f }, { 0.1f, 0.1f, 0.1f }, PhysicsMotion::Dynamic, slope);
+        blockDesc.friction = 1.0f;
+        const PhysicsBodyId block = world.CreateBody(blockDesc);
+        const Vector3 start = world.GetPose(block).position;
+        for (int i = 0; i < ticks; ++i)
+        {
+            world.Step(Dt);
+        }
+        return (start - world.GetPose(block).position).Length();
+    }
+
+    void FrictionOverrideReachesTheCombine(JoltRuntime& runtime)
+    {
+        BeginCase("a part friction override decides whether a block slides down a 20 degree slope");
+        const float overrideZero = SlideAfter(runtime, 1.0f, 0.0f);
+        const float overrideHalf = SlideAfter(runtime, 0.0f, 0.5f);
+        const float plainLow = SlideAfter(runtime, 0.0f, std::nullopt);
+        const float plainHigh = SlideAfter(runtime, 1.0f, std::nullopt);
+        Check(overrideZero > 0.3f, std::format("override 0 beats body friction 1 and slides (moved {})", overrideZero));
+        Check(overrideHalf < 0.01f, std::format("override 0.5 beats body friction 0 and holds (moved {})", overrideHalf));
+        Check(plainLow > 0.3f, std::format("control: body friction 0 slides (moved {})", plainLow));
+        Check(plainHigh < 0.01f, std::format("control: body friction 1 holds (moved {})", plainHigh));
+    }
+
+    void MixedOverridesInOneCompound(JoltRuntime& runtime)
+    {
+        BeginCase("a compound with mixed overrides gives each part its own friction");
+        constexpr float Sin = 0.34202014f;
+        constexpr float Cos = 0.93969262f;
+        const Quaternion slope(0.0f, 0.0f, 0.17364818f, 0.98480775f);
+        JoltWorld world(runtime);
+        PhysicsBodyDesc slopeDesc = BodyOf({ BoxPart({ 1.0f, 0.05f, 0.25f }, { 0.0f, 0.0f, -0.3f }),
+                                               BoxPart({ 1.0f, 0.05f, 0.25f }, { 0.0f, 0.0f, 0.3f }, 0.0f) },
+            { 0.0f, 1.0f, 0.0f }, PhysicsMotion::Static, slope);
+        slopeDesc.friction = 1.0f;
+        world.CreateBody(slopeDesc);
+        const auto blockAt = [&](float z)
+        {
+            PhysicsBodyDesc desc = BoxBody({ -0.15f * Sin, 1.0f + 0.15f * Cos, z }, { 0.1f, 0.1f, 0.1f }, PhysicsMotion::Dynamic, slope);
+            desc.friction = 1.0f;
+            return world.CreateBody(desc);
+        };
+        const PhysicsBodyId held = blockAt(-0.3f);
+        const PhysicsBodyId slid = blockAt(0.3f);
+        const Vector3 heldStart = world.GetPose(held).position;
+        const Vector3 slidStart = world.GetPose(slid).position;
+        for (int i = 0; i < 30; ++i)
+        {
+            world.Step(Dt);
+        }
+        Check((world.GetPose(held).position - heldStart).Length() < 0.01f, "the block on the plain part holds");
+        const Vector3 slide = slidStart - world.GetPose(slid).position;
+        Check(slide.X > 0.3f && slide.Y > 0.1f, "the block on the zero-friction part slides down the slope");
+    }
+
+    void QueryExcludesStaticsAndIncludesSleepers(JoltRuntime& runtime)
+    {
+        BeginCase("box query skips static bodies and includes a sleeping dynamic body");
+        JoltWorld world(runtime);
+        const PhysicsBodyId floor = world.CreateBody(BoxBody({ 0.0f, -0.5f, 0.0f }, { 5.0f, 0.5f, 5.0f }, PhysicsMotion::Static));
+        const PhysicsBodyId box = world.CreateBody(BoxBody({ 0.0f, 0.5f, 0.0f }));
+        Check(floor.IsValid() && box.IsValid(), "bodies created");
+        for (int i = 0; i < 900 && world.IsAwake(box); ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(!world.IsAwake(box), "the resting box fell asleep");
+        Check(world.GetStats().activeBodies == 0, "no body is active");
+        const PhysicsBodyIds found = world.QueryBox({ 0.0f, 0.0f, 0.0f }, { 2.0f, 2.0f, 2.0f });
+        Check(found.size() == 1 && found[0] == box, "only the sleeping dynamic box is found");
+    }
+
+    void QueryReturnsCreationOrder(JoltRuntime& runtime)
+    {
+        BeginCase("box query returns creation order, not slot or spatial order");
+        JoltWorld world(runtime);
+        const Vector3 spots[] = { { 3, 0, 0 }, { -3, 0, 1 }, { 0, 0, 0 }, { 2, 1, 2 }, { -2, -1, -2 }, { 1, 2, -1 }, { 0, -2, 2 }, { -1, 0, -3 } };
+        PhysicsBodyIds created;
+        for (const Vector3& spot : spots)
+        {
+            created.push_back(world.CreateBody(BoxBody(spot, { 0.4f, 0.4f, 0.4f })));
+        }
+        Check(world.QueryBox({ 0, 0, 0 }, { 6, 6, 6 }) == created, "scattered bodies come back in creation order");
+
+        world.DestroyBody(created[1]);
+        world.DestroyBody(created[4]);
+        const PhysicsBodyId reusedFirst = world.CreateBody(BoxBody({ 0.0f, 3.0f, 0.0f }, { 0.4f, 0.4f, 0.4f }));
+        const PhysicsBodyId reusedSecond = world.CreateBody(BoxBody({ 0.0f, -3.0f, 0.0f }, { 0.4f, 0.4f, 0.4f }));
+        Check(reusedFirst.index == created[4].index && reusedSecond.index == created[1].index, "slots are reused last destroyed first");
+        const PhysicsBodyIds expected = { created[0], created[2], created[3], created[5], created[6], created[7], reusedFirst, reusedSecond };
+        Check(world.QueryBox({ 0, 0, 0 }, { 6, 6, 6 }) == expected, "reused slots sort by creation serial");
+    }
+
+    void QueryHasNoDuplicatesForCompounds(JoltRuntime& runtime)
+    {
+        BeginCase("box query reports a compound with overlapping parts once");
+        JoltWorld world(runtime);
+        const PhysicsBodyId compound = world.CreateBody(
+            BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }), BoxPart({ 0.5f, 0.5f, 0.5f }, { 0.3f, 0.0f, 0.0f }), BoxPart({ 0.5f, 0.5f, 0.5f }, { 0.6f, 0.1f, 0.0f }),
+                      BoxPart({ 0.5f, 0.5f, 0.5f }, { 0.2f, 0.4f, 0.0f }) },
+                { 0, 0, 0 }));
+        const PhysicsBodyId plain = world.CreateBody(BoxBody({ 0.0f, 0.0f, 0.4f }, { 0.3f, 0.3f, 0.3f }));
+        const PhysicsBodyIds found = world.QueryBox({ 0.3f, 0.0f, 0.0f }, { 3.0f, 3.0f, 3.0f });
+        Check(found.size() == 2 && found[0] == compound && found[1] == plain, "one entry per body, creation order");
+    }
+
+    void QueryIsExact(JoltRuntime& runtime)
+    {
+        BeginCase("box query is exact: an overlapping AABB without an overlapping shape is excluded");
+        JoltWorld world(runtime);
+        const Quaternion diamond = AxisAngle({ 0, 0, 1 }, Pi * 0.25f);
+        const PhysicsBodyId body = world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Dynamic, diamond));
+        Check(world.QueryBox({ 0.55f, 0.55f, 0.0f }, { 0.05f, 0.05f, 0.5f }).empty(), "a query inside the corner of the AABB misses the shape");
+        const PhysicsBodyIds hit = world.QueryBox({ 0.3f, 0.3f, 0.0f }, { 0.05f, 0.05f, 0.5f });
+        Check(hit.size() == 1 && hit[0] == body, "a query inside the shape hits it");
+        Check(world.QueryBox({ 0, 0, 0 }, { 0.0f, 1.0f, 1.0f }).empty(), "a flat query box is refused");
+    }
+
+    void MassFollowsTheDesc(JoltRuntime& runtime)
+    {
+        BeginCase("mass 0 means density 1000 and a given mass is honoured");
+        JoltWorld world(runtime);
+        const PhysicsBodyId unit = world.CreateBody(BoxBody({ 0, 1, 0 }));
+        Check(Near(world.GetMass(unit), 1000.0f, 0.5f), std::format("1x1x1 m box weighs 1000 kg (got {})", world.GetMass(unit)));
+
+        PhysicsBodyDesc light = BoxBody({ 3, 1, 0 });
+        light.mass = 5.0f;
+        Check(Near(world.GetMass(world.CreateBody(light)), 5.0f, 1.0e-3f), "a given mass of 5 kg is kept");
+
+        PhysicsBodyDesc compound = BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }), BoxPart({ 0.5f, 0.5f, 0.5f }, { 2.0f, 0.0f, 0.0f }) }, { 0, 1, 5 });
+        const PhysicsBodyId two = world.CreateBody(compound);
+        Check(Near(world.GetMass(two), 2000.0f, 1.0f), "a compound of two 1 m cubes weighs 2000 kg");
+        compound.mass = 7.0f;
+        Check(Near(world.GetMass(world.CreateBody(compound)), 7.0f, 1.0e-3f), "a compound honours a given mass");
+
+        const PhysicsBodyId sphere = world.CreateBody(BodyOf({ SpherePart(0.5f) }, { 0, 1, 9 }));
+        Check(Near(world.GetMass(sphere), 4.0f / 3.0f * Pi * 0.125f * 1000.0f, 1.0f), "a sphere weighs density times volume");
+
+        const PhysicsBodyId fixed = world.CreateBody(BoxBody({ 0, -1, 0 }, { 5, 0.5f, 5 }, PhysicsMotion::Static));
+        Check(world.GetMass(fixed) == 0.0f, "a static body reports no mass");
+    }
+
+    void ThinBoxesAreAccepted(JoltRuntime& runtime)
+    {
+        BeginCase("boxes thinner than the convex radius are created, weigh their full volume and rest on a floor");
+        JoltWorld world(runtime);
+        const PhysicsBodyId floor = world.CreateBody(BoxBody({ 0, -0.5f, 0 }, { 10, 0.5f, 10 }, PhysicsMotion::Static));
+        const PhysicsBodyId slab = world.CreateBody(BoxBody({ 0, 0.5f, 0 }, { 0.5f, 0.04f, 0.5f }));
+        const PhysicsBodyId plate = world.CreateBody(BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }), BoxPart({ 0.5f, 0.03f, 0.5f }, { 2.0f, 0.0f, 0.0f }) }, { 4, 1, 0 }));
+        Check(world.CreateBody(BoxBody({ 0, 5, 0 }, { 0.5f, 0.01f, 0.5f })).IsValid(), "a 0.01 thick box is created");
+        Check(floor.IsValid() && slab.IsValid() && plate.IsValid(), "a 0.04 thick box and a compound with a 0.03 thick part are created");
+        Check(Near(world.GetMass(slab), 1.0f * 0.08f * 1.0f * 1000.0f, 0.5f), std::format("thin box mass is full volume x 1000 (got {})", world.GetMass(slab)));
+        Check(Near(world.GetMass(plate), (1.0f + 0.06f) * 1000.0f, 0.5f), std::format("compound mass counts the thin part (got {})", world.GetMass(plate)));
+
+        bool clean = true;
+        for (int i = 0; i < 180; ++i)
+        {
+            clean = clean && !StepFailed(world.Step(Dt));
+        }
+        Check(clean, "stepping reports no error");
+        const float restY = world.GetPose(slab).position.Y;
+        Check(Near(restY, 0.04f, 0.02f), std::format("the thin box rests on the floor (y {})", restY));
+        Check(world.GetPose(plate).position.Y > 0.0f, "the compound with a thin part does not fall through");
+    }
+
+    void InvalidRuntimeWorldIsInert()
+    {
+        BeginCase("a world on an invalid runtime creates nothing, reports NoRuntime and answers queries with defaults");
+        JoltRuntime first;
+        JoltRuntime second;
+        Check(first.IsValid() && !second.IsValid(), "one runtime is valid, the second is not");
+        JoltWorld world(second);
+        Check(!world.CreateBody(BoxBody({ 0, 1, 0 })).IsValid(), "no body can be created");
+        Check(HasStepError(world.Step(Dt), PhysicsStepError::NoRuntime), "stepping reports NoRuntime");
+        Check(world.GetBodyCount() == 0 && world.GetStats().bodyCount == 0 && world.GetStats().activeBodies == 0, "stats are empty");
+        Check(world.QueryBox({ 0, 0, 0 }, { 1, 1, 1 }).empty(), "queries find nothing");
+        Check(!world.IsValid(PhysicsBodyId{}), "the default id is not valid");
+    }
+
+    void FullWorldReturnsInvalidAndKeepsStepping(JoltRuntime& runtime)
+    {
+        BeginCase("a full world returns an invalid id for the next body and keeps stepping");
+        PhysicsWorldDesc desc;
+        desc.maxBodies = 4;
+        JoltWorld world(runtime, desc);
+        const PhysicsBodyId floor = world.CreateBody(BoxBody({ 0, -0.5f, 0 }, { 10, 0.5f, 10 }, PhysicsMotion::Static));
+        PhysicsBodyIds bodies;
+        for (int i = 0; i < 3; ++i)
+        {
+            bodies.push_back(world.CreateBody(BoxBody({ 2.0f * static_cast<float>(i), 5.0f, 0.0f })));
+        }
+        Check(floor.IsValid() && bodies[0].IsValid() && bodies[1].IsValid() && bodies[2].IsValid(), "four bodies fit");
+        const PhysicsBodyId extra = world.CreateBody(BoxBody({ 0, 9, 0 }));
+        Check(!extra.IsValid(), "the fifth body is refused");
+        Check(world.GetBodyCount() == 4, "the body count stays at four");
+
+        const float startY = world.GetPose(bodies[0]).position.Y;
+        bool clean = true;
+        for (int i = 0; i < 30; ++i)
+        {
+            clean = clean && !StepFailed(world.Step(Dt));
+        }
+        Check(clean, "stepping a full world reports no error");
+        Check(world.GetPose(bodies[0]).position.Y < startY, "the bodies still fall");
+
+        world.DestroyBody(bodies[2]);
+        Check(world.CreateBody(BoxBody({ 0, 9, 0 })).IsValid(), "a freed place can be used again");
+        Check(!world.CreateBody(BoxBody({ 0, 9, 3 })).IsValid(), "and the world is full again");
+    }
+
+    void InvalidInputReturnsInvalidIds(JoltRuntime& runtime)
+    {
+        BeginCase("invalid descriptions return an invalid id and never throw");
+        JoltWorld world(runtime);
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        Check(!world.CreateBody(PhysicsBodyDesc{}).IsValid(), "no parts");
+        Check(!world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, 0.0f, 0.5f })).IsValid(), "zero half extent");
+        Check(!world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, -1.0f, 0.5f })).IsValid(), "negative half extent");
+        Check(!world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, nan, 0.5f })).IsValid(), "NaN half extent");
+        Check(!world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, std::numeric_limits<float>::infinity(), 0.5f })).IsValid(), "infinite half extent");
+        Check(!world.CreateBody(BodyOf({ SpherePart(0.0f) }, { 0, 0, 0 })).IsValid(), "zero radius");
+        Check(!world.CreateBody(BoxBody({ nan, 0, 0 })).IsValid(), "NaN position");
+        Check(!world.CreateBody(BoxBody({ 0, 0, 0 }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Dynamic, Quaternion(0, 0, 0, 2.0f))).IsValid(),
+            "non-unit rotation");
+        Check(!world.CreateBody(BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }, {}, -1.0f) }, { 0, 0, 0 })).IsValid(), "negative friction override");
+        PhysicsBodyDesc negativeMass = BoxBody({ 0, 0, 0 });
+        negativeMass.mass = -1.0f;
+        Check(!world.CreateBody(negativeMass).IsValid(), "negative mass");
+        Check(world.GetBodyCount() == 0, "no failed creation left a body behind");
+    }
+
+    void StaleAndForeignIdsAreHarmless(JoltRuntime& runtime)
+    {
+        BeginCase("stale, default and foreign ids are harmless");
+        JoltWorld world(runtime);
+        JoltWorld other(runtime);
+        const PhysicsBodyId first = world.CreateBody(BoxBody({ 1, 2, 3 }));
+        const PhysicsBodyId foreign = other.CreateBody(BoxBody({ 1, 2, 3 }));
+        Check(first.index == foreign.index, "the two ids name the same slot of different worlds");
+        Check(!world.IsValid(foreign) && !other.IsValid(first), "a foreign id is invalid");
+        Check(world.GetMass(foreign) == 0.0f && world.GetPose(foreign).position.X == 0.0f, "queries on a foreign id return defaults");
+
+        world.DestroyBody(first);
+        world.DestroyBody(first);
+        world.DestroyBody(PhysicsBodyId{});
+        world.DestroyBody(foreign);
+        Check(other.IsValid(foreign), "a foreign destroy touched nothing");
+        Check(world.GetBodyCount() == 0, "destroying twice removes once");
+
+        const PhysicsBodyId second = world.CreateBody(BoxBody({ 4, 5, 6 }));
+        Check(second.index == first.index && second.generation != first.generation, "the slot is reused with a new generation");
+        Check(!world.IsValid(first) && world.IsValid(second), "the old id stays dead after the slot is reused");
+
+        world.AddImpulse(first, { 1, 1, 1 });
+        world.AddImpulseAt(first, { 1, 1, 1 }, { 0, 0, 0 });
+        world.AddImpulse(PhysicsBodyId{}, { 1, 1, 1 });
+        Check(world.GetLinearVelocity(second).Length() == 0.0f, "an impulse on a stale id did not reach the new body");
+        Check(world.GetLinearVelocity(first).Length() == 0.0f && world.GetAngularVelocity(first).Length() == 0.0f, "stale velocity queries return zero");
+        Check(!world.IsAwake(first) && world.GetMotion(first) == PhysicsMotion::Static && world.QueryBox({ 4, 5, 6 }, { 1, 1, 1 }).size() == 1,
+            "stale awake and motion queries return defaults and the query sees the live body");
+        Check(Bits(world.GetPose(PhysicsBodyId{}).rotation.W) == Bits(1.0f), "the default pose is the identity");
+    }
+
+    void ImpulsesMoveOnlyDynamicBodies(JoltRuntime& runtime)
+    {
+        BeginCase("impulses wake sleepers, add spin at a point and ignore non-dynamic bodies");
+        PhysicsWorldDesc desc;
+        desc.gravity = { 0.0f, 0.0f, 0.0f };
+        JoltWorld world(runtime, desc);
+        const PhysicsBodyId box = world.CreateBody(BoxBody({ 0, 0, 0 }));
+        const PhysicsBodyId fixed = world.CreateBody(BoxBody({ 5, 0, 0 }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
+        for (int i = 0; i < 120 && world.IsAwake(box); ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(!world.IsAwake(box), "the body at rest sleeps");
+        world.AddImpulse(box, { 1000.0f, 0.0f, 0.0f });
+        Check(world.IsAwake(box), "an impulse wakes the sleeper");
+        Check(Near(world.GetLinearVelocity(box).X, 1.0f, 1.0e-3f), "the impulse changes the velocity by impulse over mass");
+        world.AddImpulse(fixed, { 1000.0f, 0.0f, 0.0f });
+        Check(world.GetLinearVelocity(fixed).Length() == 0.0f, "a static body ignores impulses");
+
+        const PhysicsBodyId spun = world.CreateBody(BoxBody({ 0, 10, 0 }));
+        world.AddImpulseAt(spun, { 0.0f, 0.0f, 1000.0f }, { 0.5f, 10.0f, 0.0f });
+        Check(world.GetAngularVelocity(spun).Length() > 0.1f, "an impulse off the centre adds spin");
+    }
+
+    void StatsCountBodies(JoltRuntime& runtime)
+    {
+        BeginCase("stats report live and active bodies");
+        JoltWorld world(runtime);
+        world.CreateBody(BoxBody({ 0, -0.5f, 0 }, { 5, 0.5f, 5 }, PhysicsMotion::Static));
+        world.CreateBody(BoxBody({ 0, 3, 0 }));
+        world.CreateBody(BoxBody({ 2, 3, 0 }));
+        PhysicsWorldStats stats = world.GetStats();
+        Check(stats.bodyCount == 3 && world.GetBodyCount() == 3, "three bodies");
+        Check(stats.activeBodies == 2, "the two dynamic bodies are active");
+        Check(HasStepError(PhysicsStepError::BodyPairCacheFull | PhysicsStepError::NoRuntime, PhysicsStepError::NoRuntime), "step error flags combine");
+        Check(StepFailed(world.Step(-1.0f)) && StepFailed(world.Step(std::numeric_limits<float>::infinity())), "a bad time step is reported");
+    }
 }
 
 int main()
@@ -85,7 +708,31 @@ int main()
     RuntimeConstructsAndTearsDown();
     SecondRuntimeIsRefused();
     ConstructDestroyTwiceInARow();
+    InvalidRuntimeWorldIsInert();
     FeatureMismatchNamesTheDifferingBits();
+
+    JoltRuntime runtime;
+    if (!runtime.IsValid())
+    {
+        std::cout << "RESULT FAIL runtime: " << runtime.GetError() << '\n';
+        return EXIT_FAILURE;
+    }
+    QuaternionRotationMatchesJolt();
+    CompoundPartFollowsBodyRotation(runtime);
+    TwoWorldsStayBitIdentical(runtime);
+    FrictionOverrideReachesTheCombine(runtime);
+    MixedOverridesInOneCompound(runtime);
+    QueryExcludesStaticsAndIncludesSleepers(runtime);
+    QueryReturnsCreationOrder(runtime);
+    QueryHasNoDuplicatesForCompounds(runtime);
+    QueryIsExact(runtime);
+    MassFollowsTheDesc(runtime);
+    FullWorldReturnsInvalidAndKeepsStepping(runtime);
+    InvalidInputReturnsInvalidIds(runtime);
+    StaleAndForeignIdsAreHarmless(runtime);
+    ImpulsesMoveOnlyDynamicBodies(runtime);
+    StatsCountBodies(runtime);
+    ThinBoxesAreAccepted(runtime);
 
     if (g_failures != 0)
     {

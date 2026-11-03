@@ -83,10 +83,15 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="JoltConvert.h" />
     <ClInclude Include="JoltRuntime.h" />
+    <ClInclude Include="JoltRuntimeImpl.h" />
+    <ClInclude Include="JoltWorld.h" />
+    <ClInclude Include="PhysicsTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JoltRuntime.cpp" />
+    <ClCompile Include="JoltWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="JoltVcpkg.props" />
