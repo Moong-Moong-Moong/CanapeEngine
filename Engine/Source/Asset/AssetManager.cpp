@@ -1,6 +1,7 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
+#include "Asset/Mesh/PrimitiveMeshes.h"
 #include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
 #include "CNDebug/DebugLog.h"
@@ -11,6 +12,7 @@
 #include <Windows.h>
 
 #include <filesystem>
+#include <string_view>
 #include <system_error>
 #include <vector>
 
@@ -39,6 +41,73 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
+		// TODO: [Editor] Offer the built-in meshes in the mesh picker.
+		// Reserved paths are matched case-insensitively; keys are lowercase with '/' separators.
+		constexpr std::string_view BuiltinMeshPrefix = "builtin/";
+
+		struct BuiltinMeshEntry
+		{
+			std::string_view key;
+			std::string_view assetPath;
+			PrimitiveMeshData (*build)();
+		};
+
+		PrimitiveMeshData BuildDefaultSphere()
+		{
+			return PrimitiveMeshes::BuildSphere();
+		}
+
+		constexpr BuiltinMeshEntry BuiltinMeshes[] =
+		{
+			{ "builtin/cube", "Builtin/Cube", &PrimitiveMeshes::BuildCube },
+			{ "builtin/sphere", "Builtin/Sphere", &BuildDefaultSphere },
+			{ "builtin/plane", "Builtin/Plane", &PrimitiveMeshes::BuildPlane },
+		};
+
+		std::string NormalizeSeparators(std::string text)
+		{
+			for (char& c : text)
+			{
+				if (c == '\\') c = '/';
+			}
+			return text;
+		}
+
+		bool IsBuiltinMeshKey(const std::string& key)
+		{
+			return key.starts_with(BuiltinMeshPrefix);
+		}
+
+		std::string CanonicalBuiltinPath(const std::string& key, const std::string& fallback)
+		{
+			for (const BuiltinMeshEntry& entry : BuiltinMeshes)
+			{
+				if (entry.key == key)
+				{
+					return std::string(entry.assetPath);
+				}
+			}
+			return fallback;
+		}
+
+		std::unique_ptr<MeshAsset> CreateBuiltinMesh([[maybe_unused]] const std::string& path, const std::string& pathKey)
+		{
+			for (const BuiltinMeshEntry& entry : BuiltinMeshes)
+			{
+				if (entry.key == pathKey)
+				{
+					PrimitiveMeshData data = entry.build();
+					return std::make_unique<MeshAsset>(
+                        std::move(data.vertices),
+                        std::move(data.indices),
+                        std::vector<SubMesh>{}
+                    );
+				}
+			}
+			CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : 알 수 없는 내장 메쉬, ", path);
+			return nullptr;
+		}
+
 		std::filesystem::path& GetAssetRoot()
 		{
 			static std::filesystem::path root = []
@@ -46,7 +115,11 @@ namespace Canape
 				std::wstring buffer(MAX_PATH, L'\0');
 				for (;;)
 				{
-					const DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+					const DWORD length = GetModuleFileNameW(
+                        nullptr,
+                        buffer.data(),
+                        static_cast<DWORD>(buffer.size())
+                    );
 					if (length == 0)
 					{
 						std::error_code error;
@@ -220,6 +293,23 @@ namespace Canape
 	// Mesh
 	MeshAssetHandle AssetManager::GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner)
 	{
+		const std::string builtinPath = NormalizeSeparators(path);
+		const std::string builtinKey = ToLowerAscii(builtinPath);
+		if (IsBuiltinMeshKey(builtinKey))
+		{
+			MeshAssetId builtinId = FindMesh(builtinKey);
+			if (!builtinId.IsValid())
+			{
+				const std::string canonicalPath = CanonicalBuiltinPath(builtinKey, builtinPath);
+				builtinId = LoadMesh(canonicalPath, builtinKey, canonicalPath);
+				if (!builtinId.IsValid())
+				{
+					return {};
+				}
+			}
+			return CreateMeshHandle(builtinId, owner);
+		}
+
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
 		{
@@ -251,23 +341,33 @@ namespace Canape
 
 	MeshAssetId AssetManager::LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath)
 	{
-		const std::string extension = GetLowerExtension(filePath);
-
 		std::unique_ptr<MeshAsset> mesh;
-		if (extension == ".fbx")
+		if (IsBuiltinMeshKey(pathKey))
 		{
-			mesh = FbxImporter::LoadMesh(filePath);
+			mesh = CreateBuiltinMesh(path, pathKey);
+			if (!mesh)
+			{
+				return {};
+			}
 		}
 		else
 		{
-			CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
-			return {};
-		}
+			const std::string extension = GetLowerExtension(filePath);
+			if (extension == ".fbx")
+			{
+				mesh = FbxImporter::LoadMesh(filePath);
+			}
+			else
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);
+				return {};
+			}
 
-		if (!mesh)
-		{
-			CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : Import 실패, ", path);
-			return {};
+			if (!mesh)
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : Import 실패, ", path);
+				return {};
+			}
 		}
 		if (!m_GpuRegistry.CreateMeshResource(*mesh).IsValid())
 		{

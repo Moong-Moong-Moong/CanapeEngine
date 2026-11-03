@@ -81,6 +81,7 @@
     <ClInclude Include="Source\Asset\AssetTracker.h" />
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
+    <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h" />
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
     <ClInclude Include="Source\Asset\Material\MaterialFile.h" />
     <ClInclude Include="Source\Asset\Texture\TextureAsset.h" />
@@ -135,6 +136,7 @@
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
+    <ClCompile Include="Source\Asset\Mesh\PrimitiveMeshes.cpp" />
     <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp" />
     <ClCompile Include="Source\Asset\Texture\CubemapImporter.cpp" />
     <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp" />

@@ -168,6 +168,9 @@
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h">
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Asset\Texture\CubemapAsset.h">
       <Filter>Source\Asset\Texture</Filter>
     </ClInclude>
@@ -285,6 +288,9 @@
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\PrimitiveMeshes.cpp">
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Texture\CubemapImporter.cpp">
