@@ -248,7 +248,7 @@ namespace Canape
 				struct PendingComponent
 				{
 					Component* component;
-					const Json* properties;
+					Json properties;
 				};
 				std::vector<PendingComponent> pending;
 
@@ -284,14 +284,14 @@ namespace Canape
 						if (properties != componentJson.end() && properties->is_object())
 						{
 							ReadProperties(rttr::instance(component), *properties, false);
-							pending.push_back({ component, &*properties });
+							pending.push_back({ component, *properties });
 						}
 					}
 				}
 
 				for (const PendingComponent& entry : pending)
 				{
-					ReadProperties(rttr::instance(entry.component), *entry.properties, true);
+					ReadProperties(rttr::instance(entry.component), entry.properties, true);
 				}
 
 				const auto mainCamera = m_Components.find(root.value("mainCamera", uint64_t{ 0 }));
