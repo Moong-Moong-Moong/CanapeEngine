@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <d3d11sdklayers.h>
+#include <DirectXPackedVector.h>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -261,6 +262,13 @@ SC::LightConstants ReadLights(Backend &impl)
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
+unsigned char SrgbByte(float linear)
+{
+    linear = std::clamp(linear, 0.0f, 1.0f);
+    const float encoded = linear <= 0.0031308f ? linear * 12.92f
+        : 1.055f * std::pow(linear, 1.0f / 2.4f) - 0.055f;
+    return static_cast<unsigned char>(std::lround(encoded * 255.0f));
+}
 struct Image
 {
     UINT width, height;
@@ -280,8 +288,24 @@ Image ReadImage(Backend &impl, ID3D11Texture2D *texture)
     Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &map)), "image map");
     Image out{desc.Width, desc.Height, std::vector<unsigned char>(desc.Width * desc.Height * 4)};
     for (UINT row = 0; row < desc.Height; ++row)
-        std::memcpy(out.rgba.data() + row * desc.Width * 4, static_cast<const char *>(map.pData) + row * map.RowPitch,
-                    desc.Width * 4);
+    {
+        const auto* source = static_cast<const char*>(map.pData) + row * map.RowPitch;
+        auto* destination = out.rgba.data() + row * desc.Width * 4;
+        if (desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT)
+        {
+            // Legacy shadow/skybox comparisons use display bytes; decode FP16 and
+            // encode them here so those checks retain their original color meaning.
+            const auto* pixels = reinterpret_cast<const DirectX::PackedVector::HALF*>(source);
+            for (UINT x = 0; x < desc.Width; ++x)
+            {
+                for (UINT channel = 0; channel < 3; ++channel)
+                    destination[x * 4 + channel] = SrgbByte(DirectX::PackedVector::XMConvertHalfToFloat(pixels[x * 4 + channel]));
+                destination[x * 4 + 3] = static_cast<unsigned char>(std::lround(std::clamp(
+                    DirectX::PackedVector::XMConvertHalfToFloat(pixels[x * 4 + 3]), 0.0f, 1.0f) * 255.0f));
+            }
+        }
+        else std::memcpy(destination, source, desc.Width * 4);
+    }
     impl.Context->Unmap(staging.Get(), 0);
     return out;
 }
@@ -573,6 +597,157 @@ void SkyboxChecks(DX11Renderer& renderer)
     renderer.DestroyCubemap(cubemap);
     std::cout << "Skybox GPU integration: cubemap selection, brightness, yaw, camera, depth, missing resource, queue reset PASS\n";
 }
+// Read raw linear SceneColor rather than the legacy display-byte test adapter.
+std::array<float, 4> ReadHdrCenter(Backend& impl)
+{
+    D3D11_TEXTURE2D_DESC desc{};
+    impl.SceneColorTexture->GetDesc(&desc);
+    Require(desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT, "SceneColor FP16 format");
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    ComPtr<ID3D11Texture2D> staging;
+    Require(SUCCEEDED(impl.Device->CreateTexture2D(&desc, nullptr, &staging)), "HDR staging");
+    impl.Context->CopyResource(staging.Get(), impl.SceneColorTexture.Get());
+    D3D11_MAPPED_SUBRESOURCE map{};
+    Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &map)), "HDR map");
+    const auto* pixel = reinterpret_cast<const DirectX::PackedVector::HALF*>(
+        static_cast<const char*>(map.pData) + (desc.Height / 2) * map.RowPitch) + (desc.Width / 2) * 4;
+    std::array<float, 4> result{};
+    for (size_t i = 0; i < result.size(); ++i)
+        result[i] = DirectX::PackedVector::XMConvertHalfToFloat(pixel[i]);
+    impl.Context->Unmap(staging.Get(), 0);
+    return result;
+}
+void HdrChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    const std::array<StaticVertex, 4> vertices{{
+        {{-1, -1, .5f}, {0, 0, -1}, {.25f, .5f}},
+        {{-1, 1, .5f}, {0, 0, -1}, {.25f, .5f}},
+        {{1, 1, .5f}, {0, 0, -1}, {.25f, .5f}},
+        {{1, -1, .5f}, {0, 0, -1}, {.25f, .5f}} }};
+    const std::array<uint32_t, 6> indices{0, 1, 2, 0, 2, 3};
+    const auto mesh = renderer.CreateMesh(vertices, indices, {});
+    Require(renderer.IsMeshValid(mesh), "HDR mesh");
+    RenderScene scene;
+    scene.ambientColor = {4.0f, 2.0f, .5f};
+    scene.ambientIntensity = 1.0f;
+    scene.camera.postProcess = {false, false}; // Deliberately ignored at this development stage.
+    scene.items = {RenderItem{mesh}};
+    auto center = [](const Image& image) {
+        const size_t offset = ((image.height / 2) * image.width + image.width / 2) * 4;
+        return std::array<int, 3>{image.rgba[offset], image.rgba[offset + 1], image.rgba[offset + 2]};
+    };
+    auto expect = [](const std::array<int, 3>& actual, const std::array<float, 3>& linear) {
+        for (size_t channel = 0; channel < 3; ++channel)
+            Require(std::abs(actual[channel] - int(SrgbByte(linear[channel]))) <= 1,
+                "GPU SDR output matches linear value encoded once by sRGB RTV");
+    };
+    std::array<float, 4> hdr{};
+    auto frame = [&]() {
+        Require(renderer.BeginFrame(), "HDR BeginFrame");
+        renderer.DrawScene(scene);
+        hdr = ReadHdrCenter(impl);
+        renderer.EndFrame();
+        Require(renderer.GetDebugStats().drawCalls == 2, "one mesh draw plus one final composite draw");
+        ComPtr<ID3D11ShaderResourceView> boundTexture;
+        ComPtr<ID3D11Buffer> boundBuffer;
+        impl.Context->PSGetShaderResources(0, 1, &boundTexture);
+        impl.Context->PSGetConstantBuffers(SC::PostProcessSlot, 1, &boundBuffer);
+        Require(!boundTexture && !boundBuffer, "final composite cleans t0 and b8");
+        if (impl.Overlay) return center(ReadImage(impl, impl.DisplayTexture.Get()));
+        ComPtr<ID3D11Texture2D> back;
+        Require(SUCCEEDED(impl.SwapChain->GetBuffer(0, IID_PPV_ARGS(&back))), "HDR back buffer");
+        return center(ReadImage(impl, back.Get()));
+    };
+    D3D11_RENDER_TARGET_VIEW_DESC rtv{};
+    impl.RenderTargetView->GetDesc(&rtv);
+    Require(rtv.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, "back buffer sRGB RTV");
+    renderer.SetDebugSettings({});
+    renderer.SetPostProcessSettings({});
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    Require(hdr[0] == 4.0f && hdr[1] == 2.0f && hdr[2] == .5f, "unclamped linear HDR mesh lighting");
+    auto* stableTarget = impl.SceneColorTexture.Get();
+    renderer.SetPostProcessSettings({true, false});
+    expect(frame(), {1, 1, .5f});
+    Require(impl.SceneColorTexture.Get() == stableTarget, "SceneColor reused across frames");
+    renderer.SetPostProcessSettings({false, true});
+    expect(frame(), {1, 1, .5f});
+    renderer.SetPostProcessSettings({false, false});
+    expect(frame(), {1, 1, .5f});
+    renderer.SetPostProcessSettings({});
+    RendererDebugSettings debug{};
+    debug.enabled = true;
+    debug.depthMin = 0;
+    debug.depthMax = 1;
+    for (auto mode : {DebugViewMode::WorldNormal, DebugViewMode::UV, DebugViewMode::CameraDepth})
+    {
+        debug.viewMode = mode;
+        renderer.SetDebugSettings(debug);
+        const auto pixel = frame();
+        if (mode == DebugViewMode::WorldNormal) expect(pixel, {.5f, .5f, 0});
+        if (mode == DebugViewMode::UV) expect(pixel, {.25f, .5f, 0});
+        if (mode == DebugViewMode::CameraDepth) expect(pixel, {.5f, .5f, .5f});
+    }
+    debug.viewMode = DebugViewMode::Final;
+    renderer.SetDebugSettings(debug);
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    debug.enabled = false;
+    debug.viewMode = DebugViewMode::UV;
+    renderer.SetDebugSettings(debug);
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    renderer.SetDebugSettings({});
+    // Base-color texture is sRGB-decoded before storing/mapping the lighting result.
+    const std::array<uint8_t, 4> texel{128, 128, 128, 255};
+    const auto texture = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_SRGB, texel);
+    const auto material = renderer.CreateMaterial({}, texture);
+    scene.items[0].material = material;
+    scene.ambientColor = {1, 1, 1};
+    frame();
+    Require(std::abs(hdr[0] - .21586f) < .001f, "sRGB base texture decodes into linear SceneColor");
+    scene.items[0].material = {};
+    renderer.DestroyMaterial(material);
+    renderer.DestroyTexture(texture);
+    // Bright skybox values also survive the main target and reach the same final shader.
+    const std::array<uint8_t, 24> whiteFaces{
+        255,255,255,255, 255,255,255,255, 255,255,255,255,
+        255,255,255,255, 255,255,255,255, 255,255,255,255};
+    const auto cubemap = renderer.CreateCubemap(1, 1, TextureFormat::RGBA8_SRGB, whiteFaces);
+    scene.items.clear();
+    scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
+    scene.skybox = {cubemap, 4.0f};
+    Require(renderer.BeginFrame(), "HDR skybox BeginFrame");
+    renderer.DrawScene(scene);
+    Require(ReadHdrCenter(impl)[0] == 4.0f, "skybox preserves HDR brightness");
+    renderer.EndFrame();
+    renderer.DestroyCubemap(cubemap);
+    scene.skybox = {};
+    scene.camera.projection = {};
+    scene.items = {RenderItem{mesh}};
+    scene.ambientColor = {4, 2, .5f};
+    renderer.SetOverlay([] {});
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    renderer.SetSceneSize(128, 96);
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    Require(impl.Width == 128 && impl.Height == 96, "HDR scene resize");
+    D3D11_TEXTURE2D_DESC display{};
+    impl.DisplayTexture->GetDesc(&display);
+    Require(display.Format == DXGI_FORMAT_R8G8B8A8_TYPELESS, "editor output remains SDR");
+    renderer.SetSceneSize(0, 0);
+    renderer.SetOverlay({});
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    Require(SetWindowPos(impl.Window, nullptr, 0, 0, 320, 240, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE), "window resize");
+    expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
+    impl.RenderTargetView->GetDesc(&rtv);
+    Require(rtv.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, "back buffer resize preserves sRGB RTV");
+    Require(SetWindowPos(impl.Window, nullptr, 0, 0, 256, 256, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE), "restore window size");
+    frame();
+    renderer.DestroyMesh(mesh);
+    renderer.SetDebugSettings({});
+    renderer.SetPostProcessSettings({});
+    std::cout << "HDR GPU integration: FP16, settings, Reinhard, sRGB, debug bypass, skybox, overlay, resize, single final draw PASS\n";
+}
 void ShadowChecks()
 {
     const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -608,6 +783,7 @@ void ShadowChecks()
         Require(SUCCEEDED(impl.Device.As(&queue)), "debug info queue");
         Require(impl.CreateTargets(256, 256) && impl.CreatePipeline() && impl.CreateSkyboxQuad(), "targets and pipeline");
         SkyboxChecks(renderer);
+        HdrChecks(renderer);
         if (!impl.Pipelines.ShadowsAvailable())
             CheckMessages(queue.Get());
         Require(impl.Pipelines.ShadowsAvailable(), "shadow pipeline compiled");

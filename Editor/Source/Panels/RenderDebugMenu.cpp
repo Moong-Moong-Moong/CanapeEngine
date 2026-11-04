@@ -85,6 +85,7 @@ void RenderDebugMenu::Draw(Renderer& renderer)
     {
         ImGui::TextDisabled("Debug views are disabled in this build");
     }
+    DrawPostProcessOptions(renderer);
     DrawPcssOptions(renderer);
     if (Renderer::IsDebugAvailable())
     {
@@ -97,8 +98,26 @@ void RenderDebugMenu::Draw(Renderer& renderer)
     {
         renderer.ResetDebugSettings();
         renderer.ResetShadowFilterSettings();
+        renderer.ResetPostProcessSettings();
     }
     ImGui::EndPopup();
+}
+
+void RenderDebugMenu::DrawPostProcessOptions(Renderer& renderer)
+{
+    ImGui::SeparatorText("Post Processing");
+
+    bool toneMapping = renderer.GetPostProcessSettings().toneMappingEnabled;
+    if (ImGui::Checkbox("Tone Mapping", &toneMapping))
+    {
+        renderer.SetToneMappingEnabled(toneMapping);
+    }
+
+    const RendererDebugSettings& debug = renderer.GetDebugSettings();
+    if (Renderer::IsDebugAvailable() && debug.enabled && debug.viewMode != DebugViewMode::Final)
+    {
+        ImGui::TextDisabled("Bypassed in debug views");
+    }
 }
 
 void RenderDebugMenu::DrawPcssOptions(Renderer& renderer)

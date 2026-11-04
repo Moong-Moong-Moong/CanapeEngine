@@ -69,6 +69,7 @@ namespace Canape
         bool SceneDirty = true;
         RenderScene QueuedScene;
         DirectionalShadowSettings ShadowSettings{};
+        PostProcessSettings postProcessSettings_{};
         bool ShadowActive = false;
         uint32_t AttemptedShadowResolution = UINT32_MAX;
 
@@ -104,6 +105,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> SkyboxViewBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
+        ComPtr<ID3D11Buffer> PostProcessBuffer;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;
 #endif
@@ -122,7 +124,9 @@ namespace Canape
         void BindSharedConstants();
         void BindPipeline(const DX11PipelineSelection& pipeline);
         void DrawSkybox(const PreparedSkybox& skybox);
-        void RenderFinalOutput(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
+        void SetPostProcessSettings(const PostProcessSettings& settings);
+        void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
+        void ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void RenderOverlay();
         bool CreateTargets(uint32_t width, uint32_t height);
         bool CreateBackBufferTargets(uint32_t width, uint32_t height);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DX11Renderer/Scene/RenderItem.h"
+#include "DX11Renderer/Data/PostProcessSettings.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 
@@ -14,6 +15,7 @@ namespace Canape
         Matrix4 view{};
         Matrix4 projection{};
         Vector3 cameraPosition{};
+        PostProcessSettings postProcess{}; // Future per-view input; backend defaults are used for now.
     };
 
     enum class LightType : uint8_t { Directional, Point, Spot };

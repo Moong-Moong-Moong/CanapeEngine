@@ -58,6 +58,9 @@ namespace Canape
         void DestroyCubemap(CubemapResourceId cubemap);
 
         void SetCamera(const float* view, const float* projection);
+        // Development defaults; RenderView.postProcess is reserved for future engine integration.
+        void SetPostProcessSettings(const PostProcessSettings& settings);
+        PostProcessSettings GetPostProcessSettings() const;
         void SetDebugSettings(const RendererDebugSettings& settings);
         RendererDebugSettings GetDebugSettings() const;
         RendererDebugStats GetDebugStats() const;

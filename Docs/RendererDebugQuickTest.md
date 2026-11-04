@@ -6,6 +6,7 @@ Open the **Render Debug** dropdown at the right end of the Scene view toolbar.
 | Section | Options |
 | --- | --- |
 | View | Debug View on/off, View Mode (Final, CameraDepth, WorldNormal, UV, MipLOD, ShadowDepth, ShadowVisibility, PcssFilterRadius), Wireframe, Depth Range (CameraDepth only) |
+| Post Processing | Tone Mapping on/off (independent of Debug View) |
 | Shadow | Cull Mode, Slope Bias, Receiver Bias, PCF |
 | PCSS | PCSS on/off, Shadow Distance, PCF Samples, Legacy 25-tap pattern, Tap Spacing, Blocker Samples, Blocker Search Radius |
 | Stats | GPU timing capture, draw calls, triangles, GPU frame/DrawScene/FinalOutput times |
@@ -25,7 +26,15 @@ Quick check:
    white texture remain white. UV needs a mesh with UV attributes.
 5. Enable GPU Timings, wait a few frames, and check that timing values appear.
 6. Change PCSS options in ShadowVisibility or PcssFilterRadius to compare filters.
-7. Use Reset All to restore defaults.
+7. In Final mode (or with Debug View off), toggle Post Processing > Tone Mapping.
+   Changes apply to the next rendered frame in both edit and Play modes. Compare a
+   brightly lit/textured object: off clamps HDR highlights, on applies Reinhard.
+   Other debug views bypass tone mapping regardless of the checkbox state.
+8. Use Reset All to restore defaults, including Tone Mapping on.
+
+PostProcessSettings are read directly from DX11Renderer; the editor and Renderer
+keep no separate settings copy. The Tone Mapping control remains available when
+Debug View is off and in Shipping editor builds.
 
 Implementation: Renderer exposes one setter per option for RendererDebugSettings
 and ShadowFilterSettings and forwards them to DX11Renderer, which validates and

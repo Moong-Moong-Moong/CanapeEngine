@@ -152,6 +152,21 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(PcssConstants, PcfTapSpacingScale) == 32);
     static_assert(offsetof(PcssConstants, BlockerSampleCount) == 36);
 
+    // FinalOutput.hlsl b8; b7 is already used by PCSS.
+    inline constexpr uint32_t PostProcessSlot = 8;
+    struct alignas(16) PostProcessConstants
+    {
+        uint32_t PostProcessingEnabled = 1;
+        uint32_t ToneMappingEnabled = 1;
+        uint32_t DebugViewEnabled = 0; // Derived from RendererDebugSettings, independent of effect toggles.
+        uint32_t Padding = 0;
+    };
+    static_assert(sizeof(PostProcessConstants) == 16);
+    static_assert(alignof(PostProcessConstants) == 16);
+    static_assert(offsetof(PostProcessConstants, ToneMappingEnabled) == 4);
+    static_assert(offsetof(PostProcessConstants, DebugViewEnabled) == 8);
+    static_assert(offsetof(PostProcessConstants, Padding) == 12);
+
     struct alignas(16) SceneConstants
     {
         Vector3 AmbientColor{ 1.0f, 1.0f, 1.0f };

@@ -44,7 +44,13 @@ namespace Canape
             { SkyboxVertexBuffer.Get(), SkyboxIndexBuffer.Get(), SkyboxViewBuffer.Get() }, GetMainTargets(), stats);
     }
 
-    void DX11Renderer::Impl::RenderFinalOutput(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
+    void DX11Renderer::Impl::ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
+    {
+        // Future HDR effects that need their own textures/passes run here, before SDR conversion.
+        ExecuteFinalCompositePass(target, width, height);
+    }
+
+    void DX11Renderer::Impl::ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
     {
         ID3D11ShaderResourceView* depth = nullptr;
         ID3D11Buffer* depthDisplay = nullptr;
@@ -61,7 +67,17 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
         if (output.DisplayDepth) ConstantBuffers::Upload(*Context.Get(), depthDisplay, output.DepthDisplay);
 #endif
-        FinalOutputPass::Execute(output, *Context.Get(), target, width, height, depthDisplay, stats);
+        // Current single settings source. Future per-view integration should select
+        // scene.camera.postProcess in ExecuteScene instead of these development defaults.
+        SC::PostProcessConstants postProcess{};
+        postProcess.PostProcessingEnabled = postProcessSettings_.enabled ? 1u : 0u;
+        postProcess.ToneMappingEnabled = postProcessSettings_.toneMappingEnabled ? 1u : 0u;
+#if CANAPE_RENDER_DEBUG
+        postProcess.DebugViewEnabled = DebugSettings.enabled && DebugSettings.viewMode != DebugViewMode::Final ? 1u : 0u;
+#endif
+        ConstantBuffers::Upload(*Context.Get(), PostProcessBuffer.Get(), postProcess);
+        FinalOutputPass::Execute(output, *Context.Get(), target, width, height,
+            depthDisplay, PostProcessBuffer.Get(), stats);
     }
 
     bool DX11Renderer::Impl::BeginFrame()
@@ -97,7 +113,7 @@ namespace Canape
         }
 #endif
 
-        // Linear RGB and linear alpha. The SceneColor sRGB RTV encodes RGB, including clear values.
+        // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
         context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -173,12 +189,12 @@ namespace Canape
 #endif
         if (Overlay)
         {
-            RenderFinalOutput(DisplayRenderTargetView.Get(), Width, Height);
+            ExecutePostProcessing(DisplayRenderTargetView.Get(), Width, Height);
             RenderOverlay();
         }
         else
         {
-            RenderFinalOutput(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+            ExecutePostProcessing(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
         }
 #if CANAPE_RENDER_DEBUG
         if (ProfilerAvailable)

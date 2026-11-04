@@ -3,6 +3,21 @@
 Texture2D OutputTexture : register(t0);
 SamplerState LinearSampler : register(s0);
 
+// Keep the 16-byte layout in sync with ShaderConstants::PostProcessConstants.
+// b7 belongs to PCSS; final composition uses b8.
+cbuffer PostProcessConstants : register(b8)
+{
+    uint PostProcessingEnabled;
+    uint ToneMappingEnabled;
+    uint DebugViewEnabled;
+    uint PostProcessPadding;
+};
+
+float3 ToneMapReinhard(float3 color)
+{
+    return color / (1.0f + color);
+}
+
 FullscreenVertexOutput VSMain(uint vertexID : SV_VertexID)
 {
     FullscreenVertexOutput output;
@@ -13,6 +28,11 @@ FullscreenVertexOutput VSMain(uint vertexID : SV_VertexID)
 
 float4 PSMain(FullscreenVertexOutput input) : SV_TARGET
 {
-    // The sRGB SRV decodes to linear RGB; the back-buffer sRGB RTV encodes it once.
-    return OutputTexture.Sample(LinearSampler, input.UV);
+    float4 sceneColor = OutputTexture.Sample(LinearSampler, input.UV);
+    float3 color = sceneColor.rgb; // FP16 SceneColor is already linear.
+    if (PostProcessingEnabled != 0 && ToneMappingEnabled != 0 && DebugViewEnabled == 0)
+        color = ToneMapReinhard(max(color, 0.0f));
+    // Clamp only at the SDR boundary, including when post processing is disabled.
+    // The destination sRGB RTV performs the sole linear-to-sRGB conversion.
+    return float4(saturate(color), sceneColor.a);
 }

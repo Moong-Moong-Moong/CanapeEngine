@@ -25,7 +25,7 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     float3 normal = GetWorldNormal(input);
     float3 lighting = AmbientColor * AmbientIntensity
         + CalculateDirectLighting(input.WorldPosition, normal);
-    // sRGB sampling decodes RGB; the sRGB RTV encodes the linear output once.
+    // sRGB sampling decodes RGB; the FP16 SceneColor target preserves linear HDR output.
     float4 textureColor = BaseColorTexture.Sample(LinearSampler, input.UV);
     float alpha = BaseColor.a * textureColor.a;
     if (MaterialAlphaMode == 1) clip(alpha - AlphaCutoff);

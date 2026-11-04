@@ -83,6 +83,16 @@ namespace Canape
         return true;
     }
 
+    void DX11Renderer::SetPostProcessSettings(const PostProcessSettings& settings)
+    {
+        if (m_Impl) m_Impl->SetPostProcessSettings(settings);
+    }
+
+    PostProcessSettings DX11Renderer::GetPostProcessSettings() const
+    {
+        return m_Impl ? m_Impl->postProcessSettings_ : PostProcessSettings{};
+    }
+
     void DX11Renderer::Shutdown()
     {
         m_Impl.reset();
