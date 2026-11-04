@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Physics/PhysicsScene.h"
 #include "Scene/GameObject/GameObjectManager.h"
 #include "Scene/Component/ComponentRegistry.h"
 
@@ -52,22 +53,29 @@ namespace Canape
 		//*** 컴포넌트 등록시 ComponentRegistry에 타입별로 등록되어 컴포넌트 순회 시 사용됨.
 		void RegisterComponent(Component* component);
 		void UnregisterComponent(Component* component);
+		//*** 컴포넌트가 실행될 수 있는가?
+		static bool IsRunnable(const Component* component);
 
 		//***** Camera
 		CameraComponent* GetMainCamera() ;
 		void SetMainCamera(CameraComponent* camera);
 
-	private:
-		void UpdateScripts();
+		//***** Physics
+		PhysicsScene& GetPhysics() { return m_Physics; }
+		const PhysicsScene& GetPhysics() const { return m_Physics; }
 
-		//*** 컴포넌트가 실행될 수 있는가?
-		static bool IsRunnable(const Component* component);
+	private:
+		void RunAwakeAndStart();
+		void RunFixedStep();
+		void RunUpdate();
 
 	private:
 		friend class SceneManager;
 		friend class GameObject;
 
 		std::string m_Name;
+
+		PhysicsScene m_Physics;
 
 		std::queue<Component*> m_onDestroyQueue;
 		ComponentRegistry m_componentRegistry;

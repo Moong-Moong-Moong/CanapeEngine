@@ -9,6 +9,7 @@
 #include "Core/Window.h"
 #include "Input/InputManager.h"
 #include "Math/Math.h"
+#include "Physics/PhysicsScene.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/Component.h"
 #include "Scene/GameObject/GameObject.h"

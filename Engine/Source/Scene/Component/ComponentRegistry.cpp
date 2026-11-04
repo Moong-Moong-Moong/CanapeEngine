@@ -30,6 +30,10 @@ namespace Canape
 		m_pendingRemove.push_back(component);
 	}
 
+	void ComponentRegistry::FlushPendingPhysics()
+	{
+	}
+
 	void ComponentRegistry::FlushPending()
 	{
 		//***** 추가

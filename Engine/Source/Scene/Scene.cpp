@@ -1,4 +1,5 @@
 #include "Scene/Scene.h"
+#include "Core/Time.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/FogComponent.h"
@@ -24,6 +25,8 @@ namespace Canape
 	{
 		//***** Component
 		std::vector<Component*> pendingRemoveComps = m_componentRegistry.GetPendingRemove();
+		//*** Release physics bodies before the components are destroyed
+		m_Physics.ReleaseBodies(pendingRemoveComps);
 		//*** ComponentRegistry 정리
 		m_componentRegistry.FlushPending();
 		//*** 실제 컴포넌트 제거
@@ -39,7 +42,15 @@ namespace Canape
 	void Scene::Update()
 	{
 		BeginUpdate();
-		UpdateScripts();
+		RunAwakeAndStart();
+
+        const auto step = Time::FixedStepCount();
+		for (auto i = 0u; i < step; ++i)
+        {
+            RunFixedStep();
+        }
+
+        RunUpdate();
 		EndUpdate();
 	}
 
@@ -65,7 +76,21 @@ namespace Canape
 		}
 	}
 
-	void Scene::UpdateScripts()
+	void Scene::RunFixedStep()
+	{
+		for (ScriptComponent* script : m_componentRegistry.GetScripts())
+		{
+			if (IsRunnable(script) && script->GetStarted())
+				script->FixedUpdate();
+		}
+
+		m_componentRegistry.FlushPendingPhysics();
+		m_Physics.SyncBodies();
+		if (m_Physics.HasWorld())
+			m_Physics.Step(Time::FixedDeltaTime());
+	}
+
+	void Scene::RunAwakeAndStart()
 	{
 		std::span<ScriptComponent* const> scripts = m_componentRegistry.GetScripts();
 
@@ -86,6 +111,11 @@ namespace Canape
 			script->Start();
 			script->SetStarted(true);
 		}
+	}
+
+	void Scene::RunUpdate()
+	{
+		std::span<ScriptComponent* const> scripts = m_componentRegistry.GetScripts();
 
 		//***Update
 		for (ScriptComponent* script : scripts)

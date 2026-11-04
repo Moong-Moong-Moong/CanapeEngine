@@ -25,6 +25,8 @@ namespace Canape
 		void Register(Component* component);
 		void Unregister(Component* component);
 		void FlushPending();
+		//*** Registers only physics components early so ones added during FixedUpdate join the same tick.
+		void FlushPendingPhysics();
 
 		std::span<ScriptComponent* const> GetScripts() const { return m_scripts; }
 		std::span<RenderableComponent* const> GetRenderables() const { return m_renderables; }

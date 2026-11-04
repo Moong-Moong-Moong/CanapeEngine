@@ -40,6 +40,9 @@
     <Filter Include="Source\Input">
       <UniqueIdentifier>{D23E979E-2CFA-6BF4-4B69-B979A184A45B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Physics">
+      <UniqueIdentifier>{3E7B5A12-8C4D-4F6A-9B21-6D0E8F1A7C35}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Renderer">
       <UniqueIdentifier>{C0C50F43-B577-32D5-1592-8611F7350414}</UniqueIdentifier>
     </Filter>
@@ -210,6 +213,9 @@
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Physics\PhysicsScene.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Renderer\GpuResourceRegistry.h">
       <Filter>Source\Renderer</Filter>
     </ClInclude>
@@ -319,6 +325,9 @@
     </ClCompile>
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\PhysicsScene.cpp">
+      <Filter>Source\Physics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp">
       <Filter>Source\Renderer</Filter>
