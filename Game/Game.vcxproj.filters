@@ -30,6 +30,9 @@
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\FlyCamera.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -48,6 +51,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\CameraController.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\FlyCamera.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
@@ -85,6 +91,9 @@
     </None>
     <None Include="Content\Models\Player.fbx">
       <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Scenes\PhysicsPlayground.json">
+      <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\SampleScene.json">
       <Filter>Content\Scenes</Filter>

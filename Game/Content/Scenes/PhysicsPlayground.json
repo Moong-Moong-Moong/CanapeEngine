@@ -1,0 +1,486 @@
+{
+    "version": 1,
+    "name": "PhysicsPlayground",
+    "mainCamera": 25,
+    "materials": [
+        {
+            "name": "M_PlaygroundFloor",
+            "baseColorTexture": "",
+            "desc": {
+                "baseColor": {
+                    "X": 0.5,
+                    "Y": 0.5,
+                    "Z": 0.5,
+                    "W": 1.0
+                },
+                "roughness": 0.8,
+                "metallic": 0.0,
+                "alphaMode": "Opaque",
+                "alphaCutoff": 0.5
+            }
+        }
+    ],
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 3.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 20.0,
+                            "Y": 1.0,
+                            "Z": 16.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Plane",
+                        "materials": [
+                            "M_PlaygroundFloor"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "KickerJump",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -4.5,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "TiltTray",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "CarriedScoop",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.5,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "SwingCut",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -4.5,
+                            "Y": 0.0,
+                            "Z": 4.5
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "name": "LeverCatapult",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 4.5
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "BuoyPop",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.5,
+                            "Y": 0.0,
+                            "Z": 4.5
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "Sun",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.48296076,
+                            "Y": -0.22414939,
+                            "Z": 0.12941225,
+                            "W": 0.83651567
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.5,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "name": "Sky",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "",
+                        "brightness": 1.0,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 0.078,
+                            "Y": 0.099,
+                            "Z": 0.139
+                        },
+                        "ambientIntensity": 1.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 22,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 7.3,
+                            "Z": -3.9
+                        },
+                        "localRotation": {
+                            "X": 0.42277023,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9062369
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "FlyCamera",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "homePosition": {
+                            "X": 0.0,
+                            "Y": 7.3,
+                            "Z": -3.9
+                        },
+                        "homeYaw": 0.0,
+                        "homePitch": 50.019215,
+                        "moveSpeed": 5.0,
+                        "lookSensitivity": 0.17188732,
+                        "resetKey": "F"
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.05,
+                        "farClip": 100.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 26,
+            "name": "Scene Changer",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SceneChanger",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "nextScene": "SampleScene",
+                        "key": "P"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 29,
+            "name": "Garbage Collector",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 30,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "GarbageCollector",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "key": "Delete"
+                    }
+                }
+            ]
+        }
+    ]
+}
