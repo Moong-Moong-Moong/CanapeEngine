@@ -68,7 +68,7 @@ namespace Canape
         }
 
 #if CANAPE_RENDER_DEBUG
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugWorldNormal", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugWorldNormal", "ps_5_0", nullptr,
             kShaderCompileFlags, pixelBytecode, error))
             return false;
         result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
@@ -80,7 +80,7 @@ namespace Canape
             return false;
         }
 
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugUV", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugUV", "ps_5_0", nullptr,
             kShaderCompileFlags, pixelBytecode, error))
             return false;
         result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
@@ -92,7 +92,7 @@ namespace Canape
             return false;
         }
 
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugMipLOD", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugMipLOD", "ps_5_0", nullptr,
             kShaderCompileFlags, pixelBytecode, error))
             return false;
         result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
@@ -171,7 +171,7 @@ namespace Canape
             return false;
         }
 #if CANAPE_RENDER_DEBUG
-        if (!CompileShaderFile(L"Shaders/FinalOutput.hlsl", "PSCameraDepth", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/DepthDebug.hlsl", "PSCameraDepth", "ps_5_0", nullptr,
             kShaderCompileFlags, pixelBytecode, error))
             return false;
         result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
@@ -344,7 +344,7 @@ namespace Canape
         const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
         auto createVertex = [&](bool isStatic) -> bool
         {
-            if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSShadow", "vs_5_0",
+            if (!CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "VSShadow", "vs_5_0",
                 isStatic ? staticDefines : nullptr, kShaderCompileFlags, bytecode, error)) return false;
             auto& shader = isStatic ? pending.StaticShadowVertexShader : pending.ShadowVertexShader;
             HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
@@ -362,18 +362,18 @@ namespace Canape
             return true;
         };
         if (!createVertex(false) || !createVertex(true)
-            || !CompileShaderFile(L"Shaders/Mesh.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
+            || !CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
                 kShaderCompileFlags, bytecode, error)) return false;
         HRESULT result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
             nullptr, &pending.MaskedShadowPixelShader);
         if (FAILED(result)) { error = HResultMessage("CreatePixelShader(masked shadow)", result); return false; }
 #if CANAPE_RENDER_DEBUG
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugShadowVisibility", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugShadowVisibility", "ps_5_0", nullptr,
             kShaderCompileFlags, bytecode, error)) return false;
         result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
             nullptr, &pending.ShadowVisibilityPixelShader);
         if (FAILED(result)) { error = HResultMessage("CreatePixelShader(shadow visibility)", result); return false; }
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "PSDebugPcssFilterRadius", "ps_5_0", nullptr,
+        if (!CompileShaderFile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugPcssFilterRadius", "ps_5_0", nullptr,
             kShaderCompileFlags, bytecode, error)) return false;
         result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
             nullptr, &pending.PcssFilterRadiusPixelShader);

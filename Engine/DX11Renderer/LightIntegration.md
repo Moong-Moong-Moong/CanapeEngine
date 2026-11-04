@@ -1,31 +1,39 @@
 # DX11 light and directional-shadow integration
 
+Current renderer module ownership and verification: [RendererArchitecture.md](RendererArchitecture.md).
+
 ## Scope and changed files
 
 All changes are inside `Engine/DX11Renderer`. The public DX11Renderer interface,
 RenderScene / RenderLight / RenderItem contracts, GPU structure layouts and existing
 constant-buffer slots are unchanged. No engine-side light collection is added.
 
-- `DX11Renderer.cpp`: test light source, GPU packing, shadow settings/resources,
-  light-view construction, ShadowPass, and explicit restoration of camera targets.
-  Object/material/geometry submission is shared by the shadow and main draws.
+- `DX11Renderer.cpp`: existing public API and settings.
+- `Internal/`, `Frame/`, `Pipeline/` and `Pass/`: ownership, CPU preparation,
+  explicit uploads/bindings and frame/pass execution. Shadow/Main share MeshDraw.
 - `Pipeline/DX11PipelineState.h/.cpp`: optional shadow shaders/input layouts,
   depth-only/alpha-masked selections, and an internal visibility-debug selection.
-- `Shader/Mesh.hlsl`: shadow depth shaders, comparison/PCF, selected-light shading,
-  and visibility debugging; existing main/debug entry points are retained.
-- `Shader/Common/Constants.hlsli`: updated usage comments; binary layouts unchanged.
+- `Shader/Mesh.hlsl`: main mesh vertex/pixel entry points.
+- `Shader/Common/`: shared constants, mesh/fullscreen types, surface normals,
+  material resources/alpha handling, and direct lighting.
+- `Shader/Shadow/`: shadow constants/resources, comparison/PCF, PCSS, and
+  shadow-depth entry points.
+- `Shader/Debug/`: mesh debug entry points and camera/shadow depth visualization.
+- `Shader/FinalOutput.hlsl` and `Shader/Skybox.hlsl`: final color output and skybox.
+  Existing entry-point names, register slots and binary layouts are retained.
+- `Pipeline/DX11ShaderCompiler.cpp`: resolves nested includes relative to their
+  parent files while preserving Unicode paths.
 - `Tests/ShadowValidation.cpp` and `Tests/ValidateShadows.ps1`: standalone WARP
   integration tests and a runner; neither is compiled into the renderer library.
 - `LightIntegration.md`: implementation, settings, limitations and verification.
 
 ## Existing architecture confirmed
 
-There is no separate RenderFrame, MainPass class, DepthTarget wrapper or general
-RenderPass system in this checkout. DrawScene consumes RenderScene synchronously,
-sets camera/scene constants, and draws opaque, masked and sorted transparent items.
-DrawMesh resolves cached GPU mesh/material resources and submits a SubMesh using
-DrawIndexed(indexCount, startIndex, baseVertex). Position-only and Static vertices
-are both supported. RenderItem already carries world, submeshIndex and castShadow.
+The existing public API delegates to its private Impl. CPU preparation, uploads,
+bindings and four pass modules are separated; Frame/DX11FrameExecutor.cpp owns the
+execution order through existing Impl member definitions. See RendererArchitecture.md.
+Position-only and Static vertices, direct DrawMesh and queued/explicit RenderScene
+submission remain supported.
 
 The renderer owns its camera DepthTexture / DepthStencilView and SceneColor
 texture directly. Camera depth uses D24/S8 (typeless with a debug SRV in Debug /
@@ -42,15 +50,15 @@ mathematical inverse-transpose; that is unrelated to upload packing.
 1. BeginFrame clears camera targets, uploads fresh light data, and invalidates all
    shadow views. Legacy direct DrawMesh calls retain lighting without inheriting
    a map from the previous frame.
-2. DrawScene obtains one SelectLights(scene) result and passes it to UploadLights.
-3. BuildLightConstants validates/packs the same lights used for MainPass. The first
+2. DrawScene prepares camera/scene data and draw lists, then resolves scene.lights through PrepareLights/PrepareShadow.
+3. ScenePreparation::BuildLightConstants validates/packs the same lights used for MainPass. The first
    accepted Directional light (packed index 0) is the single shadow owner. Its
    existing RenderLight.castShadow flag must be true; if false, no other light is
    silently substituted. The test Directional light explicitly enables this flag.
 4. If enabled, the optional shadow pipeline/resources and frustum are validated.
    The packed light direction supplies the light view; no second light direction
    or hardcoded shadow light is maintained.
-5. Fresh LightBuffer and ShadowBuffer data are uploaded in full. Exactly that
+5. UploadLighting uploads fresh LightBuffer/ShadowBuffer/PCSS data in full. Exactly that
    Directional light gets ShadowViewOffset=0 / ShadowViewCount=1. Every other light
    keeps UINT32_MAX / 0. Disabled/failing/empty inputs leave all metadata inactive.
 6. ShadowPass unbinds PS t1, binds the shadow DSV without a color RTV, clears depth
@@ -265,12 +273,10 @@ as passing. Renderer builds and the standalone GPU integration test did complete
 
 ## Engine connection and current limits
 
-CreateTestLights remains the only temporary light-value source. To switch to engine
-lights later, replace the SelectLights body with `return scene.lights;`. The same
-accepted Directional light will then drive both shadow and lighting. Set its existing
-castShadow flag and submit caster RenderItems with castShadow=true. Empty engine
-arrays are valid; do not add a fallback to test lights. No new engine data is needed
-for this single-light implementation.
+Scene preparation consumes RenderScene.lights directly. CreateTestLights is now a
+fixture in the standalone tests only. The same accepted Directional light drives
+both shadow and lighting. Set castShadow on the light and submit caster RenderItems
+with castShadow=true. Empty engine arrays remain valid and have no fallback lights.
 
 Only DrawScene supplies a complete caster list. Standalone DrawMesh calls do not
 collect/replay geometry into a new map; BeginFrame disables stale shadow state for
