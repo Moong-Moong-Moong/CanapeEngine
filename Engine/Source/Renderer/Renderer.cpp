@@ -170,9 +170,15 @@ namespace Canape
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();
     }
 
+    struct RenderScope {};
+
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
-        if (!m_DX11->BeginFrame())
+        if (!m_DX11->IsFrameReady()) return;
+
+        RenderScope scope;
+
+        m_DX11->BeginFrame();
         {
             return;
         }

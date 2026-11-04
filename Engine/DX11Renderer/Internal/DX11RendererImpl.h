@@ -138,5 +138,12 @@ namespace Canape
         void ExecuteScene(const RenderScene& scene);
         void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material);
         void EndFrame();
+
+    private:
+        void recordDebugStat() {
+#if CANAPE_RENDER_DEBUG
+            CompletedStats = CurrentStats;
+#endif
+        }
     };
 }
