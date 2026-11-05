@@ -83,6 +83,18 @@
     <None Include="Content\Materials\M_Player.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_PuzzleGoal.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleMover.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzlePayload.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleWall.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>

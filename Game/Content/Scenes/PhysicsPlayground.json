@@ -1,7 +1,7 @@
 {
     "version": 1,
     "name": "PhysicsPlayground",
-    "mainCamera": 25,
+    "mainCamera": 71,
     "materials": [
         {
             "name": "M_PlaygroundFloor",
@@ -90,6 +90,625 @@
                             "Z": 1.0
                         },
                         "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": -0.25,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 0.5,
+                            "Z": 3.0
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.5,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "ramp",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.72497493,
+                            "Y": 1.0759279,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": -0.34202015,
+                            "W": 0.9396926
+                        },
+                        "localScale": {
+                            "X": 1.9,
+                            "Y": 0.1,
+                            "Z": 0.4
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.6,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 25,
+            "name": "runway",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.02,
+                            "Y": 0.3,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.4,
+                            "Y": 0.6,
+                            "Z": 0.4
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.6,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 30,
+            "name": "gate",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.1192741,
+                            "Y": 1.68,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.1,
+                            "Y": 0.3,
+                            "Z": 0.4
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 32,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0.0,
+                        "friction": 0.0,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleMover.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 35,
+            "name": "kicker",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 36,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.12,
+                            "Y": 0.6,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 37,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0.0,
+                        "friction": 0.6,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                }
+            ]
+        },
+        {
+            "id": 38,
+            "name": "kickerPlate",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.2,
+                            "Y": -0.05,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 0.1,
+                            "Z": 0.4
+                        },
+                        "parent": 36
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 40,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleMover.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 42,
+            "name": "frontWall",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 43,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.67,
+                            "Y": 0.385,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.04,
+                            "Y": 0.77,
+                            "Z": 0.5
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 44,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.0,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 46,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 47,
+            "name": "cupFloor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 48,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.035,
+                            "Y": 0.25,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.69,
+                            "Y": 0.5,
+                            "Z": 0.5
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.5,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 52,
+            "name": "backWall",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 53,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.43,
+                            "Y": 0.45,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.1,
+                            "Y": 0.9,
+                            "Z": 0.5
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 54,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0.0,
+                        "friction": 0.5,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "size": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 57,
+            "name": "marble",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 58,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2692741,
+                            "Y": 1.7284602,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.2,
+                            "Y": 0.2,
+                            "Z": 0.2
+                        },
+                        "parent": 5
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 1.0,
+                        "friction": 0.6,
+                        "restitution": 0.0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05
+                    }
+                },
+                {
+                    "type": "SphereColliderComponent",
+                    "id": 60,
+                    "properties": {
+                        "enabled": true,
+                        "radius": 0.5
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
                     }
                 }
             ]
@@ -250,13 +869,13 @@
             ]
         },
         {
-            "id": 16,
+            "id": 62,
             "name": "Sun",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 17,
+                    "id": 63,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -280,7 +899,7 @@
                 },
                 {
                     "type": "LightComponent",
-                    "id": 18,
+                    "id": 64,
                     "properties": {
                         "enabled": true,
                         "type": "Directional",
@@ -299,13 +918,13 @@
             ]
         },
         {
-            "id": 19,
+            "id": 65,
             "name": "Sky",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 20,
+                    "id": 66,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -329,7 +948,7 @@
                 },
                 {
                     "type": "SkyboxComponent",
-                    "id": 21,
+                    "id": 67,
                     "properties": {
                         "enabled": true,
                         "cubemap": "",
@@ -346,13 +965,13 @@
             ]
         },
         {
-            "id": 22,
+            "id": 68,
             "name": "Main Camera",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 23,
+                    "id": 69,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -376,16 +995,9 @@
                 },
                 {
                     "type": "FlyCamera",
-                    "id": 24,
+                    "id": 70,
                     "properties": {
                         "enabled": true,
-                        "homePosition": {
-                            "X": 0.0,
-                            "Y": 7.3,
-                            "Z": -3.9
-                        },
-                        "homeYaw": 0.0,
-                        "homePitch": 50.019215,
                         "moveSpeed": 5.0,
                         "lookSensitivity": 0.17188732,
                         "resetKey": "F"
@@ -393,7 +1005,7 @@
                 },
                 {
                     "type": "CameraComponent",
-                    "id": 25,
+                    "id": 71,
                     "properties": {
                         "enabled": true,
                         "fieldOfView": 60.0,
@@ -404,13 +1016,13 @@
             ]
         },
         {
-            "id": 26,
+            "id": 72,
             "name": "Scene Changer",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 27,
+                    "id": 73,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -434,7 +1046,7 @@
                 },
                 {
                     "type": "SceneChanger",
-                    "id": 28,
+                    "id": 74,
                     "properties": {
                         "enabled": true,
                         "nextScene": "SampleScene",
@@ -444,13 +1056,13 @@
             ]
         },
         {
-            "id": 29,
+            "id": 75,
             "name": "Garbage Collector",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 30,
+                    "id": 76,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -474,7 +1086,7 @@
                 },
                 {
                     "type": "GarbageCollector",
-                    "id": 31,
+                    "id": 77,
                     "properties": {
                         "enabled": true,
                         "key": "Delete"

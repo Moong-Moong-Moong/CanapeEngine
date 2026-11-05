@@ -213,7 +213,25 @@
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Physics\BoxColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\ColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Physics\PhysicsScene.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyShape.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyState.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\SphereColliderComponent.h">
       <Filter>Source\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\GpuResourceRegistry.h">
@@ -327,6 +345,15 @@
       <Filter>Source\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsScene.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyComponent.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyShape.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyState.cpp">
       <Filter>Source\Physics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp">

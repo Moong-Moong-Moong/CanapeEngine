@@ -6,6 +6,10 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
+#include "Physics/BoxColliderComponent.h"
+#include "Physics/ColliderComponent.h"
+#include "Physics/RigidBodyComponent.h"
+#include "Physics/SphereColliderComponent.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/Component.h"
 #include "Scene/Component/FogComponent.h"
@@ -76,6 +80,13 @@ namespace Canape
 				value("Opaque", AlphaMode::Opaque),
 				value("Masked", AlphaMode::Masked),
 				value("Transparent", AlphaMode::Transparent)
+			);
+
+			registration::enumeration<PhysicsMotion>("PhysicsMotion")
+			(
+				value("Static", PhysicsMotion::Static),
+				value("Kinematic", PhysicsMotion::Kinematic),
+				value("Dynamic", PhysicsMotion::Dynamic)
 			);
 
 			registration::enumeration<Key>("Key")
@@ -163,6 +174,25 @@ namespace Canape
 				.property("materials", &MeshRendererComponent::GetMaterialNames, &MeshRendererComponent::SetMaterialNames);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
+
+			registration::class_<RigidBodyComponent>("RigidBodyComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("motion", &RigidBodyComponent::GetMotion, &RigidBodyComponent::SetMotion)
+				.property("mass", &RigidBodyComponent::GetMass, &RigidBodyComponent::SetMass)
+				.property("friction", &RigidBodyComponent::GetFriction, &RigidBodyComponent::SetFriction)
+				.property("restitution", &RigidBodyComponent::GetRestitution, &RigidBodyComponent::SetRestitution)
+				.property("linearDamping", &RigidBodyComponent::GetLinearDamping, &RigidBodyComponent::SetLinearDamping)
+				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping);
+
+			registration::class_<ColliderComponent>("ColliderComponent");
+
+			registration::class_<BoxColliderComponent>("BoxColliderComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("size", &BoxColliderComponent::GetSize, &BoxColliderComponent::SetSize);
+
+			registration::class_<SphereColliderComponent>("SphereColliderComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius);
 		}
 	}
 

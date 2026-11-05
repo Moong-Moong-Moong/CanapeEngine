@@ -11,8 +11,19 @@
 
 namespace Canape
 {
-	Scene::Scene(std::string name)
+	namespace
+	{
+		PhysicsScene MakePhysicsScene(JoltRuntime* runtime)
+		{
+			if (runtime)
+				return PhysicsScene(*runtime, PhysicsWorldDesc{});
+			return PhysicsScene();
+		}
+	}
+
+	Scene::Scene(std::string name, JoltRuntime* physicsRuntime)
 		: m_Name(std::move(name))
+		, m_Physics(MakePhysicsScene(physicsRuntime))
 	{
 	}
 
@@ -85,9 +96,8 @@ namespace Canape
 		}
 
 		m_componentRegistry.FlushPendingPhysics();
-		m_Physics.SyncBodies();
-		if (m_Physics.HasWorld())
-			m_Physics.Step(Time::FixedDeltaTime());
+		m_Physics.SyncBodies(m_componentRegistry.GetRigidBodies());
+		m_Physics.Step(Time::FixedDeltaTime(), m_componentRegistry.GetRigidBodies());
 	}
 
 	void Scene::RunAwakeAndStart()

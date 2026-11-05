@@ -1,4 +1,5 @@
 #include "Scene/Component/ComponentRegistry.h"
+#include "Physics/RigidBodyComponent.h"
 #include "Scene/Component/FogComponent.h"
 #include "Scene/Component/LightComponent.h"
 #include "Scene/Component/RenderableComponent.h"
@@ -32,6 +33,17 @@ namespace Canape
 
 	void ComponentRegistry::FlushPendingPhysics()
 	{
+		std::erase_if(m_pendingAdd, [this](Component* component)
+		{
+            auto* rigidBody = dynamic_cast<RigidBodyComponent*>(component);
+            if (rigidBody == nullptr) return false;
+
+            if (!component->IsPendingDestroy())
+            {
+                m_rigidBodies.push_back(rigidBody);
+            }
+            return true;
+        });
 	}
 
 	void ComponentRegistry::FlushPending()
@@ -71,6 +83,11 @@ namespace Canape
 			{
 				m_skyboxes.push_back(skybox);
 			}
+
+			if (RigidBodyComponent* rigidBody = dynamic_cast<RigidBodyComponent*>(component))
+			{
+				m_rigidBodies.push_back(rigidBody);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -102,6 +119,11 @@ namespace Canape
 			if (SkyboxComponent* skybox = dynamic_cast<SkyboxComponent*>(component))
 			{
 				std::erase(m_skyboxes, skybox);
+			}
+
+			if (RigidBodyComponent* rigidBody = dynamic_cast<RigidBodyComponent*>(component))
+			{
+				std::erase(m_rigidBodies, rigidBody);
 			}
 		}
 		m_pendingRemove.clear();

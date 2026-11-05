@@ -37,7 +37,7 @@ namespace Canape
         m_Renderer(std::make_unique<Renderer>()),
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
-        m_SceneManager(std::make_unique<SceneManager>()),
+        m_SceneManager(std::make_unique<SceneManager>(m_PhysicsRuntime.get())),
         m_Commands(std::make_unique<CommandRegistry>())
     {
         if (!m_PhysicsRuntime->IsValid())

@@ -121,6 +121,10 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_Enemy_Masked.mat" />
     <None Include="Content\Materials\M_Enemy_Transparent.mat" />
     <None Include="Content\Materials\M_Player.mat" />
+    <None Include="Content\Materials\M_PuzzleGoal.mat" />
+    <None Include="Content\Materials\M_PuzzleMover.mat" />
+    <None Include="Content\Materials\M_PuzzlePayload.mat" />
+    <None Include="Content\Materials\M_PuzzleWall.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />

@@ -6,6 +6,7 @@
 #include <optional>
 #include <vector>
 
+#include "JoltPhysics/Math/ScalarExt.h"
 #include "Math/Quaternion.h"
 #include "Math/Vector3.h"
 
@@ -48,17 +49,44 @@ namespace Canape
         std::optional<float> friction{};
     };
 
-    // One part at the identity local pose with no friction override is a plain shape; anything else is a compound.
-    struct PhysicsBodyDesc
+    struct PhysicsBodySettings
     {
-        std::vector<PhysicsShapePart> parts{};
-        PhysicsPose pose{};
         PhysicsMotion motion = PhysicsMotion::Dynamic;
         float mass = 0.0f; // 0 means density 1000 kg/m^3
         float friction = 0.2f;
         float restitution = 0.0f;
         float linearDamping = 0.05f;
         float angularDamping = 0.05f;
+    };
+
+    // Mass, friction, restitution and damping must be finite and 0 or more.
+    inline bool IsValidSettings(const PhysicsBodySettings& settings)
+    {
+        return IsNonNegative(settings.mass)
+            && IsNonNegative(settings.friction)
+            && IsNonNegative(settings.restitution)
+            && IsNonNegative(settings.linearDamping)
+            && IsNonNegative(settings.angularDamping);
+    }
+
+    inline constexpr bool SameBits(const PhysicsBodySettings& a, const PhysicsBodySettings& b)
+    {
+        // Binding every member makes a new setting a compile error here until it is compared.
+        const auto& [motion, mass, friction, restitution, linearDamping, angularDamping] = a;
+        return motion == b.motion
+            && SameBits(mass, b.mass)
+            && SameBits(friction, b.friction)
+            && SameBits(restitution, b.restitution)
+            && SameBits(linearDamping, b.linearDamping)
+            && SameBits(angularDamping, b.angularDamping);
+    }
+
+    // One part at the identity local pose with no friction override is a plain shape; anything else is a compound.
+    struct PhysicsBodyDesc
+    {
+        std::vector<PhysicsShapePart> parts{};
+        PhysicsPose pose{};
+        PhysicsBodySettings settings{};
     };
 
     // Names a body of one world; stale and foreign ids are invalid and every query on them returns defaults.

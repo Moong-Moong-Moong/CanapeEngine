@@ -17,11 +17,13 @@ namespace Canape
 	class CameraComponent;
 	class AssetManager;
 	class Renderer;
+	class JoltRuntime;
 
 	class Scene final
 	{
 	public:
-		explicit Scene(std::string name);
+		// A scene gets a physics world when a runtime is given.
+		explicit Scene(std::string name, JoltRuntime* physicsRuntime = nullptr);
 		~Scene();
 
 		Scene(const Scene&) = delete;

@@ -142,7 +142,7 @@ namespace
         PhysicsBodyDesc desc;
         desc.parts = std::move(parts);
         desc.pose = PhysicsPose{ position, rotation };
-        desc.motion = motion;
+        desc.settings.motion = motion;
         return desc;
     }
 
@@ -221,7 +221,7 @@ namespace
                 { BoxPart({ 1.0f, 0.1f, 0.3f }, {}, 0.0f), BoxPart({ 0.3f, 0.4f, 0.3f }, { 0.5f, 0.5f, 0.0f }, std::nullopt, AxisAngle({ 0, 0, 1 }, 0.5f)) },
                 { 3.0f, 2.0f, 3.0f }, PhysicsMotion::Dynamic, AxisAngle({ 0, 1, 0 }, 0.7f))));
             PhysicsBodyDesc heavy = BoxBody({ -3.0f, 1.0f, 3.0f });
-            heavy.mass = 3.0f;
+            heavy.settings.mass = 3.0f;
             m_Ids.push_back(m_World.CreateBody(heavy));
         }
 
@@ -400,10 +400,10 @@ namespace
         const Quaternion slope(0.0f, 0.0f, 0.17364818f, 0.98480775f);
         JoltWorld world(runtime);
         PhysicsBodyDesc slopeDesc = BodyOf({ BoxPart({ 1.0f, 0.05f, 0.5f }, {}, partFriction) }, { 0.0f, 1.0f, 0.0f }, PhysicsMotion::Static, slope);
-        slopeDesc.friction = bodyFriction;
+        slopeDesc.settings.friction = bodyFriction;
         world.CreateBody(slopeDesc);
         PhysicsBodyDesc blockDesc = BoxBody({ -0.15f * Sin, 1.0f + 0.15f * Cos, 0.0f }, { 0.1f, 0.1f, 0.1f }, PhysicsMotion::Dynamic, slope);
-        blockDesc.friction = 1.0f;
+        blockDesc.settings.friction = 1.0f;
         const PhysicsBodyId block = world.CreateBody(blockDesc);
         const Vector3 start = world.GetPose(block).position;
         for (int i = 0; i < ticks; ++i)
@@ -436,12 +436,12 @@ namespace
         PhysicsBodyDesc slopeDesc = BodyOf({ BoxPart({ 1.0f, 0.05f, 0.25f }, { 0.0f, 0.0f, -0.3f }),
                                                BoxPart({ 1.0f, 0.05f, 0.25f }, { 0.0f, 0.0f, 0.3f }, 0.0f) },
             { 0.0f, 1.0f, 0.0f }, PhysicsMotion::Static, slope);
-        slopeDesc.friction = 1.0f;
+        slopeDesc.settings.friction = 1.0f;
         world.CreateBody(slopeDesc);
         const auto blockAt = [&](float z)
         {
             PhysicsBodyDesc desc = BoxBody({ -0.15f * Sin, 1.0f + 0.15f * Cos, z }, { 0.1f, 0.1f, 0.1f }, PhysicsMotion::Dynamic, slope);
-            desc.friction = 1.0f;
+            desc.settings.friction = 1.0f;
             return world.CreateBody(desc);
         };
         const PhysicsBodyId held = blockAt(-0.3f);
@@ -528,13 +528,13 @@ namespace
         Check(Near(world.GetMass(unit), 1000.0f, 0.5f), std::format("1x1x1 m box weighs 1000 kg (got {})", world.GetMass(unit)));
 
         PhysicsBodyDesc light = BoxBody({ 3, 1, 0 });
-        light.mass = 5.0f;
+        light.settings.mass = 5.0f;
         Check(Near(world.GetMass(world.CreateBody(light)), 5.0f, 1.0e-3f), "a given mass of 5 kg is kept");
 
         PhysicsBodyDesc compound = BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }), BoxPart({ 0.5f, 0.5f, 0.5f }, { 2.0f, 0.0f, 0.0f }) }, { 0, 1, 5 });
         const PhysicsBodyId two = world.CreateBody(compound);
         Check(Near(world.GetMass(two), 2000.0f, 1.0f), "a compound of two 1 m cubes weighs 2000 kg");
-        compound.mass = 7.0f;
+        compound.settings.mass = 7.0f;
         Check(Near(world.GetMass(world.CreateBody(compound)), 7.0f, 1.0e-3f), "a compound honours a given mass");
 
         const PhysicsBodyId sphere = world.CreateBody(BodyOf({ SpherePart(0.5f) }, { 0, 1, 9 }));
@@ -631,7 +631,7 @@ namespace
             "non-unit rotation");
         Check(!world.CreateBody(BodyOf({ BoxPart({ 0.5f, 0.5f, 0.5f }, {}, -1.0f) }, { 0, 0, 0 })).IsValid(), "negative friction override");
         PhysicsBodyDesc negativeMass = BoxBody({ 0, 0, 0 });
-        negativeMass.mass = -1.0f;
+        negativeMass.settings.mass = -1.0f;
         Check(!world.CreateBody(negativeMass).IsValid(), "negative mass");
         Check(world.GetBodyCount() == 0, "no failed creation left a body behind");
     }
@@ -724,7 +724,7 @@ namespace
     PhysicsBodyDesc SphereBody(const Vector3& position, float radius, float density)
     {
         PhysicsBodyDesc desc = BodyOf({ SpherePart(radius) }, position);
-        desc.mass = SphereMassAtDensity(radius, density);
+        desc.settings.mass = SphereMassAtDensity(radius, density);
         return desc;
     }
 
@@ -1067,7 +1067,7 @@ namespace
         JoltWorld world(runtime);
         MakeFloor(world);
         PhysicsBodyDesc desc = BoxBody({ 0.0f, 0.5f, 0.0f });
-        desc.mass = 500.0f;
+        desc.settings.mass = 500.0f;
         const PhysicsBodyId sleeper = world.CreateBody(desc);
         const PhysicsBodyId bystander = world.CreateBody(BoxBody({ 3.0f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Kinematic));
         for (int i = 0; i < 600 && world.IsAwake(sleeper); ++i)
@@ -1178,7 +1178,7 @@ namespace
             m_Ids.push_back(m_World.CreateBody(SphereBody({ 9.0f, 1.0f, 0.0f }, 0.5f, 500.0f)));
             m_Ids.push_back(m_World.CreateBody(SphereBody({ 11.0f, 3.0f, 0.0f }, 0.5f, 2000.0f)));
             PhysicsBodyDesc neutral = BoxBody({ 10.0f, 2.0f, 2.0f }, { 0.3f, 0.3f, 0.3f });
-            neutral.mass = 216.0f;
+            neutral.settings.mass = 216.0f;
             m_Ids.push_back(m_World.CreateBody(neutral));
             m_Water.center = { 10.0f, 2.0f, 0.0f };
             m_Water.halfExtent = { 3.0f, 2.0f, 3.0f };

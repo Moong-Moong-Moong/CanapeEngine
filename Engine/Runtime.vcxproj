@@ -97,7 +97,13 @@
     <ClInclude Include="Source\Core\Time.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
+    <ClInclude Include="Source\Physics\BoxColliderComponent.h" />
+    <ClInclude Include="Source\Physics\ColliderComponent.h" />
     <ClInclude Include="Source\Physics\PhysicsScene.h" />
+    <ClInclude Include="Source\Physics\RigidBodyComponent.h" />
+    <ClInclude Include="Source\Physics\RigidBodyShape.h" />
+    <ClInclude Include="Source\Physics\RigidBodyState.h" />
+    <ClInclude Include="Source\Physics\SphereColliderComponent.h" />
     <ClInclude Include="..\Common\Math\IntVector.h" />
     <ClInclude Include="..\Common\Math\Math.h" />
     <ClInclude Include="..\Common\Math\MathUtility.h" />
@@ -147,6 +153,9 @@
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Physics\PhysicsScene.cpp" />
+    <ClCompile Include="Source\Physics\RigidBodyComponent.cpp" />
+    <ClCompile Include="Source\Physics\RigidBodyShape.cpp" />
+    <ClCompile Include="Source\Physics\RigidBodyState.cpp" />
     <ClCompile Include="Source\Scene\Component\CameraComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\Component.cpp" />
     <ClCompile Include="Source\Scene\Component\ScriptComponent.cpp" />

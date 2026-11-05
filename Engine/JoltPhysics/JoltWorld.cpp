@@ -31,6 +31,10 @@
 #include "JoltPhysics/JoltRuntimeImpl.h"
 #include "JoltPhysics/SlotMap.h"
 
+#include "JoltPhysics/Math/ScalarExt.h"
+#include "JoltPhysics/Math/Vector3Ext.h"
+#include "JoltPhysics/Math/QuaternionExt.h"
+
 namespace Canape
 {
     namespace
@@ -57,39 +61,6 @@ namespace Canape
                 tag = s_NextWorldTag.fetch_add(1);
             }
             return tag;
-        }
-
-        bool IsFinite(const Vector3& v)
-        {
-            return std::isfinite(v.X) && std::isfinite(v.Y) && std::isfinite(v.Z);
-        }
-
-        bool IsFinite(const Quaternion& q)
-        {
-            return std::isfinite(q.X) && std::isfinite(q.Y) && std::isfinite(q.Z) && std::isfinite(q.W);
-        }
-
-        bool IsPositive(float value)
-        {
-            return std::isfinite(value) && value > 0.0f;
-        }
-
-        bool IsPositive(const Vector3& v)
-        {
-            return IsPositive(v.X) && IsPositive(v.Y) && IsPositive(v.Z);
-        }
-
-        bool IsNonNegative(float value)
-        {
-            return std::isfinite(value) && value >= 0.0f;
-        }
-
-        bool IsUsableRotation(const Quaternion& q)
-        {
-            if (!IsFinite(q)) return false;
-
-            const float lengthSquared = q.X * q.X + q.Y * q.Y + q.Z * q.Z + q.W * q.W;
-            return std::abs(lengthSquared - 1.0f) <= UnitLengthSquaredTolerance;
         }
 
         JPH::Quat ToJoltUnit(const Quaternion& q)
@@ -145,8 +116,8 @@ namespace Canape
 
         bool IsIdentityPose(const PhysicsPose& pose)
         {
-            return pose.position.X == 0.0f && pose.position.Y == 0.0f && pose.position.Z == 0.0f
-                && pose.rotation.X == 0.0f && pose.rotation.Y == 0.0f && pose.rotation.Z == 0.0f && pose.rotation.W == 1.0f;
+            return pose.position == Vector3::Zero &&
+                pose.rotation == Quaternion::Identity;
         }
 
         JPH::EMotionType ToJoltMotion(PhysicsMotion motion)
@@ -275,8 +246,7 @@ namespace Canape
 
         bool IsUsableDesc(const PhysicsBodyDesc& desc)
         {
-            return IsUsablePose(desc.pose) && IsNonNegative(desc.mass) && IsNonNegative(desc.friction) && IsNonNegative(desc.restitution)
-                && IsNonNegative(desc.linearDamping) && IsNonNegative(desc.angularDamping);
+            return IsUsablePose(desc.pose) && IsValidSettings(desc.settings);
         }
     }
 
@@ -418,27 +388,28 @@ namespace Canape
         const JPH::ShapeRefC shape = BuildShape(desc);
         if (shape == nullptr) return {};
 
+        const PhysicsBodySettings& bodySettings = desc.settings;
         JPH::BodyCreationSettings settings(
             shape,
             ToJolt(desc.pose.position),
             ToJoltUnit(desc.pose.rotation),
-            ToJoltMotion(desc.motion),
-            LayerOf(desc.motion)
+            ToJoltMotion(bodySettings.motion),
+            LayerOf(bodySettings.motion)
         );
-        settings.mFriction = desc.friction;
-        settings.mRestitution = desc.restitution;
-        settings.mLinearDamping = desc.linearDamping;
-        settings.mAngularDamping = desc.angularDamping;
+        settings.mFriction = bodySettings.friction;
+        settings.mRestitution = bodySettings.restitution;
+        settings.mLinearDamping = bodySettings.linearDamping;
+        settings.mAngularDamping = bodySettings.angularDamping;
         // Reduction merges coplanar contacts into one manifold that keeps a single part id.
         settings.mUseManifoldReduction = !HasFrictionOverride(desc);
-        const bool dynamic = desc.motion == PhysicsMotion::Dynamic;
-        if (dynamic && desc.mass > 0.0f)
+        const bool dynamic = bodySettings.motion == PhysicsMotion::Dynamic;
+        if (dynamic && bodySettings.mass > 0.0f)
         {
             settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
-            settings.mMassPropertiesOverride.mMass = desc.mass;
+            settings.mMassPropertiesOverride.mMass = bodySettings.mass;
         }
 
-        const JPH::EActivation activation = desc.motion == PhysicsMotion::Static ?
+        const JPH::EActivation activation = bodySettings.motion == PhysicsMotion::Static ?
             JPH::EActivation::DontActivate :
             JPH::EActivation::Activate;
         JPH::BodyInterface& bodies = impl.physics->GetBodyInterfaceNoLock();
@@ -452,7 +423,7 @@ namespace Canape
             Impl::BodySlot{
                 .id = bodyId,
                 .serial = impl.nextSerial++,
-                .motion = desc.motion,
+                .motion = bodySettings.motion,
                 .mass = dynamic ?
                     settings.GetMassProperties().mMass :
                     0.0f

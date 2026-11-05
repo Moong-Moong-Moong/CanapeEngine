@@ -7,6 +7,11 @@
 
 namespace Canape
 {
+	SceneManager::SceneManager(JoltRuntime* physicsRuntime)
+		: m_PhysicsRuntime(physicsRuntime)
+	{
+	}
+
 	SceneManager::~SceneManager()
 	{
 		m_activeScene = nullptr;
@@ -21,7 +26,7 @@ namespace Canape
 			return existing;
 		}
 
-		m_Scenes.push_back(std::make_unique<Scene>(name));
+		m_Scenes.push_back(std::make_unique<Scene>(name, m_PhysicsRuntime));
 		Scene* created = m_Scenes.back().get();
 
 		if (!m_activeScene)
@@ -93,7 +98,7 @@ namespace Canape
 
 	Scene* SceneManager::LoadSceneFromFile(const std::string& path)
 	{
-		std::unique_ptr<Scene> loaded = SceneSerializer::Load(path);
+		std::unique_ptr<Scene> loaded = SceneSerializer::Load(path, m_PhysicsRuntime);
 		if (!loaded)
 		{
 			return nullptr;
