@@ -7,6 +7,7 @@
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
+#include "DX11Renderer/Data/PostProcessSettings.h"
 
 #include <cstdint>
 #include <functional>
@@ -57,6 +58,10 @@ namespace Canape
         void SetShadowSlopeBias(float bias);
         void SetShadowReceiverBias(float bias);
         void SetShadowPcf(bool pcf);
+
+        PostProcessSettings GetPostProcessSettings() const;
+        void SetToneMappingEnabled(bool enabled);
+        void ResetPostProcessSettings();
 
         const ShadowFilterSettings& GetShadowFilterSettings() const { return m_ShadowFilterSettings; }
         void ResetShadowFilterSettings();

@@ -44,7 +44,13 @@ namespace Canape
             { SkyboxVertexBuffer.Get(), SkyboxIndexBuffer.Get(), SkyboxViewBuffer.Get() }, GetMainTargets(), stats);
     }
 
-    void DX11Renderer::Impl::RenderFinalOutput(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
+    void DX11Renderer::Impl::ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
+    {
+        // Future HDR effects that need their own textures/passes run here, before SDR conversion.
+        ExecuteFinalCompositePass(target, width, height);
+    }
+
+    void DX11Renderer::Impl::ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
     {
         ID3D11ShaderResourceView* depth = nullptr;
         ID3D11Buffer* depthDisplay = nullptr;
@@ -61,7 +67,17 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
         if (output.DisplayDepth) ConstantBuffers::Upload(*Context.Get(), depthDisplay, output.DepthDisplay);
 #endif
-        FinalOutputPass::Execute(output, *Context.Get(), target, width, height, depthDisplay, stats);
+        // Current single settings source. Future per-view integration should select
+        // scene.camera.postProcess in ExecuteScene instead of these development defaults.
+        SC::PostProcessConstants postProcess{};
+        postProcess.PostProcessingEnabled = postProcessSettings_.enabled ? 1u : 0u;
+        postProcess.ToneMappingEnabled = postProcessSettings_.toneMappingEnabled ? 1u : 0u;
+#if CANAPE_RENDER_DEBUG
+        postProcess.DebugViewEnabled = DebugSettings.enabled && DebugSettings.viewMode != DebugViewMode::Final ? 1u : 0u;
+#endif
+        ConstantBuffers::Upload(*Context.Get(), PostProcessBuffer.Get(), postProcess);
+        FinalOutputPass::Execute(output, *Context.Get(), target, width, height,
+            depthDisplay, PostProcessBuffer.Get(), stats);
     }
 
     bool DX11Renderer::Impl::BeginFrame()
@@ -97,7 +113,7 @@ namespace Canape
         }
 #endif
 
-        // Linear RGB and linear alpha. The SceneColor sRGB RTV encodes RGB, including clear values.
+        // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
         context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -117,6 +133,50 @@ namespace Canape
         return true;
     }
 
+    struct SceneScope {
+        bool ProfilerAvailable;
+        Canape::GPUProfiler& Profiler;
+        ID3D11DeviceContext* Context;
+
+        SceneScope(bool ProfilerAvailable, Canape::GPUProfiler& Profiler, ID3D11DeviceContext* Context)
+            : ProfilerAvailable(ProfilerAvailable), Profiler(Profiler), Context(Context)
+        {
+#if CANAPE_RENDER_DEBUG
+            if (ProfilerAvailable) Profiler.BeginDrawScene(Context);
+#endif
+        }
+
+        ~SceneScope() {
+#if CANAPE_RENDER_DEBUG
+            if (ProfilerAvailable) Profiler.EndDrawScene(Context);
+#endif
+        }
+    };
+
+    struct FinalOutputScope {
+        bool ProfilerAvailable;
+        Canape::GPUProfiler& Profiler;
+        ID3D11DeviceContext* Context;
+
+        FinalOutputScope(bool ProfilerAvailable, Canape::GPUProfiler& Profiler, ID3D11DeviceContext* Context)
+            : ProfilerAvailable(ProfilerAvailable), Profiler(Profiler), Context(Context)
+        {
+#if CANAPE_RENDER_DEBUG
+            if (ProfilerAvailable) Profiler.BeginFinalOutput(Context);
+#endif
+        }
+
+        ~FinalOutputScope() {
+#if CANAPE_RENDER_DEBUG
+            if (ProfilerAvailable)
+            {
+                Profiler.EndFinalOutput(Context);
+                Profiler.EndFrame(Context);
+            }
+#endif
+        }
+    };
+
     void DX11Renderer::Impl::ExecuteScene(const RenderScene& scene)
     {
         if (!FrameActive)
@@ -124,26 +184,23 @@ namespace Canape
             return;
         }
 
-#if CANAPE_RENDER_DEBUG
-        if (ProfilerAvailable) Profiler.BeginDrawScene(Context.Get());
-#endif
+        {
+            SceneScope scope(ProfilerAvailable, Profiler, Context.Get());
 
-        const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
-        ViewData = prepared.View;
-        SceneData = prepared.Scene;
-        ViewDirty = SceneDirty = true;
-        const auto lighting = ResolveLighting(scene.lights, true);
-        ConstantBuffers::UploadLighting(*Context.Get(), GetSceneBuffers(), lighting);
-        UploadPendingConstants();
-        if (lighting.ShadowActive) RenderShadowPass(prepared);
-        BindSharedConstants();
-        auto draw = GetDrawContext();
-        MainPass::DrawOpaqueAndMasked(prepared, draw);
-        DrawSkybox(prepared.Skybox);
-        MainPass::DrawTransparent(prepared, draw);
-#if CANAPE_RENDER_DEBUG
-        if (ProfilerAvailable) Profiler.EndDrawScene(Context.Get());
-#endif
+            const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
+            ViewData = prepared.View;
+            SceneData = prepared.Scene;
+            ViewDirty = SceneDirty = true;
+            const auto lighting = ResolveLighting(scene.lights, true);
+            ConstantBuffers::UploadLighting(*Context.Get(), GetSceneBuffers(), lighting);
+            UploadPendingConstants();
+            if (lighting.ShadowActive) RenderShadowPass(prepared);
+            BindSharedConstants();
+            auto draw = GetDrawContext();
+            MainPass::DrawOpaqueAndMasked(prepared, draw);
+            DrawSkybox(prepared.Skybox);
+            MainPass::DrawTransparent(prepared, draw);
+        }
     }
 
     void DX11Renderer::Impl::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
@@ -168,29 +225,22 @@ namespace Canape
             return;
         }
 
-#if CANAPE_RENDER_DEBUG
-        if (ProfilerAvailable) Profiler.BeginFinalOutput(Context.Get());
-#endif
-        if (Overlay)
         {
-            RenderFinalOutput(DisplayRenderTargetView.Get(), Width, Height);
-            RenderOverlay();
+            FinalOutputScope scope(ProfilerAvailable, Profiler, Context.Get());
+
+            if (Overlay)
+            {
+                ExecutePostProcessing(DisplayRenderTargetView.Get(), Width, Height);
+                RenderOverlay();
+            }
+            else
+            {
+                ExecutePostProcessing(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+            }
         }
-        else
-        {
-            RenderFinalOutput(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
-        }
-#if CANAPE_RENDER_DEBUG
-        if (ProfilerAvailable)
-        {
-            Profiler.EndFinalOutput(Context.Get());
-            Profiler.EndFrame(Context.Get());
-        }
-#endif
+
         FrameActive = false;
-#if CANAPE_RENDER_DEBUG
-        CompletedStats = CurrentStats;
-#endif
+        recordDebugStat();
 
         const HRESULT result = SwapChain->Present(1, 0);
         if (FAILED(result))

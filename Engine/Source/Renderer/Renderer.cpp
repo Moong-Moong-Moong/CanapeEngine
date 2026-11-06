@@ -99,6 +99,23 @@ namespace Canape
         m_DebugSettings = m_DX11->GetDebugSettings();
     }
 
+    PostProcessSettings Renderer::GetPostProcessSettings() const
+    {
+        return m_DX11->GetPostProcessSettings();
+    }
+
+    void Renderer::SetToneMappingEnabled(bool enabled)
+    {
+        auto settings = m_DX11->GetPostProcessSettings();
+        settings.toneMappingEnabled = enabled;
+        m_DX11->SetPostProcessSettings(settings);
+    }
+
+    void Renderer::ResetPostProcessSettings()
+    {
+        m_DX11->SetPostProcessSettings({});
+    }
+
     void Renderer::ResetShadowFilterSettings()
     {
         m_ShadowFilterSettings = {};

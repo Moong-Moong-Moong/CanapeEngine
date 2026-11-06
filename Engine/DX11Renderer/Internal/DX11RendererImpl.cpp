@@ -18,6 +18,11 @@ namespace Canape
         DirectX::XMStoreFloat4x4(&ViewData.ViewProjection, DirectX::XMMatrixIdentity());
     }
 
+    void DX11Renderer::Impl::SetPostProcessSettings(const PostProcessSettings& settings)
+    {
+        postProcessSettings_ = settings;
+    }
+
     DX11Renderer::Impl::~Impl()
     {
         // Drop context-held buffer/SRV references before releasing the owned GPU objects.
@@ -199,13 +204,13 @@ namespace Canape
 
     bool DX11Renderer::Impl::CreateSceneTargets(uint32_t width, uint32_t height)
     {
-        // Match the old back-buffer sRGB render target so scene blending stays linear.
+        // Preserve linear HDR lighting and blending until final composition.
         D3D11_TEXTURE2D_DESC sceneColorDesc{};
         sceneColorDesc.Width = width;
         sceneColorDesc.Height = height;
         sceneColorDesc.MipLevels = 1;
         sceneColorDesc.ArraySize = 1;
-        sceneColorDesc.Format = DXGI_FORMAT_R8G8B8A8_TYPELESS;
+        sceneColorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         sceneColorDesc.SampleDesc.Count = 1;
         sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
         sceneColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
@@ -218,7 +223,7 @@ namespace Canape
         }
 
         D3D11_RENDER_TARGET_VIEW_DESC sceneTargetDesc{};
-        sceneTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        sceneTargetDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         sceneTargetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         result = Device->CreateRenderTargetView(SceneColorTexture.Get(), &sceneTargetDesc, &SceneColorRenderTargetView);
         if (FAILED(result))
@@ -229,7 +234,7 @@ namespace Canape
         }
 
         D3D11_SHADER_RESOURCE_VIEW_DESC sceneResourceDesc{};
-        sceneResourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        sceneResourceDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         sceneResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         sceneResourceDesc.Texture2D.MipLevels = 1;
         result = Device->CreateShaderResourceView(SceneColorTexture.Get(), &sceneResourceDesc, &SceneColorShaderResourceView);
@@ -240,7 +245,12 @@ namespace Canape
             return false;
         }
 
-        result = Device->CreateTexture2D(&sceneColorDesc, nullptr, &DisplayTexture);
+        // Existing editor viewport output: SDR storage, sRGB encoding, raw UNORM UI sampling.
+        // This is the final output destination when an overlay is installed, not an HDR intermediate.
+        D3D11_TEXTURE2D_DESC displayDesc = sceneColorDesc;
+        displayDesc.Format = DXGI_FORMAT_R8G8B8A8_TYPELESS;
+        sceneTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        result = Device->CreateTexture2D(&displayDesc, nullptr, &DisplayTexture);
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateTexture2D(display)", result);
@@ -470,6 +480,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(scene constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::PostProcessConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &PostProcessBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(post process constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

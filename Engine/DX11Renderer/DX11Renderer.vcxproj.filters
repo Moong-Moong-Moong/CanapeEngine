@@ -45,6 +45,9 @@
     <ClInclude Include="Data\MaterialDesc.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\PostProcessSettings.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\MeshData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
