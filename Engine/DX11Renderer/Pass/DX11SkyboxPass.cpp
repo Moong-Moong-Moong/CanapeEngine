@@ -6,7 +6,6 @@ namespace Canape::SkyboxPass
         const DX11PipelineState& pipelines, const Geometry& geometry, const MainTargets& main,
         RendererDebugStats* stats)
     {
-        if (!skybox.Texture || !geometry.Vertices || !geometry.Indices || !geometry.Constants) return;
         RenderBindings::BindMainTargets(context, main);
         const auto pipeline = pipelines.ResolveSkybox();
         RenderBindings::BindPipeline(context, pipeline);

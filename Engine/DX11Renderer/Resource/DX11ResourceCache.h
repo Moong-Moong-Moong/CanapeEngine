@@ -53,6 +53,7 @@ namespace Canape
 
         bool CreateWhiteTexture(ID3D11Device* device, ID3D11DeviceContext* context, std::string& error);
         ID3D11ShaderResourceView* GetWhiteTextureView() const;
+        void Clear();
 
     private:
         bool CreateTextureResource(ID3D11Device* device, ID3D11DeviceContext* context,

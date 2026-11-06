@@ -51,6 +51,7 @@ namespace Canape
         uint32_t RequestedSceneWidth = 0;
         uint32_t RequestedSceneHeight = 0;
         std::function<void()> Overlay;
+        bool Initialized = false;
         bool FrameActive = false;
         std::string LastError;
 #if CANAPE_RENDER_DEBUG
@@ -112,6 +113,11 @@ namespace Canape
 
         Impl();
         ~Impl();
+        void Shutdown();
+#if CANAPE_RENDER_DEBUG
+        void InitializeProfiler();
+        void BeginFrameProfiling(ID3D11DeviceContext* context);
+#endif
         bool EnsureShadowResources();
         PreparedLighting ResolveLighting(std::span<const RenderLight> lights, bool allowShadow);
         SceneConstantBuffers GetSceneBuffers() const;

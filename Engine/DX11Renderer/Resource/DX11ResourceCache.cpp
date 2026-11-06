@@ -101,7 +101,7 @@ namespace Canape
 
     bool DX11ResourceCache::IsMeshValid(MeshResourceId mesh) const
     {
-        return mesh.IsValid() && GetMesh(mesh) != nullptr;
+        return GetMesh(mesh) != nullptr;
     }
 
     void DX11ResourceCache::DestroyMesh(MeshResourceId mesh)
@@ -202,7 +202,7 @@ namespace Canape
 
     bool DX11ResourceCache::IsTextureValid(TextureResourceId texture) const
     {
-        return texture.IsValid() && GetTexture(texture) != nullptr;
+        return GetTexture(texture) != nullptr;
     }
 
     void DX11ResourceCache::DestroyTexture(TextureResourceId texture)
@@ -334,7 +334,7 @@ namespace Canape
 
     bool DX11ResourceCache::IsCubemapValid(CubemapResourceId cubemap) const
     {
-        return cubemap.IsValid() && GetCubemap(cubemap) != nullptr;
+        return GetCubemap(cubemap) != nullptr;
     }
 
     void DX11ResourceCache::DestroyCubemap(CubemapResourceId cubemap)
@@ -379,7 +379,7 @@ namespace Canape
 
     bool DX11ResourceCache::IsMaterialValid(MaterialResourceId material) const
     {
-        return material.IsValid() && GetMaterial(material) != nullptr;
+        return GetMaterial(material) != nullptr;
     }
 
     void DX11ResourceCache::DestroyMaterial(MaterialResourceId material)
@@ -402,5 +402,14 @@ namespace Canape
     ID3D11ShaderResourceView* DX11ResourceCache::GetWhiteTextureView() const
     {
         return WhiteTexture.ShaderResourceView.Get();
+    }
+
+    void DX11ResourceCache::Clear()
+    {
+        Meshes.clear();
+        Textures.clear();
+        Cubemaps.clear();
+        Materials.clear();
+        WhiteTexture = {};
     }
 }
