@@ -34,7 +34,7 @@ namespace Canape
 
     void DX11Renderer::Impl::DrawSkybox(const PreparedSkybox& skybox)
     {
-        if (!skybox.Texture || !SkyboxVertexBuffer || !SkyboxIndexBuffer || !SkyboxViewBuffer) return;
+        if (!skybox.Texture) return;
         ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), skybox.Constants);
         RendererDebugStats* stats = nullptr;
 #if CANAPE_RENDER_DEBUG
@@ -80,9 +80,24 @@ namespace Canape
             depthDisplay, PostProcessBuffer.Get(), stats);
     }
 
+    void DX11Renderer::Impl::BeginFrameProfiling(ID3D11DeviceContext* context)
+    {
+#if CANAPE_RENDER_DEBUG
+
+        CurrentStats = {};
+        CurrentStats.frameId = ++NextFrameId;
+        if (ProfilerAvailable)
+        {
+            Profiler.Poll(context);
+            if (DebugSettings.captureGpuTimings)
+                Profiler.BeginFrame(context, CurrentStats.frameId);
+        }
+#endif
+    }
+
     bool DX11Renderer::Impl::BeginFrame()
     {
-        if (!Context || !SwapChain || FrameActive)
+        if (!Initialized || FrameActive)
         {
             return false;
         }
@@ -102,16 +117,7 @@ namespace Canape
 
         ID3D11DeviceContext* context = Context.Get();
 
-#if CANAPE_RENDER_DEBUG
-        CurrentStats = {};
-        CurrentStats.frameId = ++NextFrameId;
-        if (ProfilerAvailable)
-        {
-            Profiler.Poll(context);
-            if (DebugSettings.captureGpuTimings)
-                Profiler.BeginFrame(context, CurrentStats.frameId);
-        }
-#endif
+        BeginFrameProfiling(context);
 
         // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
@@ -141,16 +147,17 @@ namespace Canape
         SceneScope(bool ProfilerAvailable, Canape::GPUProfiler& Profiler, ID3D11DeviceContext* Context)
             : ProfilerAvailable(ProfilerAvailable), Profiler(Profiler), Context(Context)
         {
-#if CANAPE_RENDER_DEBUG
             if (ProfilerAvailable) Profiler.BeginDrawScene(Context);
-#endif
         }
 
         ~SceneScope() {
-#if CANAPE_RENDER_DEBUG
             if (ProfilerAvailable) Profiler.EndDrawScene(Context);
-#endif
         }
+
+        SceneScope(const SceneScope&) = delete;
+        SceneScope& operator=(const SceneScope&) = delete;
+        SceneScope(SceneScope&&) = delete;
+        SceneScope& operator=(SceneScope&&) = delete;
     };
 
     struct FinalOutputScope {
@@ -161,20 +168,21 @@ namespace Canape
         FinalOutputScope(bool ProfilerAvailable, Canape::GPUProfiler& Profiler, ID3D11DeviceContext* Context)
             : ProfilerAvailable(ProfilerAvailable), Profiler(Profiler), Context(Context)
         {
-#if CANAPE_RENDER_DEBUG
             if (ProfilerAvailable) Profiler.BeginFinalOutput(Context);
-#endif
         }
 
         ~FinalOutputScope() {
-#if CANAPE_RENDER_DEBUG
             if (ProfilerAvailable)
             {
                 Profiler.EndFinalOutput(Context);
                 Profiler.EndFrame(Context);
             }
-#endif
         }
+
+        FinalOutputScope(const FinalOutputScope&) = delete;
+        FinalOutputScope& operator=(const FinalOutputScope&) = delete;
+        FinalOutputScope(FinalOutputScope&&) = delete;
+        FinalOutputScope& operator=(FinalOutputScope&&) = delete;
     };
 
     void DX11Renderer::Impl::ExecuteScene(const RenderScene& scene)

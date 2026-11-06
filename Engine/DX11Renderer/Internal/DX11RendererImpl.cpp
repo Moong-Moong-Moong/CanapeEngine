@@ -25,8 +25,82 @@ namespace Canape
 
     DX11Renderer::Impl::~Impl()
     {
-        // Drop context-held buffer/SRV references before releasing the owned GPU objects.
+        Shutdown();
+    }
+
+#if CANAPE_RENDER_DEBUG
+    void DX11Renderer::Impl::InitializeProfiler()
+    {
+        std::string profilerError;
+        ProfilerAvailable = Profiler.Initialize(Device.Get(), profilerError);
+        if (!ProfilerAvailable) CN_LOG_RENDERER("Profiler", profilerError);
+    }
+#endif
+
+    void DX11Renderer::Impl::Shutdown()
+    {
+        // Release context-held references before releasing the owned GPU resources.
         if (Context) Context->ClearState();
+
+        Initialized = false;
+        FrameActive = false;
+#if CANAPE_RENDER_DEBUG
+        Profiler = GPUProfiler{};
+        ProfilerAvailable = false;
+        DebugSettings = {};
+        CurrentStats = {};
+        CompletedStats = {};
+        NextFrameId = 0;
+        MinGpuFrameId = 0;
+#endif
+        Resources.Clear();
+        Pipelines = DX11PipelineState{};
+        ShadowMap = {};
+        SkyboxVertexBuffer.Reset();
+        SkyboxIndexBuffer.Reset();
+        FallbackShadowSampler.Reset();
+        RenderTargetView.Reset();
+        OverlayRenderTargetView.Reset();
+        SceneColorTexture.Reset();
+        SceneColorRenderTargetView.Reset();
+        SceneColorShaderResourceView.Reset();
+        DisplayTexture.Reset();
+        DisplayRenderTargetView.Reset();
+        DisplayShaderResourceView.Reset();
+        RetiredDisplayShaderResourceView.Reset();
+        DepthTexture.Reset();
+        DepthStencilView.Reset();
+#if CANAPE_RENDER_DEBUG
+        DepthShaderResourceView.Reset();
+        DepthDisplayBuffer.Reset();
+#endif
+        ObjectBuffer.Reset();
+        MaterialBuffer.Reset();
+        ViewBuffer.Reset();
+        SkyboxViewBuffer.Reset();
+        SceneBuffer.Reset();
+        LightBuffer.Reset();
+        PostProcessBuffer.Reset();
+        SwapChain.Reset();
+        Context.Reset();
+        Device.Reset();
+
+        Window = nullptr;
+        Width = Height = BackBufferWidth = BackBufferHeight = 0;
+        RequestedSceneWidth = RequestedSceneHeight = 0;
+        Overlay = {};
+        LastError.clear();
+        ViewData = {};
+        DirectX::XMStoreFloat4x4(&ViewData.View, DirectX::XMMatrixIdentity());
+        DirectX::XMStoreFloat4x4(&ViewData.Projection, DirectX::XMMatrixIdentity());
+        DirectX::XMStoreFloat4x4(&ViewData.ViewProjection, DirectX::XMMatrixIdentity());
+        SceneData = {};
+        ViewDirty = SceneDirty = true;
+        QueuedScene = {};
+        ShadowSettings = {};
+        postProcessSettings_ = {};
+        ShadowActive = false;
+        AttemptedShadowResolution = UINT32_MAX;
     }
 
     bool DX11Renderer::Impl::EnsureShadowResources()

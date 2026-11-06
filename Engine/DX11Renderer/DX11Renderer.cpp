@@ -25,16 +25,21 @@ namespace Canape
 
     bool DX11Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
     {
-        CN_LOG_RENDERER("Init", "렌더러 초기화 완료");
         Shutdown();
-        m_Impl = std::make_unique<Impl>();
+        const auto fail = [this]()
+        {
+            std::string error = std::move(m_Impl->LastError);
+            Shutdown();
+            m_Impl->LastError = std::move(error);
+            return false;
+        };
         m_Impl->Window = static_cast<HWND>(nativeWindow);
 
         if (!m_Impl->Window || !IsWindow(m_Impl->Window))
         {
             m_Impl->LastError = "Initialize received an invalid native window";
             CN_LOG_RENDERER("Error", m_Impl->LastError);
-            return false;
+            return fail();
         }
 
         DXGI_SWAP_CHAIN_DESC swapChainDesc{};
@@ -59,6 +64,9 @@ namespace Canape
 
         if (FAILED(result))
         {
+            m_Impl->Context.Reset();
+            m_Impl->SwapChain.Reset();
+            m_Impl->Device.Reset();
             result = D3D11CreateDeviceAndSwapChain(
                 nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0,
                 featureLevels, static_cast<UINT>(std::size(featureLevels)), D3D11_SDK_VERSION,
@@ -70,32 +78,32 @@ namespace Canape
         {
             m_Impl->LastError = RendererHResultMessage("D3D11CreateDeviceAndSwapChain", result);
             CN_LOG_RENDERER("Error", m_Impl->LastError);
-            return false;
+            return fail();
         }
 
         if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()
-            || !m_Impl->CreateSkyboxQuad()) return false;
+            || !m_Impl->CreateSkyboxQuad()) return fail();
 #if CANAPE_RENDER_DEBUG
-        std::string profilerError;
-        m_Impl->ProfilerAvailable = m_Impl->Profiler.Initialize(m_Impl->Device.Get(), profilerError);
-        if (!m_Impl->ProfilerAvailable) CN_LOG_RENDERER("Profiler", profilerError);
+        m_Impl->InitializeProfiler();
 #endif
+        m_Impl->Initialized = true;
+        CN_LOG_RENDERER("Init", "렌더러 초기화 완료");
         return true;
     }
 
     void DX11Renderer::SetPostProcessSettings(const PostProcessSettings& settings)
     {
-        if (m_Impl) m_Impl->SetPostProcessSettings(settings);
+        m_Impl->SetPostProcessSettings(settings);
     }
 
     PostProcessSettings DX11Renderer::GetPostProcessSettings() const
     {
-        return m_Impl ? m_Impl->postProcessSettings_ : PostProcessSettings{};
+        return m_Impl->postProcessSettings_;
     }
 
     void DX11Renderer::Shutdown()
     {
-        m_Impl.reset();
+        m_Impl->Shutdown();
     }
 
     MeshResourceId DX11Renderer::CreateMesh(
@@ -114,28 +122,22 @@ namespace Canape
     MeshResourceId DX11Renderer::CreateMeshData(const void* vertices, size_t vertexCount,
         uint32_t stride, VertexFormat format, std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
     {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
         return m_Impl->Resources.CreateMesh(m_Impl->Device.Get(), vertices, vertexCount, stride, format,
             indices, submeshes, m_Impl->LastError);
     }
 
     void DX11Renderer::DestroyMesh(MeshResourceId mesh)
     {
-        if (m_Impl) m_Impl->Resources.DestroyMesh(mesh);
+        m_Impl->Resources.DestroyMesh(mesh);
     }
 
     bool DX11Renderer::IsMeshValid(MeshResourceId mesh) const
     {
-        return m_Impl && m_Impl->Resources.IsMeshValid(mesh);
+        return m_Impl->Resources.IsMeshValid(mesh);
     }
 
     void DX11Renderer::SetCamera(const float* view, const float* projection)
     {
-        if (!m_Impl)
-        {
-            return;
-        }
-
         m_Impl->ViewData = ScenePreparation::BuildViewConstants(view, projection);
         m_Impl->ViewDirty = true;
     }
@@ -143,8 +145,6 @@ namespace Canape
     void DX11Renderer::SetDebugSettings(const RendererDebugSettings& settings)
     {
 #if CANAPE_RENDER_DEBUG
-        if (!m_Impl) return;
-
         RendererDebugSettings valid = settings;
         if (valid.viewMode != DebugViewMode::Final && valid.viewMode != DebugViewMode::CameraDepth
             && valid.viewMode != DebugViewMode::WorldNormal && valid.viewMode != DebugViewMode::UV
@@ -192,14 +192,13 @@ namespace Canape
     RendererDebugSettings DX11Renderer::GetDebugSettings() const
     {
 #if CANAPE_RENDER_DEBUG
-        if (m_Impl) return m_Impl->DebugSettings;
+        return m_Impl->DebugSettings;
 #endif
         return {};
     }
 
     RendererDebugStats DX11Renderer::GetDebugStats() const
     {
-        if (!m_Impl) return {};
         RendererDebugStats stats{};
 #if CANAPE_RENDER_DEBUG
         stats = m_Impl->CompletedStats;
@@ -221,8 +220,6 @@ namespace Canape
 
     bool DX11Renderer::SetShadowFilterSettings(const ShadowFilterSettings& settings)
     {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
-
         const auto isSampleCount = [](uint32_t count)
         {
             return std::find(std::begin(ShadowSampleCountOptions), std::end(ShadowSampleCountOptions), count)
@@ -247,7 +244,6 @@ namespace Canape
 
     ShadowFilterSettings DX11Renderer::GetShadowFilterSettings() const
     {
-        if (!m_Impl) return {};
         const auto& shadow = m_Impl->ShadowSettings;
         ShadowFilterSettings settings;
         settings.pcss = shadow.pcss;
@@ -262,40 +258,38 @@ namespace Canape
 
     void DX11Renderer::SetRenderView(const RenderView& view)
     {
-        if (m_Impl) m_Impl->QueuedScene.camera = view;
+        m_Impl->QueuedScene.camera = view;
     }
 
     void DX11Renderer::AddRenderItem(const RenderItem& item)
     {
-        if (m_Impl) m_Impl->QueuedScene.items.push_back(item);
+        m_Impl->QueuedScene.items.push_back(item);
     }
 
     void DX11Renderer::AddLight(const RenderLight& light)
     {
-        if (m_Impl) m_Impl->QueuedScene.lights.push_back(light);
+        m_Impl->QueuedScene.lights.push_back(light);
     }
 
     void DX11Renderer::SetFog(const RenderFog& fog)
     {
-        if (m_Impl) m_Impl->QueuedScene.fog = fog;
+        m_Impl->QueuedScene.fog = fog;
     }
 
     void DX11Renderer::SetSkybox(const RenderSkybox& skybox)
     {
-        if (m_Impl) m_Impl->QueuedScene.skybox = skybox;
+        m_Impl->QueuedScene.skybox = skybox;
     }
 
     void DX11Renderer::SetAmbient(const Vector3& color, float intensity)
     {
-        if (!m_Impl) return;
         m_Impl->QueuedScene.ambientColor = color;
         m_Impl->QueuedScene.ambientIntensity = intensity;
     }
 
     MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture)
     {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
-        if (!m_Impl->Device)
+        if (!m_Impl->Initialized)
         {
             m_Impl->LastError = "CreateMaterial requires an initialized renderer";
             CN_LOG_RENDERER("Error", m_Impl->LastError);
@@ -306,33 +300,29 @@ namespace Canape
 
     MaterialDesc DX11Renderer::GetMaterial(MaterialResourceId material) const
     {
-        if (m_Impl)
-        {
-            if (const auto* resource = m_Impl->Resources.GetMaterial(material)) return resource->Desc;
-        }
+        if (const auto* resource = m_Impl->Resources.GetMaterial(material)) return resource->Desc;
         return {}; // Default white material, including nonexistent or stale IDs.
     }
 
     void DX11Renderer::DestroyMaterial(MaterialResourceId material)
     {
-        if (m_Impl) m_Impl->Resources.DestroyMaterial(material);
+        m_Impl->Resources.DestroyMaterial(material);
     }
 
     bool DX11Renderer::IsMaterialValid(MaterialResourceId material) const
     {
-        return m_Impl && m_Impl->Resources.IsMaterialValid(material);
+        return m_Impl->Resources.IsMaterialValid(material);
     }
 
     TextureResourceId DX11Renderer::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels)
     {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
         return m_Impl->Resources.CreateTexture(m_Impl->Device.Get(), m_Impl->Context.Get(),
             width, height, format, pixels, m_Impl->LastError);
     }
 
     bool DX11Renderer::IsTextureValid(TextureResourceId texture) const
     {
-        return m_Impl && m_Impl->Resources.IsTextureValid(texture);
+        return m_Impl->Resources.IsTextureValid(texture);
     }
 
     void DX11Renderer::DestroyTexture(TextureResourceId texture)
@@ -345,98 +335,84 @@ namespace Canape
 
     CubemapResourceId DX11Renderer::CreateCubemap(uint32_t faceSize, uint32_t mipLevels, TextureFormat format, std::span<const uint8_t> pixels)
     {
-        if (!m_Impl) m_Impl = std::make_unique<Impl>();
         return m_Impl->Resources.CreateCubemap(m_Impl->Device.Get(), m_Impl->Context.Get(),
             faceSize, mipLevels, format, pixels, m_Impl->LastError);
     }
 
     bool DX11Renderer::IsCubemapValid(CubemapResourceId cubemap) const
     {
-        return m_Impl && m_Impl->Resources.IsCubemapValid(cubemap);
+        return m_Impl->Resources.IsCubemapValid(cubemap);
     }
 
     void DX11Renderer::DestroyCubemap(CubemapResourceId cubemap)
     {
-        if (m_Impl) m_Impl->Resources.DestroyCubemap(cubemap);
+        m_Impl->Resources.DestroyCubemap(cubemap);
     }
 
     bool DX11Renderer::BeginFrame()
     {
-        return m_Impl && m_Impl->BeginFrame();
+        return m_Impl->BeginFrame();
     }
 
     void DX11Renderer::DrawScene()
     {
-        if (!m_Impl)
-        {
-            return;
-        }
-
         DrawScene(m_Impl->QueuedScene);
         m_Impl->QueuedScene = {};
     }
 
     void DX11Renderer::DrawScene(const RenderScene& scene)
     {
-        if (m_Impl) m_Impl->ExecuteScene(scene);
+        m_Impl->ExecuteScene(scene);
     }
 
     void DX11Renderer::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
     {
-        if (m_Impl) m_Impl->DrawMesh(mesh, world, submeshIndex, material);
+        m_Impl->DrawMesh(mesh, world, submeshIndex, material);
     }
 
     void DX11Renderer::EndFrame()
     {
-        if (m_Impl) m_Impl->EndFrame();
+        m_Impl->EndFrame();
     }
 
     void DX11Renderer::SetSceneSize(uint32_t width, uint32_t height)
     {
-        if (!m_Impl)
-        {
-            return;
-        }
         m_Impl->RequestedSceneWidth = width && height ? width : 0;
         m_Impl->RequestedSceneHeight = width && height ? height : 0;
     }
 
     void DX11Renderer::SetOverlay(std::function<void()> overlay)
     {
-        if (m_Impl)
-        {
-            m_Impl->Overlay = std::move(overlay);
-        }
+        m_Impl->Overlay = std::move(overlay);
     }
 
     void* DX11Renderer::GetNativeDevice() const
     {
-        return m_Impl ? m_Impl->Device.Get() : nullptr;
+        return m_Impl->Device.Get();
     }
 
     void* DX11Renderer::GetNativeContext() const
     {
-        return m_Impl ? m_Impl->Context.Get() : nullptr;
+        return m_Impl->Context.Get();
     }
 
     void* DX11Renderer::GetSceneTexture() const
     {
-        return m_Impl ? m_Impl->DisplayShaderResourceView.Get() : nullptr;
+        return m_Impl->DisplayShaderResourceView.Get();
     }
 
     uint32_t DX11Renderer::GetWidth() const
     {
-        return m_Impl ? m_Impl->Width : 0;
+        return m_Impl->Width;
     }
 
     uint32_t DX11Renderer::GetHeight() const
     {
-        return m_Impl ? m_Impl->Height : 0;
+        return m_Impl->Height;
     }
 
     const std::string& DX11Renderer::GetLastError() const
     {
-        static const std::string emptyError;
-        return m_Impl ? m_Impl->LastError : emptyError;
+        return m_Impl->LastError;
     }
 }

@@ -98,6 +98,7 @@ namespace Canape
         MeshResourceId CreateMeshData(const void* vertices, size_t vertexCount, uint32_t stride, VertexFormat format,
             std::span<const uint32_t> indices, std::span<const SubMesh> submeshes);
         struct Impl;
+        // Present from construction through destruction; Shutdown only clears its state.
         std::unique_ptr<Impl> m_Impl;
     };
 }
