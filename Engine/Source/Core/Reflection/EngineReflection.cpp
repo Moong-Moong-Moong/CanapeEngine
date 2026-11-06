@@ -2,6 +2,8 @@
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Input/InputManager.h"
+#include "JoltPhysics/Math/ScalarExt.h"
+#include "JoltPhysics/PhysicsTypes.h"
 #include "Math/Quaternion.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
@@ -82,11 +84,22 @@ namespace Canape
 				value("Transparent", AlphaMode::Transparent)
 			);
 
+			registration::class_<PhysicsPose>("PhysicsPose")
+				.constructor<>()(policy::ctor::as_object)
+				.property("position", &PhysicsPose::position)
+				.property("rotation", &PhysicsPose::rotation);
+
 			registration::enumeration<PhysicsMotion>("PhysicsMotion")
 			(
 				value("Static", PhysicsMotion::Static),
 				value("Kinematic", PhysicsMotion::Kinematic),
 				value("Dynamic", PhysicsMotion::Dynamic)
+			);
+
+			registration::enumeration<Easing>("Easing")
+			(
+				value("Linear", Easing::Linear),
+				value("Smooth", Easing::Smooth)
 			);
 
 			registration::enumeration<Key>("Key")

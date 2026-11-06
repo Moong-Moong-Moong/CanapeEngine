@@ -162,6 +162,7 @@ exit /b 0</Command>
   </ItemGroup>
   <ItemGroup>
     <GameScriptSource Include="$(CanapeGameDir)Source\Scripts\*.cpp" />
+    <GameScriptSource Include="$(CanapeGameDir)Source\Puzzle\*.cpp" />
     <ClCompile Include="@(GameScriptSource)">
       <Link>GameScripts\%(Filename)%(Extension)</Link>
       <ObjectFileName>$(IntDir)GameScripts\</ObjectFileName>

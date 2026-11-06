@@ -13,6 +13,7 @@ public:
     Canape::GameObject* GetSelected(Canape::Scene* scene) const;
     void Select(const Canape::GameObject* gameObject);
     void ClearSelection() { m_SelectedId = 0; }
+    uint64_t GetSelectedId() const { return m_SelectedId; }
 
     const std::filesystem::path& GetSelectedAsset() const { return m_SelectedAsset; }
     void SelectAsset(std::filesystem::path path);

@@ -106,6 +106,10 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
     <ClInclude Include="Source\Scripts\FlyCamera.h" />
+    <ClInclude Include="Source\Puzzle\PoseTrack.h" />
+    <ClInclude Include="Source\Puzzle\PuzzleDirector.h" />
+    <ClInclude Include="Source\Puzzle\PuzzleLane.h" />
+    <ClInclude Include="Source\Puzzle\PuzzleTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -115,6 +119,9 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
     <ClCompile Include="Source\Scripts\FlyCamera.cpp" />
+    <ClCompile Include="Source\Puzzle\PoseTrack.cpp" />
+    <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp" />
+    <ClCompile Include="Source\Puzzle\PuzzleLane.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Materials\M_Enemy.mat" />
@@ -122,6 +129,7 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_Enemy_Transparent.mat" />
     <None Include="Content\Materials\M_Player.mat" />
     <None Include="Content\Materials\M_PuzzleGoal.mat" />
+    <None Include="Content\Materials\M_PuzzleGoalSolved.mat" />
     <None Include="Content\Materials\M_PuzzleMover.mat" />
     <None Include="Content\Materials\M_PuzzlePayload.mat" />
     <None Include="Content\Materials\M_PuzzleWall.mat" />

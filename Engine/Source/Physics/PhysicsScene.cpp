@@ -99,6 +99,17 @@ namespace Canape
 		}
 	}
 
+	void PhysicsScene::SetKinematicTarget(const RigidBodyComponent& body, const PhysicsPose& target)
+	{
+		if (!HasWorld()) return;
+
+        RigidBodyState& state = m_Bodies[&body];
+		state.SetKinematicTarget(PhysicsPose{
+            .position = target.position,
+            .rotation = target.rotation.Normalized()
+        });
+	}
+
 	void PhysicsScene::DestroyWorld()
 	{
 		m_World.reset();
@@ -117,6 +128,19 @@ namespace Canape
         }
 
         return nullptr;
+	}
+
+	const RigidBodyComponent* PhysicsScene::FindBody(PhysicsBodyId id) const
+	{
+		const auto it = std::ranges::find_if(
+            m_Bodies,
+            [id](const auto& entry)
+            {
+                return entry.second.GetId() == id;
+            }
+        );
+
+        return it != m_Bodies.end() ? it->first : nullptr;
 	}
 
 	void PhysicsScene::ReleaseBodies(std::span<Component* const> removed)
@@ -161,6 +185,7 @@ namespace Canape
 			}
 			ApplyQueuedImpulses(state);
 		}
+		m_AuthoringIssueCount = CountAuthoringIssues(bodies);
 	}
 
 	void PhysicsScene::SyncBody(const RigidBodyComponent& body, RigidBodyState& state)
@@ -220,6 +245,7 @@ namespace Canape
 		if (state.IsBuilt())
 		{
 			m_World->DestroyBody(state.GetId());
+			state.ClearKinematicTarget();
 		}
 		state.Clear();
 	}
@@ -237,9 +263,28 @@ namespace Canape
 		state.ClearQueuedImpulses();
 	}
 
+	// Every kinematic body with a target is sent it every step, so one that has arrived reads a zero velocity.
+	void PhysicsScene::MoveKinematicBodies(float fixedDeltaTime, std::span<RigidBodyComponent* const> bodies)
+	{
+        using enum PhysicsMotion;
+
+		for (const RigidBodyComponent* body : bodies)
+		{
+			const RigidBodyState& state = *FindState(*body);
+            if (!state.IsBuilt() || m_World->GetMotion(state.GetId()) != Kinematic) continue;
+
+            if (auto* target = state.GetKinematicTarget())
+            {
+                m_World->MoveKinematic(state.GetId(), *target, fixedDeltaTime);
+            }
+		}
+	}
+
 	PhysicsStepError PhysicsScene::Step(float fixedDeltaTime, std::span<RigidBodyComponent* const> bodies)
 	{
 		if (!HasWorld()) return PhysicsStepError::None;
+
+		MoveKinematicBodies(fixedDeltaTime, bodies);
 
 		const auto stepStart = std::chrono::steady_clock::now();
 		const PhysicsStepError error = m_World->Step(fixedDeltaTime);
@@ -249,15 +294,12 @@ namespace Canape
 		).count();
 		++m_StepCount;
 
-		if (StepFailed(error))
+		if (StepFailed(error) && error != m_LastStepError)
 		{
-			if (error != m_LastLoggedStepError)
-			{
-                m_LastLoggedStepError = error;
-				CN_LOG_RUNTIME("Physics", "Physics step failed, error flags: ", static_cast<int>(error));
-				assert(false && "Physics step failed");
-			}
+			CN_LOG_RUNTIME("Physics", "Physics step failed, error flags: ", static_cast<int>(error));
+			assert(false && "Physics step failed");
 		}
+		m_LastStepError = error;
 
 		for (const RigidBodyComponent* body : bodies)
 		{
@@ -286,6 +328,21 @@ namespace Canape
             transform->SetLocalPosition(pose.position);
             transform->SetLocalRotation(pose.rotation);
         }
+	}
+
+	RigidBodies PhysicsScene::QueryBox(const Vector3& center, const Vector3& halfExtent) const
+	{
+		RigidBodies found;
+		if (!HasWorld()) return found;
+
+		for (const PhysicsBodyId id : m_World->QueryBox(center, halfExtent))
+		{
+			if (const auto* body = FindBody(id))
+			{
+				found.push_back(body);
+			}
+		}
+		return found;
 	}
 
 	PhysicsSceneStats PhysicsScene::GetStats() const

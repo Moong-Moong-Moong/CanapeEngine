@@ -34,6 +34,14 @@ namespace Canape
 		}
 	}
 
+	void RigidBodyComponent::SetKinematicTarget(const PhysicsPose& target)
+	{
+		if (auto* physics = FindPhysics())
+		{
+			physics->SetKinematicTarget(*this, target);
+		}
+	}
+
 	PhysicsScene* RigidBodyComponent::FindPhysics() const
 	{
 		auto* owner = GetOwnerObject();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "JoltPhysics/PhysicsTypes.h"
@@ -33,6 +34,8 @@ namespace Canape
         // What the last Adopt or Fail was made from.
         RigidBodyShape builtFrom;
         PhysicsBodySettings builtWith{};
+        // Where a kinematic body goes next; Clear leaves it, like the impulses, for the owner to drop.
+        std::optional<PhysicsPose> kinematicTarget;
         // Impulses that arrived while there was no body; Clear leaves them for the owner to apply or drop.
         QueuedImpulses queuedImpulses;
 
@@ -41,6 +44,11 @@ namespace Canape
         RigidBodyIssue GetIssue() const { return issue; }
         bool IsBuilt() const { return id.IsValid(); }
         bool IsBuiltFrom(const ColliderComponent& collider) const;
+        const PhysicsPose* GetKinematicTarget() const {
+            return kinematicTarget.has_value() ?
+                &*kinematicTarget :
+                nullptr;
+        }
         const QueuedImpulses& GetQueuedImpulses() const { return queuedImpulses; }
 
         // A built body matches while its colliders are the same; a failure matches while nothing it was made from changed.
@@ -50,6 +58,8 @@ namespace Canape
         void Fail(RigidBodyIssue failure, const PhysicsBodySettings& settings, const RigidBodyShape& shape);
         void Clear();
 
+        void SetKinematicTarget(const PhysicsPose& target) { kinematicTarget = target; }
+        void ClearKinematicTarget() { kinematicTarget.reset(); }
         void QueueImpulse(const Vector3& impulse) { queuedImpulses.push_back(impulse); }
         void ClearQueuedImpulses() { queuedImpulses.clear(); }
 

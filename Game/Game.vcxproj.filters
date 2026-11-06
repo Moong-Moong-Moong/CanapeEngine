@@ -22,10 +22,25 @@
     <Filter Include="Source\Scripts">
       <UniqueIdentifier>{0BA211BE-3D2B-B761-B652-2DC5B033D0FD}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Puzzle">
+      <UniqueIdentifier>{7C3E5A12-94B8-4D6F-A1E0-52B7D8F3C641}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h">
       <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PoseTrack.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleDirector.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleLane.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleTypes.h">
+      <Filter>Source\Puzzle</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
@@ -49,6 +64,15 @@
     </ClCompile>
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PoseTrack.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleLane.cpp">
+      <Filter>Source\Puzzle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\CameraController.cpp">
       <Filter>Source\Scripts</Filter>
@@ -84,6 +108,9 @@
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_PuzzleGoal.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleGoalSolved.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_PuzzleMover.mat">

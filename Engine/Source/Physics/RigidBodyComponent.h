@@ -86,6 +86,9 @@ namespace Canape
 		// Before the body exists the impulse is queued in call order and applied right after the body is created
 		// at the next sync; the queue is dropped at that sync when there is still no body, for any reason.
 		void AddImpulse(const Vector3& impulse);
+		// Where a kinematic body is to be after the next step; the body is carried there by velocity.
+		// A kinematic body without a target holds the pose it was created at.
+		void SetKinematicTarget(const PhysicsPose& target);
 
 	private:
 		PhysicsScene* FindPhysics() const;

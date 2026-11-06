@@ -9,12 +9,15 @@
 #include <memory>
 #include <span>
 #include <unordered_map>
+#include <vector>
 
 namespace Canape
 {
 	class Component;
 	class JoltRuntime;
 	class JoltWorld;
+
+	using RigidBodies = std::vector<const RigidBodyComponent*>;
 
 	struct PhysicsSceneStats
 	{
@@ -48,6 +51,17 @@ namespace Canape
         // otherwise queued and applied right after the next sync creates it,
 		// or dropped at that sync when there is still no body.
 		void AddImpulse(const RigidBodyComponent&, const Vector3& impulse);
+		// Where a kinematic body is to be after the next step; without a target it holds its creation pose.
+		// Kept until the body is released, so a target set before the body exists reaches its first step.
+		void SetKinematicTarget(const RigidBodyComponent&, const PhysicsPose& target);
+
+		// Moving bodies (sleeping ones included) whose shapes overlap the world-space box, in creation order.
+		RigidBodies QueryBox(const Vector3& center, const Vector3& halfExtent) const;
+
+		// Bodies whose issue is an authoring problem, as of the last sync.
+		std::uint32_t GetAuthoringIssueCount() const { return m_AuthoringIssueCount; }
+		// The flags of the last step; None before the first step.
+		PhysicsStepError GetLastStepError() const { return m_LastStepError; }
 
 		// Zeros while there is no world.
 		PhysicsSceneStats GetStats() const;
@@ -69,12 +83,14 @@ namespace Canape
         {
             return const_cast<RigidBodyState*>(std::as_const(*this).FindState(body));
         }
+		const RigidBodyComponent* FindBody(PhysicsBodyId) const;
 
 		void SyncBody(const RigidBodyComponent&, RigidBodyState&);
 		// Records and logs why the shape in m_Shape left the body without a backend body.
 		void FailBody(const RigidBodyComponent&, RigidBodyState&, RigidBodyIssue);
 		void ReleaseBody(RigidBodyState&);
 		void ApplyQueuedImpulses(RigidBodyState&);
+		void MoveKinematicBodies(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
 		void WriteBack(const RigidBodyComponent&, PhysicsBodyId) const;
 
     private:
@@ -85,9 +101,10 @@ namespace Canape
 
 		std::uint64_t m_StepCount = 0;
 		float m_LastStepMilliseconds = 0.0f;
+		std::uint32_t m_AuthoringIssueCount = 0;
+		PhysicsStepError m_LastStepError = PhysicsStepError::None;
 
 		// Scratch for SyncBody; holds the shape of the body synced last.
 		RigidBodyShape m_Shape;
-		PhysicsStepError m_LastLoggedStepError = PhysicsStepError::None;
     };
 }

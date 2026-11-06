@@ -104,4 +104,13 @@ namespace Canape
     {
         return Math::Max(v.X, Math::Max(v.Y, v.Z));
     }
+
+    inline constexpr Vector3 Lerp(const Vector3& a, const Vector3& b, float s)
+    {
+        return Vector3{
+            Lerp(a.X, b.X, s),
+            Lerp(a.Y, b.Y, s),
+            Lerp(a.Z, b.Z, s)
+        };
+    }
 }
