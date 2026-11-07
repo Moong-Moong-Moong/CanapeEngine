@@ -2,6 +2,7 @@
 
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
+#include "Math/Vector4.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -18,6 +19,7 @@ namespace Canape
         Vector3 Position{};
         Vector3 Normal{}; 
         Vector2 UV{};
+        Vector4 Tangent{}; // r,g,b 탄젠트값, w 탄젠트 방향부호값 - UV가 미러링된 부분 고려
     };
 
     struct SubMesh
@@ -29,10 +31,11 @@ namespace Canape
     };
 
     static_assert(std::is_standard_layout_v<StaticVertex>);
-    static_assert(sizeof(StaticVertex) == 32);
+    static_assert(sizeof(StaticVertex) == 48);
     static_assert(offsetof(StaticVertex, Position) == 0);
     static_assert(offsetof(StaticVertex, Normal) == 12);
     static_assert(offsetof(StaticVertex, UV) == 24);
+    static_assert(offsetof(StaticVertex, Tangent) == 32);
 
     inline const char* ValidateMeshIndices(size_t vertexCount, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes)

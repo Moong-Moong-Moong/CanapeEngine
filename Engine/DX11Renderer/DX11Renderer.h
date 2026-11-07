@@ -49,6 +49,7 @@ namespace Canape
         bool IsMaterialValid(MaterialResourceId material) const;
 
         TextureResourceId CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels);
+        void SetTestNormalTexture(TextureResourceId texture);
         bool IsTextureValid(TextureResourceId texture) const;
         // Explicit texture removal also invalidates materials referencing it; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);

@@ -7,6 +7,7 @@ struct VertexInput
 #ifdef STATIC_VERTEX
     float3 Normal : NORMAL;
     float2 UV : TEXCOORD0;
+    float4 Tangent : TANGENT;
 #endif
 };
 
@@ -16,6 +17,7 @@ struct VertexOutput
     float3 WorldPosition : WORLDPOS;
     float3 WorldNormal : NORMAL;
     float2 UV : TEXCOORD0;
+    float4 Tangent : TANGENT;
 };
 
 #endif

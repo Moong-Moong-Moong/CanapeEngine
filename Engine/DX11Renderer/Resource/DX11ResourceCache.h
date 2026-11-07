@@ -57,7 +57,8 @@ namespace Canape
 
     private:
         bool CreateTextureResource(ID3D11Device* device, ID3D11DeviceContext* context,
-            uint32_t width, uint32_t height, const uint8_t* pixels, DX11TextureResource& texture, std::string& error);
+            uint32_t width, uint32_t height, DXGI_FORMAT format, const uint8_t* pixels,
+            DX11TextureResource& texture, std::string& error);
 
         std::unordered_map<uint64_t, DX11MeshResource> Meshes;
         std::unordered_map<uint64_t, DX11TextureResource> Textures;

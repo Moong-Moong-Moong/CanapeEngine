@@ -2,6 +2,7 @@
 #include "Renderer/GpuResourceRegistry.h"
 #include "DX11Renderer/DX11Renderer.h"
 #include "Asset/AssetManager.h"
+#include "Asset/Texture/TextureImporter.h"
 #include "CNDebug/DebugLog.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
@@ -20,6 +21,7 @@ namespace Canape
     bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
     {
         if (!m_DX11->Initialize(nativeWindow, width, height)) return false;
+        m_TestNormalAttempted = false;
         m_DX11->SetDebugSettings(m_DebugSettings);
         m_DebugSettings = m_DX11->GetDebugSettings();
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();
@@ -172,6 +174,28 @@ namespace Canape
 
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
+        if (!m_TestNormalAttempted)
+        {
+            m_TestNormalAttempted = true;
+            // Temporary renderer-wide input test; material routing comes later.
+            const auto file = AssetManager::GetAssetFile("Content/Texture/Player_Normal.png");
+            std::string error;
+            if (auto normal = TextureImporter::LoadTexture(file, &error))
+            {
+                const TextureResourceId texture = m_DX11->CreateTexture(normal->GetWidth(), normal->GetHeight(),
+                    TextureFormat::RGBA8_UNORM, normal->GetPixels());
+                if (texture.IsValid())
+                {
+                    m_DX11->SetTestNormalTexture(texture);
+                    CN_LOG_RENDERER("NormalMap", "Player normal map loaded as linear RGBA8: ", file.string());
+                }
+                else
+                    CN_LOG_RENDERER("NormalMap", "Player normal map GPU upload failed: ", m_DX11->GetLastError());
+            }
+            else
+                CN_LOG_RENDERER("NormalMap", "Player normal map load failed: ", error);
+        }
+
         if (!m_DX11->BeginFrame())
         {
             return;

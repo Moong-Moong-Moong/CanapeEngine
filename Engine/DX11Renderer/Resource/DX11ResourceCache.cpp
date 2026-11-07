@@ -110,20 +110,20 @@ namespace Canape
     }
 
     bool DX11ResourceCache::CreateTextureResource(ID3D11Device* device, ID3D11DeviceContext* context,
-        uint32_t width, uint32_t height, const uint8_t* pixels, DX11TextureResource& texture, std::string& error)
+        uint32_t width, uint32_t height, DXGI_FORMAT format, const uint8_t* pixels,
+        DX11TextureResource& texture, std::string& error)
     {
-        constexpr DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         UINT support = 0;
         HRESULT result = device->CheckFormatSupport(format, &support);
         if (FAILED(result))
         {
-            error = HResultMessage("ID3D11Device::CheckFormatSupport(sRGB texture)", result);
+            error = HResultMessage("ID3D11Device::CheckFormatSupport(texture)", result);
             CN_LOG_RENDERER("Resource", error);
             return false;
         }
         if (!(support & D3D11_FORMAT_SUPPORT_TEXTURE2D) || !(support & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE))
         {
-            error = "RGBA8 sRGB texture sampling is unsupported by this device";
+            error = "RGBA8 texture sampling is unsupported by this device";
             CN_LOG_RENDERER("Resource", error);
             return false;
         }
@@ -133,7 +133,7 @@ namespace Canape
         desc.Height = height;
         desc.MipLevels = generateMips ? 0 : 1;
         desc.ArraySize = 1;
-        desc.Format = format; // Hardware sRGB -> linear conversion; alpha is not gamma converted.
+        desc.Format = format; // Color uses sRGB decoding; data textures keep their linear byte values.
         desc.SampleDesc.Count = 1;
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (generateMips ? D3D11_BIND_RENDER_TARGET : 0);
@@ -180,7 +180,9 @@ namespace Canape
             return {};
         }
         DX11TextureResource texture;
-        if (!CreateTextureResource(device, context, width, height, pixels.data(), texture, error)) return {};
+        const DXGI_FORMAT dxgiFormat = format == TextureFormat::RGBA8_UNORM
+            ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        if (!CreateTextureResource(device, context, width, height, dxgiFormat, pixels.data(), texture, error)) return {};
         static uint64_t nextId = 1; // Never reuse IDs after removal/reinitialize.
         if (nextId == 0)
         {
@@ -396,7 +398,8 @@ namespace Canape
             return false;
         }
         constexpr uint8_t white[] = { 255, 255, 255, 255 };
-        return CreateTextureResource(device, context, 1, 1, white, WhiteTexture, error);
+        return CreateTextureResource(device, context, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+            white, WhiteTexture, error);
     }
 
     ID3D11ShaderResourceView* DX11ResourceCache::GetWhiteTextureView() const

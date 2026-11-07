@@ -5,6 +5,7 @@
 #include "MeshTypes.hlsli"
 
 Texture2D BaseColorTexture : register(t0);
+Texture2D TestNormalTexture : register(t3); // Linear UNORM normal-map data.
 SamplerState LinearSampler : register(s0);
 
 float GetDebugAlpha(VertexOutput input)
