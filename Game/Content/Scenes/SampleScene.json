@@ -355,6 +355,55 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 27,
+            "name": "DirectionalLight",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.25881904,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9659258
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.0,
+                        "range": 10.0,
+                        "innerAngle": 1.5,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
         }
     ]
 }

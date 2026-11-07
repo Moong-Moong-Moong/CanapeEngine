@@ -13,6 +13,7 @@ namespace Canape
         ID3D11Buffer* ObjectBuffer;
         ID3D11Buffer* MaterialBuffer;
         SceneBindings Scene;
+        ID3D11ShaderResourceView* TestNormalTexture = nullptr;
         const RendererDebugSettings* DebugSettings = nullptr;
         RendererDebugStats* Stats = nullptr;
     };
