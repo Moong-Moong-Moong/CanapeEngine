@@ -10,6 +10,8 @@ namespace Canape
     {
         Linear,
         Smooth,
+        EaseIn,
+        EaseOut,
     };
 
     inline constexpr float Ease(Easing easing, float u)
@@ -20,6 +22,10 @@ namespace Canape
         {
         case Smooth:
             return u * u * (3.0f - 2.0f * u);
+        case EaseIn:
+            return u * u;
+        case EaseOut:
+            return u * (2.0f - u);
         default:
             return u;
         }

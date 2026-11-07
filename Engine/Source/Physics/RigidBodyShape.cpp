@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <optional>
 
 #include "JoltPhysics/Math/QuaternionExt.h"
 #include "JoltPhysics/Math/ScalarExt.h"
@@ -27,6 +28,7 @@ namespace Canape
             PhysicsShapePart part;
             Vector3 extent{};
             bool usableSize = false;
+            bool usableFriction = true;
             bool nonUniformSphere = false;
         };
 
@@ -42,6 +44,7 @@ namespace Canape
             PhysicsShapePart part;
             ColliderRecord record;
             bool usableSize = false;
+            bool usableFriction = true;
             bool nonUniformAncestors = false;
             bool nonUniformSphere = false;
         };
@@ -159,6 +162,12 @@ namespace Canape
                 assert(false && "Unhandled collider type");
             }
 
+            if(collider.GetOverrideFriction())
+            {
+                shape.part.friction = collider.GetFriction();
+                shape.usableFriction = IsNonNegative(collider.GetFriction());
+            }
+
             return shape;
         }
 
@@ -182,6 +191,7 @@ namespace Canape
                     .extent = shape.extent
                 },
                 .usableSize = shape.usableSize,
+                .usableFriction = shape.usableFriction,
                 .nonUniformAncestors = !scale.uniformAncestors,
                 .nonUniformSphere = shape.nonUniformSphere
             };
@@ -194,13 +204,23 @@ namespace Canape
                 && SameBits(lhs.extent, rhs.extent);
         }
 
+        bool sameFriction(const std::optional<float>& lhs, const std::optional<float>& rhs)
+        {
+            return lhs.has_value() == rhs.has_value()
+                && (!lhs || SameBits(*lhs, *rhs));
+        }
+
         bool samePart(const PhysicsShapePart& lhs, const PhysicsShapePart& rhs)
         {
+            const auto sameFriction = lhs.friction.has_value() == rhs.friction.has_value()
+                && SameBits(lhs.friction.value_or(0.0f), rhs.friction.value_or(0.0f));
+
             return lhs.type == rhs.type
                 && SameBits(lhs.halfExtent, rhs.halfExtent)
                 && SameBits(lhs.radius, rhs.radius)
                 && SameBits(lhs.localPose.position, rhs.localPose.position)
-                && SameBits(lhs.localPose.rotation, rhs.localPose.rotation);
+                && SameBits(lhs.localPose.rotation, rhs.localPose.rotation)
+                && sameFriction;
         }
     }
 
@@ -229,12 +249,14 @@ namespace Canape
             .inverseRotation = bodyTransform->GetRotation().Normalized().Inverse()
         };
         bool invalidExtent = false;
+        bool invalidFriction = false;
         forEachBodyCollider(*bodyTransform, [&](const ColliderComponent& collider)
         {
             const auto measured = measureCollider(collider, frame);
             parts.push_back(measured.part);
             records.push_back(measured.record);
             invalidExtent |= !measured.usableSize;
+            invalidFriction |= !measured.usableFriction;
             nonUniformAncestors |= measured.nonUniformAncestors;
             nonUniformSphere |= measured.nonUniformSphere;
         });
@@ -243,7 +265,7 @@ namespace Canape
         {
             issue = RigidBodyIssue::InvalidExtent;
         }
-        else if(!IsValidSettings(body.GetSettings()))
+        else if(!IsValidSettings(body.GetSettings()) || invalidFriction)
         {
             issue = RigidBodyIssue::InvalidSettings;
         }

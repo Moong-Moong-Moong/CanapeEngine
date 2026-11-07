@@ -42,7 +42,29 @@ namespace
     constexpr std::chrono::seconds RunLimit{ 180 };
     constexpr char SceneName[] = "PhysicsPlayground";
     constexpr char RoundTripFile[] = "roundtrip.json";
-    constexpr std::uint32_t CrowyKickerJumpSolvedAt = 146;
+
+    struct CrowyReference {
+        PuzzleKind kind;
+        std::uint32_t solvedAt;
+    };
+
+    constexpr CrowyReference CrowyReferences[] = {
+        { PuzzleKind::KickerJump, 146 },
+        { PuzzleKind::TiltTray, 423 },
+        { PuzzleKind::CarriedScoop, 309 },
+    };
+
+    std::uint32_t CrowySolvedAt(PuzzleKind kind)
+    {
+        for(const CrowyReference& reference : CrowyReferences)
+        {
+            if(reference.kind == kind)
+            {
+                return reference.solvedAt;
+            }
+        }
+        return 0;
+    }
 
     int g_Failures = 0;
     int g_Checks = 0;
@@ -229,7 +251,7 @@ namespace
         {
             std::vector<PuzzleLane*> lanes;
             Canape::Scene& scene = Active();
-            for(const char* name : { "KickerJump" })
+            for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop" })
             {
                 Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
@@ -350,7 +372,7 @@ namespace
         {
             Check(verdict.solved && verdict.solvedAt <= PuzzleHorizonTicks, Tag(run, verdict.kind) + ": solved within the horizon");
             Check(!verdict.failed, Tag(run, verdict.kind) + ": no physics failure");
-            std::printf("INFO %s Solution solvedAt=%u (Crowy %u)\n", enumName(verdict.kind).c_str(), verdict.solvedAt, CrowyKickerJumpSolvedAt);
+            std::printf("INFO %s Solution solvedAt=%u (Crowy %u)\n", enumName(verdict.kind).c_str(), verdict.solvedAt, CrowySolvedAt(verdict.kind));
         }
     }
 

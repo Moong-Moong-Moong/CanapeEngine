@@ -99,7 +99,9 @@ namespace Canape
 			registration::enumeration<Easing>("Easing")
 			(
 				value("Linear", Easing::Linear),
-				value("Smooth", Easing::Smooth)
+				value("Smooth", Easing::Smooth),
+				value("EaseIn", Easing::EaseIn),
+				value("EaseOut", Easing::EaseOut)
 			);
 
 			registration::enumeration<Key>("Key")
@@ -197,7 +199,9 @@ namespace Canape
 				.property("linearDamping", &RigidBodyComponent::GetLinearDamping, &RigidBodyComponent::SetLinearDamping)
 				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping);
 
-			registration::class_<ColliderComponent>("ColliderComponent");
+			registration::class_<ColliderComponent>("ColliderComponent")
+				.property("overrideFriction", &ColliderComponent::GetOverrideFriction, &ColliderComponent::SetOverrideFriction)
+				.property("friction", &ColliderComponent::GetFriction, &ColliderComponent::SetFriction);
 
 			registration::class_<BoxColliderComponent>("BoxColliderComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)

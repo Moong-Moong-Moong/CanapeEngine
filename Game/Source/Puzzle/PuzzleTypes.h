@@ -11,6 +11,8 @@ using GameObjectHandles = std::vector<Handle<Canape::GameObject>>;
 
 enum class PuzzleKind : std::uint8_t {
     KickerJump,
+    TiltTray,
+    CarriedScoop,
 };
 
 // Solution runs the intended moves; Control runs the same bodies without the decisive move.

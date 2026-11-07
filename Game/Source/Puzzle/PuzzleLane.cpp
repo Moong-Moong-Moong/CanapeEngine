@@ -9,7 +9,9 @@
 RTTR_REGISTRATION
 {
     rttr::registration::enumeration<PuzzleKind>("PuzzleKind")(
-        rttr::value("KickerJump", PuzzleKind::KickerJump));
+        rttr::value("KickerJump", PuzzleKind::KickerJump),
+        rttr::value("TiltTray", PuzzleKind::TiltTray),
+        rttr::value("CarriedScoop", PuzzleKind::CarriedScoop));
 
     rttr::registration::class_<PuzzleLane>("PuzzleLane")
         .constructor<>()(rttr::policy::ctor::as_raw_ptr)
