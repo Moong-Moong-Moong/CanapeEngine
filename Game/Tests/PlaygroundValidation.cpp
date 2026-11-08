@@ -4,6 +4,7 @@
 // fixed ticks a frame runs. Lane results are read from the game components' public state; the program changes nothing in
 // the game.
 #include "Puzzle/GoalCup.h"
+#include "Puzzle/HingeRelease.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleDirector.h"
 #include "Puzzle/PuzzleLane.h"
@@ -294,7 +295,7 @@ namespace
         {
             std::vector<PuzzleLane*> lanes;
             Canape::Scene& scene = Active();
-            for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop" })
+            for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop", "SwingCut", "LeverCatapult" })
             {
                 Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
@@ -558,6 +559,8 @@ namespace
             { "KickerJump", { -4.5f + 0.69f, 0.5f, -0.25f }, { -4.5f + 1.38f, 0.635f, 0.25f } },
             { "TiltTray", { 0.4f, 0.3f, -1.4f }, { 1.0f, 0.375f, -0.8f } },
             { "CarriedScoop", { 4.5f + 0.4f, 0.55f, -0.3f }, { 4.5f + 1.0f, 0.675f, 0.3f } },
+            { "SwingCut", { -4.5f + 0.95f, 1.15f, 4.5f - 0.3f }, { -4.5f + 1.4f, 1.3f, 4.5f + 0.3f } },
+            { "LeverCatapult", { -0.7f, 1.8f, 4.5f - 0.25f }, { 0.35f, 1.85f, 4.5f + 0.25f } },
         };
 
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the cup regions");
@@ -1677,6 +1680,262 @@ namespace
             Check(type.get_property(name).is_valid(), std::string("HingeComponent registers ") + name);
         }
         Check(type.get_properties().size() == 5, "HingeComponent registers its authoring values and nothing else (" + std::to_string(type.get_properties().size()) + ")");
+
+        const rttr::type releaseType = rttr::type::get<HingeRelease>();
+        Check(releaseType.get_constructor().is_valid() && releaseType.get_property("solutionTick").is_valid() && releaseType.get_property("controlTick").is_valid()
+            && releaseType.get_properties().size() == 3, "HingeRelease registers its two ticks and nothing else (" + std::to_string(releaseType.get_properties().size()) + ")");
+    }
+
+    struct HingeLanes {
+        PuzzleLane* swing = nullptr;
+        PuzzleLane* lever = nullptr;
+        Canape::GameObject* arm = nullptr;
+        Canape::RigidBodyComponent* armBody = nullptr;
+        Canape::HingeComponent* swingHinge = nullptr;
+        Canape::HingeComponent* leverHinge = nullptr;
+        HingeRelease* release = nullptr;
+        Canape::GameObject* bob = nullptr;
+        Canape::RigidBodyComponent* bobBody = nullptr;
+        Canape::GameObject* rod = nullptr;
+    };
+
+    // The hinged lanes of the active scene, by object name; every part is needed.
+    HingeLanes FindHingeLanes(Harness& h)
+    {
+        Canape::Scene& scene = h.Active();
+        const auto object = [&](const char* name) { return scene.GetGameObject(scene.FindGameObjectByName(name)); };
+        HingeLanes lanes;
+        if(Canape::GameObject* root = object("SwingCut"))
+        {
+            lanes.swing = root->GetComponent<PuzzleLane>();
+        }
+        if(Canape::GameObject* root = object("LeverCatapult"))
+        {
+            lanes.lever = root->GetComponent<PuzzleLane>();
+        }
+        if((lanes.arm = object("arm")))
+        {
+            lanes.armBody = lanes.arm->GetComponent<Canape::RigidBodyComponent>();
+            lanes.swingHinge = lanes.arm->GetComponent<Canape::HingeComponent>();
+            lanes.release = lanes.arm->GetComponent<HingeRelease>();
+        }
+        if(Canape::GameObject* lever = object("lever"))
+        {
+            lanes.leverHinge = lever->GetComponent<Canape::HingeComponent>();
+        }
+        if((lanes.bob = object("bob")))
+        {
+            lanes.bobBody = lanes.bob->GetComponent<Canape::RigidBodyComponent>();
+        }
+        lanes.rod = object("rod");
+        return lanes;
+    }
+
+    bool HasHingeLanes(const HingeLanes& lanes)
+    {
+        return lanes.swing && lanes.lever && lanes.arm && lanes.armBody && lanes.swingHinge && lanes.leverHinge && lanes.release
+            && lanes.bob && lanes.bobBody && lanes.rod;
+    }
+
+    bool IsRodShown(const HingeLanes& lanes)
+    {
+        const auto* renderer = lanes.rod->GetComponent<Canape::MeshRendererComponent>();
+        return renderer && renderer->IsEnabled();
+    }
+
+    // The bob is a child of the arm with its own body off, so its collider belongs to the arm's body.
+    bool RidesOnArm(const HingeLanes& lanes)
+    {
+        return !lanes.bobBody->IsEnabled() && !lanes.bobBody->HasBody() && lanes.bob->GetTransform()->GetParent() == lanes.arm->GetTransform();
+    }
+
+    // The shipped hinges are made on the arms at their pivots; the bob rides in the arm's body and the rod is shown.
+    void CheckHingeLanes(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge lanes");
+        h.Frame();
+        const HingeLanes lanes = FindHingeLanes(h);
+        Check(HasHingeLanes(lanes), "SwingCut and LeverCatapult have their lanes, arms, hinges, release, bob and rod");
+        if(!HasHingeLanes(lanes))
+        {
+            return;
+        }
+
+        const Canape::PhysicsScene& physics = h.Active().GetPhysics();
+        const Canape::Vector3 swingRoot = lanes.swing->GetTransform()->GetPosition();
+        const Canape::Vector3 leverRoot = lanes.lever->GetTransform()->GetPosition();
+        Check(lanes.swingHinge->IsHeld() && Near(lanes.swingHinge->GetWorldAnchor(), swingRoot + Canape::Vector3{ -0.25f, 3.2f, 0.0f }, 1.0e-4f),
+            "the swing arm hangs from the bottom of the crossbar");
+        Check(lanes.leverHinge->IsHeld() && Near(lanes.leverHinge->GetWorldAnchor(), leverRoot + Canape::Vector3{ 0.3f, 0.75f, 0.0f }, 1.0e-4f),
+            "the lever turns on top of the stand");
+        Check(lanes.leverHinge->GetMinAngle() == 0.0f && std::fabs(lanes.leverHinge->GetMaxAngle() - 0.6981317f) < 1.0e-6f, "the lever turns from 0 to 40 degrees");
+        Check(RidesOnArm(lanes), "the bob rides in the arm's body with its own body off");
+        const Canape::Vector3 bobPosition = lanes.bob->GetTransform()->GetPosition();
+        Check(Near(bobPosition, swingRoot + Canape::Vector3{ -1.3224622f, 2.3000972f, 0.0f }, 0.05f), "the bob starts 1.4 m from the pivot, 50 degrees up");
+        const Canape::RigidBodies atBob = physics.QueryBox(bobPosition, { 0.01f, 0.01f, 0.01f });
+        Check(atBob.size() == 1 && atBob.front() == lanes.armBody, "a query at the bob finds the arm's body");
+        Check(!lanes.release->IsApplied() && lanes.release->GetTick(PuzzleMode::Solution) == 50 && lanes.release->GetTick(PuzzleMode::Control) == 37,
+            "the release waits for tick 50 in Solution and 37 in Control");
+        const Canape::Vector3 scale = lanes.rod->GetTransform()->GetLocalScale();
+        Check(IsRodShown(lanes) && scale.X == 0.03f && scale.Y == 1.4f && scale.Z == 0.03f, "the rod is shown at its authored size");
+    }
+
+    // Records every fixed tick, against the lane tick, whether the arm is held, whether the release fired and where the bob is.
+    class ReleaseProbe final : public Canape::ScriptComponent {
+    public:
+        struct Sample {
+            std::uint32_t laneTick = 0;
+            bool held = false;
+            bool applied = false;
+            bool bobHasBody = false;
+            Canape::Vector3 bobPosition{};
+        };
+
+        void Arm(const HingeLanes& lanes, std::uint32_t lastTick)
+        {
+            m_Lanes = lanes;
+            m_LastTick = lastTick;
+        }
+
+        bool IsDone() const { return m_Done; }
+
+        const Sample* At(std::uint32_t laneTick) const
+        {
+            const auto found = std::ranges::find(m_Samples, laneTick, &Sample::laneTick);
+            return found == m_Samples.end() ? nullptr : &*found;
+        }
+
+    protected:
+        void FixedUpdate() override
+        {
+            if(m_Done || !m_Lanes.swing)
+            {
+                return;
+            }
+            m_Samples.push_back({ m_Lanes.swing->GetTick(), m_Lanes.swingHinge->IsHeld(), m_Lanes.release->IsApplied(), m_Lanes.bobBody->HasBody(),
+                m_Lanes.bob->GetTransform()->GetPosition() });
+            m_Done = m_Lanes.swing->GetTick() >= m_LastTick;
+        }
+
+    private:
+        HingeLanes m_Lanes;
+        std::uint32_t m_LastTick = 0;
+        std::vector<Sample> m_Samples;
+        bool m_Done = false;
+    };
+
+    // The release fires at its mode's tick: the bob rides at that lane tick and flies on its own body, at the arm's
+    // speed, from the next; the arm is hidden and its body dropped.
+    void CheckHingeReleaseTicks(Harness& h, const std::vector<Verdict>& solution, const std::vector<Verdict>& control)
+    {
+        for(const PuzzleMode mode : { PuzzleMode::Solution, PuzzleMode::Control })
+        {
+            const bool isSolution = mode == PuzzleMode::Solution;
+            const std::uint32_t tick = isSolution ? 50 : 37;
+            const std::string what = std::string(isSolution ? "Solution" : "Control") + " release";
+            Check(h.Reload(mode) != nullptr, what + ": a scene opens");
+            const HingeLanes lanes = FindHingeLanes(h);
+            if(!HasHingeLanes(lanes))
+            {
+                Check(false, what + ": the hinge lanes are missing");
+                continue;
+            }
+            Canape::Scene& scene = h.Active();
+            auto* probe = scene.GetGameObject(scene.AddGameObject("releaseProbe"))->AddComponent<ReleaseProbe>();
+            probe->Arm(lanes, tick + 3);
+            Check(h.RunUntil([&] { return probe->IsDone(); }), what + ": the probe runs past the release");
+            // The probe may run after the director in a tick, so the body made at that tick's sync shows a sample later.
+            const ReleaseProbe::Sample* before = probe->At(tick);
+            const ReleaseProbe::Sample* after = probe->At(tick + 1);
+            const ReleaseProbe::Sample* made = probe->At(tick + 2);
+            const ReleaseProbe::Sample* later = probe->At(tick + 3);
+            Check(before && before->held && !before->applied && !before->bobHasBody, what + ": the bob rides on the held arm at the release tick");
+            Check(after && !after->held && after->applied, what + ": the arm is let go and the release applied one tick later");
+            Check(made && made->bobHasBody, what + ": the bob has its own body from the release tick's step on");
+            Check(after && later && (later->bobPosition - after->bobPosition).Length() > 0.05f,
+                what + ": the bob keeps the arm's speed (" + std::to_string(after && later ? (later->bobPosition - after->bobPosition).Length() : 0.0f) + " m in two ticks)");
+            h.Frame();
+            Check(!IsRodShown(lanes) && !lanes.armBody->IsEnabled() && !lanes.armBody->HasBody(), what + ": the arm is hidden and its body dropped");
+            Check(lanes.bob->GetTransform()->GetParent() == lanes.swing->GetTransform() && lanes.bobBody->IsEnabled(), what + ": the bob is handed to the lane");
+
+            Check(h.RunToVerdict(mode), what + ": the run reaches its verdict");
+            CheckSame(what.c_str(), isSolution ? solution : control, h.Verdicts());
+            Check(lanes.release->IsApplied() && !lanes.swingHinge->IsHeld() && lanes.swingHinge->GetIssue() == Canape::HingeIssue::None,
+                what + ": the released hinge stays released to the verdict without an issue");
+            Check(lanes.leverHinge->IsHeld() && lanes.leverHinge->GetAngle() >= -1.0e-3f && lanes.leverHinge->GetAngle() <= 0.6981317f + 1.0e-3f,
+                what + ": the lever stays on its hinge within its limits");
+            Check(scene.GetPhysics().GetAuthoringIssueCount() == 0, what + ": the hinged lanes leave no authoring issue");
+        }
+    }
+
+    void SetReleaseTicks(HingeRelease& release, int solution, int control)
+    {
+        const rttr::type type = rttr::type::get<HingeRelease>();
+        Check(type.get_property("solutionTick").set_value(release, solution) && type.get_property("controlTick").set_value(release, control),
+            "the release ticks are set through reflection");
+    }
+
+    // A tick of -1 or a disabled release leaves the arm and the bob alone.
+    void CheckHingeReleaseRules(Harness& h)
+    {
+        for(int variant = 0; variant < 2; ++variant)
+        {
+            const std::string what = variant == 0 ? "a release of -1" : "a disabled release";
+            Check(h.Reload(PuzzleMode::Solution) != nullptr, what + ": a scene opens");
+            const HingeLanes lanes = FindHingeLanes(h);
+            if(!HasHingeLanes(lanes))
+            {
+                Check(false, what + ": the hinge lanes are missing");
+                continue;
+            }
+            if(variant == 0)
+            {
+                SetReleaseTicks(*lanes.release, -1, -1);
+            }
+            else
+            {
+                lanes.release->SetEnabled(false);
+            }
+            Check(h.RunUntil([&] { return lanes.swing->GetTick() >= 120; }), what + ": the run passes the release tick");
+            Check(lanes.swingHinge->IsHeld() && !lanes.release->IsApplied() && RidesOnArm(lanes) && IsRodShown(lanes), what + " keeps the bob on the arm past the release tick");
+        }
+    }
+
+    // A restart in the frame of the release starts the new run with the bob on the arm and gives the same verdicts.
+    void CheckRestartOnReleaseTick(Harness& h, const std::vector<Verdict>& solution, const std::vector<Verdict>& control)
+    {
+        struct Case {
+            PuzzleMode from;
+            Canape::Key key;
+            PuzzleMode to;
+            std::uint32_t pressTick;
+            const std::vector<Verdict>* expected;
+            const char* what;
+        };
+        const Case cases[] = {
+            { PuzzleMode::Solution, Canape::Key::C, PuzzleMode::Control, 48, &control, "C in the release frame" },
+            { PuzzleMode::Control, Canape::Key::R, PuzzleMode::Solution, 36, &solution, "R in the release frame" },
+        };
+        for(const Case& c : cases)
+        {
+            const std::string what = c.what;
+            Check(h.Reload(c.from) != nullptr, what + ": a scene opens");
+            Check(h.RunUntil([&] { return h.Front()->GetTick() >= c.pressTick; }), what + ": the run reaches the release frame");
+            const Canape::Scene* old = &h.Active();
+            h.Frame({ c.key });
+            h.Frame();
+            Check(&h.Active() != old, what + ": the key reloads the playground");
+            const HingeLanes lanes = FindHingeLanes(h);
+            if(!HasHingeLanes(lanes))
+            {
+                Check(false, what + ": the hinge lanes are missing");
+                continue;
+            }
+            Check(lanes.swing->GetMode() == c.to && lanes.swing->GetTick() <= 2 * TicksPerCappedFrame, what + ": the new run starts over in the other mode");
+            Check(!lanes.release->IsApplied() && lanes.swingHinge->IsHeld() && RidesOnArm(lanes) && IsRodShown(lanes), what + ": the new run starts with the bob on the arm");
+            Check(h.RunToVerdict(c.to), what + ": the new run reaches its verdict");
+            CheckSame(c.what, *c.expected, h.Verdicts());
+        }
     }
 
     // The goal materials survive the Delete-key asset collection, in a solved scene and in the one the R key reloads.
@@ -1860,6 +2119,10 @@ namespace
         CheckHingeIssues(h);
         CheckHingeReflection();
         CheckDisabledChildBody(h);
+        CheckHingeLanes(h);
+        CheckHingeReleaseTicks(h, solutionA, controlA);
+        CheckHingeReleaseRules(h);
+        CheckRestartOnReleaseTick(h, solutionA, controlA);
         CheckGoalAfterCollection(h, solutionA);
         CheckSceneSwitch(h, solutionA, controlA);
     }

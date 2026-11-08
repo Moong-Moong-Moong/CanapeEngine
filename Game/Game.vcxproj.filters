@@ -33,6 +33,9 @@
     <ClInclude Include="Source\Puzzle\GoalCup.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Puzzle\HingeRelease.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Puzzle\PoseTrack.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
@@ -69,6 +72,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\GoalCup.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\HingeRelease.cpp">
       <Filter>Source\Puzzle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\PoseTrack.cpp">
@@ -119,13 +125,22 @@
     <None Include="Content\Materials\M_PuzzleGoalSolved.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_PuzzleLever.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Materials\M_PuzzleMover.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_PuzzlePayload.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_PuzzleRod.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Materials\M_PuzzleWall.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleWeight.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Models\Enemy.fbx">

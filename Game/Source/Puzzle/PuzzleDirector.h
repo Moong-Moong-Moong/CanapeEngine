@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Puzzle/GoalCup.h"
+#include "Puzzle/HingeRelease.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleLane.h"
 
@@ -22,6 +23,7 @@ private:
     struct LaneEntry {
         PuzzleLane* lane = nullptr;
         std::vector<PoseTrack*> tracks;
+        std::vector<HingeRelease*> releases;
         std::vector<GoalCup*> cups;
     };
 
@@ -66,6 +68,7 @@ private:
     void saveSnapshot();
     void restart(PuzzleMode mode);
     void carryCamera();
+    void releaseHinges(const LaneEntry& entry) const;
     void driveTracks(const LaneEntry& entry) const;
     void judge(const LaneEntry& entry) const;
     void logLaneStates() const;

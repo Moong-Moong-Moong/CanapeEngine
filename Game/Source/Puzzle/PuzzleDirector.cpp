@@ -82,6 +82,7 @@ void PuzzleDirector::FixedUpdate()
         ++contentLanes;
         if(lane.GetTick() < PuzzleHorizonTicks)
         {
+            releaseHinges(entry);
             driveTracks(entry);
             lane.advanceTick();
             continue;
@@ -123,7 +124,7 @@ void PuzzleDirector::Update()
     }
 }
 
-// Every object of the scene with a PuzzleLane, with the tracks and the runnable cups below it.
+// Every object of the scene with a PuzzleLane, with the tracks, the hinge releases and the runnable cups below it.
 PuzzleDirector::LaneEntries PuzzleDirector::gatherLanes() const
 {
     LaneEntries entries;
@@ -134,6 +135,7 @@ PuzzleDirector::LaneEntries PuzzleDirector::gatherLanes() const
 
         LaneEntry& entry = entries.emplace_back(lane);
         collectBelow(*root->GetTransform(), entry.tracks);
+        collectBelow(*root->GetTransform(), entry.releases);
         collectBelow(*root->GetTransform(), entry.cups);
         std::erase_if(entry.cups, [](const GoalCup* cup) { return !Canape::Scene::IsRunnable(cup); });
     }
@@ -209,6 +211,31 @@ void PuzzleDirector::carryCamera()
     transform.SetLocalPosition(carriedCamera->position);
     transform.SetLocalRotation(carriedCamera->rotation);
     carriedCamera.reset();
+}
+
+// Every release due at this lane tick, before the tracks and the step. It fires only while the hinge holds; a hinge
+// that holds nothing at that tick is logged and the release stays unapplied.
+void PuzzleDirector::releaseHinges(const LaneEntry& entry) const
+{
+    const PuzzleLane& lane = *entry.lane;
+    for(HingeRelease* release : entry.releases)
+    {
+        const bool pending = Canape::Scene::IsRunnable(release) && release->GetStarted() && !release->IsApplied();
+        if(!pending) continue;
+
+        const int tick = release->GetTick(lane.GetMode());
+        if(tick < 0 || lane.GetTick() != static_cast<std::uint32_t>(tick)) continue;
+
+        auto* hinge = release->GetComponent<Canape::HingeComponent>();
+        if(hinge && hinge->IsHeld())
+        {
+            release->fire(*hinge);
+        }
+        else
+        {
+            CN_LOG_GAME("puzzle", "'", release->GetOwnerObject()->GetName(), "': no held hinge to let go at tick ", tick);
+        }
+    }
 }
 
 // Every track every tick, toward where its key puts the piece after this step.
