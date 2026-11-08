@@ -4,6 +4,7 @@
 // fixed ticks a frame runs. Lane results are read from the game components' public state; the program changes nothing in
 // the game.
 #include "Puzzle/GoalCup.h"
+#include "Puzzle/GoalZone.h"
 #include "Puzzle/HingeRelease.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleDirector.h"
@@ -316,24 +317,24 @@ namespace
 
         static const std::string& NameOf(const PuzzleLane& lane) { return lane.GetOwnerObject()->GetName(); }
 
-        static std::vector<GoalCup*> Cups(const PuzzleLane& lane)
+        static std::vector<PuzzleGoal*> Goals(const PuzzleLane& lane)
         {
-            std::vector<GoalCup*> cups;
-            collectBelow(*lane.GetOwnerObject()->GetTransform(), cups);
-            return cups;
+            std::vector<PuzzleGoal*> goals;
+            collectBelow(*lane.GetOwnerObject()->GetTransform(), goals);
+            return goals;
         }
 
-        static GoalCup* Cup(const PuzzleLane& lane)
+        static PuzzleGoal* Goal(const PuzzleLane& lane)
         {
-            const std::vector<GoalCup*> cups = Cups(lane);
-            return cups.empty() ? nullptr : cups.front();
+            const std::vector<PuzzleGoal*> goals = Goals(lane);
+            return goals.empty() ? nullptr : goals.front();
         }
 
-        // The object the lane's first cup waits for.
+        // The object the lane's first goal waits for.
         Canape::GameObject* Payload(const PuzzleLane& lane) const
         {
-            const GoalCup* cup = Cup(lane);
-            return cup ? Active().GetGameObject(cup->GetPayload()) : nullptr;
+            const PuzzleGoal* goal = Goal(lane);
+            return goal ? Active().GetGameObject(goal->GetPayload()) : nullptr;
         }
 
         bool AllJudged() const
@@ -475,14 +476,15 @@ namespace
     {
         for(const PuzzleLane* lane : h.Lanes())
         {
-            const std::vector<GoalCup*> cups = h.Cups(*lane);
-            Check(!cups.empty(), Tag(when, h.NameOf(*lane)) + ": the lane has a cup");
+            const std::vector<PuzzleGoal*> goals = h.Goals(*lane);
+            Check(!goals.empty(), Tag(when, h.NameOf(*lane)) + ": the lane has a goal");
             Check(lane->IsSolved() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the lane's verdict is as expected");
-            for(const GoalCup* cup : cups)
+            for(const PuzzleGoal* goal : goals)
             {
-                Check(cup->IsShownSolved() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the cup shows what the lane got");
-                const std::string& wanted = expectSolved ? cup->GetSolvedMaterial() : cup->GetIdleMaterial();
-                for(const Canape::GameObject* piece : cup->GetPieces())
+                Check(goal->IsSatisfied() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the goal was met only when the lane got it");
+                Check(goal->IsShownInside() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the goal shows the payload inside only when the lane got it");
+                const std::string& wanted = expectSolved ? goal->GetSolvedMaterial() : goal->GetIdleMaterial();
+                for(const Canape::GameObject* piece : goal->GetPieces())
                 {
                     const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
                     Check(renderer && !wanted.empty() && !renderer->GetMaterialNames().empty() && renderer->GetMaterialNames().front() == wanted, Tag(when, h.NameOf(*lane)) + ": the cup piece shows the right material");
@@ -507,9 +509,9 @@ namespace
         const Canape::AssetManager& assets = h.app.GetAssetManager();
         for(const PuzzleLane* lane : h.Lanes())
         {
-            for(const GoalCup* cup : h.Cups(*lane))
+            for(const PuzzleGoal* goal : h.Goals(*lane))
             {
-                for(const Canape::GameObject* piece : cup->GetPieces())
+                for(const Canape::GameObject* piece : goal->GetPieces())
                 {
                     const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
                     Check(renderer && ShowsColor(assets, *renderer, solved), Tag(when, h.NameOf(*lane)) + ": the cup piece's material resolves to the right color");
@@ -523,8 +525,8 @@ namespace
         Canape::PhysicsScene& physics = h.Active().GetPhysics();
         PuzzleLane& lane = *h.Front();
         Canape::GameObject* payload = h.Payload(lane);
-        const std::optional<CupRegion> region = h.Cup(lane) ? h.Cup(lane)->GetRegion() : std::nullopt;
-        Check(payload != nullptr && region.has_value(), "the payload object and the cup region exist");
+        const std::optional<GoalRegion> region = h.Goal(lane) ? h.Goal(lane)->GetRegion() : std::nullopt;
+        Check(payload != nullptr && region.has_value(), "the payload object and the goal region exist");
         if(!payload || !region)
         {
             return;
@@ -570,8 +572,8 @@ namespace
         {
             Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(e.lane));
             const PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
-            const GoalCup* cup = lane ? h.Cup(*lane) : nullptr;
-            const std::optional<CupRegion> region = cup ? cup->GetRegion() : std::nullopt;
+            const auto* cup = lane ? dynamic_cast<const GoalCup*>(h.Goal(*lane)) : nullptr;
+            const std::optional<GoalRegion> region = cup ? cup->GetRegion() : std::nullopt;
             Check(region.has_value(), std::string(e.lane) + ": the cup measures a region");
             if(region)
             {
@@ -592,7 +594,128 @@ namespace
             piece->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
         }
         h.Frame();
-        Check(!cup->GetRegion().has_value() && !cup->HoldsPayload() && !cup->IsShownSolved(), "two pieces are no cup and hold nothing");
+        Check(!cup->GetRegion().has_value() && !cup->HoldsPayload() && !cup->IsShownInside(), "two pieces are no cup and hold nothing");
+    }
+
+    // Moves the payload to a world point from FixedUpdate at a lane tick: off the body for one tick, then on again.
+    class TeleportAtTick final : public Canape::ScriptComponent {
+    public:
+        void Arm(const PuzzleLane* lane, const Handle<Canape::GameObject>& payload, std::uint32_t tick, const Canape::Vector3& target)
+        {
+            m_Lane = lane;
+            m_Payload = payload;
+            m_Tick = tick;
+            m_Target = target;
+        }
+
+        bool IsDone() const { return m_State == 2; }
+
+    protected:
+        void FixedUpdate() override
+        {
+            Canape::GameObject* payload = m_Lane ? GetGameObject(m_Payload) : nullptr;
+            auto* body = payload ? payload->GetComponent<Canape::RigidBodyComponent>() : nullptr;
+            if(!body)
+            {
+                return;
+            }
+            if(m_State == 0 && m_Lane->GetTick() >= m_Tick)
+            {
+                Canape::TransformComponent* transform = payload->GetTransform();
+                const Canape::TransformComponent* parent = transform->GetParent();
+                transform->SetLocalPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(m_Target) : m_Target);
+                body->SetEnabled(false);
+                m_State = 1;
+            }
+            else if(m_State == 1)
+            {
+                body->SetEnabled(true);
+                m_State = 2;
+            }
+        }
+
+    private:
+        const PuzzleLane* m_Lane = nullptr;
+        Handle<Canape::GameObject> m_Payload{};
+        std::uint32_t m_Tick = 0;
+        Canape::Vector3 m_Target{};
+        int m_State = 0;
+    };
+
+    // A cup is met once the payload stayed inside for a second, and stays met after the payload leaves; the look follows
+    // the payload, not the latch.
+    void CheckGoalDwell(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the cup dwell");
+        PuzzleLane& lane = *h.Front();
+        PuzzleGoal* goal = h.Goal(lane);
+        Canape::GameObject* payload = h.Payload(lane);
+        const std::optional<GoalRegion> region = goal ? goal->GetRegion() : std::nullopt;
+        Check(goal && payload && region, "the front lane has a goal, a payload and a region");
+        if(!goal || !payload || !region)
+        {
+            return;
+        }
+        auto* in = lane.GetOwnerObject()->AddComponent<TeleportAtTick>();
+        in->Arm(&lane, payload->GetHandle(), 10, region->center);
+        Check(h.RunUntil([&] { return lane.GetTick() >= 12 + CupDwellTicks / 2; }), "the run reaches half a second after the payload was put in");
+        Check(goal->HoldsPayload() && goal->IsShownInside() && !goal->IsSatisfied(), "half a second inside shows the payload but does not meet the cup yet");
+        Check(h.RunUntil([&] { return lane.GetTick() >= 12 + CupDwellTicks + 8; }), "the run reaches a second after the payload was put in");
+        Check(goal->IsSatisfied(), "a second inside meets the cup");
+
+        auto* out = lane.GetOwnerObject()->AddComponent<TeleportAtTick>();
+        out->Arm(&lane, payload->GetHandle(), 100, region->center + Canape::Vector3{ 0.0f, 0.0f, -2.0f });
+        Check(h.RunUntil([&] { return lane.GetTick() >= 140; }), "the run goes on after the payload was taken out");
+        Check(!goal->HoldsPayload() && !goal->IsShownInside() && goal->IsSatisfied(), "the cup stays met after the payload left and shows it outside");
+        Check(h.RunToVerdict(PuzzleMode::Solution), "the run with the taken-out payload reaches its verdict");
+        Check(lane.IsSolved() && !lane.HasFailed(), "a lane whose cup was met is solved at the horizon with the payload gone");
+    }
+
+    // A zone is met the moment the payload touches it, even while falling through, and stays met.
+    void CheckGoalZone(Harness& h)
+    {
+        const rttr::type type = rttr::type::get<GoalZone>();
+        Check(type.get_constructor().is_valid() && type.get_property("size").is_valid() && type.get_property("payload").is_valid()
+            && type.get_properties().size() == 5, "GoalZone registers its size and the goal values (" + std::to_string(type.get_properties().size()) + ")");
+
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the zone");
+        Canape::Scene& scene = h.Active();
+        const Canape::Vector3 origin{ 300.0f, 50.0f, 0.0f };
+        Canape::GameObject* floor = scene.GetGameObject(scene.AddGameObject("zoneFloor"));
+        floor->GetTransform()->SetLocalPosition(origin);
+        floor->GetTransform()->SetLocalScale({ 2.0f, 0.2f, 2.0f });
+        floor->AddComponent<Canape::BoxColliderComponent>();
+        floor->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
+        Canape::GameObject* ball = scene.GetGameObject(scene.AddGameObject("zoneBall"));
+        ball->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 3.0f, 0.0f });
+        ball->GetTransform()->SetLocalScale({ 0.2f, 0.2f, 0.2f });
+        ball->AddComponent<Canape::SphereColliderComponent>();
+        ball->AddComponent<Canape::RigidBodyComponent>()->SetMass(1.0f);
+        Canape::GameObject* zoneObject = scene.GetGameObject(scene.AddGameObject("zone"));
+        zoneObject->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
+        zoneObject->GetTransform()->SetLocalScale({ 1.0f, 0.2f, 1.0f });
+        auto* zone = zoneObject->AddComponent<GoalZone>();
+        rttr::type::get<PuzzleGoal>().get_property("payload").set_value(*zone, ball->GetHandle());
+        Canape::GameObject* emptyObject = scene.GetGameObject(scene.AddGameObject("emptyZone"));
+        emptyObject->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
+        emptyObject->GetTransform()->SetLocalScale({ 0.0f, 1.0f, 1.0f });
+        auto* empty = emptyObject->AddComponent<GoalZone>();
+        rttr::type::get<PuzzleGoal>().get_property("payload").set_value(*empty, ball->GetHandle());
+
+        h.Frame();
+        const std::optional<GoalRegion> region = zone->GetRegion();
+        Check(region && Near(region->center, origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f }, 1.0e-5f) && Near(region->halfExtent, { 0.5f, 0.1f, 0.5f }, 1.0e-5f),
+            "the zone is its size times the scale, centred on its position");
+        Check(!zone->IsSatisfied() && !zone->IsShownInside(), "the zone is not met before the ball reaches it");
+        Check(!empty->GetRegion().has_value(), "a zone of zero size measures nothing");
+        for(int frame = 0; frame < 30; ++frame)
+        {
+            h.Frame();
+        }
+        Check(ball->GetTransform()->GetPosition().Y < origin.Y + 0.5f, "the ball fell through the zone onto the floor");
+        Check(zone->IsSatisfied() && !zone->HoldsPayload() && !zone->IsShownInside(), "the zone stays met after the ball fell through and shows it outside");
+        Check(!empty->IsSatisfied(), "a zone without a region is never met");
+        Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !h.Front()->HasFailed(), "zones are no issue");
     }
 
     // Four ticks per frame while the loop runs at the cap: the steps and the lane ticks advance together.
@@ -1168,23 +1291,23 @@ namespace
     // Moves the payload into the cup from FixedUpdate once the lane has its verdict.
     class GoalPusher final : public Canape::ScriptComponent {
     public:
-        void Arm(PuzzleLane* lane, GoalCup* cup)
+        void Arm(PuzzleLane* lane, PuzzleGoal* goal)
         {
             m_Lane = lane;
-            m_Cup = cup;
+            m_Goal = goal;
         }
         std::uint32_t GetRestTicksAfterPush() const { return m_RestTicksAfterPush; }
 
     protected:
         void FixedUpdate() override
         {
-            if(!m_Lane || !m_Cup)
+            if(!m_Lane || !m_Goal)
             {
                 return;
             }
-            Canape::GameObject* payload = GetGameObject(m_Cup->GetPayload());
+            Canape::GameObject* payload = GetGameObject(m_Goal->GetPayload());
             auto* body = payload ? payload->GetComponent<Canape::RigidBodyComponent>() : nullptr;
-            const std::optional<CupRegion> region = m_Cup->GetRegion();
+            const std::optional<GoalRegion> region = m_Goal->GetRegion();
             if(!body || !region)
             {
                 return;
@@ -1212,29 +1335,29 @@ namespace
 
     private:
         PuzzleLane* m_Lane = nullptr;
-        GoalCup* m_Cup = nullptr;
+        PuzzleGoal* m_Goal = nullptr;
         std::uint32_t m_State = 0;
         std::uint32_t m_RestTicksAfterPush = 0;
     };
 
-    // The verdict is taken once, at the horizon: a payload that reaches the cup during the rest ticks changes nothing,
-    // though the cup shows it.
+    // The verdict is taken once, at the horizon: a payload that reaches the goal during the rest ticks changes nothing,
+    // though the goal shows it.
     void CheckVerdictFinality(Harness& h)
     {
         Check(h.Reload(PuzzleMode::Control) != nullptr, "a control scene opens for the verdict check");
         PuzzleLane& lane = *h.Front();
-        GoalCup* cup = h.Cup(lane);
+        PuzzleGoal* goal = h.Goal(lane);
         auto* pusher = lane.GetOwnerObject()->AddComponent<GoalPusher>();
-        pusher->Arm(&lane, cup);
+        pusher->Arm(&lane, goal);
 
         Check(h.RunUntil([&] { return pusher->GetRestTicksAfterPush() >= 3; }), "the payload is pushed during the rest ticks");
-        Check(cup->HoldsPayload(), "the pushed payload is inside the cup during the rest");
+        Check(goal->HoldsPayload(), "the pushed payload is inside the goal during the rest");
         Check(lane.HasVerdict() && !lane.IsSolved(), "the verdict at the horizon is unsolved");
 
         Check(h.RunUntil([&] { return pusher->GetRestTicksAfterPush() >= 20; }), "the rest goes on after the push");
         Check(lane.GetTick() == PuzzleHorizonTicks && lane.HasVerdict(), "the lane stays at its horizon during the rest");
-        Check(!lane.IsSolved(), "a cup filled after the verdict does not change it");
-        Check(cup->IsShownSolved(), "the cup shows the payload inside all the same");
+        Check(!lane.IsSolved(), "a goal reached after the verdict does not change it");
+        Check(goal->IsShownInside() && !goal->IsSatisfied(), "the goal shows the payload inside all the same, short of its dwell");
         Check(!lane.HasFailed(), "the pushed payload fails nothing");
     }
 
@@ -2551,6 +2674,8 @@ namespace
         CheckQueuedImpulse(h);
         CheckBodyValueValidation(h);
         CheckCupRegions(h);
+        CheckGoalDwell(h);
+        CheckGoalZone(h);
         CheckHingeHolds(h);
         CheckHingeRelease(h);
         CheckHingeRemoval(h);

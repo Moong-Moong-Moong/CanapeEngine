@@ -4,7 +4,7 @@
 
 #include "Puzzle/PuzzleTypes.h"
 
-// The run state of one puzzle on a lane root; the cups it must fill and the tracks it drives are the root's children.
+// The run state of one puzzle on a lane root; the goals it must meet and the tracks it drives are below the root.
 // The PuzzleDirector writes the state; everything else reads it.
 class PuzzleLane final: public Canape::ScriptComponent {
     RTTR_ENABLE(Canape::ScriptComponent)

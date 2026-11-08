@@ -6,13 +6,13 @@
 #include <utility>
 #include <vector>
 
-#include "Puzzle/GoalCup.h"
 #include "Puzzle/HingeRelease.h"
 #include "Puzzle/PoseTrack.h"
+#include "Puzzle/PuzzleGoal.h"
 #include "Puzzle/PuzzleLane.h"
 
-// Runs every lane on the fixed ticks, judges the cups at the horizon and reloads the scene in the other mode after each run.
-// The lanes are the objects of the scene with a PuzzleLane; a lane without a cup is an empty slot and is skipped.
+// Runs every lane on the fixed ticks, judges the goals at the horizon and reloads the scene in the other mode after each run.
+// The lanes are the objects of the scene with a PuzzleLane; a lane without a goal is an empty slot and is skipped.
 // R and C reload the scene in Solution and Control mode; they are read in Update. L logs the state of every lane.
 // A reload restores the scene as it was when the run began (saved to a temp file at the first Start), not the file on disk.
 class PuzzleDirector final: public Canape::ScriptComponent {
@@ -24,7 +24,7 @@ private:
         PuzzleLane* lane = nullptr;
         std::vector<PoseTrack*> tracks;
         std::vector<HingeRelease*> releases;
-        std::vector<GoalCup*> cups;
+        std::vector<PuzzleGoal*> goals;
     };
 
     using LaneEntries = std::vector<LaneEntry>;

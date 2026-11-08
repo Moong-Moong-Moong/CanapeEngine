@@ -33,6 +33,9 @@
     <ClInclude Include="Source\Puzzle\GoalCup.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Puzzle\GoalZone.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Puzzle\HingeRelease.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
@@ -40,6 +43,9 @@
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
     <ClInclude Include="Source\Puzzle\PuzzleDirector.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleGoal.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
     <ClInclude Include="Source\Puzzle\PuzzleLane.h">
@@ -74,6 +80,9 @@
     <ClCompile Include="Source\Puzzle\GoalCup.cpp">
       <Filter>Source\Puzzle</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Puzzle\GoalZone.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Puzzle\HingeRelease.cpp">
       <Filter>Source\Puzzle</Filter>
     </ClCompile>
@@ -81,6 +90,9 @@
       <Filter>Source\Puzzle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleGoal.cpp">
       <Filter>Source\Puzzle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\PuzzleLane.cpp">

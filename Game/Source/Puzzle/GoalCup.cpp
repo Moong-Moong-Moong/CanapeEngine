@@ -9,10 +9,7 @@
 RTTR_REGISTRATION
 {
     rttr::registration::class_<GoalCup>("GoalCup")
-        .constructor<>()(rttr::policy::ctor::as_raw_ptr)
-        .property("payload", &GoalCup::payload)
-        .property("idleMaterial", &GoalCup::idleMaterial)
-        .property("solvedMaterial", &GoalCup::solvedMaterial);
+        .constructor<>()(rttr::policy::ctor::as_raw_ptr);
 }
 
 namespace
@@ -51,17 +48,7 @@ namespace
     }
 }
 
-std::vector<Canape::GameObject*> GoalCup::GetPieces() const
-{
-    std::vector<Canape::GameObject*> pieces;
-    for(const auto* child : GetTransform()->GetChildren())
-    {
-        pieces.push_back(child->GetOwnerObject());
-    }
-    return pieces;
-}
-
-std::optional<CupRegion> GoalCup::GetRegion() const
+std::optional<GoalRegion> GoalCup::GetRegion() const
 {
     std::vector<WorldBox> boxes;
     bool rotated = isRotated(*GetTransform());
@@ -138,50 +125,13 @@ std::optional<CupRegion> GoalCup::GetRegion() const
         logShape("the walls leave no room above the floor");
         return std::nullopt;
     }
-    return CupRegion{ (min + max) * 0.5f, (max - min) * 0.5f };
+    return GoalRegion{ (min + max) * 0.5f, (max - min) * 0.5f };
 }
 
-bool GoalCup::HoldsPayload() const
+bool GoalCup::Observe(bool inside)
 {
-    const auto region = GetRegion();
-    const auto* object = GetGameObject(payload);
-    const auto* body = object ? object->GetComponent<Canape::RigidBodyComponent>() : nullptr;
-    if(!region || body == nullptr) return false;
-
-    const Canape::RigidBodies inside = GetOwnerObject()->GetScene()->GetPhysics().QueryBox(region->center, region->halfExtent);
-    return std::ranges::find(inside, body) != inside.end();
-}
-
-void GoalCup::FixedUpdate()
-{
-    show(HoldsPayload());
-}
-
-void GoalCup::show(bool solved)
-{
-    if(solved == shownSolved) return;
-
-    const std::string& name = solved ? solvedMaterial : idleMaterial;
-    bool applied = true;
-    for(const auto* piece : GetPieces())
-    {
-        auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
-        if(renderer && !name.empty() && !renderer->SetMaterial(0, name))
-        {
-            applied = false;
-        }
-    }
-
-    if(applied)
-    {
-        shownSolved = solved;
-        lookLogged = false;
-    }
-    else if(!lookLogged)
-    {
-        CN_LOG_GAME("puzzle", "'", GetOwnerObject()->GetName(), "': material '", name, "' could not be set; the cup keeps its old look");
-        lookLogged = true;
-    }
+    insideTicks = inside ? insideTicks + 1 : 0;
+    return insideTicks >= CupDwellTicks;
 }
 
 void GoalCup::logShape(const char* why) const

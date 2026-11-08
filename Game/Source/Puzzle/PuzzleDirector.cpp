@@ -77,7 +77,7 @@ void PuzzleDirector::FixedUpdate()
         {
             lane.fail();
         }
-        if(entry.cups.empty()) continue;
+        if(entry.goals.empty()) continue;
 
         ++contentLanes;
         if(lane.GetTick() < PuzzleHorizonTicks)
@@ -124,7 +124,7 @@ void PuzzleDirector::Update()
     }
 }
 
-// Every object of the scene with a PuzzleLane, with the tracks, the hinge releases and the runnable cups below it.
+// Every object of the scene with a PuzzleLane, with the tracks, the hinge releases and the runnable goals below it.
 PuzzleDirector::LaneEntries PuzzleDirector::gatherLanes() const
 {
     LaneEntries entries;
@@ -136,8 +136,14 @@ PuzzleDirector::LaneEntries PuzzleDirector::gatherLanes() const
         LaneEntry& entry = entries.emplace_back(lane);
         collectBelow(*root->GetTransform(), entry.tracks);
         collectBelow(*root->GetTransform(), entry.releases);
-        collectBelow(*root->GetTransform(), entry.cups);
-        std::erase_if(entry.cups, [](const GoalCup* cup) { return !Canape::Scene::IsRunnable(cup); });
+        collectBelow(*root->GetTransform(), entry.goals);
+        std::erase_if(
+            entry.goals,
+            [](const PuzzleGoal* goal)
+            {
+                return !Canape::Scene::IsRunnable(goal);
+            }
+        );
     }
     return entries;
 }
@@ -252,17 +258,17 @@ void PuzzleDirector::driveTracks(const LaneEntry& entry) const
     }
 }
 
-// Once, at the horizon, on the previous tick's post-step state: the lane is solved when every cup holds its payload.
+// Once, at the horizon: the lane is solved when every goal below it was met during the run.
 void PuzzleDirector::judge(const LaneEntry& entry) const
 {
     PuzzleLane& lane = *entry.lane;
     if(lane.HasVerdict()) return;
 
     lane.judge(std::ranges::all_of(
-        entry.cups,
-        [](const GoalCup* cup)
+        entry.goals,
+        [](const PuzzleGoal* goal)
         {
-            return cup->HoldsPayload();
+            return goal->IsSatisfied();
         }
     ));
 #if defined(_DEBUG)
