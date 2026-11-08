@@ -41,7 +41,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\Engine\JoltPhysics\JoltVcpkg.props" />
   </ImportGroup>
   <PropertyGroup>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
@@ -55,7 +54,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);CANAPE_GAME_DIR="$(CanapeGameDir.Replace('\','/'))";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(CanapeRoot)Engine\Source\ThirdParty\rttr;$(CanapeGameDir)Source;$(ProjectDir)Source;$(ProjectDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(CanapeGameDir)Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -104,15 +103,6 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\InspectorPanel.h" />
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
     <ClInclude Include="Source\Panels\SceneViewPanel.h" />
-    <ClInclude Include="ThirdParty\imgui\imconfig.h" />
-    <ClInclude Include="ThirdParty\imgui\imgui.h" />
-    <ClInclude Include="ThirdParty\imgui\imgui_impl_dx11.h" />
-    <ClInclude Include="ThirdParty\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="ThirdParty\imgui\imgui_internal.h" />
-    <ClInclude Include="ThirdParty\imgui\imgui_stdlib.h" />
-    <ClInclude Include="ThirdParty\imgui\imstb_rectpack.h" />
-    <ClInclude Include="ThirdParty\imgui\imstb_textedit.h" />
-    <ClInclude Include="ThirdParty\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\EditorApp.cpp" />
@@ -127,49 +117,12 @@ exit /b 0</Command>
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ThirdParty\imgui\imgui.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_demo.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_draw.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_impl_dx11.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_impl_win32.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_stdlib.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_tables.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\imgui\imgui_widgets.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <SDLCheck>false</SDLCheck>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <GameScriptSource Include="$(CanapeGameDir)Source\Scripts\*.cpp" />
     <GameScriptSource Include="$(CanapeGameDir)Source\Puzzle\*.cpp" />
     <ClCompile Include="@(GameScriptSource)">
       <Link>GameScripts\%(Filename)%(Extension)</Link>
       <ObjectFileName>$(IntDir)GameScripts\</ObjectFileName>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ThirdParty\imgui\LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\DX11Renderer\DX11Renderer.vcxproj">

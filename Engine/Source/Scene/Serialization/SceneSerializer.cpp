@@ -8,7 +8,8 @@
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
-#include "ThirdParty/nlohmann/json.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <filesystem>

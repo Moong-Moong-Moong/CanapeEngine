@@ -41,7 +41,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="JoltVcpkg.props" />
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -95,7 +94,6 @@
     <ClCompile Include="JoltWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="JoltVcpkg.props" />
     <None Include="Tests\PhysicsValidation.cpp" />
     <None Include="Tests\ValidatePhysics.ps1" />
   </ItemGroup>

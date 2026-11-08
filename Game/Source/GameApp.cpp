@@ -1,6 +1,7 @@
 ﻿#include "GameApp.h"
 #include "CNDebug/DebugLog.h"
-#include "ThirdParty/nlohmann/json.hpp"
+
+#include <nlohmann/json.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

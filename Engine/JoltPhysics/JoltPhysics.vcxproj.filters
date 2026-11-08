@@ -18,7 +18,6 @@
     <ClCompile Include="JoltWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="JoltVcpkg.props" />
     <None Include="Tests\PhysicsValidation.cpp">
       <Filter>Tests</Filter>
     </None>

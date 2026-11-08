@@ -16,13 +16,14 @@ $msbuild = Join-Path $VisualStudioPath 'MSBuild/Current/Bin/MSBuild.exe'
 New-Item -ItemType Directory -Path (Join-Path $validationDir 'Shaders') -Force | Out-Null
 Copy-Item (Join-Path $repoRoot 'Engine/DX11Renderer/Shader/*') (Join-Path $validationDir 'Shaders') -Recurse -Force
 
+$vcpkgDir = 'vcpkg_installed\x64-windows-static-md\x64-windows-static-md'
 if ($Configuration -eq 'Debug') {
     $crt = '/MDd /D_DEBUG'
-    $joltLib = 'vcpkg_installed\x64-windows-static-md\x64-windows-static-md\debug\lib\Jolt.lib'
+    $vcpkgLibs = "$vcpkgDir\debug\lib\Jolt.lib $vcpkgDir\debug\lib\librttr_core_d.lib"
 }
 else {
     $crt = '/MD /DNDEBUG'
-    $joltLib = 'vcpkg_installed\x64-windows-static-md\x64-windows-static-md\lib\Jolt.lib'
+    $vcpkgLibs = "$vcpkgDir\lib\Jolt.lib $vcpkgDir\lib\librttr_core.lib"
 }
 
 # The libraries are built by MSBuild with the project's own settings; only the test's own compile uses embedded
@@ -41,7 +42,7 @@ if errorlevel 1 exit /b %errorlevel%
 "$msbuild" Engine\Runtime.vcxproj /p:Configuration=$Configuration /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
-cl /nologo /std:c++20 /EHsc $crt /utf-8 /W4 /DCANAPE_RENDER_DEBUG=1 /ICommon /IEngine /IEngine\Source /IEngine\Source\ThirdParty\rttr /IGame\Source Game\Tests\PlaygroundValidation.cpp Game\Source\Scripts\*.cpp Game\Source\Puzzle\*.cpp Binaries\x64\$Configuration\Runtime\Runtime.lib Binaries\x64\$Configuration\DX11Renderer\DX11Renderer.lib Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $joltLib /FoIntermediate\PlaygroundValidation\$Configuration\ /FeIntermediate\PlaygroundValidation\$Configuration\PlaygroundValidation.exe /link user32.lib gdi32.lib d3d11.lib dxgi.lib d3dcompiler.lib shell32.lib ole32.lib advapi32.lib
+cl /nologo /std:c++20 /EHsc $crt /utf-8 /W4 /DCANAPE_RENDER_DEBUG=1 /ICommon /IEngine /IEngine\Source /I$vcpkgDir\include /IGame\Source Game\Tests\PlaygroundValidation.cpp Game\Source\Scripts\*.cpp Game\Source\Puzzle\*.cpp Binaries\x64\$Configuration\Runtime\Runtime.lib Binaries\x64\$Configuration\DX11Renderer\DX11Renderer.lib Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $vcpkgLibs /FoIntermediate\PlaygroundValidation\$Configuration\ /FeIntermediate\PlaygroundValidation\$Configuration\PlaygroundValidation.exe /link user32.lib gdi32.lib d3d11.lib dxgi.lib d3dcompiler.lib shell32.lib ole32.lib advapi32.lib
 exit /b %errorlevel%
 "@
 $batchPath = Join-Path $validationDir 'validate.cmd'

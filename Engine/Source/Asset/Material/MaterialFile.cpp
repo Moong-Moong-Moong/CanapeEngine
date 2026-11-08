@@ -1,6 +1,7 @@
 ﻿#include "Asset/Material/MaterialFile.h"
 #include "CNDebug/DebugLog.h"
-#include "ThirdParty/nlohmann/json.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <fstream>
