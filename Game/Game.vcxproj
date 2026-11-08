@@ -105,6 +105,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
+    <ClInclude Include="Source\Scripts\PhysicsStatsLog.h" />
     <ClInclude Include="Source\Scripts\FlyCamera.h" />
     <ClInclude Include="Source\Puzzle\GoalCup.h" />
     <ClInclude Include="Source\Puzzle\GoalZone.h" />
@@ -122,6 +123,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
+    <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp" />
     <ClCompile Include="Source\Scripts\FlyCamera.cpp" />
     <ClCompile Include="Source\Puzzle\GoalCup.cpp" />
     <ClCompile Include="Source\Puzzle\GoalZone.cpp" />
@@ -143,6 +145,7 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_PuzzlePayload.mat" />
     <None Include="Content\Materials\M_PuzzleRod.mat" />
     <None Include="Content\Materials\M_PuzzleWall.mat" />
+    <None Include="Content\Materials\M_PuzzleWater.mat" />
     <None Include="Content\Materials\M_PuzzleWeight.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />

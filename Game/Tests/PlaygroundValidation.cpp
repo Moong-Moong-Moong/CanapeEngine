@@ -10,6 +10,7 @@
 #include "Puzzle/PuzzleDirector.h"
 #include "Puzzle/PuzzleLane.h"
 #include "Scripts/FlyCamera.h"
+#include "Scripts/PhysicsStatsLog.h"
 
 #include <Engine.h>
 
@@ -297,7 +298,7 @@ namespace
         {
             std::vector<PuzzleLane*> lanes;
             Canape::Scene& scene = Active();
-            for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop", "SwingCut", "LeverCatapult" })
+            for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop", "SwingCut", "LeverCatapult", "BuoyPop" })
             {
                 Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
@@ -482,8 +483,11 @@ namespace
             for(const PuzzleGoal* goal : goals)
             {
                 Check(goal->IsSatisfied() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the goal was met only when the lane got it");
-                Check(goal->IsShownInside() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the goal shows the payload inside only when the lane got it");
-                const std::string& wanted = expectSolved ? goal->GetSolvedMaterial() : goal->GetIdleMaterial();
+                if(dynamic_cast<const GoalCup*>(goal))
+                {
+                    Check(goal->IsShownInside() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the cup shows the payload inside only when the lane got it");
+                }
+                const std::string& wanted = goal->IsShownInside() ? goal->GetSolvedMaterial() : goal->GetIdleMaterial();
                 for(const Canape::GameObject* piece : goal->GetPieces())
                 {
                     const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
@@ -511,10 +515,11 @@ namespace
         {
             for(const PuzzleGoal* goal : h.Goals(*lane))
             {
+                const bool inside = dynamic_cast<const GoalCup*>(goal) ? solved : goal->IsShownInside();
                 for(const Canape::GameObject* piece : goal->GetPieces())
                 {
                     const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
-                    Check(renderer && ShowsColor(assets, *renderer, solved), Tag(when, h.NameOf(*lane)) + ": the cup piece's material resolves to the right color");
+                    Check(renderer && ShowsColor(assets, *renderer, inside), Tag(when, h.NameOf(*lane)) + ": the goal piece's material resolves to the right color");
                 }
             }
         }
@@ -2236,6 +2241,75 @@ namespace
         }
     }
 
+    // BuoyPop: the popped buoy touches the zone over the hoop in flight and the lane is solved although the buoy is back
+    // in the water at the horizon; a rotated water volume acts as the axis-aligned box and gives the shipped verdicts.
+    void CheckBuoyPop(Harness& h, const std::vector<Verdict>& solution)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for BuoyPop");
+        Canape::Scene& scene = h.Active();
+        Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName("BuoyPop"));
+        PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
+        auto* zone = lane ? dynamic_cast<GoalZone*>(h.Goal(*lane)) : nullptr;
+        Canape::GameObject* waterObject = scene.GetGameObject(scene.FindGameObjectByName("water"));
+        Check(lane && zone && waterObject && waterObject->GetComponent<Canape::WaterVolumeComponent>(), "BuoyPop has its lane, zone and water");
+        if(!lane || !zone || !waterObject)
+        {
+            return;
+        }
+        const std::optional<GoalRegion> region = zone->GetRegion();
+        Check(region && Near(region->center, root->GetTransform()->GetPosition() + Canape::Vector3{ -0.3f, 2.15f, 0.0f }, 1.0e-4f)
+            && Near(region->halfExtent, { 0.25f, 0.05f, 0.25f }, 1.0e-5f), "the zone hangs 0.45 m over the hoop");
+        Check(h.RunUntil([&] { return lane->GetTick() >= 100; }), "the run reaches the pop");
+        Check(!zone->IsSatisfied(), "the zone is not met before the pop");
+        Check(h.RunUntil([&] { return lane->GetTick() >= 160; }), "the run passes the pop");
+        Check(zone->IsSatisfied(), "the popped buoy touches the zone");
+        Check(h.RunToVerdict(PuzzleMode::Solution), "the BuoyPop run reaches its verdict");
+        Check(lane->IsSolved() && !zone->IsShownInside(), "BuoyPop is solved with the buoy back out of the zone");
+
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for rotated water");
+        Canape::Scene& rotatedScene = h.Active();
+        Canape::GameObject* rotatedWater = rotatedScene.GetGameObject(rotatedScene.FindGameObjectByName("water"));
+        Check(rotatedWater != nullptr, "the rotated-water scene has its water");
+        if(!rotatedWater)
+        {
+            return;
+        }
+        rotatedWater->GetTransform()->SetLocalRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
+        Check(h.RunToVerdict(PuzzleMode::Solution), "the run with rotated water reaches its verdict");
+        CheckSame("rotated water", solution, h.Verdicts());
+    }
+
+    // I toggles the stats log, L logs the lanes; neither touches the run.
+    void CheckStatsLog(Harness& h)
+    {
+        const rttr::type type = rttr::type::get<PhysicsStatsLog>();
+        Check(type.get_property("toggleKey").is_valid() && !type.get_property("logging").is_valid(), "PhysicsStatsLog registers its key and no run state");
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the stats log");
+        Canape::Scene& scene = h.Active();
+        const Canape::GameObject* object = scene.GetGameObject(scene.FindGameObjectByName("Physics Stats"));
+        const auto* log = object ? object->GetComponent<PhysicsStatsLog>() : nullptr;
+        Check(log != nullptr, "the playground has a stats log object");
+        if(!log)
+        {
+            return;
+        }
+
+        h.Frame();
+        Check(!log->IsLogging(), "the stats log starts off");
+        h.Frame({ Canape::Key::I });
+        Check(log->IsLogging(), "I turns the stats log on");
+        for(int i = 0; i < 70; ++i)
+        {
+            h.Frame();
+        }
+        h.Frame({ Canape::Key::L });
+        Check(&h.Active() == &scene && log->IsLogging(), "L logs the lanes and changes nothing");
+        h.Frame({ Canape::Key::I });
+        Check(!log->IsLogging(), "I turns the stats log off");
+        Check(h.RunToVerdict(PuzzleMode::Solution), "the run with the stats log toggled reaches its verdict");
+        Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "the stats log is no issue");
+    }
+
     void CheckWater(Harness& h)
     {
         CheckWaterReflection();
@@ -2683,6 +2757,8 @@ namespace
         CheckHingeReflection();
         CheckDisabledChildBody(h);
         CheckWater(h);
+        CheckBuoyPop(h, solutionA);
+        CheckStatsLog(h);
         CheckHingeLanes(h);
         CheckHingeReleaseTicks(h, solutionA, controlA);
         CheckHingeReleaseRules(h);
