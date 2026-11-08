@@ -688,6 +688,32 @@ namespace
         return std::fabs(a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W) > 0.99999f;
     }
 
+    // The fly camera starts at its home pose over the lanes (the camera Transform stored in the scene file), and F brings
+    // a moved camera back to it.
+    void CheckCameraHome(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the camera home check");
+        h.Frame();
+        FlyCamera* camera = h.Camera();
+        Check(camera != nullptr, "the playground has a fly camera");
+        if(!camera)
+        {
+            return;
+        }
+
+        const Canape::Vector3 homePosition{ 0.0f, 7.3f, -3.9f };
+        const Canape::Quaternion homeRotation{ 0.42277023f, 0.0f, 0.0f, 0.9062369f };
+        Canape::TransformComponent& transform = *camera->GetTransform();
+        Check(IsNear(transform.GetLocalPosition(), homePosition), "the camera starts at the home position over the lanes");
+        Check(IsNear(transform.GetLocalRotation(), homeRotation), "the camera starts looking down at the lanes");
+
+        transform.SetLocalPosition({ 4.0f, 1.0f, 2.0f });
+        transform.SetLocalRotation(Canape::Rotator(-20.0f, 70.0f, 0.0f).ToQuaternion());
+        h.Frame({ Canape::Key::F });
+        Check(IsNear(transform.GetLocalPosition(), homePosition), "F returns the camera to the home position");
+        Check(IsNear(transform.GetLocalRotation(), homeRotation), "F returns the camera to the home rotation");
+    }
+
     // A reload carries the pose of the fly camera over; the new camera does not snap home.
     void CheckCameraCarry(Harness& h)
     {
@@ -1694,6 +1720,7 @@ namespace
 
         CheckKeyOrder();
         CheckStartSnapshot(h, solutionA);
+        CheckCameraHome(h);
         CheckCameraCarry(h);
 
         // The JSON file survives load -> save -> load.

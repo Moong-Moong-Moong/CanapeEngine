@@ -32,9 +32,9 @@ namespace
 
 void FlyCamera::ReturnHome()
 {
-    constexpr Canape::Vector3 homePosition{};
+    constexpr Canape::Vector3 homePosition{ 0.0f, 7.3f, -3.9f };
     constexpr float homeYaw = 0.0f;
-    constexpr float homePitch = 0.0f;
+    constexpr float homePitch = Canape::Math::ToDegrees(0.873f);
 
     ApplyPose(homePosition, homeYaw, homePitch);
 }
