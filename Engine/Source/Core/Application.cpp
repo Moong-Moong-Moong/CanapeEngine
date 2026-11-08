@@ -38,7 +38,8 @@ namespace Canape
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
         m_SceneManager(std::make_unique<SceneManager>(m_PhysicsRuntime.get())),
-        m_Commands(std::make_unique<CommandRegistry>())
+        m_Commands(std::make_unique<CommandRegistry>()),
+        m_Headless(windowDesc.Headless)
     {
         if (!m_PhysicsRuntime->IsValid())
         {
@@ -104,7 +105,10 @@ namespace Canape
 
             m_SceneManager->Update(m_RunSceneScripts);
 
-            m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
+            if (!m_Headless)
+            {
+                m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
+            }
 
             m_InputManager->EndFrame();
         }

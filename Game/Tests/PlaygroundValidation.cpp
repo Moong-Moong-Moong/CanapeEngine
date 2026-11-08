@@ -1,7 +1,8 @@
 // Integration check of the physics playground: the real JSON scene, opened through the SceneManager and played by the
-// real Application loop. The checks run on a fiber that gives control back to the loop once per frame, so every frame is
-// a real frame of Application::Run; time scale decides how many fixed ticks a frame runs. Lane results are read from the
-// game components' public state; the program changes nothing in the game.
+// real Application loop, headless: the window is hidden and the loop does not render. The checks run on a fiber that gives
+// control back to the loop once per frame, so every frame is a real frame of Application::Run; time scale decides how many
+// fixed ticks a frame runs. Lane results are read from the game components' public state; the program changes nothing in
+// the game.
 #include "Puzzle/GoalCup.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleDirector.h"
@@ -16,6 +17,7 @@
 #include <crtdbg.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <csignal>
@@ -35,10 +37,11 @@
 
 namespace
 {
-    // Every frame runs four fixed ticks (the engine's per-frame cap); a scale of 1 follows the real clock.
-    constexpr float FourTickScale = 1000.0f;
-    constexpr float RealTimeScale = 1.0f;
-    constexpr float MixedTickScale = 2.5f;
+    // Every frame runs four fixed ticks (the engine's per-frame cap), however fast a headless frame is.
+    constexpr float FourTickScale = 100000.0f;
+    // Mean fixed ticks per frame of the mixed-batch runs; the time scale follows the measured frame time to reach it.
+    constexpr double SmallBatchTicks = 1.5;
+    constexpr double LargeBatchTicks = 2.5;
     constexpr std::uint32_t TicksPerCappedFrame = 4;
     constexpr std::chrono::seconds RunLimit{ 180 };
     constexpr char SceneName[] = "PhysicsPlayground";
@@ -194,10 +197,46 @@ namespace
         Canape::SceneManager& scenes;
         // The most scenes seen after any frame since the last check.
         std::size_t mostScenes = 0;
+        // Frames by the number of fixed ticks they run, since the last scale change.
+        std::array<std::size_t, TicksPerCappedFrame + 1> batches{};
+        // Mean ticks per frame the time scale aims at while mixed batches are on; 0 keeps the fixed scale.
+        double mixedTicks = 0.0;
+        float frameSeconds = 0.0f;
+        bool measuring = false;
 
         Canape::Scene& Active() const { return *scenes.GetActiveScene(); }
 
-        static void SetScale(float scale) { Canape::Time::SetTimeScale(scale); }
+        void SetScale(float scale)
+        {
+            mixedTicks = 0.0;
+            Canape::Time::SetTimeScale(scale);
+            batches = {};
+        }
+
+        // Frames run a varying number of ticks: the scale follows a running mean of the real frame time.
+        void SetMixedBatches(double ticksPerFrame)
+        {
+            mixedTicks = ticksPerFrame;
+            measuring = false;
+            batches = {};
+        }
+
+        std::size_t DistinctSmallBatches() const
+        {
+            return static_cast<std::size_t>(std::count_if(batches.begin() + 1, batches.end() - 1, [](std::size_t n) { return n > 0; }));
+        }
+
+        void CheckFourTickBatches(const char* what) const
+        {
+            Check(batches[TicksPerCappedFrame] > 0, std::string(what) + ": frames of four ticks ran");
+        }
+
+        void CheckMixedBatches(const char* what) const
+        {
+            Check(DistinctSmallBatches() >= 2, std::string(what) + ": frames of different tick counts between one and three ran (zero "
+                + std::to_string(batches[0]) + ", one " + std::to_string(batches[1]) + ", two " + std::to_string(batches[2])
+                + ", three " + std::to_string(batches[3]) + ", four " + std::to_string(batches[4]) + ")");
+        }
 
         void Frame(const std::vector<Canape::Key>& keys = {})
         {
@@ -206,8 +245,34 @@ namespace
                 app.PressKeys(keys);
             }
             app.YieldFrame();
+            ++batches[std::min(Canape::Time::FixedStepCount(), TicksPerCappedFrame)];
+            FollowFrameTime();
             mostScenes = std::max(mostScenes, scenes.GetSceneCount());
             app.ReleaseKeys(keys);
+        }
+
+        // The frame after a scene load carries the load time, so a sample is held to twice the running mean.
+        void FollowFrameTime()
+        {
+            if(mixedTicks <= 0.0)
+            {
+                return;
+            }
+            const float seconds = Canape::Time::UnscaledDeltaTime();
+            if(!measuring)
+            {
+                measuring = true;
+                frameSeconds = seconds;
+            }
+            else
+            {
+                constexpr float Smoothing = 0.25f;
+                frameSeconds += Smoothing * (std::min(seconds, 2.0f * frameSeconds) - frameSeconds);
+            }
+            if(frameSeconds > 0.0f)
+            {
+                Canape::Time::SetTimeScale(static_cast<float>(mixedTicks) * Canape::Time::FixedDeltaTime() / frameSeconds);
+            }
         }
 
         bool RunUntil(const std::function<bool()>& done)
@@ -826,9 +891,16 @@ namespace
     {
         std::vector<Canape::Vector3> captured[2];
         int index = 0;
-        for(const float scale : { FourTickScale, RealTimeScale })
+        for(const bool mixed : { false, true })
         {
-            h.SetScale(scale);
+            if(mixed)
+            {
+                h.SetMixedBatches(SmallBatchTicks);
+            }
+            else
+            {
+                h.SetScale(FourTickScale);
+            }
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the disable probe");
             Canape::Scene& scene = h.Active();
             Canape::GameObject* payload = h.Payload(*h.Front());
@@ -844,6 +916,7 @@ namespace
             auto* probe = scene.GetGameObject(scene.AddGameObject("fixedTickProbe"))->AddComponent<DisableAtTick>();
             probe->Arm(body, watched, 125, 160);
             Check(h.RunUntil([&] { return probe->IsDone(); }), "the disable probe reaches its capture tick");
+            mixed ? h.CheckMixedBatches("the disable probe") : h.CheckFourTickBatches("the disable probe");
             Check(!probe->HasBodyNextTick(), "a body disabled in FixedUpdate is gone by the next tick");
             Check(std::memcmp(&probe->GetPositionAtDisable(), &probe->GetPositionNextTick(), sizeof(Canape::Vector3)) == 0,
                 "a body disabled in FixedUpdate takes no step in that tick");
@@ -852,7 +925,7 @@ namespace
         }
         h.SetScale(FourTickScale);
 
-        Check(SamePositions(captured[0], captured[1]), "frames of four ticks and of the real clock give bit-identical poses after a body is disabled in FixedUpdate");
+        Check(SamePositions(captured[0], captured[1]), "frames of four ticks and of mixed sizes give bit-identical poses after a body is disabled in FixedUpdate");
     }
 
     struct ObjectPose {
@@ -967,9 +1040,16 @@ namespace
     {
         std::vector<ObjectPose> captured[2];
         int index = 0;
-        for(const float scale : { FourTickScale, RealTimeScale })
+        for(const bool mixed : { false, true })
         {
-            h.SetScale(scale);
+            if(mixed)
+            {
+                h.SetMixedBatches(SmallBatchTicks);
+            }
+            else
+            {
+                h.SetScale(FourTickScale);
+            }
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the add probe");
             Canape::Scene& scene = h.Active();
             std::vector<Canape::GameObject*> watched;
@@ -977,6 +1057,7 @@ namespace
             auto* probe = scene.GetGameObject(scene.AddGameObject("addBodyProbe"))->AddComponent<AddBodyAtTick>();
             probe->Arm(watched, 125, 160);
             Check(h.RunUntil([&] { return probe->IsDone(); }), "the add probe reaches its capture tick");
+            mixed ? h.CheckMixedBatches("the add probe") : h.CheckFourTickBatches("the add probe");
             Check(probe->HasBodyNextTick(), "a body added in FixedUpdate exists by the next tick");
             Check(probe->GetBodiesGained() == 1, "the world gains the added body in the step of the tick it was added in");
             Check(probe->DroppedNextTick(), "a body added in FixedUpdate steps in the tick it was added");
@@ -984,7 +1065,7 @@ namespace
         }
         h.SetScale(FourTickScale);
 
-        Check(SamePoses(captured[0], captured[1]), "frames of four ticks and of the real clock give bit-identical poses after a body is added in FixedUpdate");
+        Check(SamePoses(captured[0], captured[1]), "frames of four ticks and of mixed sizes give bit-identical poses after a body is added in FixedUpdate");
     }
 
     // Removes one collider from FixedUpdate at a chosen tick and records the compound body around and after it.
@@ -1044,9 +1125,16 @@ namespace
     {
         std::vector<ObjectPose> captured[2];
         int index = 0;
-        for(const float scale : { FourTickScale, RealTimeScale })
+        for(const bool mixed : { false, true })
         {
-            h.SetScale(scale);
+            if(mixed)
+            {
+                h.SetMixedBatches(SmallBatchTicks);
+            }
+            else
+            {
+                h.SetScale(FourTickScale);
+            }
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the collider removal probe");
             Canape::Scene& scene = h.Active();
             Canape::GameObject* compound = scene.GetGameObject(scene.AddGameObject("compoundBody"));
@@ -1062,6 +1150,7 @@ namespace
             auto* probe = compound->AddComponent<RemoveColliderAtTick>();
             probe->Arm(armCollider, 125, 160);
             Check(h.RunUntil([&] { return probe->IsDone(); }), "the collider removal probe reaches its capture tick");
+            mixed ? h.CheckMixedBatches("the collider removal probe") : h.CheckFourTickBatches("the collider removal probe");
             Check(probe->HasBodyNextTick(), "the body is rebuilt in the tick of the removal");
             Check(probe->GetCaptured().position.Y < probe->GetAtRemoval().position.Y, "the rebuilt body keeps moving");
             Check(scene.GetPhysics().GetAuthoringIssueCount() == 0, "a collider removal is no issue");
@@ -1069,7 +1158,7 @@ namespace
         }
         h.SetScale(FourTickScale);
 
-        Check(SamePoses(captured[0], captured[1]), "frames of four ticks and of the real clock give bit-identical poses after a collider is removed in FixedUpdate");
+        Check(SamePoses(captured[0], captured[1]), "frames of four ticks and of mixed sizes give bit-identical poses after a collider is removed in FixedUpdate");
     }
 
     // Moves the payload into the cup from FixedUpdate once the lane has its verdict.
@@ -1621,15 +1710,17 @@ namespace
     // Results do not depend on how many fixed ticks a frame runs.
     void CheckBatching(Harness& h, const std::vector<Verdict>& solution, const std::vector<Verdict>& control)
     {
-        for(const float scale : { RealTimeScale, MixedTickScale })
+        for(const double ticksPerFrame : { SmallBatchTicks, LargeBatchTicks })
         {
-            h.SetScale(scale);
+            const std::string batching = ticksPerFrame == SmallBatchTicks ? "small batches" : "large batches";
+            h.SetMixedBatches(ticksPerFrame);
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the batching run");
             Check(h.RunToVerdict(PuzzleMode::Solution), "the batched solution run reaches its verdict");
-            CheckSame(scale == RealTimeScale ? "real clock solution" : "mixed batches solution", solution, h.Verdicts());
+            CheckSame((batching + " solution").c_str(), solution, h.Verdicts());
             h.Frame({ Canape::Key::C });
             Check(h.RunToVerdict(PuzzleMode::Control), "the batched control run reaches its verdict");
-            CheckSame(scale == RealTimeScale ? "real clock control" : "mixed batches control", control, h.Verdicts());
+            CheckSame((batching + " control").c_str(), control, h.Verdicts());
+            h.CheckMixedBatches(batching.c_str());
         }
         h.SetScale(FourTickScale);
     }
@@ -1764,7 +1855,7 @@ int main(int argc, char** argv)
 
     try
     {
-        ValidationApp app({ L"PlaygroundValidation", 640, 360 });
+        ValidationApp app({ L"PlaygroundValidation", 640, 360, true });
         const std::filesystem::path gameDirectory = std::filesystem::path(argv[1]) / "Game";
         app.Execute([&] { RunChecks(app, gameDirectory); });
 

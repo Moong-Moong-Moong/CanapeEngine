@@ -54,5 +54,7 @@ namespace Canape
 
         bool m_Running = false;
         bool m_RunSceneScripts = true;
+
+        bool m_Headless = false;
     };
 }

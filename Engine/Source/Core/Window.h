@@ -13,6 +13,7 @@ namespace Canape
         std::wstring Title = L"Canape";
         uint32_t Width = 1280;
         uint32_t Height = 720;
+        bool Headless = false;
     };
 
     class Window
