@@ -106,6 +106,8 @@
     <ClInclude Include="Source\Physics\RigidBodyShape.h" />
     <ClInclude Include="Source\Physics\RigidBodyState.h" />
     <ClInclude Include="Source\Physics\SphereColliderComponent.h" />
+    <ClInclude Include="Source\Physics\WaterState.h" />
+    <ClInclude Include="Source\Physics\WaterVolumeComponent.h" />
     <ClInclude Include="..\Common\Math\IntVector.h" />
     <ClInclude Include="..\Common\Math\Math.h" />
     <ClInclude Include="..\Common\Math\MathUtility.h" />

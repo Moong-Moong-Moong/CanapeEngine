@@ -32,6 +32,7 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1686,6 +1687,443 @@ namespace
             && releaseType.get_properties().size() == 3, "HingeRelease registers its two ticks and nothing else (" + std::to_string(releaseType.get_properties().size()) + ")");
     }
 
+    // Removes one object or component from inside Update, once.
+    class RemoveOnce final : public Canape::ScriptComponent {
+    public:
+        void Arm(const Handle<Canape::GameObject>& object)
+        {
+            m_Object = object;
+            m_Armed = true;
+        }
+
+        void ArmComponent(Canape::Component* component)
+        {
+            m_Component = component;
+            m_Armed = true;
+        }
+
+    protected:
+        void Update() override
+        {
+            if(!m_Armed)
+            {
+                return;
+            }
+            m_Armed = false;
+            if(m_Component)
+            {
+                m_Component->GetOwnerObject()->RemoveComponent(m_Component);
+                m_Component = nullptr;
+            }
+            else
+            {
+                GetOwnerObject()->GetScene()->RemoveGameObject(m_Object);
+            }
+        }
+
+    private:
+        Handle<Canape::GameObject> m_Object{};
+        Canape::Component* m_Component = nullptr;
+        bool m_Armed = false;
+    };
+
+    struct WaterRig {
+        Canape::GameObject* floor = nullptr;
+        Canape::GameObject* buoy = nullptr;
+        Canape::GameObject* water = nullptr;
+        Canape::WaterVolumeComponent* volume = nullptr;
+        Canape::Vector3 origin{};
+
+        // The buoy's height above the rig's origin.
+        float Height() const { return buoy->GetTransform()->GetPosition().Y - origin.Y; }
+    };
+
+    // The BuoyPop tank without its walls: a floor whose top is 0.2 above the origin, a 10 kg sphere of radius 0.2 and a
+    // 1.6 x 1 x 1 water box whose surface is 1.2 above the origin. A 0.01 m^3 cap under water carries the sphere, so it
+    // floats with its centre at 1.255.
+    WaterRig BuildWaterRig(Canape::Scene& scene, const Canape::Vector3& origin)
+    {
+        WaterRig rig;
+        rig.origin = origin;
+        rig.floor = scene.GetGameObject(scene.AddGameObject("waterFloor"));
+        rig.floor->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
+        rig.floor->GetTransform()->SetLocalScale({ 1.8f, 0.2f, 1.2f });
+        rig.floor->AddComponent<Canape::BoxColliderComponent>();
+        rig.floor->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
+        rig.buoy = scene.GetGameObject(scene.AddGameObject("buoy"));
+        rig.buoy->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ -0.3f, 1.255f, 0.0f });
+        rig.buoy->GetTransform()->SetLocalScale({ 0.4f, 0.4f, 0.4f });
+        rig.buoy->AddComponent<Canape::SphereColliderComponent>();
+        rig.buoy->AddComponent<Canape::RigidBodyComponent>()->SetMass(10.0f);
+        rig.water = scene.GetGameObject(scene.AddGameObject("water"));
+        rig.water->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 0.7f, 0.0f });
+        rig.water->GetTransform()->SetLocalScale({ 1.6f, 1.0f, 1.0f });
+        rig.volume = rig.water->AddComponent<Canape::WaterVolumeComponent>();
+        return rig;
+    }
+
+    // A fresh scene with the rig far from the lanes.
+    bool OpenWaterRun(Harness& h, WaterRig& rig)
+    {
+        const bool opened = h.Reload(PuzzleMode::Solution) != nullptr;
+        Check(opened, "a scene opens for a water run");
+        if(opened)
+        {
+            rig = BuildWaterRig(h.Active(), { 300.0f, 50.0f, 0.0f });
+        }
+        return opened;
+    }
+
+    bool RunWaterTo(Harness& h, std::uint32_t tick)
+    {
+        return h.RunUntil([&] { return h.Front()->GetTick() >= tick; });
+    }
+
+    constexpr float FloatingHeight = 1.255f;
+    constexpr float RestingHeight = 0.4f;
+    constexpr std::uint32_t WaterSettleTick = 60;
+    constexpr std::uint32_t WaterFallTick = 15;
+
+    bool IsFloating(const WaterRig& rig) { return std::fabs(rig.Height() - FloatingHeight) < 0.05f; }
+    bool HasSunk(const WaterRig& rig) { return rig.Height() < RestingHeight + 0.2f; }
+
+    void CheckWaterReflection()
+    {
+        const rttr::type type = rttr::type::get<Canape::WaterVolumeComponent>();
+        std::set<std::string> registered;
+        for(const rttr::property& property : type.get_properties())
+        {
+            registered.insert(property.get_name().to_string());
+        }
+        const std::set<std::string> expected{ "enabled", "size", "density", "linearDrag", "angularDrag" };
+        Check(registered == expected, "WaterVolumeComponent registers exactly its authored properties and no runtime state");
+        Check(type.get_constructor().is_valid(), "WaterVolumeComponent can be created by name");
+        const Canape::WaterVolumeComponent defaults;
+        Check(defaults.GetDensity() == 1000.0f && defaults.GetLinearDrag() == 0.05f && defaults.GetAngularDrag() == 0.01f
+            && defaults.GetSize().X == 1.0f && defaults.GetSize().Y == 1.0f && defaults.GetSize().Z == 1.0f,
+            "a default water volume is a unit box of 1000 kg/m^3");
+    }
+
+    // The water holds the buoy up, and only while it is enabled, valid and under the buoy.
+    void CheckWaterBuoyancy(Harness& h)
+    {
+        WaterRig rig;
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        Check(RunWaterTo(h, WaterSettleTick), "the water run reaches its settle tick");
+        Check(IsFloating(rig), "the buoy floats on the water at " + std::to_string(rig.Height()));
+        Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "a floating buoy is no issue");
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetEnabled(false);
+        Check(RunWaterTo(h, WaterSettleTick), "the run with disabled water reaches its settle tick");
+        Check(HasSunk(rig), "without water the buoy sinks to the floor at " + std::to_string(rig.Height()));
+        Check(RunWaterTo(h, 2 * WaterSettleTick), "the run with a sleeping buoy goes on");
+        rig.volume->SetEnabled(true);
+        Check(RunWaterTo(h, 4 * WaterSettleTick), "the run with water enabled for a sleeping buoy goes on");
+        Check(rig.Height() > FloatingHeight - 0.2f, "enabling the water wakes the sleeping buoy and lifts it to " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetEnabled(false);
+        Check(RunWaterTo(h, WaterFallTick), "the run with disabled water reaches the fall tick");
+        rig.volume->SetEnabled(true);
+        Check(RunWaterTo(h, WaterFallTick + 150), "the run with water enabled again goes on");
+        Check(rig.Height() > FloatingHeight - 0.2f, "water enabled again lifts the awake buoy at " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.water->SetActive(false);
+        Check(RunWaterTo(h, WaterSettleTick), "the run with an inactive water object reaches its settle tick");
+        Check(HasSunk(rig), "the water of an inactive object does nothing at " + std::to_string(rig.Height()));
+        Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "inactive water is no issue");
+    }
+
+    // Authoring values apply from the next step; an invalid volume is ignored and is no run failure.
+    void CheckWaterValues(Harness& h)
+    {
+        struct Case {
+            const char* what;
+            std::function<void(Canape::WaterVolumeComponent&)> apply;
+        };
+        const float notANumber = std::numeric_limits<float>::quiet_NaN();
+        const std::vector<Case> invalid = {
+            { "a zero density", [](Canape::WaterVolumeComponent& water) { water.SetDensity(0.0f); } },
+            { "a negative density", [](Canape::WaterVolumeComponent& water) { water.SetDensity(-1000.0f); } },
+            { "a NaN density", [&](Canape::WaterVolumeComponent& water) { water.SetDensity(notANumber); } },
+            { "a negative linear drag", [](Canape::WaterVolumeComponent& water) { water.SetLinearDrag(-0.1f); } },
+            { "a NaN angular drag", [&](Canape::WaterVolumeComponent& water) { water.SetAngularDrag(notANumber); } },
+            { "a zero size", [](Canape::WaterVolumeComponent& water) { water.SetSize({ 0.0f, 1.0f, 1.0f }); } },
+            { "a NaN size", [&](Canape::WaterVolumeComponent& water) { water.SetSize({ 1.0f, notANumber, 1.0f }); } },
+        };
+        for(const Case& item : invalid)
+        {
+            WaterRig rig;
+            if(!OpenWaterRun(h, rig))
+            {
+                return;
+            }
+            item.apply(*rig.volume);
+            Check(RunWaterTo(h, WaterSettleTick), std::string("the run with ") + item.what + " reaches its settle tick");
+            Check(HasSunk(rig), std::string("water with ") + item.what + " is ignored");
+            Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, std::string("water with ") + item.what + " is no issue");
+        }
+
+        // A volume that turns valid again works again, and the invalid phase is not remembered as a failure.
+        WaterRig rig;
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetDensity(0.0f);
+        Check(RunWaterTo(h, WaterFallTick), "the run with a zero density falls");
+        Check(!HasSunk(rig) && rig.Height() < FloatingHeight - 0.1f, "the buoy falls under invalid water at " + std::to_string(rig.Height()));
+        rig.volume->SetDensity(1000.0f);
+        Check(RunWaterTo(h, WaterFallTick + 150), "the run with the density fixed goes on");
+        Check(rig.Height() > FloatingHeight - 0.2f, "fixing the density lifts the buoy at " + std::to_string(rig.Height()));
+        Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "an invalid phase leaves no issue");
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetDensity(100.0f);
+        Check(RunWaterTo(h, WaterSettleTick), "the run with a thin water settles");
+        Check(HasSunk(rig), "a water lighter than the buoy lets it sink at " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetDensity(2000.0f);
+        Check(RunWaterTo(h, 10), "the run with a dense water reaches tick 10");
+        Check(rig.Height() > FloatingHeight + 0.02f, "a denser water lifts the buoy at " + std::to_string(rig.Height()));
+    }
+
+    // The box is its size times the Transform scale, centered on the Transform position; rotation is ignored.
+    void CheckWaterBox(Harness& h)
+    {
+        WaterRig rig;
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetSize({ 0.1f, 1.0f, 1.0f });
+        Check(RunWaterTo(h, WaterSettleTick), "the run with a narrow water settles");
+        Check(HasSunk(rig), "a water box that misses the buoy does nothing at " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.volume->SetSize({ 0.5f, 1.0f, 1.0f });
+        Check(RunWaterTo(h, WaterSettleTick), "the run with a half-width water settles");
+        Check(IsFloating(rig), "a water box that still holds the buoy carries it at " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        Canape::TransformComponent* transform = rig.water->GetTransform();
+        transform->SetLocalPosition(transform->GetLocalPosition() + Canape::Vector3{ 0.0f, 0.3f, 0.0f });
+        Check(RunWaterTo(h, WaterSettleTick + 60), "the run with raised water settles");
+        Check(rig.Height() > FloatingHeight + 0.15f, "water raised by 0.3 m raises the buoy at " + std::to_string(rig.Height()));
+
+        if(!OpenWaterRun(h, rig))
+        {
+            return;
+        }
+        rig.water->GetTransform()->SetLocalRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
+        Check(RunWaterTo(h, WaterSettleTick), "the run with rotated water settles");
+        Check(IsFloating(rig), "a rotated water volume acts as the axis-aligned box and floats the buoy at " + std::to_string(rig.Height()));
+    }
+
+    // Water goes away with its component or its object, inside an Update, without a failure.
+    void CheckWaterRemoval(Harness& h)
+    {
+        for(const bool wholeObject : { false, true })
+        {
+            WaterRig rig;
+            if(!OpenWaterRun(h, rig))
+            {
+                return;
+            }
+            auto* remover = rig.floor->AddComponent<RemoveOnce>();
+            Check(RunWaterTo(h, 10), "the run reaches the tick of the removal");
+            if(wholeObject)
+            {
+                remover->Arm(rig.water->GetHandle());
+            }
+            else
+            {
+                remover->ArmComponent(rig.volume);
+            }
+            Check(RunWaterTo(h, WaterSettleTick), "the run after the removal reaches its settle tick");
+            Check(HasSunk(rig), std::string("the buoy sinks once the water ") + (wholeObject ? "object" : "component") + " is removed at "
+                + std::to_string(rig.Height()));
+            Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "removing the water is no issue");
+        }
+    }
+
+    // Changing a water volume wakes the bodies sleeping inside it once; water that stays as it is never does.
+    void CheckWaterWake(Harness& h)
+    {
+        struct Case {
+            const char* what;
+            bool startsDisabled;
+            bool lifts;
+            std::function<void(WaterRig&)> apply;
+        };
+        const std::vector<Case> cases = {
+            { "a denser water", false, true, [](WaterRig& rig) { rig.volume->SetDensity(1000.0f); } },
+            { "water that becomes enabled", true, true, [](WaterRig& rig) { rig.volume->SetEnabled(true); } },
+            { "a stronger linear drag", false, false, [](WaterRig& rig) { rig.volume->SetLinearDrag(2.0f); } },
+            { "a stronger angular drag", false, false, [](WaterRig& rig) { rig.volume->SetAngularDrag(2.0f); } },
+            { "a wider water box", false, false, [](WaterRig& rig) { rig.volume->SetSize(rig.volume->GetSize() + Canape::Vector3{ 0.2f, 0.0f, 0.0f }); } },
+            { "water moved up", false, false, [](WaterRig& rig)
+                {
+                    Canape::TransformComponent* transform = rig.water->GetTransform();
+                    transform->SetLocalPosition(transform->GetLocalPosition() + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
+                } },
+        };
+
+        for(const Case& item : cases)
+        {
+            const std::string what = item.what;
+            WaterRig rig;
+            if(!OpenWaterRun(h, rig))
+            {
+                return;
+            }
+            if(item.startsDisabled)
+            {
+                rig.volume->SetEnabled(false);
+            }
+            else
+            {
+                rig.volume->SetDensity(100.0f);
+            }
+            const auto* body = rig.buoy->GetComponent<Canape::RigidBodyComponent>();
+            Check(RunWaterTo(h, 2 * WaterSettleTick), "the run reaches the tick of the water change");
+            Check(HasSunk(rig) && !body->IsAwake(), "the buoy sleeps on the floor before " + what);
+
+            Check(RunWaterTo(h, 3 * WaterSettleTick), "the run with unchanged water goes on");
+            Check(!body->IsAwake(), "water that does not change leaves the sleeping buoy asleep before " + what);
+
+            item.apply(rig);
+            h.Frame();
+            Check(body->IsAwake(), what + " wakes the sleeping buoy");
+
+            Check(RunWaterTo(h, 4 * WaterSettleTick + 150), "the run after the water change goes on");
+            if(item.lifts)
+            {
+                Check(rig.Height() > FloatingHeight - 0.2f, what + " lifts the woken buoy at " + std::to_string(rig.Height()));
+            }
+            else
+            {
+                Check(HasSunk(rig) && !body->IsAwake(), "the buoy is woken once and sleeps again after " + what);
+            }
+            Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "a water change is no issue");
+        }
+    }
+
+    // A body the water held up must not stay asleep in mid-air once the water is gone: it is woken and falls.
+    void CheckWaterWithdrawal(Harness& h)
+    {
+        enum class Withdraw : std::uint8_t {
+            Keep,
+            Disable,
+            MoveAway,
+            RemoveComponent,
+            RemoveObject,
+        };
+        struct Case {
+            const char* what;
+            Withdraw how;
+        };
+        const Case cases[] = {
+            { "water that stays", Withdraw::Keep },
+            { "disabled water", Withdraw::Disable },
+            { "water moved away", Withdraw::MoveAway },
+            { "a removed water component", Withdraw::RemoveComponent },
+            { "a removed water object", Withdraw::RemoveObject },
+        };
+
+        for(const Case& item : cases)
+        {
+            using enum Withdraw;
+            const std::string what = item.what;
+            WaterRig rig;
+            if(!OpenWaterRun(h, rig))
+            {
+                return;
+            }
+            auto* remover = rig.floor->AddComponent<RemoveOnce>();
+            const auto* body = rig.buoy->GetComponent<Canape::RigidBodyComponent>();
+            Check(RunWaterTo(h, 2 * WaterSettleTick), "the run reaches the tick of the water withdrawal");
+            Check(IsFloating(rig) && !body->IsAwake(), "the buoy sleeps afloat before " + what);
+
+            switch(item.how)
+            {
+            case Disable:
+                rig.volume->SetEnabled(false);
+                break;
+            case MoveAway:
+                rig.water->GetTransform()->SetLocalPosition(rig.water->GetTransform()->GetLocalPosition() + Canape::Vector3{ 40.0f, 0.0f, 0.0f });
+                break;
+            case RemoveComponent:
+                remover->ArmComponent(rig.volume);
+                break;
+            case RemoveObject:
+                remover->Arm(rig.water->GetHandle());
+                break;
+            default:
+                break;
+            }
+            h.Frame();
+            h.Frame();
+            if(item.how == Keep)
+            {
+                Check(!body->IsAwake(), "water that stays leaves the buoy asleep");
+            }
+            else
+            {
+                Check(body->IsAwake(), what + " wakes the buoy that it held up");
+            }
+
+            Check(RunWaterTo(h, 2 * WaterSettleTick + 150), "the run after the water withdrawal goes on");
+            if(item.how == Keep)
+            {
+                Check(IsFloating(rig), "the buoy stays afloat in water that stays at " + std::to_string(rig.Height()));
+            }
+            else
+            {
+                Check(HasSunk(rig), "the buoy falls after " + what + " at " + std::to_string(rig.Height()));
+            }
+            Check(h.Active().GetPhysics().GetAuthoringIssueCount() == 0, "withdrawing the water is no issue");
+        }
+    }
+
+    void CheckWater(Harness& h)
+    {
+        CheckWaterReflection();
+        CheckWaterBuoyancy(h);
+        CheckWaterValues(h);
+        CheckWaterBox(h);
+        CheckWaterRemoval(h);
+        CheckWaterWake(h);
+        CheckWaterWithdrawal(h);
+    }
+
     struct HingeLanes {
         PuzzleLane* swing = nullptr;
         PuzzleLane* lever = nullptr;
@@ -2119,6 +2557,7 @@ namespace
         CheckHingeIssues(h);
         CheckHingeReflection();
         CheckDisabledChildBody(h);
+        CheckWater(h);
         CheckHingeLanes(h);
         CheckHingeReleaseTicks(h, solutionA, controlA);
         CheckHingeReleaseRules(h);

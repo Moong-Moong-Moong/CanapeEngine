@@ -13,6 +13,7 @@
 #include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/SphereColliderComponent.h"
+#include "Physics/WaterVolumeComponent.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/Component.h"
 #include "Scene/Component/FogComponent.h"
@@ -218,6 +219,13 @@ namespace Canape
 			registration::class_<SphereColliderComponent>("SphereColliderComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius);
+
+			registration::class_<WaterVolumeComponent>("WaterVolumeComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("size", &WaterVolumeComponent::GetSize, &WaterVolumeComponent::SetSize)
+				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
+				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
+				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
 		}
 	}
 

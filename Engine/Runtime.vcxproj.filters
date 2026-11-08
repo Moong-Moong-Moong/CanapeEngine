@@ -243,6 +243,12 @@
     <ClInclude Include="Source\Physics\SphereColliderComponent.h">
       <Filter>Source\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Physics\WaterState.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\WaterVolumeComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Renderer\GpuResourceRegistry.h">
       <Filter>Source\Renderer</Filter>
     </ClInclude>

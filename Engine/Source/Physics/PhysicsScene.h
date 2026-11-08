@@ -6,6 +6,8 @@
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/RigidBodyShape.h"
 #include "Physics/RigidBodyState.h"
+#include "Physics/WaterState.h"
+#include "Physics/WaterVolumeComponent.h"
 
 #include <cstdint>
 #include <memory>
@@ -49,6 +51,8 @@ namespace Canape
 		// A body this scene has never synced has no body and no issue.
 		bool HasBody(const RigidBodyComponent&) const;
 		RigidBodyIssue GetIssue(const RigidBodyComponent&) const;
+		// False for a sleeping body and for one without a body.
+		bool IsAwake(const RigidBodyComponent&) const;
 		// Applied at once while the body exists;
         // otherwise queued and applied right after the next sync creates it,
 		// or dropped at that sync when there is still no body.
@@ -91,7 +95,8 @@ namespace Canape
 		// After SyncBodies, so that the body of a hinge exists.
 		void SyncHinges(std::span<HingeComponent* const>);
 
-		PhysicsStepError Step(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
+		// Water first, then the kinematic targets, then the backend step and the write-back.
+		PhysicsStepError Step(float fixedDeltaTime, std::span<RigidBodyComponent* const>, std::span<WaterVolumeComponent* const>);
 
         JoltWorld* GetWorld() const { return m_World.get(); }
 
@@ -111,6 +116,10 @@ namespace Canape
 		void ReleaseBody(const RigidBodyComponent&, RigidBodyState&);
 		void ApplyQueuedImpulses(RigidBodyState&);
 		void MoveKinematicBodies(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
+		void ApplyWaters(float fixedDeltaTime, std::span<WaterVolumeComponent* const>);
+		// Wakes the sleepers in the box last applied, so that a body the water held up does not stay asleep in mid-air.
+		void WithdrawWater(WaterState&);
+		void WakeSleepers(const PhysicsWaterDesc&);
 		void WriteBack(const RigidBodyComponent&, PhysicsBodyId) const;
 
 		void SyncHinge(const HingeComponent&, HingeState&);
@@ -127,6 +136,7 @@ namespace Canape
         // a body's entry is erased when the component is removed.
 		std::unordered_map<const RigidBodyComponent*, RigidBodyState> m_Bodies;
 		std::unordered_map<const HingeComponent*, HingeState> m_Hinges;
+		std::unordered_map<const WaterVolumeComponent*, WaterState> m_Waters;
 
 		std::uint64_t m_StepCount = 0;
 		float m_LastStepMilliseconds = 0.0f;

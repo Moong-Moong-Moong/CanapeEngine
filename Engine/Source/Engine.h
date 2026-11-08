@@ -15,6 +15,7 @@
 #include "Physics/PhysicsScene.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/SphereColliderComponent.h"
+#include "Physics/WaterVolumeComponent.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/Component.h"
 #include "Scene/GameObject/GameObject.h"

@@ -82,6 +82,8 @@ namespace Canape
 		bool HasBody() const;
 		bool HasFailed() const { return GetIssue() != RigidBodyIssue::None; }
 		RigidBodyIssue GetIssue() const;
+		// False for a sleeping body and for one without a body.
+		bool IsAwake() const;
 
 		// Before the body exists the impulse is queued in call order and applied right after the body is created
 		// at the next sync; the queue is dropped at that sync when there is still no body, for any reason.

@@ -13,6 +13,7 @@ namespace Canape
 	class SkyboxComponent;
 	class RigidBodyComponent;
 	class HingeComponent;
+	class WaterVolumeComponent;
 
 	//***** Scene 이 순회할 특정 컴포넌트 목록을 보관
 	class ComponentRegistry final
@@ -37,6 +38,7 @@ namespace Canape
 		std::span<SkyboxComponent* const> GetSkyboxes() const { return m_skyboxes; }
 		std::span<RigidBodyComponent* const> GetRigidBodies() const { return m_rigidBodies; }
 		std::span<HingeComponent* const> GetHinges() const { return m_hinges; }
+		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
 
 
@@ -48,6 +50,7 @@ namespace Canape
 		std::vector<SkyboxComponent*> m_skyboxes;
 		std::vector<RigidBodyComponent*> m_rigidBodies;
 		std::vector<HingeComponent*> m_hinges;
+		std::vector<WaterVolumeComponent*> m_waterVolumes;
 
 		std::vector<Component*> m_pendingAdd;
 		std::vector<Component*> m_pendingRemove;

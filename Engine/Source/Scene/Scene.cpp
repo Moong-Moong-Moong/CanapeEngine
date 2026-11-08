@@ -101,7 +101,11 @@ namespace Canape
 		m_componentRegistry.FlushPendingPhysics();
 		m_Physics.SyncBodies(m_componentRegistry.GetRigidBodies());
 		m_Physics.SyncHinges(m_componentRegistry.GetHinges());
-		m_Physics.Step(Time::FixedDeltaTime(), m_componentRegistry.GetRigidBodies());
+		m_Physics.Step(
+            Time::FixedDeltaTime(),
+            m_componentRegistry.GetRigidBodies(),
+            m_componentRegistry.GetWaterVolumes()
+        );
 	}
 
 	void Scene::RunAwakeAndStart()

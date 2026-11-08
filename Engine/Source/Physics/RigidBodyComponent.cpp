@@ -26,6 +26,12 @@ namespace Canape
         return RigidBodyIssue::None;
 	}
 
+	bool RigidBodyComponent::IsAwake() const
+	{
+		const auto* physics = FindPhysics(*this);
+		return physics && physics->IsAwake(*this);
+	}
+
 	void RigidBodyComponent::AddImpulse(const Vector3& impulse)
 	{
 		if (auto* physics = FindPhysics(*this))

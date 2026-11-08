@@ -4,12 +4,14 @@
 #include "JoltPhysics/JoltRuntime.h"
 #include "JoltPhysics/JoltWorld.h"
 #include "Physics/ColliderComponent.h"
+#include "Physics/WaterVolumeComponent.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <span>
 
@@ -37,6 +39,16 @@ namespace Canape
 				}
 			}
 			return nullptr;
+		}
+
+		bool SameWater(const PhysicsWaterDesc& a, const PhysicsWaterDesc& b)
+		{
+			const auto& [center, halfExtent, density, linearDrag, angularDrag] = a;
+			return SameBits(center, b.center)
+				&& SameBits(halfExtent, b.halfExtent)
+				&& SameBits(density, b.density)
+				&& SameBits(linearDrag, b.linearDrag)
+				&& SameBits(angularDrag, b.angularDrag);
 		}
 
         std::uint32_t CountAuthoringIssues(std::span<RigidBodyComponent* const> bodies)
@@ -110,6 +122,12 @@ namespace Canape
         }
 
 		return RigidBodyIssue::None;
+	}
+
+	bool PhysicsScene::IsAwake(const RigidBodyComponent& body) const
+	{
+		const auto* state = FindState(body);
+		return state && state->IsBuilt() && m_World->IsAwake(state->GetId());
 	}
 
 	void PhysicsScene::AddImpulse(const RigidBodyComponent& body, const Vector3& impulse)
@@ -201,6 +219,7 @@ namespace Canape
 		m_World.reset();
 		m_Bodies.clear();
 		m_Hinges.clear();
+		m_Waters.clear();
 
 		m_StepCount = 0;
 		m_LastStepMilliseconds = 0.0f;
@@ -277,6 +296,14 @@ namespace Canape
 				{
 					DestroyHinge(it->second);
 					m_Hinges.erase(it);
+				}
+			}
+			else if (const auto* water = dynamic_cast<const WaterVolumeComponent*>(component))
+			{
+				if (const auto it = m_Waters.find(water); it != m_Waters.end())
+				{
+					WithdrawWater(it->second);
+					m_Waters.erase(it);
 				}
 			}
 		}
@@ -505,10 +532,85 @@ namespace Canape
 		}
 	}
 
-	PhysicsStepError PhysicsScene::Step(float fixedDeltaTime, std::span<RigidBodyComponent* const> bodies)
+	// Every runnable, valid water box every step. A box that changed, or is applied for the first time, wakes the
+	// sleepers in the old box and in the new one; water that stays as it is never wakes anything.
+	void PhysicsScene::ApplyWaters(float fixedDeltaTime, std::span<WaterVolumeComponent* const> waters)
+	{
+		for (const WaterVolumeComponent* water : waters)
+		{
+			WaterState& state = m_Waters[water];
+			if (!IsPhysicsRunnable(*water))
+			{
+				WithdrawWater(state);
+				continue;
+			}
+
+			const TransformComponent& transform = *water->GetTransform();
+			const Vector3 size = water->GetSize() * transform.GetLossyScale();
+			const bool usable = IsUsableExtent(size) && IsPositive(water->GetDensity())
+				&& IsNonNegative(water->GetLinearDrag()) && IsNonNegative(water->GetAngularDrag());
+			if (!usable)
+			{
+				WithdrawWater(state);
+				if (!state.invalidLogged)
+				{
+					state.invalidLogged = true;
+					CN_LOG_RUNTIME("Physics", "'", water->GetOwnerObject()->GetName(),
+						"': a water volume needs a finite size above zero, a positive density and drags of zero or more; it is ignored");
+				}
+				continue;
+			}
+			state.invalidLogged = false;
+
+			const bool rotated = std::fabs(transform.GetRotation().Normalized().W) < 0.99999f;
+			if (rotated && !state.rotationLogged)
+			{
+				CN_LOG_RUNTIME("Physics", "'", water->GetOwnerObject()->GetName(), "': a water volume is an axis-aligned box; its rotation is ignored");
+			}
+			state.rotationLogged = rotated;
+
+			const PhysicsWaterDesc desc{
+				.center = transform.GetPosition(),
+				.halfExtent = size * 0.5f,
+				.density = water->GetDensity(),
+				.linearDrag = water->GetLinearDrag(),
+				.angularDrag = water->GetAngularDrag()
+			};
+			if (!state.applied || !SameWater(*state.applied, desc))
+			{
+				WithdrawWater(state);
+				WakeSleepers(desc);
+				state.applied = desc;
+			}
+			m_World->ApplyWater(desc, fixedDeltaTime);
+		}
+	}
+
+	void PhysicsScene::WithdrawWater(WaterState& state)
+	{
+		if (!state.applied) return;
+
+		WakeSleepers(*state.applied);
+		state.applied.reset();
+	}
+
+	// A zero impulse is enough to activate a sleeping dynamic body; awake bodies are left untouched.
+	void PhysicsScene::WakeSleepers(const PhysicsWaterDesc& water)
+	{
+		for (const PhysicsBodyId id : m_World->QueryBox(water.center, water.halfExtent))
+		{
+			if (!m_World->IsAwake(id))
+			{
+				m_World->AddImpulse(id, Vector3::Zero);
+			}
+		}
+	}
+
+	PhysicsStepError PhysicsScene::Step(float fixedDeltaTime, std::span<RigidBodyComponent* const> bodies, std::span<WaterVolumeComponent* const> waters)
 	{
 		if (!HasWorld()) return PhysicsStepError::None;
 
+		ApplyWaters(fixedDeltaTime, waters);
 		MoveKinematicBodies(fixedDeltaTime, bodies);
 
 		const auto stepStart = std::chrono::steady_clock::now();
