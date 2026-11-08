@@ -5,6 +5,7 @@
 #include "JoltPhysics/JoltWorld.h"
 #include "Physics/ColliderComponent.h"
 #include "Scene/GameObject/GameObject.h"
+#include "Scene/Scene.h"
 
 #include <algorithm>
 #include <cassert>
@@ -49,6 +50,32 @@ namespace Canape
 
             return count;
         }
+
+        std::uint32_t CountAuthoringIssues(std::span<HingeComponent* const> hinges)
+        {
+            const auto count = static_cast<std::uint32_t>(std::ranges::count_if(
+                hinges,
+                [](const HingeComponent* hinge)
+                {
+                    return IsAuthoringIssue(hinge->GetIssue());
+                }
+            ));
+
+            return count;
+        }
+	}
+
+	PhysicsScene* FindPhysics(const Component& component)
+	{
+		const GameObject* owner = component.GetOwnerObject();
+		if (owner == nullptr) return nullptr;
+
+		if (Scene* scene = owner->GetScene())
+		{
+			return &scene->GetPhysics();
+		}
+
+		return nullptr;
 	}
 
 	PhysicsScene::PhysicsScene(JoltRuntime& runtime, const PhysicsWorldDesc& desc)
@@ -110,13 +137,68 @@ namespace Canape
         });
 	}
 
+	bool PhysicsScene::HasHinge(const HingeComponent& hinge) const
+	{
+		if (const auto* state = FindState(hinge))
+		{
+			return state->IsBuilt();
+		}
+
+		return false;
+	}
+
+	HingeIssue PhysicsScene::GetIssue(const HingeComponent& hinge) const
+	{
+		if (const auto* state = FindState(hinge))
+		{
+			return state->GetIssue();
+		}
+
+		return HingeIssue::None;
+	}
+
+	bool PhysicsScene::IsHingeHeld(const HingeComponent& hinge) const
+	{
+		const auto* state = FindState(hinge);
+		return state && state->IsBuilt() && !state->IsReleased() && m_World->IsHingeHeld(state->GetId());
+	}
+
+	float PhysicsScene::GetHingeAngle(const HingeComponent& hinge) const
+	{
+		const auto* state = FindState(hinge);
+		return state && state->IsBuilt() ? m_World->GetHingeAngle(state->GetId()) : 0.0f;
+	}
+
+	Vector3 PhysicsScene::GetHingeAnchor(const HingeComponent& hinge) const
+	{
+		const auto* state = FindState(hinge);
+		return state ? state->GetAnchor() : Vector3::Zero;
+	}
+
+	void PhysicsScene::ReleaseHinge(const HingeComponent& hinge)
+	{
+		if (!HasWorld()) return;
+
+		HingeState& state = m_Hinges[&hinge];
+		if (state.IsReleased()) return;
+
+		if (state.IsBuilt())
+		{
+			m_World->ReleaseHinge(state.GetId());
+		}
+		state.Release();
+	}
+
 	void PhysicsScene::DestroyWorld()
 	{
 		m_World.reset();
 		m_Bodies.clear();
+		m_Hinges.clear();
 
 		m_StepCount = 0;
 		m_LastStepMilliseconds = 0.0f;
+		m_BodyIssueCount = 0;
+		m_HingeIssueCount = 0;
 	}
 
 	const RigidBodyState* PhysicsScene::FindState(const RigidBodyComponent& body) const
@@ -128,6 +210,23 @@ namespace Canape
         }
 
         return nullptr;
+	}
+
+	const HingeState* PhysicsScene::FindState(const HingeComponent& hinge) const
+	{
+		const auto it = m_Hinges.find(&hinge);
+		if (it != m_Hinges.end())
+		{
+			return &it->second;
+		}
+
+		return nullptr;
+	}
+
+	PhysicsBodyId PhysicsScene::BuiltIdOf(const RigidBodyComponent* body) const
+	{
+		const RigidBodyState* state = body ? FindState(*body) : nullptr;
+		return state && state->IsBuilt() ? state->GetId() : PhysicsBodyId{};
 	}
 
 	const RigidBodyComponent* PhysicsScene::FindBody(PhysicsBodyId id) const
@@ -151,7 +250,7 @@ namespace Canape
 			{
 				if (auto* state = FindState(*body))
 				{
-					ReleaseBody(*state);
+					ReleaseBody(*body, *state);
 					m_Bodies.erase(body);
 				}
 			}
@@ -162,7 +261,15 @@ namespace Canape
 				RigidBodyState* state = owner ? FindState(*owner) : nullptr;
 				if (state && state->IsBuiltFrom(*collider))
 				{
-					ReleaseBody(*state);
+					ReleaseBody(*owner, *state);
+				}
+			}
+			else if (const auto* hinge = dynamic_cast<const HingeComponent*>(component))
+			{
+				if (const auto it = m_Hinges.find(hinge); it != m_Hinges.end())
+				{
+					DestroyHinge(it->second);
+					m_Hinges.erase(it);
 				}
 			}
 		}
@@ -181,11 +288,30 @@ namespace Canape
 			}
 			else
 			{
-				ReleaseBody(state);
+				ReleaseBody(*body, state);
 			}
 			ApplyQueuedImpulses(state);
 		}
-		m_AuthoringIssueCount = CountAuthoringIssues(bodies);
+		m_BodyIssueCount = CountAuthoringIssues(bodies);
+	}
+
+	void PhysicsScene::SyncHinges(std::span<HingeComponent* const> hinges)
+	{
+		if (!HasWorld()) return;
+
+		for (const auto* hinge : hinges)
+		{
+			HingeState& state = m_Hinges[hinge];
+			if (IsPhysicsRunnable(*hinge))
+			{
+				SyncHinge(*hinge, state);
+			}
+			else
+			{
+				DestroyHinge(state);
+			}
+		}
+		m_HingeIssueCount = CountAuthoringIssues(hinges);
 	}
 
 	void PhysicsScene::SyncBody(const RigidBodyComponent& body, RigidBodyState& state)
@@ -204,7 +330,7 @@ namespace Canape
 		case ShapeMatch::Changed:
 			break;
 		}
-		ReleaseBody(state);
+		ReleaseBody(body, state);
 
 		if (const RigidBodyIssue issue = m_Shape.GetIssue(); issue != RigidBodyIssue::None)
 		{
@@ -240,14 +366,111 @@ namespace Canape
 		CN_LOG_RUNTIME("Physics", "'", body.GetOwnerObject()->GetName(), "' has no body: ", IssueText(issue));
 	}
 
-	void PhysicsScene::ReleaseBody(RigidBodyState& state)
+	void PhysicsScene::ReleaseBody(const RigidBodyComponent& body, RigidBodyState& state)
 	{
 		if (state.IsBuilt())
 		{
+			const bool ended = body.IsPendingDestroy() || body.GetOwnerObject()->IsPendingDestroy();
+			DropHingesOf(state.GetId(), ended);
 			m_World->DestroyBody(state.GetId());
 			state.ClearKinematicTarget();
 		}
 		state.Clear();
+	}
+
+	void PhysicsScene::SyncHinge(const HingeComponent& hinge, HingeState& state)
+	{
+		if (state.IsReleased()) return;
+
+		const GameObject& owner = *hinge.GetOwnerObject();
+		const GameObject* heldObject = owner.GetScene()->GetGameObject(hinge.GetBody());
+		const RigidBodyComponent* held = heldObject ? heldObject->GetComponent<RigidBodyComponent>() : nullptr;
+		const RigidBodyComponent* mount = owner.GetComponent<RigidBodyComponent>();
+		const PhysicsBodyId heldId = BuiltIdOf(held);
+		const PhysicsBodyId mountId = BuiltIdOf(mount);
+		const HingeAuthoring authoring = HingeAuthoring::Of(hinge);
+		if (state.IsSameAs(heldId, mountId, authoring)) return;
+
+		if (state.IsBuilt())
+		{
+			m_World->DestroyHinge(state.GetId());
+		}
+
+		HingeIssue issue = HingeIssue::None;
+		if (held == nullptr)
+		{
+			issue = HingeIssue::NoBody;
+		}
+		else if (held == mount || !IsValidSettings(hinge.GetSettings()))
+		{
+			issue = HingeIssue::InvalidSettings;
+		}
+		else if (!heldId.IsValid() || (mount != nullptr && !mountId.IsValid()))
+		{
+			issue = HingeIssue::BodyFailed;
+		}
+		else if (held->GetMotion() != PhysicsMotion::Dynamic)
+		{
+			issue = HingeIssue::NotDynamic;
+		}
+		if (issue != HingeIssue::None)
+		{
+			FailHinge(hinge, state, issue, heldId, mountId, authoring);
+			return;
+		}
+
+		const TransformComponent& transform = *hinge.GetTransform();
+		const Vector3 pivot = transform.GetPosition();
+		const Vector3 axis = transform.GetRotation().Normalized().Rotate(hinge.GetAxis()).Normalized();
+		const PhysicsHingeId created = m_World->CreateHinge(PhysicsHingeDesc{
+			.body = heldId,
+			.mount = mountId,
+			.pivot = pivot,
+			.axis = axis,
+			.normal = PerpendicularTo(axis),
+			.minAngle = hinge.GetMinAngle(),
+			.maxAngle = hinge.GetMaxAngle(),
+			.maxFrictionTorque = hinge.GetMaxFrictionTorque()
+		});
+		if (!created.IsValid())
+		{
+			FailHinge(hinge, state, HingeIssue::BackendRefused, heldId, mountId, authoring);
+			return;
+		}
+		state.Adopt(created, heldId, mountId, authoring, pivot);
+	}
+
+	void PhysicsScene::FailHinge(const HingeComponent& hinge, HingeState& state, HingeIssue issue,
+		PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring& authoring)
+	{
+		if (state.GetIssue() != issue)
+		{
+			CN_LOG_RUNTIME("Physics", "'", hinge.GetOwnerObject()->GetName(), "' has no hinge: ", IssueText(issue));
+		}
+		state.Fail(issue, held, mount, authoring);
+	}
+
+	void PhysicsScene::DestroyHinge(HingeState& state)
+	{
+		if (state.IsBuilt())
+		{
+			m_World->DestroyHinge(state.GetId());
+		}
+		state.Clear();
+	}
+
+	void PhysicsScene::DropHingesOf(PhysicsBodyId body, bool ended)
+	{
+		for (auto& [hinge, state] : m_Hinges)
+		{
+			if (!state.Uses(body)) continue;
+
+			state.Drop();
+			if (ended)
+			{
+				state.Release();
+			}
+		}
 	}
 
 	// The queue reaches a built body and is dropped otherwise.

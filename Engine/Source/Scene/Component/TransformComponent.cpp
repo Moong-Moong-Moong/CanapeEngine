@@ -28,6 +28,15 @@ namespace Canape
 		return m_Parent ? (m_Parent->GetRotation() * m_LocalRotation).Normalized() : m_LocalRotation;
 	}
 
+	Vector3 TransformComponent::GetLossyScale() const
+	{
+		const Vector3 parentScale = m_Parent ?
+            m_Parent->GetLossyScale() :
+            Vector3::One;
+
+        return parentScale * m_LocalScale;
+	}
+
 	Vector3 TransformComponent::GetRight() const
 	{
 		return GetRotation().GetRight();

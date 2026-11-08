@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
-#include <numbers>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -16,6 +15,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/BodyLock.h>
+#include <Jolt/Physics/Body/BodyLockMulti.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
@@ -31,9 +31,9 @@
 #include "JoltPhysics/JoltRuntimeImpl.h"
 #include "JoltPhysics/SlotMap.h"
 
-#include "JoltPhysics/Math/ScalarExt.h"
-#include "JoltPhysics/Math/Vector3Ext.h"
-#include "JoltPhysics/Math/QuaternionExt.h"
+#include "Math/Quaternion.h"
+#include "Math/Scalar.h"
+#include "Math/Vector3.h"
 
 namespace Canape
 {
@@ -84,13 +84,6 @@ namespace Canape
                 return std::nullopt;
             }
             return axis.Normalized();
-        }
-
-        bool IsUsableHingeLimits(float minAngle, float maxAngle)
-        {
-            constexpr float Pi = std::numbers::pi_v<float>;
-            return std::isfinite(minAngle) && std::isfinite(maxAngle) && minAngle >= -Pi && minAngle <= 0.0f && maxAngle >= 0.0f && maxAngle <= Pi
-                && minAngle < maxAngle;
         }
 
         // A body that reached the target would otherwise keep a velocity of a few ulps and never read as resting.
@@ -265,6 +258,10 @@ namespace Canape
             JPH::Ref<JPH::HingeConstraint> constraint;
             JPH::BodyID body;
             std::uint32_t bodyIndex = 0;
+            // Empty for a hinge fixed to the world.
+            std::optional<std::uint32_t> mountIndex;
+            JPH::BodyID mount;
+            bool mountMoves = false;
         };
 
         using BodyHandle = SlotHandle<BodySlot>;
@@ -356,7 +353,7 @@ namespace Canape
         {
             const auto onBody = [bodyIndex](const HingeSlot& slot)
             {
-                return slot.bodyIndex == bodyIndex;
+                return slot.bodyIndex == bodyIndex || slot.mountIndex == bodyIndex;
             };
 
             for (const HingeHandle handle : hingeSlots.Finds(onBody))
@@ -464,13 +461,20 @@ namespace Canape
             return {};
         }
 
+        const Impl::BodySlot* mountSlot = desc.mount.IsValid() ? impl.Find(desc.mount) : nullptr;
+        const bool usableMount = !desc.mount.IsValid() || (mountSlot != nullptr && desc.mount != desc.body);
+        if (!usableMount)
+        {
+            return {};
+        }
+
         const std::optional<JPH::Vec3> axis = ToJoltUnitAxis(desc.axis);
         const std::optional<JPH::Vec3> normal = ToJoltUnitAxis(desc.normal);
         if (!axis || !normal) return{};
 
         const bool perpendicularAxes = std::abs(axis->Dot(*normal)) < PerpendicularTolerance;
         const bool usableJoint = IsFinite(desc.pivot) &&
-            IsUsableHingeLimits(desc.minAngle, desc.maxAngle) &&
+            IsValidHingeLimits(desc.minAngle, desc.maxAngle) &&
             IsNonNegative(desc.maxFrictionTorque);
         if (!perpendicularAxes || !usableJoint)
         {
@@ -487,22 +491,39 @@ namespace Canape
         settings.mLimitsMax = desc.maxAngle;
         settings.mMaxFrictionTorque = desc.maxFrictionTorque;
 
-        JPH::BodyLockWrite lock(impl.physics->GetBodyLockInterfaceNoLock(), bodySlot->id);
-        if (!lock.Succeeded())
+        // In world space the settings read both poses, so both bodies are locked while the constraint is made.
+        JPH::Ref<JPH::HingeConstraint> constraint;
+        if (mountSlot != nullptr)
         {
-            return {};
+            const JPH::BodyID ids[2]{ mountSlot->id, bodySlot->id };
+            JPH::BodyLockMultiWrite lock(impl.physics->GetBodyLockInterfaceNoLock(), ids, 2);
+            JPH::Body* mountBody = lock.GetBody(0);
+            JPH::Body* heldBody = lock.GetBody(1);
+            if (mountBody == nullptr || heldBody == nullptr)
+            {
+                return {};
+            }
+            constraint = static_cast<JPH::HingeConstraint*>(settings.Create(*mountBody, *heldBody));
         }
-        JPH::Ref<JPH::HingeConstraint> constraint = static_cast<JPH::HingeConstraint*>(
-            settings.Create(JPH::Body::sFixedToWorld, lock.GetBody())
-        );
-        lock.ReleaseLock();
+        else
+        {
+            JPH::BodyLockWrite lock(impl.physics->GetBodyLockInterfaceNoLock(), bodySlot->id);
+            if (!lock.Succeeded())
+            {
+                return {};
+            }
+            constraint = static_cast<JPH::HingeConstraint*>(settings.Create(JPH::Body::sFixedToWorld, lock.GetBody()));
+        }
         impl.physics->AddConstraint(constraint.GetPtr());
 
         const Impl::HingeHandle handle = impl.hingeSlots.Add(
             Impl::HingeSlot{
                 .constraint = std::move(constraint),
                 .body = bodySlot->id,
-                .bodyIndex = desc.body.index
+                .bodyIndex = desc.body.index,
+                .mountIndex = mountSlot ? std::optional{ desc.mount.index } : std::nullopt,
+                .mount = mountSlot ? mountSlot->id : JPH::BodyID{},
+                .mountMoves = mountSlot != nullptr && mountSlot->motion != PhysicsMotion::Static
             }
         );
         return PhysicsHingeId{
@@ -522,9 +543,23 @@ namespace Canape
             return;
         }
         slot->constraint->SetEnabled(false);
-        m_Impl->physics->GetBodyInterfaceNoLock().ActivateBody(
-            slot->body
-        );
+
+        JPH::BodyInterface& bodies = m_Impl->physics->GetBodyInterfaceNoLock();
+        bodies.ActivateBody(slot->body);
+        if (slot->mountMoves)
+        {
+            bodies.ActivateBody(slot->mount);
+        }
+    }
+
+    void JoltWorld::DestroyHinge(PhysicsHingeId id)
+    {
+        Impl& impl = *m_Impl;
+        const auto slot = impl.FindHinge(id);
+        if (slot == nullptr) return;
+
+        impl.physics->RemoveConstraint(slot->constraint.GetPtr());
+        impl.hingeSlots.Remove(Impl::HingeHandle{ id.index, id.generation });
     }
 
     void JoltWorld::AddImpulse(PhysicsBodyId id, const Vector3& impulse)

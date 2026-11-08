@@ -4,9 +4,9 @@
 
 #include "Puzzle/PoseTrack.h"
 
-#include "JoltPhysics/Math/QuaternionExt.h"
-#include "JoltPhysics/Math/ScalarExt.h"
-#include "JoltPhysics/Math/Vector3Ext.h"
+#include "Math/Quaternion.h"
+#include "Math/Scalar.h"
+#include "Math/Vector3.h"
 
 RTTR_REGISTRATION
 {

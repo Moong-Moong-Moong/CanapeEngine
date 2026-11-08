@@ -729,10 +729,11 @@ namespace
     }
 
     // A lever of half length 1 whose pivot is its end at -x, hinged about +z; falling swings it to negative angles.
-    PhysicsHingeDesc LeverHinge(PhysicsBodyId body, const Vector3& pivot, float minAngle, float maxAngle)
+    PhysicsHingeDesc LeverHinge(PhysicsBodyId body, const Vector3& pivot, float minAngle, float maxAngle, PhysicsBodyId mount = {})
     {
         PhysicsHingeDesc desc;
         desc.body = body;
+        desc.mount = mount;
         desc.pivot = pivot;
         desc.axis = { 0.0f, 0.0f, 1.0f };
         desc.normal = { 1.0f, 0.0f, 0.0f };
@@ -977,16 +978,20 @@ namespace
         Check(rejects(with([](PhysicsHingeDesc& d) { d.minAngle = 0.0f; d.maxAngle = 0.0f; })), "empty limits are refused");
         Check(rejects(with([nan](PhysicsHingeDesc& d) { d.maxAngle = nan; })), "a NaN limit is refused");
         Check(rejects(with([](PhysicsHingeDesc& d) { d.maxFrictionTorque = -1.0f; })), "a negative friction torque is refused");
+        Check(rejects(with([lever](PhysicsHingeDesc& d) { d.mount = lever; })), "the held body as its own mount is refused");
+        Check(rejects(with([gone](PhysicsHingeDesc& d) { d.mount = gone; })), "a destroyed mount is refused");
 
         const PhysicsHingeId first = world.CreateHinge(good);
         Check(first.IsValid(), "the unmodified description is accepted");
         Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi, Pi)).IsValid(), "full-range limits are accepted");
         Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi / 2.0f, Pi / 2.0f)).IsValid(), "symmetric limits are accepted");
+        Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f, fixed)).IsValid(), "a static mount is accepted");
+        Check(world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f, moving)).IsValid(), "a kinematic mount is accepted");
     }
 
-    void HingeDiesWithItsBody(JoltRuntime& runtime)
+    void HingeDiesWithEitherBody(JoltRuntime& runtime)
     {
-        BeginCase("destroying the body of a hinge retires the hinge and the world keeps stepping");
+        BeginCase("destroying the held body or the mount of a hinge retires the hinge and the world keeps stepping");
         JoltWorld world(runtime);
         const Vector3 pivot(0.0f, 5.0f, 0.0f);
         const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
@@ -995,6 +1000,7 @@ namespace
         world.DestroyBody(lever);
         Check(!world.IsValid(hinge) && !world.IsHingeHeld(hinge) && world.GetHingeAngle(hinge) == 0.0f, "the hinge is invalid once its body is gone");
         world.ReleaseHinge(hinge);
+        world.DestroyHinge(hinge);
         Check(!StepFailed(world.Step(Dt)), "stepping after the body is gone is fine");
 
         const PhysicsBodyId reused = world.CreateBody(LeverBody(pivot));
@@ -1003,21 +1009,131 @@ namespace
         Check(again.IsValid() && again != hinge, "a new hinge gets a fresh id");
         world.Step(Dt);
         Check(world.IsHingeHeld(again), "the new hinge is held");
+
+        const Vector3 mountedPivot(10.0f, 5.0f, 0.0f);
+        const PhysicsBodyId mount = world.CreateBody(BoxBody(mountedPivot + Vector3(0.0f, 0.0f, 1.0f), { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
+        const PhysicsBodyId mountedLever = world.CreateBody(LeverBody(mountedPivot));
+        const PhysicsHingeId mounted = world.CreateHinge(LeverHinge(mountedLever, mountedPivot, -Pi / 4.0f, 0.0f, mount));
+        world.Step(Dt);
+        Check(world.IsHingeHeld(mounted), "the mounted hinge is held");
+        world.DestroyBody(mount);
+        Check(!world.IsValid(mounted) && !world.IsHingeHeld(mounted), "the hinge is invalid once its mount is gone");
+        const float heightBefore = world.GetPose(mountedLever).position.Y;
+        for (int i = 0; i < 30; ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(heightBefore - world.GetPose(mountedLever).position.Y > 0.5f, "the lever falls freely without its mount");
+        Check(!StepFailed(world.Step(Dt)) && world.IsValid(mountedLever), "stepping after the mount is gone is fine");
     }
 
     void HingeWorldTeardownWithLiveHinges(JoltRuntime& runtime)
     {
-        BeginCase("a world with live and released hinges tears down cleanly");
+        BeginCase("a world with live, released, mounted and destroyed hinges tears down cleanly");
         {
             JoltWorld world(runtime);
             const PhysicsBodyId a = world.CreateBody(LeverBody({ 0.0f, 5.0f, 0.0f }));
             const PhysicsBodyId b = world.CreateBody(LeverBody({ 0.0f, 8.0f, 0.0f }));
+            const PhysicsBodyId c = world.CreateBody(LeverBody({ 0.0f, 11.0f, 0.0f }));
+            const PhysicsBodyId mount = world.CreateBody(BoxBody({ 0.0f, 10.0f, 0.0f }, { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
             world.CreateHinge(LeverHinge(a, { 0.0f, 5.0f, 0.0f }, -Pi / 4.0f, 0.0f));
             world.ReleaseHinge(world.CreateHinge(LeverHinge(b, { 0.0f, 8.0f, 0.0f }, -Pi / 4.0f, 0.0f)));
+            world.CreateHinge(LeverHinge(c, { 0.0f, 11.0f, 0.0f }, -Pi / 4.0f, 0.0f, mount));
+            world.DestroyHinge(world.CreateHinge(LeverHinge(c, { 0.0f, 11.0f, 0.0f }, -Pi, Pi)));
             world.Step(Dt);
         }
         JoltWorld again(runtime);
         Check(again.GetBodyCount() == 0, "a new world is fine after the teardown");
+    }
+
+    void HingeOnAStaticMountHoldsLikeTheWorld(JoltRuntime& runtime)
+    {
+        BeginCase("a hinge mounted on a static body swings exactly like one fixed to the world");
+        JoltWorld fixedWorld(runtime);
+        JoltWorld mountedWorld(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        // The mount sits behind the pivot along the axis, clear of the lever's sweep.
+        const PhysicsBodyId mount = mountedWorld.CreateBody(BoxBody(pivot + Vector3(0.0f, 0.0f, 1.0f), { 0.5f, 0.5f, 0.5f }, PhysicsMotion::Static));
+        const PhysicsBodyId fixedLever = fixedWorld.CreateBody(LeverBody(pivot));
+        const PhysicsBodyId mountedLever = mountedWorld.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId fixedHinge = fixedWorld.CreateHinge(LeverHinge(fixedLever, pivot, -Pi / 4.0f, 0.0f));
+        const PhysicsHingeId mountedHinge = mountedWorld.CreateHinge(LeverHinge(mountedLever, pivot, -Pi / 4.0f, 0.0f, mount));
+        Check(mountedHinge.IsValid() && mountedWorld.IsHingeHeld(mountedHinge), "the mounted hinge is created and held");
+
+        float worstDifference = 0.0f;
+        for (int i = 0; i < 300; ++i)
+        {
+            fixedWorld.Step(Dt);
+            mountedWorld.Step(Dt);
+            const PhysicsPose fixedPose = fixedWorld.GetPose(fixedLever);
+            const PhysicsPose mountedPose = mountedWorld.GetPose(mountedLever);
+            worstDifference = std::max(worstDifference, (fixedPose.position - mountedPose.position).Length());
+            worstDifference = std::max(worstDifference, std::abs(fixedWorld.GetHingeAngle(fixedHinge) - mountedWorld.GetHingeAngle(mountedHinge)));
+        }
+        Check(worstDifference < 1.0e-3f, std::format("the mounted lever follows the fixed one (worst difference {})", worstDifference));
+        Check(Near(mountedWorld.GetHingeAngle(mountedHinge), -Pi / 4.0f, 0.05f), "the mounted lever rests on the lower limit");
+        Check(mountedWorld.GetPose(mount).position.Z == pivot.Z + 1.0f, "the static mount did not move");
+    }
+
+    void HingeOnADynamicMountMovesBothBodies(JoltRuntime& runtime)
+    {
+        BeginCase("a hinge between two dynamic bodies keeps them joined while they drift");
+        PhysicsWorldDesc desc;
+        desc.gravity = { 0.0f, 0.0f, 0.0f };
+        JoltWorld world(runtime, desc);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId mount = world.CreateBody(BoxBody(pivot + Vector3(0.0f, 0.0f, 1.0f), { 0.5f, 0.5f, 0.5f }));
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(lever, pivot, -Pi, Pi, mount));
+        Check(hinge.IsValid() && world.IsHingeHeld(hinge), "the hinge between two dynamic bodies is created and held");
+
+        world.AddImpulse(lever, { 0.0f, 0.0f, 200.0f });
+        float worstGap = 0.0f;
+        for (int i = 0; i < 120; ++i)
+        {
+            world.Step(Dt);
+            const PhysicsPose leverPose = world.GetPose(lever);
+            const PhysicsPose mountPose = world.GetPose(mount);
+            const Vector3 pivotPoint = leverPose.position + Rotate(leverPose.rotation, { -1.0f, 0.0f, 0.0f });
+            const Vector3 mountPoint = mountPose.position + Rotate(mountPose.rotation, { 0.0f, 0.0f, -1.0f });
+            worstGap = std::max(worstGap, (pivotPoint - mountPoint).Length());
+        }
+        Check(worstGap < 0.02f, std::format("the pivot stays on the mount (worst gap {})", worstGap));
+        Check(world.GetPose(mount).position.Z > 0.1f, "the mount was carried along by the lever");
+        Check(world.IsAwake(mount) && world.IsAwake(lever), "both bodies are awake");
+
+        world.ReleaseHinge(hinge);
+        Check(world.IsAwake(mount) && world.IsAwake(lever) && !world.IsHingeHeld(hinge), "the release leaves both bodies awake and the hinge released");
+    }
+
+    void DestroyHingeFreesTheBodyAndRetiresTheId(JoltRuntime& runtime)
+    {
+        BeginCase("destroying a hinge frees the body at once and retires the id");
+        JoltWorld world(runtime);
+        const Vector3 pivot(0.0f, 5.0f, 0.0f);
+        const PhysicsBodyId lever = world.CreateBody(LeverBody(pivot));
+        const PhysicsHingeId hinge = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        world.Step(Dt);
+        world.DestroyHinge(hinge);
+        Check(!world.IsValid(hinge) && !world.IsHingeHeld(hinge) && world.GetHingeAngle(hinge) == 0.0f, "the destroyed hinge reads as invalid");
+        const float heightBefore = world.GetPose(lever).position.Y;
+        for (int i = 0; i < 30; ++i)
+        {
+            world.Step(Dt);
+        }
+        Check(heightBefore - world.GetPose(lever).position.Y > 0.5f, "the lever falls freely once the hinge is destroyed");
+
+        world.DestroyHinge(hinge);
+        world.DestroyHinge(PhysicsHingeId{});
+        world.ReleaseHinge(hinge);
+        Check(!StepFailed(world.Step(Dt)), "destroying again, an invalid id or releasing a destroyed hinge is harmless");
+
+        const PhysicsHingeId released = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        world.ReleaseHinge(released);
+        world.DestroyHinge(released);
+        Check(!world.IsValid(released), "a released hinge can be destroyed");
+        const PhysicsHingeId again = world.CreateHinge(LeverHinge(lever, pivot, -Pi / 4.0f, 0.0f));
+        Check(again.IsValid() && again != hinge && again != released && world.IsHingeHeld(again), "a new hinge on the same body gets a fresh id");
     }
 
     PhysicsWaterDesc Pool()
@@ -1311,8 +1427,11 @@ int main()
     HingeReleaseFreesAndWakesTheBody(runtime);
     HingeSecondReleaseDoesNotWakeASleeper(runtime);
     HingeFailuresReturnInvalidIds(runtime);
-    HingeDiesWithItsBody(runtime);
+    HingeDiesWithEitherBody(runtime);
     HingeWorldTeardownWithLiveHinges(runtime);
+    HingeOnAStaticMountHoldsLikeTheWorld(runtime);
+    HingeOnADynamicMountMovesBothBodies(runtime);
+    DestroyHingeFreesTheBodyAndRetiresTheId(runtime);
     WaterFloatsLightAndSinksHeavy(runtime);
     WaterLeavesSleepersAlone(runtime);
     WaterOutsideTheBoxAndBadDescsChangeNothing(runtime);

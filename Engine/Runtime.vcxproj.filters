@@ -138,6 +138,9 @@
     <ClInclude Include="..\Common\Math\Rotator.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\Math\Scalar.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
     <ClInclude Include="..\Common\Math\Vector2.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
@@ -217,6 +220,12 @@
       <Filter>Source\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\ColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\HingeComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\HingeState.h">
       <Filter>Source\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\PhysicsScene.h">
@@ -343,6 +352,9 @@
     </ClCompile>
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\HingeComponent.cpp">
+      <Filter>Source\Physics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsScene.cpp">
       <Filter>Source\Physics</Filter>

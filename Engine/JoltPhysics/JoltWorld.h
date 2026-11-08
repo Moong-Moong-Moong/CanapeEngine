@@ -25,7 +25,10 @@ namespace Canape
         PhysicsBodyId CreateBody(const PhysicsBodyDesc& desc);
         void DestroyBody(PhysicsBodyId id);
         PhysicsHingeId CreateHinge(const PhysicsHingeDesc& desc);
+        // Disables the hinge and wakes its moving bodies; the id stays valid and the angle keeps reading.
         void ReleaseHinge(PhysicsHingeId id);
+        // Removes the hinge; the id becomes invalid.
+        void DestroyHinge(PhysicsHingeId id);
 
         // Changes a dynamic body's velocity at once and wakes it;
         // call before ApplyWater so a woken body floats on this Step.

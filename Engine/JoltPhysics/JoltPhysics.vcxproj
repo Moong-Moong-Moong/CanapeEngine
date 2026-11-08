@@ -87,9 +87,6 @@
     <ClInclude Include="JoltRuntime.h" />
     <ClInclude Include="JoltRuntimeImpl.h" />
     <ClInclude Include="JoltWorld.h" />
-    <ClInclude Include="Math\QuaternionExt.h" />
-    <ClInclude Include="Math\ScalarExt.h" />
-    <ClInclude Include="Math\Vector3Ext.h" />
     <ClInclude Include="PhysicsTypes.h" />
     <ClInclude Include="SlotMap.h" />
   </ItemGroup>

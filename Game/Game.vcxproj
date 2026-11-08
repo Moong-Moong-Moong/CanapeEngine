@@ -106,6 +106,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
     <ClInclude Include="Source\Scripts\FlyCamera.h" />
+    <ClInclude Include="Source\Puzzle\GoalCup.h" />
     <ClInclude Include="Source\Puzzle\PoseTrack.h" />
     <ClInclude Include="Source\Puzzle\PuzzleDirector.h" />
     <ClInclude Include="Source\Puzzle\PuzzleLane.h" />
@@ -119,6 +120,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
     <ClCompile Include="Source\Scripts\FlyCamera.cpp" />
+    <ClCompile Include="Source\Puzzle\GoalCup.cpp" />
     <ClCompile Include="Source\Puzzle\PoseTrack.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleLane.cpp" />

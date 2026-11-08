@@ -99,6 +99,8 @@
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Physics\BoxColliderComponent.h" />
     <ClInclude Include="Source\Physics\ColliderComponent.h" />
+    <ClInclude Include="Source\Physics\HingeComponent.h" />
+    <ClInclude Include="Source\Physics\HingeState.h" />
     <ClInclude Include="Source\Physics\PhysicsScene.h" />
     <ClInclude Include="Source\Physics\RigidBodyComponent.h" />
     <ClInclude Include="Source\Physics\RigidBodyShape.h" />
@@ -110,6 +112,7 @@
     <ClInclude Include="..\Common\Math\Matrix4.h" />
     <ClInclude Include="..\Common\Math\Quaternion.h" />
     <ClInclude Include="..\Common\Math\Rotator.h" />
+    <ClInclude Include="..\Common\Math\Scalar.h" />
     <ClInclude Include="..\Common\Math\Vector2.h" />
     <ClInclude Include="..\Common\Math\Vector3.h" />
     <ClInclude Include="..\Common\Math\Vector4.h" />
@@ -152,6 +155,7 @@
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\Physics\HingeComponent.cpp" />
     <ClCompile Include="Source\Physics\PhysicsScene.cpp" />
     <ClCompile Include="Source\Physics\RigidBodyComponent.cpp" />
     <ClCompile Include="Source\Physics\RigidBodyShape.cpp" />

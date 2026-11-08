@@ -91,8 +91,6 @@ namespace Canape
 		void SetKinematicTarget(const PhysicsPose& target);
 
 	private:
-		PhysicsScene* FindPhysics() const;
-
 		// Settings that fail IsValidSettings are an authoring issue.
 		PhysicsBodySettings m_Settings;
 	};

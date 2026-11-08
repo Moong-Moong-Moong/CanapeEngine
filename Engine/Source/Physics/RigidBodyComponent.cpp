@@ -8,7 +8,7 @@ namespace Canape
 {
 	bool RigidBodyComponent::HasBody() const
 	{
-		if (const auto* physics = FindPhysics())
+		if (const auto* physics = FindPhysics(*this))
         {
             return physics->HasBody(*this);
         }
@@ -18,7 +18,7 @@ namespace Canape
 
 	RigidBodyIssue RigidBodyComponent::GetIssue() const
 	{
-        if (const auto* physics = FindPhysics())
+        if (const auto* physics = FindPhysics(*this))
         {
             return physics->GetIssue(*this);
         }
@@ -28,7 +28,7 @@ namespace Canape
 
 	void RigidBodyComponent::AddImpulse(const Vector3& impulse)
 	{
-		if (auto* physics = FindPhysics())
+		if (auto* physics = FindPhysics(*this))
 		{
 			physics->AddImpulse(*this, impulse);
 		}
@@ -36,22 +36,9 @@ namespace Canape
 
 	void RigidBodyComponent::SetKinematicTarget(const PhysicsPose& target)
 	{
-		if (auto* physics = FindPhysics())
+		if (auto* physics = FindPhysics(*this))
 		{
 			physics->SetKinematicTarget(*this, target);
 		}
-	}
-
-	PhysicsScene* RigidBodyComponent::FindPhysics() const
-	{
-		auto* owner = GetOwnerObject();
-        if(owner == nullptr) return nullptr;
-
-        if(auto* scene = owner->GetScene())
-        {
-            return &scene->GetPhysics();
-        }
-
-        return nullptr;
 	}
 }

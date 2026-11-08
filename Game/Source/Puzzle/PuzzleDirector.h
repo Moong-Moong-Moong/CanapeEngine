@@ -6,10 +6,12 @@
 #include <utility>
 #include <vector>
 
+#include "Puzzle/GoalCup.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleLane.h"
 
-// Runs every lane on the fixed ticks, judges the goals and reloads the scene in the other mode after each run.
+// Runs every lane on the fixed ticks, judges the cups at the horizon and reloads the scene in the other mode after each run.
+// The lanes are the objects of the scene with a PuzzleLane; a lane without a cup is an empty slot and is skipped.
 // R and C reload the scene in Solution and Control mode; they are read in Update. L logs the state of every lane.
 // A reload restores the scene as it was when the run began (saved to a temp file at the first Start), not the file on disk.
 class PuzzleDirector final: public Canape::ScriptComponent {
@@ -20,13 +22,13 @@ private:
     struct LaneEntry {
         PuzzleLane* lane = nullptr;
         std::vector<PoseTrack*> tracks;
+        std::vector<GoalCup*> cups;
     };
 
     using LaneEntries = std::vector<LaneEntry>;
 
 private:
     PuzzleMode startMode = PuzzleMode::Solution;
-    GameObjectHandles lanes;
 
     // Run state, not registered.
     bool restarted = false;
@@ -43,8 +45,6 @@ public:
     PuzzleDirector& operator=(const PuzzleDirector&) = delete;
     PuzzleDirector(PuzzleDirector&&) = delete;
     PuzzleDirector& operator=(PuzzleDirector&&) = delete;
-
-    void AddLane(const Handle<Canape::GameObject>& laneRoot) { lanes.push_back(laneRoot); }
 
     // The mode every lane runs in; the scene reload passes it on to the new scene's director.
     PuzzleMode GetStartMode() const { return startMode; }
@@ -66,8 +66,7 @@ private:
     void saveSnapshot();
     void restart(PuzzleMode mode);
     void carryCamera();
-    void latchGoal(PuzzleLane& lane) const;
     void driveTracks(const LaneEntry& entry) const;
-    void logVerdict(PuzzleLane& lane) const;
+    void judge(const LaneEntry& entry) const;
     void logLaneStates() const;
 };

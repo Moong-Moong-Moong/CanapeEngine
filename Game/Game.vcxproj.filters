@@ -30,6 +30,9 @@
     <ClInclude Include="Source\GameApp.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Puzzle\GoalCup.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Puzzle\PoseTrack.h">
       <Filter>Source\Puzzle</Filter>
     </ClInclude>
@@ -64,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\GoalCup.cpp">
+      <Filter>Source\Puzzle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\PoseTrack.cpp">
       <Filter>Source\Puzzle</Filter>

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "JoltPhysics/PhysicsTypes.h"
+#include "Physics/HingeComponent.h"
+#include "Physics/HingeState.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/RigidBodyShape.h"
 #include "Physics/RigidBodyState.h"
@@ -55,11 +57,22 @@ namespace Canape
 		// Kept until the body is released, so a target set before the body exists reaches its first step.
 		void SetKinematicTarget(const RigidBodyComponent&, const PhysicsPose& target);
 
+		// A hinge this scene has never synced has no hinge and no issue.
+		bool HasHinge(const HingeComponent&) const;
+		HingeIssue GetIssue(const HingeComponent&) const;
+		bool IsHingeHeld(const HingeComponent&) const;
+		// 0 without a hinge; a released hinge keeps reading until a body of it is rebuilt.
+		float GetHingeAngle(const HingeComponent&) const;
+		Vector3 GetHingeAnchor(const HingeComponent&) const;
+		// Lets a built hinge go. The hinge stays released, even when its bodies are rebuilt, until the component is
+		// disabled and enabled again; a hinge released before it exists is not made this run.
+		void ReleaseHinge(const HingeComponent&);
+
 		// Moving bodies (sleeping ones included) whose shapes overlap the world-space box, in creation order.
 		RigidBodies QueryBox(const Vector3& center, const Vector3& halfExtent) const;
 
-		// Bodies whose issue is an authoring problem, as of the last sync.
-		std::uint32_t GetAuthoringIssueCount() const { return m_AuthoringIssueCount; }
+		// Bodies and hinges whose issue is an authoring problem, as of the last sync.
+		std::uint32_t GetAuthoringIssueCount() const { return m_BodyIssueCount + m_HingeIssueCount; }
 		// The flags of the last step; None before the first step.
 		PhysicsStepError GetLastStepError() const { return m_LastStepError; }
 
@@ -73,6 +86,8 @@ namespace Canape
 
 		void ReleaseBodies(std::span<Component* const> removed);
 		void SyncBodies(std::span<RigidBodyComponent* const>);
+		// After SyncBodies, so that both bodies of a hinge exist.
+		void SyncHinges(std::span<HingeComponent* const>);
 
 		PhysicsStepError Step(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
 
@@ -84,27 +99,43 @@ namespace Canape
             return const_cast<RigidBodyState*>(std::as_const(*this).FindState(body));
         }
 		const RigidBodyComponent* FindBody(PhysicsBodyId) const;
+		const HingeState* FindState(const HingeComponent&) const;
+		// The id of the body's backend body, or an invalid id while it has none.
+		PhysicsBodyId BuiltIdOf(const RigidBodyComponent*) const;
 
 		void SyncBody(const RigidBodyComponent&, RigidBodyState&);
 		// Records and logs why the shape in m_Shape left the body without a backend body.
 		void FailBody(const RigidBodyComponent&, RigidBodyState&, RigidBodyIssue);
-		void ReleaseBody(RigidBodyState&);
+		void ReleaseBody(const RigidBodyComponent&, RigidBodyState&);
 		void ApplyQueuedImpulses(RigidBodyState&);
 		void MoveKinematicBodies(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
 		void WriteBack(const RigidBodyComponent&, PhysicsBodyId) const;
+
+		void SyncHinge(const HingeComponent&, HingeState&);
+		// Records why the hinge was not made and logs it when the reason is new.
+		void FailHinge(const HingeComponent&, HingeState&, HingeIssue, PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring&);
+		void DestroyHinge(HingeState&);
+		// The backend drops a hinge with either of its bodies; the records follow. A body removed for good ends its
+		// hinges like a release, one merely rebuilt lets them be made again.
+		void DropHingesOf(PhysicsBodyId body, bool ended);
 
     private:
 		std::unique_ptr<JoltWorld> m_World;
 		// Keys are never dereferenced;
         // a body's entry is erased when the component is removed.
 		std::unordered_map<const RigidBodyComponent*, RigidBodyState> m_Bodies;
+		std::unordered_map<const HingeComponent*, HingeState> m_Hinges;
 
 		std::uint64_t m_StepCount = 0;
 		float m_LastStepMilliseconds = 0.0f;
-		std::uint32_t m_AuthoringIssueCount = 0;
+		std::uint32_t m_BodyIssueCount = 0;
+		std::uint32_t m_HingeIssueCount = 0;
 		PhysicsStepError m_LastStepError = PhysicsStepError::None;
 
 		// Scratch for SyncBody; holds the shape of the body synced last.
 		RigidBodyShape m_Shape;
     };
+
+	// The physics of the scene that owns the component's object, or null while it has none.
+	PhysicsScene* FindPhysics(const Component&);
 }

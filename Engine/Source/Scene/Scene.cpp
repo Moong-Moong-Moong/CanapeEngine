@@ -34,6 +34,9 @@ namespace Canape
 
 	void Scene::BeginUpdate()
 	{
+		//*** Components removed outside Update get their OnDestroy before they are destroyed below
+		OnDestroyScripts();
+
 		//***** Component
 		std::vector<Component*> pendingRemoveComps = m_componentRegistry.GetPendingRemove();
 		//*** Release physics bodies before the components are destroyed
@@ -97,6 +100,7 @@ namespace Canape
 
 		m_componentRegistry.FlushPendingPhysics();
 		m_Physics.SyncBodies(m_componentRegistry.GetRigidBodies());
+		m_Physics.SyncHinges(m_componentRegistry.GetHinges());
 		m_Physics.Step(Time::FixedDeltaTime(), m_componentRegistry.GetRigidBodies());
 	}
 

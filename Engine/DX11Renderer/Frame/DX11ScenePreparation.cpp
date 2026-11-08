@@ -10,13 +10,6 @@
 namespace Canape::ScenePreparation
 {
     namespace SC = ShaderConstants;
-    namespace
-    {
-        bool IsFinite(const Vector3& value)
-        {
-            return std::isfinite(value.X) && std::isfinite(value.Y) && std::isfinite(value.Z);
-        }
-    }
     SC::LightConstants BuildLightConstants(std::span<const RenderLight> lights,
         uint32_t* shadowDirectionalIndex)
     {

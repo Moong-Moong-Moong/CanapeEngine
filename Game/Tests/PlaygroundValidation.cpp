@@ -2,6 +2,7 @@
 // real Application loop. The checks run on a fiber that gives control back to the loop once per frame, so every frame is
 // a real frame of Application::Run; time scale decides how many fixed ticks a frame runs. Lane results are read from the
 // game components' public state; the program changes nothing in the game.
+#include "Puzzle/GoalCup.h"
 #include "Puzzle/PoseTrack.h"
 #include "Puzzle/PuzzleDirector.h"
 #include "Puzzle/PuzzleLane.h"
@@ -42,29 +43,7 @@ namespace
     constexpr std::chrono::seconds RunLimit{ 180 };
     constexpr char SceneName[] = "PhysicsPlayground";
     constexpr char RoundTripFile[] = "roundtrip.json";
-
-    struct CrowyReference {
-        PuzzleKind kind;
-        std::uint32_t solvedAt;
-    };
-
-    constexpr CrowyReference CrowyReferences[] = {
-        { PuzzleKind::KickerJump, 146 },
-        { PuzzleKind::TiltTray, 423 },
-        { PuzzleKind::CarriedScoop, 309 },
-    };
-
-    std::uint32_t CrowySolvedAt(PuzzleKind kind)
-    {
-        for(const CrowyReference& reference : CrowyReferences)
-        {
-            if(reference.kind == kind)
-            {
-                return reference.solvedAt;
-            }
-        }
-        return 0;
-    }
+    constexpr float Pi = 3.14159265358979f;
 
     int g_Failures = 0;
     int g_Checks = 0;
@@ -80,9 +59,8 @@ namespace
     }
 
     struct Verdict {
-        PuzzleKind kind = PuzzleKind::KickerJump;
+        std::string name;
         bool solved = false;
-        std::uint32_t solvedAt = 0;
         bool failed = false;
     };
 
@@ -246,7 +224,7 @@ namespace
             return done();
         }
 
-        // The lanes with content in the active scene.
+        // The lanes of the active scene, in the order the director runs them.
         std::vector<PuzzleLane*> Lanes() const
         {
             std::vector<PuzzleLane*> lanes;
@@ -255,7 +233,7 @@ namespace
             {
                 Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
-                if(lane && lane->HasContent())
+                if(lane)
                 {
                     lanes.push_back(lane);
                 }
@@ -267,6 +245,28 @@ namespace
         {
             const std::vector<PuzzleLane*> lanes = Lanes();
             return lanes.empty() ? nullptr : lanes.front();
+        }
+
+        static const std::string& NameOf(const PuzzleLane& lane) { return lane.GetOwnerObject()->GetName(); }
+
+        static std::vector<GoalCup*> Cups(const PuzzleLane& lane)
+        {
+            std::vector<GoalCup*> cups;
+            collectBelow(*lane.GetOwnerObject()->GetTransform(), cups);
+            return cups;
+        }
+
+        static GoalCup* Cup(const PuzzleLane& lane)
+        {
+            const std::vector<GoalCup*> cups = Cups(lane);
+            return cups.empty() ? nullptr : cups.front();
+        }
+
+        // The object the lane's first cup waits for.
+        Canape::GameObject* Payload(const PuzzleLane& lane) const
+        {
+            const GoalCup* cup = Cup(lane);
+            return cup ? Active().GetGameObject(cup->GetPayload()) : nullptr;
         }
 
         bool AllJudged() const
@@ -291,7 +291,7 @@ namespace
             std::vector<Verdict> verdicts;
             for(const PuzzleLane* lane : Lanes())
             {
-                verdicts.push_back({ lane->GetKind(), lane->IsSolved(), lane->GetSolvedAt(), lane->HasFailed() });
+                verdicts.push_back({ NameOf(*lane), lane->IsSolved(), lane->HasFailed() });
             }
             return verdicts;
         }
@@ -360,9 +360,9 @@ namespace
         std::uint64_t Steps() const { return Active().GetPhysics().GetStats().stepCount; }
     };
 
-    std::string Tag(const char* run, PuzzleKind kind)
+    std::string Tag(const char* run, const std::string& lane)
     {
-        return std::string(run) + " " + enumName(kind);
+        return std::string(run) + " " + lane;
     }
 
     void CheckSolution(const char* run, const std::vector<Verdict>& verdicts)
@@ -370,9 +370,9 @@ namespace
         Check(!verdicts.empty(), std::string(run) + ": there are lanes with content");
         for(const Verdict& verdict : verdicts)
         {
-            Check(verdict.solved && verdict.solvedAt <= PuzzleHorizonTicks, Tag(run, verdict.kind) + ": solved within the horizon");
-            Check(!verdict.failed, Tag(run, verdict.kind) + ": no physics failure");
-            std::printf("INFO %s Solution solvedAt=%u (Crowy %u)\n", enumName(verdict.kind).c_str(), verdict.solvedAt, CrowySolvedAt(verdict.kind));
+            Check(verdict.solved, Tag(run, verdict.name) + ": solved at the horizon");
+            Check(!verdict.failed, Tag(run, verdict.name) + ": no physics failure");
+            std::printf("INFO %s Solution %s\n", verdict.name.c_str(), verdict.solved ? "solved" : "unsolved");
         }
     }
 
@@ -381,8 +381,8 @@ namespace
         Check(!verdicts.empty(), std::string(run) + ": there are lanes with content");
         for(const Verdict& verdict : verdicts)
         {
-            Check(!verdict.solved, Tag(run, verdict.kind) + ": control stays unsolved");
-            Check(!verdict.failed, Tag(run, verdict.kind) + ": no physics failure");
+            Check(!verdict.solved, Tag(run, verdict.name) + ": control stays unsolved");
+            Check(!verdict.failed, Tag(run, verdict.name) + ": no physics failure");
         }
     }
 
@@ -391,8 +391,8 @@ namespace
         Check(!a.empty() && a.size() == b.size(), std::string(what) + ": same lanes");
         for(std::size_t i = 0; i < a.size() && i < b.size(); ++i)
         {
-            Check(a[i].solved == b[i].solved && a[i].solvedAt == b[i].solvedAt && a[i].failed == b[i].failed,
-                Tag(what, a[i].kind) + ": same result");
+            Check(a[i].name == b[i].name && a[i].solved == b[i].solved && a[i].failed == b[i].failed,
+                Tag(what, a[i].name) + ": same result");
         }
     }
 
@@ -408,14 +408,18 @@ namespace
     {
         for(const PuzzleLane* lane : h.Lanes())
         {
-            Check(!lane->GetGoalPieces().empty(), Tag(when, lane->GetKind()) + ": the lane has goal pieces");
-            Check(lane->IsGoalShownSolved() == expectSolved && lane->IsSolved() == expectSolved, Tag(when, lane->GetKind()) + ": the goal state follows the lane");
-            for(const Handle<Canape::GameObject>& handle : lane->GetGoalPieces())
+            const std::vector<GoalCup*> cups = h.Cups(*lane);
+            Check(!cups.empty(), Tag(when, h.NameOf(*lane)) + ": the lane has a cup");
+            Check(lane->IsSolved() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the lane's verdict is as expected");
+            for(const GoalCup* cup : cups)
             {
-                const Canape::GameObject* piece = h.Active().GetGameObject(handle);
-                const auto* renderer = piece ? piece->GetComponent<Canape::MeshRendererComponent>() : nullptr;
-                const std::string& wanted = expectSolved ? lane->GetGoalSolvedMaterial() : lane->GetGoalIdleMaterial();
-                Check(renderer && !wanted.empty() && !renderer->GetMaterialNames().empty() && renderer->GetMaterialNames().front() == wanted, Tag(when, lane->GetKind()) + ": the goal piece shows the right material");
+                Check(cup->IsShownSolved() == expectSolved, Tag(when, h.NameOf(*lane)) + ": the cup shows what the lane got");
+                const std::string& wanted = expectSolved ? cup->GetSolvedMaterial() : cup->GetIdleMaterial();
+                for(const Canape::GameObject* piece : cup->GetPieces())
+                {
+                    const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
+                    Check(renderer && !wanted.empty() && !renderer->GetMaterialNames().empty() && renderer->GetMaterialNames().front() == wanted, Tag(when, h.NameOf(*lane)) + ": the cup piece shows the right material");
+                }
             }
         }
     }
@@ -436,11 +440,13 @@ namespace
         const Canape::AssetManager& assets = h.app.GetAssetManager();
         for(const PuzzleLane* lane : h.Lanes())
         {
-            for(const Handle<Canape::GameObject>& handle : lane->GetGoalPieces())
+            for(const GoalCup* cup : h.Cups(*lane))
             {
-                const Canape::GameObject* piece = h.Active().GetGameObject(handle);
-                const auto* renderer = piece ? piece->GetComponent<Canape::MeshRendererComponent>() : nullptr;
-                Check(renderer && ShowsColor(assets, *renderer, solved), Tag(when, lane->GetKind()) + ": the goal piece's material resolves to the right color");
+                for(const Canape::GameObject* piece : cup->GetPieces())
+                {
+                    const auto* renderer = piece->GetComponent<Canape::MeshRendererComponent>();
+                    Check(renderer && ShowsColor(assets, *renderer, solved), Tag(when, h.NameOf(*lane)) + ": the cup piece's material resolves to the right color");
+                }
             }
         }
     }
@@ -449,9 +455,10 @@ namespace
     {
         Canape::PhysicsScene& physics = h.Active().GetPhysics();
         PuzzleLane& lane = *h.Front();
-        Canape::GameObject* payload = h.Active().GetGameObject(lane.GetPayload());
-        Check(payload != nullptr, "the payload object exists");
-        if(!payload)
+        Canape::GameObject* payload = h.Payload(lane);
+        const std::optional<CupRegion> region = h.Cup(lane) ? h.Cup(lane)->GetRegion() : std::nullopt;
+        Check(payload != nullptr && region.has_value(), "the payload object and the cup region exist");
+        if(!payload || !region)
         {
             return;
         }
@@ -464,9 +471,59 @@ namespace
         }
         Check(foundPayload, "the box query returns the payload");
 
-        const Canape::Vector3 cupFloor = lane.GetOwnerObject()->GetTransform()->GetPosition() + Canape::Vector3{ 1.035f, 0.25f, 0.0f };
+        const Canape::Vector3 cupFloor = region->center - Canape::Vector3{ 0.0f, region->halfExtent.Y + 0.05f, 0.0f };
         const Canape::RigidBodies atCupFloor = physics.QueryBox(cupFloor, tiny);
         Check(atCupFloor.empty(), "the box query returns nothing where only the static cup floor is");
+    }
+
+    bool Near(const Canape::Vector3& a, const Canape::Vector3& b, float tolerance)
+    {
+        return (a - b).Length() <= tolerance;
+    }
+
+    // The regions the shipped cups measure, and that pieces short of a cup measure nothing.
+    void CheckCupRegions(Harness& h)
+    {
+        struct Expected {
+            const char* lane;
+            Canape::Vector3 min;
+            Canape::Vector3 max;
+        };
+        const Expected expected[] = {
+            { "KickerJump", { -4.5f + 0.69f, 0.5f, -0.25f }, { -4.5f + 1.38f, 0.635f, 0.25f } },
+            { "TiltTray", { 0.4f, 0.3f, -1.4f }, { 1.0f, 0.375f, -0.8f } },
+            { "CarriedScoop", { 4.5f + 0.4f, 0.55f, -0.3f }, { 4.5f + 1.0f, 0.675f, 0.3f } },
+        };
+
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the cup regions");
+        Canape::Scene& scene = h.Active();
+        for(const Expected& e : expected)
+        {
+            Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(e.lane));
+            const PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
+            const GoalCup* cup = lane ? h.Cup(*lane) : nullptr;
+            const std::optional<CupRegion> region = cup ? cup->GetRegion() : std::nullopt;
+            Check(region.has_value(), std::string(e.lane) + ": the cup measures a region");
+            if(region)
+            {
+                Check(Near(region->center - region->halfExtent, e.min, 1.0e-3f) && Near(region->center + region->halfExtent, e.max, 1.0e-3f),
+                    std::string(e.lane) + ": the region lies between the walls, from the floor top to half the lowest wall");
+            }
+        }
+
+        Canape::GameObject* halfCup = scene.GetGameObject(scene.AddGameObject("halfCup"));
+        halfCup->GetTransform()->SetLocalPosition({ 250.0f, 50.0f, 0.0f });
+        auto* cup = halfCup->AddComponent<GoalCup>();
+        for(const float x : { -0.5f, 0.5f })
+        {
+            Canape::GameObject* piece = scene.GetGameObject(scene.AddGameObject("halfCupPiece"));
+            piece->GetTransform()->SetParent(halfCup->GetTransform());
+            piece->GetTransform()->SetLocalPosition({ x, 0.0f, 0.0f });
+            piece->AddComponent<Canape::BoxColliderComponent>();
+            piece->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
+        }
+        h.Frame();
+        Check(!cup->GetRegion().has_value() && !cup->HoldsPayload() && !cup->IsShownSolved(), "two pieces are no cup and hold nothing");
     }
 
     // Four ticks per frame while the loop runs at the cap: the steps and the lane ticks advance together.
@@ -748,7 +805,7 @@ namespace
             h.SetScale(scale);
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the disable probe");
             Canape::Scene& scene = h.Active();
-            Canape::GameObject* payload = scene.GetGameObject(h.Front()->GetPayload());
+            Canape::GameObject* payload = h.Payload(*h.Front());
             auto* body = payload ? payload->GetComponent<Canape::RigidBodyComponent>() : nullptr;
             Check(body != nullptr, "the payload has a rigid body for the fixed tick sync check");
             if(!body)
@@ -989,30 +1046,34 @@ namespace
         Check(SamePoses(captured[0], captured[1]), "frames of four ticks and of the real clock give bit-identical poses after a collider is removed in FixedUpdate");
     }
 
-    // Moves the payload into the goal zone from FixedUpdate once the lane has its verdict.
+    // Moves the payload into the cup from FixedUpdate once the lane has its verdict.
     class GoalPusher final : public Canape::ScriptComponent {
     public:
-        void Arm(PuzzleLane* lane) { m_Lane = lane; }
+        void Arm(PuzzleLane* lane, GoalCup* cup)
+        {
+            m_Lane = lane;
+            m_Cup = cup;
+        }
         std::uint32_t GetRestTicksAfterPush() const { return m_RestTicksAfterPush; }
 
     protected:
         void FixedUpdate() override
         {
-            if(!m_Lane)
+            if(!m_Lane || !m_Cup)
             {
                 return;
             }
-            Canape::GameObject* payload = GetGameObject(m_Lane->GetPayload());
+            Canape::GameObject* payload = GetGameObject(m_Cup->GetPayload());
             auto* body = payload ? payload->GetComponent<Canape::RigidBodyComponent>() : nullptr;
-            if(!body)
+            const std::optional<CupRegion> region = m_Cup->GetRegion();
+            if(!body || !region)
             {
                 return;
             }
 
             if(m_State == 0 && m_Lane->HasVerdict())
             {
-                const Canape::TransformComponent* laneTransform = m_Lane->GetOwnerObject()->GetTransform();
-                const Canape::Vector3 goal = laneTransform->GetLocalToWorldMatrix().TransformPoint(m_Lane->GetGoalCenter());
+                const Canape::Vector3 goal = region->center;
                 Canape::TransformComponent* transform = payload->GetTransform();
                 const Canape::TransformComponent* parent = transform->GetParent();
                 transform->SetLocalPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(goal) : goal);
@@ -1032,39 +1093,29 @@ namespace
 
     private:
         PuzzleLane* m_Lane = nullptr;
+        GoalCup* m_Cup = nullptr;
         std::uint32_t m_State = 0;
         std::uint32_t m_RestTicksAfterPush = 0;
     };
 
-    bool IsPayloadInGoal(Harness& h, const PuzzleLane& lane)
-    {
-        const Canape::GameObject* payload = h.Active().GetGameObject(lane.GetPayload());
-        const Canape::Vector3 center = lane.GetOwnerObject()->GetTransform()->GetLocalToWorldMatrix().TransformPoint(lane.GetGoalCenter());
-        for(const Canape::RigidBodyComponent* body : h.Active().GetPhysics().QueryBox(center, lane.GetGoalHalfExtent()))
-        {
-            if(body->GetOwnerObject() == payload)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // An unsolved verdict is final: a payload that reaches the goal during the rest ticks changes nothing.
+    // The verdict is taken once, at the horizon: a payload that reaches the cup during the rest ticks changes nothing,
+    // though the cup shows it.
     void CheckVerdictFinality(Harness& h)
     {
         Check(h.Reload(PuzzleMode::Control) != nullptr, "a control scene opens for the verdict check");
         PuzzleLane& lane = *h.Front();
+        GoalCup* cup = h.Cup(lane);
         auto* pusher = lane.GetOwnerObject()->AddComponent<GoalPusher>();
-        pusher->Arm(&lane);
+        pusher->Arm(&lane, cup);
 
         Check(h.RunUntil([&] { return pusher->GetRestTicksAfterPush() >= 3; }), "the payload is pushed during the rest ticks");
-        Check(IsPayloadInGoal(h, lane), "the pushed payload overlaps the goal zone during the rest");
+        Check(cup->HoldsPayload(), "the pushed payload is inside the cup during the rest");
         Check(lane.HasVerdict() && !lane.IsSolved(), "the verdict at the horizon is unsolved");
 
         Check(h.RunUntil([&] { return pusher->GetRestTicksAfterPush() >= 20; }), "the rest goes on after the push");
         Check(lane.GetTick() == PuzzleHorizonTicks && lane.HasVerdict(), "the lane stays at its horizon during the rest");
-        Check(!lane.IsSolved() && lane.GetSolvedAt() == 0 && !lane.IsGoalShownSolved(), "a goal reached after the verdict does not change it");
+        Check(!lane.IsSolved(), "a cup filled after the verdict does not change it");
+        Check(cup->IsShownSolved(), "the cup shows the payload inside all the same");
         Check(!lane.HasFailed(), "the pushed payload fails nothing");
     }
 
@@ -1278,6 +1329,213 @@ namespace
         Check(h.Front()->HasFailed(), "the lane stays failed after the values are fixed");
     }
 
+    struct HingeRig {
+        Canape::GameObject* pivot = nullptr;
+        Canape::GameObject* held = nullptr;
+        Canape::HingeComponent* hinge = nullptr;
+        Canape::RigidBodyComponent* body = nullptr;
+        Canape::Vector3 anchor{};
+    };
+
+    // A sphere 1 m to +x of a pivot, hinged about +z with limits [-pi/4, 0]; gravity swings it down to negative angles.
+    // A static mount is a small box body on the pivot object, out of the sphere's way.
+    HingeRig BuildHingeRig(Canape::Scene& scene, const char* name, const Canape::Vector3& anchor, bool staticMount, bool collider = true)
+    {
+        HingeRig rig;
+        rig.anchor = anchor;
+        rig.pivot = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Pivot"));
+        rig.pivot->GetTransform()->SetLocalPosition(anchor);
+        if(staticMount)
+        {
+            rig.pivot->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 0.2f, 0.2f, 0.2f });
+            rig.pivot->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
+        }
+        rig.held = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Held"));
+        rig.held->GetTransform()->SetLocalPosition(anchor + Canape::Vector3{ 1.0f, 0.0f, 0.0f });
+        if(collider)
+        {
+            rig.held->AddComponent<Canape::SphereColliderComponent>()->SetRadius(0.1f);
+        }
+        rig.body = rig.held->AddComponent<Canape::RigidBodyComponent>();
+        rig.body->SetMass(1.0f);
+        rig.hinge = rig.pivot->AddComponent<Canape::HingeComponent>();
+        rig.hinge->SetBody(rig.held->GetHandle());
+        rig.hinge->SetAxis({ 0.0f, 0.0f, 1.0f });
+        rig.hinge->SetMinAngle(-Pi / 4.0f);
+        rig.hinge->SetMaxAngle(0.0f);
+        return rig;
+    }
+
+    float RadiusOf(const HingeRig& rig)
+    {
+        return (rig.held->GetTransform()->GetPosition() - rig.anchor).Length();
+    }
+
+    // A hinge fixed to the world and one mounted on a static body both hold the sphere at its radius and stop at the limit.
+    void CheckHingeHolds(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge checks");
+        Canape::Scene& scene = h.Active();
+        const HingeRig rigs[] = {
+            BuildHingeRig(scene, "worldHinge", { 300.0f, 50.0f, 0.0f }, false),
+            BuildHingeRig(scene, "mountedHinge", { 310.0f, 50.0f, 0.0f }, true),
+        };
+        h.Frame();
+        for(const HingeRig& rig : rigs)
+        {
+            const std::string& name = rig.pivot->GetName();
+            Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && rig.hinge->GetIssue() == Canape::HingeIssue::None, name + ": the hinge is made and held");
+            Check(Near(rig.hinge->GetWorldAnchor(), rig.anchor, 1.0e-5f), name + ": the anchor is the pivot object's position");
+            Check(std::fabs(rig.hinge->GetAngle()) < 0.2f, name + ": the angle starts near 0");
+        }
+
+        float worstRadius[2] = {};
+        float lowest[2] = {};
+        float highest[2] = {};
+        for(int frame = 0; frame < 150; ++frame)
+        {
+            h.Frame();
+            for(std::size_t i = 0; i < 2; ++i)
+            {
+                worstRadius[i] = std::max(worstRadius[i], std::fabs(RadiusOf(rigs[i]) - 1.0f));
+                lowest[i] = std::min(lowest[i], rigs[i].hinge->GetAngle());
+                highest[i] = std::max(highest[i], rigs[i].hinge->GetAngle());
+            }
+        }
+        for(std::size_t i = 0; i < 2; ++i)
+        {
+            const std::string& name = rigs[i].pivot->GetName();
+            Check(worstRadius[i] < 0.03f, name + ": the sphere stays at its radius from the anchor (worst error " + std::to_string(worstRadius[i]) + ")");
+            Check(lowest[i] > -Pi / 4.0f - 0.2f && highest[i] < 0.2f, name + ": the angle stays within the limits (lowest " + std::to_string(lowest[i]) + ", highest " + std::to_string(highest[i]) + ")");
+            Check(std::fabs(rigs[i].hinge->GetAngle() + Pi / 4.0f) < 0.05f, name + ": the sphere rests on the lower limit (" + std::to_string(rigs[i].hinge->GetAngle()) + ")");
+            Check(rigs[i].hinge->IsHeld(), name + ": the hinge is still held");
+        }
+        Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !h.Front()->HasFailed(), "good hinges are no issue");
+    }
+
+    // Disabling drops the hinge and enabling makes it again; a release holds until the component is toggled.
+    void CheckHingeRelease(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge release checks");
+        Canape::Scene& scene = h.Active();
+        const HingeRig rig = BuildHingeRig(scene, "releasedHinge", { 300.0f, 50.0f, 0.0f }, false);
+        h.Frame();
+        Check(rig.hinge->IsHeld(), "the hinge holds before the toggle");
+        rig.hinge->SetEnabled(false);
+        h.Frame();
+        Check(!rig.hinge->HasHinge() && !rig.hinge->IsHeld() && rig.hinge->GetAngle() == 0.0f, "a disabled hinge is dropped");
+        rig.hinge->SetEnabled(true);
+        h.Frame();
+        Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && std::fabs(rig.hinge->GetAngle()) < 0.3f, "an enabled hinge is made again, at angle 0 from where the body is");
+
+        const float heightBefore = rig.held->GetTransform()->GetPosition().Y;
+        rig.hinge->Release();
+        Check(!rig.hinge->IsHeld() && rig.hinge->HasHinge(), "a released hinge is not held but still exists");
+        for(int frame = 0; frame < 8; ++frame)
+        {
+            h.Frame();
+        }
+        Check(heightBefore - rig.held->GetTransform()->GetPosition().Y > 0.5f, "the released body falls");
+        Check(std::isfinite(rig.hinge->GetAngle()), "the angle of a released hinge still reads");
+        rig.hinge->Release();
+        h.Frame();
+        Check(!rig.hinge->IsHeld() && rig.hinge->GetIssue() == Canape::HingeIssue::None && scene.GetPhysics().GetAuthoringIssueCount() == 0,
+            "a second release changes nothing");
+
+        rig.body->SetEnabled(false);
+        h.Frame();
+        rig.body->SetEnabled(true);
+        h.Frame();
+        Check(rig.body->HasBody() && !rig.hinge->HasHinge() && !rig.hinge->IsHeld() && rig.hinge->GetIssue() == Canape::HingeIssue::None,
+            "a rebuilt body does not take a released hinge back");
+        rig.hinge->SetEnabled(false);
+        h.Frame();
+        rig.hinge->SetEnabled(true);
+        h.Frame();
+        Check(rig.hinge->HasHinge() && rig.hinge->IsHeld(), "toggling the hinge after a release makes it hold again");
+        Check(!h.Front()->HasFailed(), "the release checks fail no lane");
+    }
+
+    // Removing the held object ends its hinge like a release; removing the hinge object frees the body. Neither is an issue.
+    void CheckHingeRemoval(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge removal checks");
+        Canape::Scene& scene = h.Active();
+        const HingeRig lostHeld = BuildHingeRig(scene, "lostHeld", { 300.0f, 50.0f, 0.0f }, false);
+        const HingeRig lostPivot = BuildHingeRig(scene, "lostPivot", { 310.0f, 50.0f, 0.0f }, true);
+        h.Frame();
+        Check(lostHeld.hinge->IsHeld() && lostPivot.hinge->IsHeld(), "both hinges hold before the removals");
+
+        const float heightBefore = lostPivot.held->GetTransform()->GetPosition().Y;
+        scene.RemoveGameObject(lostHeld.held->GetHandle());
+        h.Frame();
+        scene.RemoveGameObject(lostPivot.pivot->GetHandle());
+        h.Frame();
+        h.Frame();
+        Check(!lostHeld.hinge->HasHinge() && !lostHeld.hinge->IsHeld() && lostHeld.hinge->GetIssue() == Canape::HingeIssue::None,
+            "a hinge whose held object is removed ends without an issue");
+        for(int frame = 0; frame < 8; ++frame)
+        {
+            h.Frame();
+        }
+        Check(heightBefore - lostPivot.held->GetTransform()->GetPosition().Y > 0.5f, "a body whose hinge object is removed falls free");
+        Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !Canape::StepFailed(scene.GetPhysics().GetLastStepError()),
+            "the removals leave no issue and the world keeps stepping");
+        Check(!h.Front()->HasFailed(), "the removals fail no lane");
+    }
+
+    // Each authoring mistake is its own issue, counted once; a held body that failed is the body's issue, not the hinge's.
+    void CheckHingeIssues(Harness& h)
+    {
+        using Canape::HingeIssue;
+
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge issue checks");
+        Canape::Scene& scene = h.Active();
+        const Canape::PhysicsScene& physics = scene.GetPhysics();
+        h.Frame();
+        Check(physics.GetAuthoringIssueCount() == 0, "no issue before the bad hinges");
+
+        const HingeRig noBody = BuildHingeRig(scene, "noBody", { 300.0f, 50.0f, 0.0f }, false);
+        noBody.hinge->SetBody({});
+        const HingeRig notDynamic = BuildHingeRig(scene, "notDynamic", { 310.0f, 50.0f, 0.0f }, false);
+        notDynamic.body->SetMotion(Canape::PhysicsMotion::Static);
+        const HingeRig badAxis = BuildHingeRig(scene, "badAxis", { 320.0f, 50.0f, 0.0f }, false);
+        badAxis.hinge->SetAxis({ 0.0f, 0.0f, 0.0f });
+        const HingeRig bodyFailed = BuildHingeRig(scene, "bodyFailed", { 330.0f, 50.0f, 0.0f }, false, false);
+        const HingeRig self = BuildHingeRig(scene, "selfHeld", { 340.0f, 50.0f, 0.0f }, true);
+        self.hinge->SetBody(self.pivot->GetHandle());
+        h.Frame();
+        h.Frame();
+        Check(noBody.hinge->GetIssue() == HingeIssue::NoBody && !noBody.hinge->HasHinge(), "an empty body handle is NoBody");
+        Check(notDynamic.hinge->GetIssue() == HingeIssue::NotDynamic && !notDynamic.hinge->HasHinge(), "a static held body is NotDynamic");
+        Check(badAxis.hinge->GetIssue() == HingeIssue::InvalidSettings && !badAxis.hinge->HasHinge(), "a zero axis is InvalidSettings");
+        Check(bodyFailed.hinge->GetIssue() == HingeIssue::BodyFailed && bodyFailed.body->GetIssue() == Canape::RigidBodyIssue::NoCollider,
+            "a held body without a collider is BodyFailed, and the body keeps its own issue");
+        Check(self.hinge->GetIssue() == HingeIssue::InvalidSettings && !self.hinge->HasHinge(), "an object holding itself is InvalidSettings");
+        Check(physics.GetAuthoringIssueCount() == 5, "four hinge issues and one body issue are counted (now " + std::to_string(physics.GetAuthoringIssueCount()) + ")");
+        Check(h.Front()->HasFailed(), "a hinge issue fails the lane");
+        h.Frame();
+        h.Frame();
+        Check(physics.GetAuthoringIssueCount() == 5, "the hinge issues are counted once, not per frame");
+
+        badAxis.hinge->SetAxis({ 0.0f, 0.0f, 1.0f });
+        h.Frame();
+        Check(badAxis.hinge->HasHinge() && badAxis.hinge->IsHeld() && badAxis.hinge->GetIssue() == HingeIssue::None, "a corrected axis makes the hinge without a toggle");
+        Check(physics.GetAuthoringIssueCount() == 4, "the corrected hinge leaves four issues");
+    }
+
+    void CheckHingeReflection()
+    {
+        const rttr::type type = rttr::type::get<Canape::HingeComponent>();
+        Check(type.get_constructor().is_valid(), "HingeComponent has a registered constructor");
+        for(const char* name : { "body", "axis", "minAngle", "maxAngle", "maxFrictionTorque" })
+        {
+            Check(type.get_property(name).is_valid(), std::string("HingeComponent registers ") + name);
+        }
+        Check(type.get_properties().size() == 6, "HingeComponent registers its authoring values and nothing else (" + std::to_string(type.get_properties().size()) + ")");
+        Check(type.get_property("body").get_type() == rttr::type::get<Handle<Canape::GameObject>>(), "the held object is a GameObject handle");
+    }
+
     // The goal materials survive the Delete-key asset collection, in a solved scene and in the one the R key reloads.
     void CheckGoalAfterCollection(Harness& h, const std::vector<Verdict>& solution)
     {
@@ -1449,6 +1707,12 @@ namespace
         CheckPhysicsFailure(h);
         CheckQueuedImpulse(h);
         CheckBodyValueValidation(h);
+        CheckCupRegions(h);
+        CheckHingeHolds(h);
+        CheckHingeRelease(h);
+        CheckHingeRemoval(h);
+        CheckHingeIssues(h);
+        CheckHingeReflection();
         CheckGoalAfterCollection(h, solutionA);
         CheckSceneSwitch(h, solutionA, controlA);
     }

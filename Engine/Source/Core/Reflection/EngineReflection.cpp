@@ -2,14 +2,15 @@
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Input/InputManager.h"
-#include "JoltPhysics/Math/ScalarExt.h"
 #include "JoltPhysics/PhysicsTypes.h"
 #include "Math/Quaternion.h"
+#include "Math/Scalar.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
 #include "Physics/BoxColliderComponent.h"
 #include "Physics/ColliderComponent.h"
+#include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/SphereColliderComponent.h"
 #include "Scene/Component/CameraComponent.h"
@@ -198,6 +199,14 @@ namespace Canape
 				.property("restitution", &RigidBodyComponent::GetRestitution, &RigidBodyComponent::SetRestitution)
 				.property("linearDamping", &RigidBodyComponent::GetLinearDamping, &RigidBodyComponent::SetLinearDamping)
 				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping);
+
+			registration::class_<HingeComponent>("HingeComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("body", &HingeComponent::GetBody, &HingeComponent::SetBody)
+				.property("axis", &HingeComponent::GetAxis, &HingeComponent::SetAxis)
+				.property("minAngle", &HingeComponent::GetMinAngle, &HingeComponent::SetMinAngle)
+				.property("maxAngle", &HingeComponent::GetMaxAngle, &HingeComponent::SetMaxAngle)
+				.property("maxFrictionTorque", &HingeComponent::GetMaxFrictionTorque, &HingeComponent::SetMaxFrictionTorque);
 
 			registration::class_<ColliderComponent>("ColliderComponent")
 				.property("overrideFriction", &ColliderComponent::GetOverrideFriction, &ColliderComponent::SetOverrideFriction)

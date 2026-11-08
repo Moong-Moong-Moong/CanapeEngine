@@ -5,9 +5,6 @@
 #include <cmath>
 #include <optional>
 
-#include "JoltPhysics/Math/QuaternionExt.h"
-#include "JoltPhysics/Math/ScalarExt.h"
-#include "JoltPhysics/Math/Vector3Ext.h"
 #include "Math/Quaternion.h"
 #include "Physics/BoxColliderComponent.h"
 #include "Physics/ColliderComponent.h"
@@ -83,21 +80,14 @@ namespace Canape
 
         WorldScale measureWorldScale(const TransformComponent& transform)
         {
-            Vector3 worldScale = Vector3::One;
             bool uniformAncestors = true;
-
-            for(const auto* node = &transform; node; node = node->GetParent())
+            for(const auto* node = transform.GetParent(); node; node = node->GetParent())
             {
-                const Vector3& local = node->GetLocalScale();
-                worldScale *= local;
-                if(node != &transform && !IsUniform(local))
-                {
-                    uniformAncestors = false;
-                }
+                uniformAncestors = uniformAncestors && IsUniform(node->GetLocalScale());
             }
 
             return WorldScale {
-                .lossy = worldScale,
+                .lossy = transform.GetLossyScale(),
                 .uniformAncestors = uniformAncestors
             };
         }

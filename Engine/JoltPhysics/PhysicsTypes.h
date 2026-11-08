@@ -6,8 +6,8 @@
 #include <optional>
 #include <vector>
 
-#include "JoltPhysics/Math/ScalarExt.h"
 #include "Math/Quaternion.h"
+#include "Math/Scalar.h"
 #include "Math/Vector3.h"
 
 namespace Canape
@@ -100,22 +100,35 @@ namespace Canape
         constexpr bool operator==(const PhysicsBodyId&) const = default;
     };
 
-    // A hinge fixed to the world holding a dynamic body.
+    // minAngle in [-pi, 0], maxAngle in [0, pi], minAngle < maxAngle, both finite.
+    inline bool IsValidHingeLimits(float minAngle, float maxAngle)
+    {
+        constexpr float Pi = std::numbers::pi_v<float>;
+        return std::isfinite(minAngle) && std::isfinite(maxAngle)
+            && -Pi <= minAngle && minAngle <= 0.0f
+            && 0.0f <= maxAngle && maxAngle <= Pi
+            && minAngle < maxAngle;
+    }
+
+    // A hinge holding a dynamic body to a mount body, or to the world when the mount id is invalid.
     struct PhysicsHingeDesc
     {
+        // dynamic
         PhysicsBodyId body{};
+        // any motion, never the held body itself
+        PhysicsBodyId mount{};
         // world space
         Vector3 pivot{};
         // axis and normal are unit and perpendicular
         Vector3 axis{ 0.0f, 1.0f, 0.0f };
         Vector3 normal{ 1.0f, 0.0f, 0.0f };
-        // minAngle in [-pi, 0], maxAngle in [0, pi], minAngle < maxAngle
+        // see IsValidHingeLimits
         float minAngle = -std::numbers::pi_v<float>;
         float maxAngle = std::numbers::pi_v<float>;
         float maxFrictionTorque = 0.0f;
     };
 
-    // Names a hinge of one world; a released hinge keeps its id, a hinge whose body was destroyed does not.
+    // Names a hinge of one world; a released hinge keeps its id, a destroyed hinge or one that lost either body does not.
     struct PhysicsHingeId
     {
         std::uint32_t index = 0;

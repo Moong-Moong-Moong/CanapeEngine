@@ -1,4 +1,5 @@
 #include "Scene/Component/ComponentRegistry.h"
+#include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Scene/Component/FogComponent.h"
 #include "Scene/Component/LightComponent.h"
@@ -36,11 +37,13 @@ namespace Canape
 		std::erase_if(m_pendingAdd, [this](Component* component)
 		{
             auto* rigidBody = dynamic_cast<RigidBodyComponent*>(component);
-            if (rigidBody == nullptr) return false;
+            auto* hinge = dynamic_cast<HingeComponent*>(component);
+            if (rigidBody == nullptr && hinge == nullptr) return false;
 
             if (!component->IsPendingDestroy())
             {
-                m_rigidBodies.push_back(rigidBody);
+                if (rigidBody != nullptr) m_rigidBodies.push_back(rigidBody);
+                if (hinge != nullptr) m_hinges.push_back(hinge);
             }
             return true;
         });
@@ -88,6 +91,11 @@ namespace Canape
 			{
 				m_rigidBodies.push_back(rigidBody);
 			}
+
+			if (HingeComponent* hinge = dynamic_cast<HingeComponent*>(component))
+			{
+				m_hinges.push_back(hinge);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -124,6 +132,11 @@ namespace Canape
 			if (RigidBodyComponent* rigidBody = dynamic_cast<RigidBodyComponent*>(component))
 			{
 				std::erase(m_rigidBodies, rigidBody);
+			}
+
+			if (HingeComponent* hinge = dynamic_cast<HingeComponent*>(component))
+			{
+				std::erase(m_hinges, hinge);
 			}
 		}
 		m_pendingRemove.clear();

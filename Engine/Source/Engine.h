@@ -11,6 +11,7 @@
 #include "Math/Math.h"
 #include "Physics/BoxColliderComponent.h"
 #include "Physics/ColliderComponent.h"
+#include "Physics/HingeComponent.h"
 #include "Physics/PhysicsScene.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/SphereColliderComponent.h"

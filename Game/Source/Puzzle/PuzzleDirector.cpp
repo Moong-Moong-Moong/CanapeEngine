@@ -1,9 +1,6 @@
-// rttr declares the element wrapper of a sequence container it never defines.
-#pragma warning(push)
-#pragma warning(disable : 4506)
-
 #include "Puzzle/PuzzleDirector.h"
 
+#include <algorithm>
 #include <atomic>
 #include <filesystem>
 #include <string>
@@ -21,8 +18,7 @@ RTTR_REGISTRATION
 
     rttr::registration::class_<PuzzleDirector>("PuzzleDirector")
         .constructor<>()(rttr::policy::ctor::as_raw_ptr)
-        .property("startMode", &PuzzleDirector::startMode)
-        .property("lanes", &PuzzleDirector::lanes);
+        .property("startMode", &PuzzleDirector::startMode);
 }
 
 namespace
@@ -37,16 +33,6 @@ namespace
             if(auto* component = object->GetComponent<T>()) return component;
         }
         return nullptr;
-    }
-
-    void collectTracks(const Canape::TransformComponent& node, std::vector<PoseTrack*>& tracks)
-    {
-        if(auto* track = node.GetOwnerObject()->GetComponent<PoseTrack>()) tracks.push_back(track);
-
-        for(const auto* child : node.GetChildren())
-        {
-            collectTracks(*child, tracks);
-        }
     }
 
     bool physicsFailed(const Canape::PhysicsScene& physics)
@@ -91,17 +77,16 @@ void PuzzleDirector::FixedUpdate()
         {
             lane.fail();
         }
-        if(!lane.HasContent()) continue;
+        if(entry.cups.empty()) continue;
 
         ++contentLanes;
-        latchGoal(lane);
         if(lane.GetTick() < PuzzleHorizonTicks)
         {
             driveTracks(entry);
             lane.advanceTick();
             continue;
         }
-        logVerdict(lane);
+        judge(entry);
         ++restingLanes;
     }
 
@@ -138,17 +123,19 @@ void PuzzleDirector::Update()
     }
 }
 
+// Every object of the scene with a PuzzleLane, with the tracks and the runnable cups below it.
 PuzzleDirector::LaneEntries PuzzleDirector::gatherLanes() const
 {
     LaneEntries entries;
-    for(const auto& handle : lanes)
+    for(auto* root : GetOwnerObject()->GetScene()->GetAllGameObjects())
     {
-        auto* root = GetGameObject(handle);
-        auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
+        auto* lane = root->IsPendingDestroy() ? nullptr : root->GetComponent<PuzzleLane>();
         if(lane == nullptr) continue;
 
-        entries.push_back({ lane, {} });
-        collectTracks(*root->GetTransform(), entries.back().tracks);
+        LaneEntry& entry = entries.emplace_back(lane);
+        collectBelow(*root->GetTransform(), entry.tracks);
+        collectBelow(*root->GetTransform(), entry.cups);
+        std::erase_if(entry.cups, [](const GoalCup* cup) { return !Canape::Scene::IsRunnable(cup); });
     }
     return entries;
 }
@@ -224,27 +211,6 @@ void PuzzleDirector::carryCamera()
     carriedCamera.reset();
 }
 
-// Latches the goal once, on the previous tick's post-step state, when the payload overlaps the goal zone.
-// A lane's verdict is final: nothing is judged after it.
-void PuzzleDirector::latchGoal(PuzzleLane& lane) const
-{
-    if(lane.HasVerdict() || lane.IsSolved() || lane.GetTick() == 0) return;
-
-    const auto* payload = GetGameObject(lane.GetPayload());
-    if(payload == nullptr) return;
-
-    const auto* laneRoot = lane.GetOwnerObject();
-    const auto center = laneRoot->GetTransform()->GetLocalToWorldMatrix().TransformPoint(lane.GetGoalCenter());
-    for(const auto* body : laneRoot->GetScene()->GetPhysics().QueryBox(center, lane.GetGoalHalfExtent()))
-    {
-        if(body->GetOwnerObject() == payload)
-        {
-            lane.solve();
-            return;
-        }
-    }
-}
-
 // Every track every tick, toward where its key puts the piece after this step.
 void PuzzleDirector::driveTracks(const LaneEntry& entry) const
 {
@@ -259,21 +225,22 @@ void PuzzleDirector::driveTracks(const LaneEntry& entry) const
     }
 }
 
-void PuzzleDirector::logVerdict(PuzzleLane& lane) const
+// Once, at the horizon, on the previous tick's post-step state: the lane is solved when every cup holds its payload.
+void PuzzleDirector::judge(const LaneEntry& entry) const
 {
+    PuzzleLane& lane = *entry.lane;
     if(lane.HasVerdict()) return;
 
-    lane.judge();
+    lane.judge(std::ranges::all_of(
+        entry.cups,
+        [](const GoalCup* cup)
+        {
+            return cup->HoldsPayload();
+        }
+    ));
 #if defined(_DEBUG)
-    const char* health = lane.HasFailed() ? ", failed" : ", ok";
-    if(lane.IsSolved())
-    {
-        CN_LOG_GAME("puzzle", enumName(lane.GetKind()), " ", enumName(lane.GetMode()), ": solved at ", lane.GetSolvedAt(), health);
-    }
-    else
-    {
-        CN_LOG_GAME("puzzle", enumName(lane.GetKind()), " ", enumName(lane.GetMode()), ": unsolved", health);
-    }
+    CN_LOG_GAME("puzzle", lane.GetOwnerObject()->GetName(), " ", enumName(lane.GetMode()), ": ",
+        lane.IsSolved() ? "solved" : "unsolved", lane.HasFailed() ? ", failed" : ", ok");
 #endif
 }
 
@@ -283,11 +250,9 @@ void PuzzleDirector::logLaneStates() const
     for(const LaneEntry& entry : gatherLanes())
     {
         const PuzzleLane& lane = *entry.lane;
-        const std::string solvedAt = lane.IsSolved() ? std::to_string(lane.GetSolvedAt()) : "-";
-        CN_LOG_GAME("puzzle", enumName(lane.GetKind()), " ", enumName(lane.GetMode()), " tick ", lane.GetTick(),
-            " solvedAt ", solvedAt, lane.HasFailed() ? ", failed" : ", ok");
+        const char* verdict = lane.HasVerdict() ? (lane.IsSolved() ? "solved" : "unsolved") : "pending";
+        CN_LOG_GAME("puzzle", lane.GetOwnerObject()->GetName(), " ", enumName(lane.GetMode()), " tick ", lane.GetTick(),
+            " ", verdict, lane.HasFailed() ? ", failed" : ", ok");
     }
 #endif
 }
-
-#pragma warning(pop)

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "JoltPhysics/Math/ScalarExt.h"
+#include "Math/Scalar.h"
 #include "Puzzle/PuzzleTypes.h"
 
 // The pose a track holds from `tick` on, reached from the previous key over the ticks between them.
