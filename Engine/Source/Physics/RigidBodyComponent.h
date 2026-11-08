@@ -89,6 +89,8 @@ namespace Canape
 		// Where a kinematic body is to be after the next step; the body is carried there by velocity.
 		// A kinematic body without a target holds the pose it was created at.
 		void SetKinematicTarget(const PhysicsPose& target);
+		// The velocity of a world-space point moving with the body, as of the last step; zero without a body.
+		Vector3 GetVelocityAt(const Vector3& worldPoint) const;
 
 	private:
 		// Settings that fail IsValidSettings are an authoring issue.

@@ -25,12 +25,13 @@ namespace Canape
 			};
 		}
 
-		// The nearest body at or above the collider.
+		// The nearest runnable body at or above the collider: the one that shapes itself from it.
 		const RigidBodyComponent* FindOwningBody(const ColliderComponent& collider)
 		{
 			for (const auto* node = collider.GetTransform(); node; node = node->GetParent())
 			{
-				if (const auto* body = node->GetOwnerObject()->GetComponent<RigidBodyComponent>())
+				const auto* body = node->GetOwnerObject()->GetComponent<RigidBodyComponent>();
+				if (body && IsPhysicsRunnable(*body))
 				{
 					return body;
 				}
@@ -135,6 +136,12 @@ namespace Canape
             .position = target.position,
             .rotation = target.rotation.Normalized()
         });
+	}
+
+	Vector3 PhysicsScene::GetVelocityAt(const RigidBodyComponent& body, const Vector3& worldPoint) const
+	{
+		const auto* state = FindState(body);
+		return state && state->IsBuilt() ? m_World->GetPointVelocity(state->GetId(), worldPoint) : Vector3::Zero;
 	}
 
 	bool PhysicsScene::HasHinge(const HingeComponent& hinge) const
@@ -382,14 +389,10 @@ namespace Canape
 	{
 		if (state.IsReleased()) return;
 
-		const GameObject& owner = *hinge.GetOwnerObject();
-		const GameObject* heldObject = owner.GetScene()->GetGameObject(hinge.GetBody());
-		const RigidBodyComponent* held = heldObject ? heldObject->GetComponent<RigidBodyComponent>() : nullptr;
-		const RigidBodyComponent* mount = owner.GetComponent<RigidBodyComponent>();
+		const RigidBodyComponent* held = hinge.GetOwnerObject()->GetComponent<RigidBodyComponent>();
 		const PhysicsBodyId heldId = BuiltIdOf(held);
-		const PhysicsBodyId mountId = BuiltIdOf(mount);
 		const HingeAuthoring authoring = HingeAuthoring::Of(hinge);
-		if (state.IsSameAs(heldId, mountId, authoring)) return;
+		if (state.IsSameAs(heldId, authoring)) return;
 
 		if (state.IsBuilt())
 		{
@@ -401,11 +404,11 @@ namespace Canape
 		{
 			issue = HingeIssue::NoBody;
 		}
-		else if (held == mount || !IsValidSettings(hinge.GetSettings()))
+		else if (!IsValidSettings(hinge.GetSettings()))
 		{
 			issue = HingeIssue::InvalidSettings;
 		}
-		else if (!heldId.IsValid() || (mount != nullptr && !mountId.IsValid()))
+		else if (!heldId.IsValid())
 		{
 			issue = HingeIssue::BodyFailed;
 		}
@@ -415,7 +418,7 @@ namespace Canape
 		}
 		if (issue != HingeIssue::None)
 		{
-			FailHinge(hinge, state, issue, heldId, mountId, authoring);
+			FailHinge(hinge, state, issue, heldId, authoring);
 			return;
 		}
 
@@ -424,7 +427,6 @@ namespace Canape
 		const Vector3 axis = transform.GetRotation().Normalized().Rotate(hinge.GetAxis()).Normalized();
 		const PhysicsHingeId created = m_World->CreateHinge(PhysicsHingeDesc{
 			.body = heldId,
-			.mount = mountId,
 			.pivot = pivot,
 			.axis = axis,
 			.normal = PerpendicularTo(axis),
@@ -434,20 +436,20 @@ namespace Canape
 		});
 		if (!created.IsValid())
 		{
-			FailHinge(hinge, state, HingeIssue::BackendRefused, heldId, mountId, authoring);
+			FailHinge(hinge, state, HingeIssue::BackendRefused, heldId, authoring);
 			return;
 		}
-		state.Adopt(created, heldId, mountId, authoring, pivot);
+		state.Adopt(created, heldId, authoring, pivot);
 	}
 
 	void PhysicsScene::FailHinge(const HingeComponent& hinge, HingeState& state, HingeIssue issue,
-		PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring& authoring)
+		PhysicsBodyId held, const HingeAuthoring& authoring)
 	{
 		if (state.GetIssue() != issue)
 		{
 			CN_LOG_RUNTIME("Physics", "'", hinge.GetOwnerObject()->GetName(), "' has no hinge: ", IssueText(issue));
 		}
-		state.Fail(issue, held, mount, authoring);
+		state.Fail(issue, held, authoring);
 	}
 
 	void PhysicsScene::DestroyHinge(HingeState& state)

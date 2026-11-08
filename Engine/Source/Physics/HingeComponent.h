@@ -10,8 +10,6 @@
 
 namespace Canape
 {
-    class GameObject;
-
     // Why a Hinge that should hold its body does not.
     enum class HingeIssue : std::uint8_t {
         None,
@@ -34,14 +32,13 @@ namespace Canape
         switch(issue)
         {
         case HingeIssue::NoBody:
-            return "the held object is missing or has no RigidBody";
+            return "this object has no RigidBody";
         case HingeIssue::BodyFailed:
-            return "the held or mount body has no physics body";
+            return "this object's RigidBody has no physics body";
         case HingeIssue::NotDynamic:
-            return "the held body must be Dynamic";
+            return "this object's RigidBody must be Dynamic";
         case HingeIssue::InvalidSettings:
-            return "the axis must be unit, the limits within [-pi, 0] and [0, pi] with min below max, the torque 0 or more, "
-                "and the held object another object";
+            return "the axis must be unit, the limits within [-pi, 0] and [0, pi] with min below max, and the torque 0 or more";
         case HingeIssue::BackendRefused:
             return "the backend refused the hinge";
         default:
@@ -73,22 +70,19 @@ namespace Canape
             && SameBits(maxFrictionTorque, b.maxFrictionTorque);
     }
 
-    // Turns about an axis through this object's position. It holds the dynamic RigidBody of `body` to this object's
-    // RigidBody, or to the world when it has none. The angle reads 0 where the hinge was made.
-    // A change after the hinge exists rebuilds it at the next sync; moving this object does not move the anchor.
+    // Holds this object's dynamic RigidBody to the world so that it only turns about an axis through this object's
+    // position. The angle reads 0 where the hinge was made. A change after the hinge exists rebuilds it at the next
+    // sync; moving this object does not move the anchor.
     class HingeComponent final : public Component {
         RTTR_ENABLE(Component)
 
     private:
-        Handle<GameObject> body{};
         HingeSettings settings;
 
     public:
         HingeComponent() = default;
 
         //***** Authoring
-        const Handle<GameObject>& GetBody() const { return body; }
-        void SetBody(const Handle<GameObject>& heldObject) { body = heldObject; }
         const HingeSettings& GetSettings() const { return settings; }
 
         const Vector3& GetAxis() const { return settings.axis; }
@@ -105,7 +99,7 @@ namespace Canape
         bool HasHinge() const;
         bool HasFailed() const { return GetIssue() != HingeIssue::None; }
         HingeIssue GetIssue() const;
-        // Lets the body go and wakes it. A released hinge is not made again, even when a body is rebuilt,
+        // Lets the body go and wakes it. A released hinge is not made again, even when the body is rebuilt,
         // until this component is disabled and enabled; releasing twice does nothing.
         void Release();
         bool IsHeld() const;

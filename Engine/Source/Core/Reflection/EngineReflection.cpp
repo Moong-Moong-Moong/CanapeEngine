@@ -202,7 +202,6 @@ namespace Canape
 
 			registration::class_<HingeComponent>("HingeComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
-				.property("body", &HingeComponent::GetBody, &HingeComponent::SetBody)
 				.property("axis", &HingeComponent::GetAxis, &HingeComponent::SetAxis)
 				.property("minAngle", &HingeComponent::GetMinAngle, &HingeComponent::SetMinAngle)
 				.property("maxAngle", &HingeComponent::GetMaxAngle, &HingeComponent::SetMaxAngle)

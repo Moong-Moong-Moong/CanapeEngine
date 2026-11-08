@@ -9,18 +9,16 @@ namespace Canape
 {
     // The authored values a hinge is built from; a change rebuilds it.
     struct HingeAuthoring {
-        Handle<GameObject> body{};
         HingeSettings settings{};
 
         static HingeAuthoring Of(const HingeComponent& hinge)
         {
-            return { hinge.GetBody(), hinge.GetSettings() };
+            return { hinge.GetSettings() };
         }
 
         bool IsSameAs(const HingeAuthoring& other) const
         {
-            return body.index == other.body.index && body.gen == other.body.gen
-                && SameBits(settings, other.settings);
+            return SameBits(settings, other.settings);
         }
     };
 
@@ -30,11 +28,10 @@ namespace Canape
     private:
         PhysicsHingeId id{};
         HingeIssue issue = HingeIssue::None;
-        // Set by Release, or when a body of the hinge is removed for good; only Clear resets it.
+        // Set by Release, or when the body is removed for good; only Clear resets it.
         bool released = false;
-        // What the last Adopt or Fail was made from; an invalid id where that side had no body.
+        // What the last Adopt or Fail was made from; an invalid id when the object had no body.
         PhysicsBodyId heldBody{};
-        PhysicsBodyId mountBody{};
         HingeAuthoring builtWith{};
         Vector3 anchor{};
 
@@ -44,43 +41,39 @@ namespace Canape
         bool IsBuilt() const { return id.IsValid(); }
         bool IsReleased() const { return released; }
         const Vector3& GetAnchor() const { return anchor; }
-        bool Uses(PhysicsBodyId body) const { return body.IsValid() && (heldBody == body || mountBody == body); }
+        bool Uses(PhysicsBodyId body) const { return body.IsValid() && heldBody == body; }
 
-        // A built hinge matches while its bodies and authoring are the same; a failure matches while nothing it was made
+        // A built hinge matches while its body and authoring are the same; a failure matches while nothing it was made
         // from changed, so it is neither retried nor logged again.
-        bool IsSameAs(PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring& authoring) const
+        bool IsSameAs(PhysicsBodyId held, const HingeAuthoring& authoring) const
         {
             const bool recorded = IsBuilt() || issue != HingeIssue::None;
-            return recorded && heldBody == held && mountBody == mount
-                && builtWith.IsSameAs(authoring);
+            return recorded && heldBody == held && builtWith.IsSameAs(authoring);
         }
 
-        void Adopt(PhysicsHingeId created, PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring& authoring, const Vector3& worldAnchor)
+        void Adopt(PhysicsHingeId created, PhysicsBodyId held, const HingeAuthoring& authoring, const Vector3& worldAnchor)
         {
             id = created;
             issue = HingeIssue::None;
             heldBody = held;
-            mountBody = mount;
             builtWith = authoring;
             anchor = worldAnchor;
         }
 
-        void Fail(HingeIssue failure, PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring& authoring)
+        void Fail(HingeIssue failure, PhysicsBodyId held, const HingeAuthoring& authoring)
         {
             id = {};
             issue = failure;
             heldBody = held;
-            mountBody = mount;
             builtWith = authoring;
         }
 
-        // The backend removed the hinge together with one of its bodies; the release and the anchor are kept.
+        // The backend removed the hinge together with its body; the release and the anchor are kept.
         void Drop()
         {
             id = {};
             issue = HingeIssue::None;
             heldBody = {};
-            mountBody = {};
             builtWith = {};
         }
 

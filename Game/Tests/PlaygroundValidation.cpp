@@ -1445,87 +1445,83 @@ namespace
     }
 
     struct HingeRig {
-        Canape::GameObject* pivot = nullptr;
-        Canape::GameObject* held = nullptr;
+        Canape::GameObject* arm = nullptr;
+        Canape::GameObject* tip = nullptr;
         Canape::HingeComponent* hinge = nullptr;
         Canape::RigidBodyComponent* body = nullptr;
         Canape::Vector3 anchor{};
     };
 
-    // A sphere 1 m to +x of a pivot, hinged about +z with limits [-pi/4, 0]; gravity swings it down to negative angles.
-    // A static mount is a small box body on the pivot object, out of the sphere's way.
-    HingeRig BuildHingeRig(Canape::Scene& scene, const char* name, const Canape::Vector3& anchor, bool staticMount, bool collider = true)
+    // An arm body at the anchor, hinged about +z with limits [-pi/4, 0]: a 1 m rod along +x with a sphere at its tip,
+    // both on child objects, so gravity swings the arm down to negative angles. The rod gives the body enough inertia
+    // about its centre of mass for the solver to keep the pivot tight.
+    HingeRig BuildHingeRig(Canape::Scene& scene, const char* name, const Canape::Vector3& anchor, bool colliders = true)
     {
         HingeRig rig;
         rig.anchor = anchor;
-        rig.pivot = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Pivot"));
-        rig.pivot->GetTransform()->SetLocalPosition(anchor);
-        if(staticMount)
-        {
-            rig.pivot->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 0.2f, 0.2f, 0.2f });
-            rig.pivot->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
-        }
-        rig.held = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Held"));
-        rig.held->GetTransform()->SetLocalPosition(anchor + Canape::Vector3{ 1.0f, 0.0f, 0.0f });
-        if(collider)
-        {
-            rig.held->AddComponent<Canape::SphereColliderComponent>()->SetRadius(0.1f);
-        }
-        rig.body = rig.held->AddComponent<Canape::RigidBodyComponent>();
+        rig.arm = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Arm"));
+        rig.arm->GetTransform()->SetLocalPosition(anchor);
+        rig.body = rig.arm->AddComponent<Canape::RigidBodyComponent>();
         rig.body->SetMass(1.0f);
-        rig.hinge = rig.pivot->AddComponent<Canape::HingeComponent>();
-        rig.hinge->SetBody(rig.held->GetHandle());
+        rig.hinge = rig.arm->AddComponent<Canape::HingeComponent>();
         rig.hinge->SetAxis({ 0.0f, 0.0f, 1.0f });
         rig.hinge->SetMinAngle(-Pi / 4.0f);
         rig.hinge->SetMaxAngle(0.0f);
+        Canape::GameObject* rod = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Rod"));
+        rod->GetTransform()->SetParent(rig.arm->GetTransform());
+        rod->GetTransform()->SetLocalPosition({ 0.5f, 0.0f, 0.0f });
+        rig.tip = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Tip"));
+        rig.tip->GetTransform()->SetParent(rig.arm->GetTransform());
+        rig.tip->GetTransform()->SetLocalPosition({ 1.0f, 0.0f, 0.0f });
+        if(colliders)
+        {
+            rod->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 1.0f, 0.1f, 0.1f });
+            rig.tip->AddComponent<Canape::SphereColliderComponent>()->SetRadius(0.1f);
+        }
         return rig;
     }
 
     float RadiusOf(const HingeRig& rig)
     {
-        return (rig.held->GetTransform()->GetPosition() - rig.anchor).Length();
+        return (rig.tip->GetTransform()->GetPosition() - rig.anchor).Length();
     }
 
-    // A hinge fixed to the world and one mounted on a static body both hold the sphere at its radius and stop at the limit.
+    // A hinge fixed to the world holds the arm's tip at its radius and stops at the limit; the anchor point never moves.
     void CheckHingeHolds(Harness& h)
     {
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge checks");
         Canape::Scene& scene = h.Active();
-        const HingeRig rigs[] = {
-            BuildHingeRig(scene, "worldHinge", { 300.0f, 50.0f, 0.0f }, false),
-            BuildHingeRig(scene, "mountedHinge", { 310.0f, 50.0f, 0.0f }, true),
-        };
+        const HingeRig rig = BuildHingeRig(scene, "worldHinge", { 300.0f, 50.0f, 0.0f });
         h.Frame();
-        for(const HingeRig& rig : rigs)
+        Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && rig.hinge->GetIssue() == Canape::HingeIssue::None, "the hinge is made and held");
+        Check(Near(rig.hinge->GetWorldAnchor(), rig.anchor, 1.0e-5f), "the anchor is the arm's position");
+        Check(std::fabs(rig.hinge->GetAngle()) < 0.2f, "the angle starts near 0");
+        for(int frame = 0; frame < 3; ++frame)
         {
-            const std::string& name = rig.pivot->GetName();
-            Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && rig.hinge->GetIssue() == Canape::HingeIssue::None, name + ": the hinge is made and held");
-            Check(Near(rig.hinge->GetWorldAnchor(), rig.anchor, 1.0e-5f), name + ": the anchor is the pivot object's position");
-            Check(std::fabs(rig.hinge->GetAngle()) < 0.2f, name + ": the angle starts near 0");
+            h.Frame();
         }
+        // The pivot's velocity is the backend's drift correction, a few percent of the tip's.
+        const float anchorSpeed = rig.body->GetVelocityAt(rig.anchor).Length();
+        const float tipSpeed = rig.body->GetVelocityAt(rig.tip->GetTransform()->GetPosition()).Length();
+        Check(tipSpeed > 0.5f && anchorSpeed < 0.1f * tipSpeed, "the anchor point nearly stands still while the tip swings (anchor " + std::to_string(anchorSpeed) + ", tip " + std::to_string(tipSpeed) + ")");
 
-        float worstRadius[2] = {};
-        float lowest[2] = {};
-        float highest[2] = {};
+        float worstRadius = 0.0f;
+        float lowest = 0.0f;
+        float highest = 0.0f;
         for(int frame = 0; frame < 150; ++frame)
         {
             h.Frame();
-            for(std::size_t i = 0; i < 2; ++i)
-            {
-                worstRadius[i] = std::max(worstRadius[i], std::fabs(RadiusOf(rigs[i]) - 1.0f));
-                lowest[i] = std::min(lowest[i], rigs[i].hinge->GetAngle());
-                highest[i] = std::max(highest[i], rigs[i].hinge->GetAngle());
-            }
+            worstRadius = std::max(worstRadius, std::fabs(RadiusOf(rig) - 1.0f));
+            lowest = std::min(lowest, rig.hinge->GetAngle());
+            highest = std::max(highest, rig.hinge->GetAngle());
         }
-        for(std::size_t i = 0; i < 2; ++i)
-        {
-            const std::string& name = rigs[i].pivot->GetName();
-            Check(worstRadius[i] < 0.03f, name + ": the sphere stays at its radius from the anchor (worst error " + std::to_string(worstRadius[i]) + ")");
-            Check(lowest[i] > -Pi / 4.0f - 0.2f && highest[i] < 0.2f, name + ": the angle stays within the limits (lowest " + std::to_string(lowest[i]) + ", highest " + std::to_string(highest[i]) + ")");
-            Check(std::fabs(rigs[i].hinge->GetAngle() + Pi / 4.0f) < 0.05f, name + ": the sphere rests on the lower limit (" + std::to_string(rigs[i].hinge->GetAngle()) + ")");
-            Check(rigs[i].hinge->IsHeld(), name + ": the hinge is still held");
-        }
-        Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !h.Front()->HasFailed(), "good hinges are no issue");
+        Check(worstRadius < 0.03f, "the tip stays at its radius from the anchor (worst error " + std::to_string(worstRadius) + ")");
+        Check(lowest > -Pi / 4.0f - 0.2f && highest < 0.2f, "the angle stays within the limits (lowest " + std::to_string(lowest) + ", highest " + std::to_string(highest) + ")");
+        Check(std::fabs(rig.hinge->GetAngle() + Pi / 4.0f) < 0.05f, "the arm rests on the lower limit (" + std::to_string(rig.hinge->GetAngle()) + ")");
+        Check(rig.hinge->IsHeld(), "the hinge is still held");
+        Check(Near(rig.arm->GetTransform()->GetPosition(), rig.anchor, 1.0e-2f), "the arm's origin stays at the anchor (off by " + std::to_string((rig.arm->GetTransform()->GetPosition() - rig.anchor).Length()) + ")");
+        Check(rig.body->GetVelocityAt(rig.tip->GetTransform()->GetPosition()).Length() < 0.05f, "a resting arm has no velocity at its tip");
+        Check(scene.GetPhysics().GetAuthoringIssueCount() == 0, "a held hinge is no issue");
     }
 
     // Disabling drops the hinge and enabling makes it again; a release holds until the component is toggled.
@@ -1533,7 +1529,7 @@ namespace
     {
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge release checks");
         Canape::Scene& scene = h.Active();
-        const HingeRig rig = BuildHingeRig(scene, "releasedHinge", { 300.0f, 50.0f, 0.0f }, false);
+        const HingeRig rig = BuildHingeRig(scene, "releasedHinge", { 300.0f, 50.0f, 0.0f });
         h.Frame();
         Check(rig.hinge->IsHeld(), "the hinge holds before the toggle");
         rig.hinge->SetEnabled(false);
@@ -1541,16 +1537,16 @@ namespace
         Check(!rig.hinge->HasHinge() && !rig.hinge->IsHeld() && rig.hinge->GetAngle() == 0.0f, "a disabled hinge is dropped");
         rig.hinge->SetEnabled(true);
         h.Frame();
-        Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && std::fabs(rig.hinge->GetAngle()) < 0.3f, "an enabled hinge is made again, at angle 0 from where the body is");
+        Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && std::fabs(rig.hinge->GetAngle()) < 0.3f, "an enabled hinge is made again, at angle 0 from where the arm is");
 
-        const float heightBefore = rig.held->GetTransform()->GetPosition().Y;
+        const float heightBefore = rig.tip->GetTransform()->GetPosition().Y;
         rig.hinge->Release();
         Check(!rig.hinge->IsHeld() && rig.hinge->HasHinge(), "a released hinge is not held but still exists");
         for(int frame = 0; frame < 8; ++frame)
         {
             h.Frame();
         }
-        Check(heightBefore - rig.held->GetTransform()->GetPosition().Y > 0.5f, "the released body falls");
+        Check(heightBefore - rig.tip->GetTransform()->GetPosition().Y > 0.5f, "the released arm falls");
         Check(std::isfinite(rig.hinge->GetAngle()), "the angle of a released hinge still reads");
         rig.hinge->Release();
         h.Frame();
@@ -1571,35 +1567,34 @@ namespace
         Check(!h.Front()->HasFailed(), "the release checks fail no lane");
     }
 
-    // Removing the held object ends its hinge like a release; removing the hinge object frees the body. Neither is an issue.
+    // Removing the arm object ends its hinge; removing the hinge component frees the arm. Neither is an issue.
     void CheckHingeRemoval(Harness& h)
     {
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the hinge removal checks");
         Canape::Scene& scene = h.Active();
-        const HingeRig lostHeld = BuildHingeRig(scene, "lostHeld", { 300.0f, 50.0f, 0.0f }, false);
-        const HingeRig lostPivot = BuildHingeRig(scene, "lostPivot", { 310.0f, 50.0f, 0.0f }, true);
+        const HingeRig gone = BuildHingeRig(scene, "goneArm", { 300.0f, 50.0f, 0.0f });
+        const HingeRig freed = BuildHingeRig(scene, "freedArm", { 310.0f, 50.0f, 0.0f });
         h.Frame();
-        Check(lostHeld.hinge->IsHeld() && lostPivot.hinge->IsHeld(), "both hinges hold before the removals");
+        Check(gone.hinge->IsHeld() && freed.hinge->IsHeld(), "both hinges hold before the removals");
 
-        const float heightBefore = lostPivot.held->GetTransform()->GetPosition().Y;
-        scene.RemoveGameObject(lostHeld.held->GetHandle());
+        const float heightBefore = freed.tip->GetTransform()->GetPosition().Y;
+        const Handle<Canape::GameObject> goneHandle = gone.arm->GetHandle();
+        scene.RemoveGameObject(goneHandle);
         h.Frame();
-        scene.RemoveGameObject(lostPivot.pivot->GetHandle());
+        Check(scene.GetGameObject(goneHandle) == nullptr, "the removed arm is gone");
+        freed.arm->RemoveComponent(freed.hinge);
         h.Frame();
-        h.Frame();
-        Check(!lostHeld.hinge->HasHinge() && !lostHeld.hinge->IsHeld() && lostHeld.hinge->GetIssue() == Canape::HingeIssue::None,
-            "a hinge whose held object is removed ends without an issue");
         for(int frame = 0; frame < 8; ++frame)
         {
             h.Frame();
         }
-        Check(heightBefore - lostPivot.held->GetTransform()->GetPosition().Y > 0.5f, "a body whose hinge object is removed falls free");
+        Check(heightBefore - freed.tip->GetTransform()->GetPosition().Y > 0.5f, "an arm whose hinge component is removed falls free");
         Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !Canape::StepFailed(scene.GetPhysics().GetLastStepError()),
             "the removals leave no issue and the world keeps stepping");
         Check(!h.Front()->HasFailed(), "the removals fail no lane");
     }
 
-    // Each authoring mistake is its own issue, counted once; a held body that failed is the body's issue, not the hinge's.
+    // Each authoring mistake is its own issue, counted once; an arm whose body failed is the body's issue, not the hinge's.
     void CheckHingeIssues(Harness& h)
     {
         using Canape::HingeIssue;
@@ -1610,45 +1605,78 @@ namespace
         h.Frame();
         Check(physics.GetAuthoringIssueCount() == 0, "no issue before the bad hinges");
 
-        const HingeRig noBody = BuildHingeRig(scene, "noBody", { 300.0f, 50.0f, 0.0f }, false);
-        noBody.hinge->SetBody({});
-        const HingeRig notDynamic = BuildHingeRig(scene, "notDynamic", { 310.0f, 50.0f, 0.0f }, false);
+        Canape::GameObject* bare = scene.GetGameObject(scene.AddGameObject("noBodyArm"));
+        bare->GetTransform()->SetLocalPosition({ 300.0f, 50.0f, 0.0f });
+        auto* noBody = bare->AddComponent<Canape::HingeComponent>();
+        const HingeRig notDynamic = BuildHingeRig(scene, "notDynamic", { 310.0f, 50.0f, 0.0f });
         notDynamic.body->SetMotion(Canape::PhysicsMotion::Static);
-        const HingeRig badAxis = BuildHingeRig(scene, "badAxis", { 320.0f, 50.0f, 0.0f }, false);
+        const HingeRig badAxis = BuildHingeRig(scene, "badAxis", { 320.0f, 50.0f, 0.0f });
         badAxis.hinge->SetAxis({ 0.0f, 0.0f, 0.0f });
-        const HingeRig bodyFailed = BuildHingeRig(scene, "bodyFailed", { 330.0f, 50.0f, 0.0f }, false, false);
-        const HingeRig self = BuildHingeRig(scene, "selfHeld", { 340.0f, 50.0f, 0.0f }, true);
-        self.hinge->SetBody(self.pivot->GetHandle());
+        const HingeRig bodyFailed = BuildHingeRig(scene, "bodyFailed", { 330.0f, 50.0f, 0.0f }, false);
         h.Frame();
         h.Frame();
-        Check(noBody.hinge->GetIssue() == HingeIssue::NoBody && !noBody.hinge->HasHinge(), "an empty body handle is NoBody");
-        Check(notDynamic.hinge->GetIssue() == HingeIssue::NotDynamic && !notDynamic.hinge->HasHinge(), "a static held body is NotDynamic");
+        Check(noBody->GetIssue() == HingeIssue::NoBody && !noBody->HasHinge(), "an arm without a RigidBody is NoBody");
+        Check(notDynamic.hinge->GetIssue() == HingeIssue::NotDynamic && !notDynamic.hinge->HasHinge(), "a static arm is NotDynamic");
         Check(badAxis.hinge->GetIssue() == HingeIssue::InvalidSettings && !badAxis.hinge->HasHinge(), "a zero axis is InvalidSettings");
         Check(bodyFailed.hinge->GetIssue() == HingeIssue::BodyFailed && bodyFailed.body->GetIssue() == Canape::RigidBodyIssue::NoCollider,
-            "a held body without a collider is BodyFailed, and the body keeps its own issue");
-        Check(self.hinge->GetIssue() == HingeIssue::InvalidSettings && !self.hinge->HasHinge(), "an object holding itself is InvalidSettings");
-        Check(physics.GetAuthoringIssueCount() == 5, "four hinge issues and one body issue are counted (now " + std::to_string(physics.GetAuthoringIssueCount()) + ")");
+            "an arm without colliders is BodyFailed, and the body keeps its own issue");
+        Check(physics.GetAuthoringIssueCount() == 4, "three hinge issues and one body issue are counted (now " + std::to_string(physics.GetAuthoringIssueCount()) + ")");
         Check(h.Front()->HasFailed(), "a hinge issue fails the lane");
         h.Frame();
         h.Frame();
-        Check(physics.GetAuthoringIssueCount() == 5, "the hinge issues are counted once, not per frame");
+        Check(physics.GetAuthoringIssueCount() == 4, "the hinge issues are counted once, not per frame");
 
         badAxis.hinge->SetAxis({ 0.0f, 0.0f, 1.0f });
         h.Frame();
         Check(badAxis.hinge->HasHinge() && badAxis.hinge->IsHeld() && badAxis.hinge->GetIssue() == HingeIssue::None, "a corrected axis makes the hinge without a toggle");
-        Check(physics.GetAuthoringIssueCount() == 4, "the corrected hinge leaves four issues");
+        Check(physics.GetAuthoringIssueCount() == 3, "the corrected hinge leaves three issues");
+    }
+
+    // A disabled child body hands its colliders to the body above it; enabling it takes them back.
+    void CheckDisabledChildBody(Harness& h)
+    {
+        Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the disabled child body");
+        Canape::Scene& scene = h.Active();
+        Canape::GameObject* holder = scene.GetGameObject(scene.AddGameObject("holder"));
+        holder->GetTransform()->SetLocalPosition({ 300.0f, 50.0f, 0.0f });
+        holder->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 0.2f, 0.2f, 0.2f });
+        auto* holderBody = holder->AddComponent<Canape::RigidBodyComponent>();
+        holderBody->SetMotion(Canape::PhysicsMotion::Static);
+        Canape::GameObject* rider = scene.GetGameObject(scene.AddGameObject("rider"));
+        rider->GetTransform()->SetParent(holder->GetTransform());
+        rider->GetTransform()->SetLocalPosition({ 0.0f, 1.0f, 0.0f });
+        rider->AddComponent<Canape::SphereColliderComponent>()->SetRadius(0.2f);
+        auto* riderBody = rider->AddComponent<Canape::RigidBodyComponent>();
+        riderBody->SetEnabled(false);
+        h.Frame();
+        const Canape::PhysicsScene& physics = scene.GetPhysics();
+        Check(holderBody->HasBody() && !riderBody->HasBody() && physics.GetAuthoringIssueCount() == 0, "the holder has a body, the disabled rider none, and nothing is an issue");
+        const Canape::Vector3 riderCenter = rider->GetTransform()->GetPosition();
+        const Canape::Vector3 tiny{ 0.01f, 0.01f, 0.01f };
+        Check(physics.QueryBox(riderCenter, tiny).empty(), "the static holder carries the rider's collider, so a moving-body query finds nothing there");
+
+        rider->GetTransform()->SetParent(nullptr);
+        rider->GetTransform()->SetLocalPosition(riderCenter);
+        riderBody->SetEnabled(true);
+        h.Frame();
+        const Canape::RigidBodies atRider = physics.QueryBox(rider->GetTransform()->GetPosition(), tiny);
+        Check(riderBody->HasBody() && atRider.size() == 1 && atRider.front() == riderBody, "the enabled rider is its own moving body");
+        Check(physics.GetAuthoringIssueCount() == 0, "a rider that left its holder is no issue");
+        riderBody->SetEnabled(false);
+        rider->GetTransform()->SetParent(holder->GetTransform());
+        h.Frame();
+        Check(!riderBody->HasBody() && holderBody->HasBody() && physics.GetAuthoringIssueCount() == 0, "a rider disabled under the holder again hands its collider back");
     }
 
     void CheckHingeReflection()
     {
         const rttr::type type = rttr::type::get<Canape::HingeComponent>();
         Check(type.get_constructor().is_valid(), "HingeComponent has a registered constructor");
-        for(const char* name : { "body", "axis", "minAngle", "maxAngle", "maxFrictionTorque" })
+        for(const char* name : { "axis", "minAngle", "maxAngle", "maxFrictionTorque" })
         {
             Check(type.get_property(name).is_valid(), std::string("HingeComponent registers ") + name);
         }
-        Check(type.get_properties().size() == 6, "HingeComponent registers its authoring values and nothing else (" + std::to_string(type.get_properties().size()) + ")");
-        Check(type.get_property("body").get_type() == rttr::type::get<Handle<Canape::GameObject>>(), "the held object is a GameObject handle");
+        Check(type.get_properties().size() == 5, "HingeComponent registers its authoring values and nothing else (" + std::to_string(type.get_properties().size()) + ")");
     }
 
     // The goal materials survive the Delete-key asset collection, in a solved scene and in the one the R key reloads.
@@ -1831,6 +1859,7 @@ namespace
         CheckHingeRemoval(h);
         CheckHingeIssues(h);
         CheckHingeReflection();
+        CheckDisabledChildBody(h);
         CheckGoalAfterCollection(h, solutionA);
         CheckSceneSwitch(h, solutionA, controlA);
     }

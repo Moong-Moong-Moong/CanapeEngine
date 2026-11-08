@@ -92,9 +92,10 @@ namespace Canape
             };
         }
 
-        bool hasRigidBody(const GameObject& object)
+        bool hasRunnableBody(const GameObject& object)
         {
-            return object.GetComponent<RigidBodyComponent>() != nullptr;
+            const auto* body = object.GetComponent<RigidBodyComponent>();
+            return body != nullptr && IsPhysicsRunnable(*body);
         }
 
         RigidBodyIssue findPlacementIssue(const RigidBodyComponent& body)
@@ -106,7 +107,7 @@ namespace Canape
 
             for(const auto* node = body.GetTransform()->GetParent(); node; node = node->GetParent())
             {
-                if(hasRigidBody(*node->GetOwnerObject()))
+                if(hasRunnableBody(*node->GetOwnerObject()))
                 {
                     return RigidBodyIssue::NestedBody;
                 }
@@ -114,7 +115,8 @@ namespace Canape
             return RigidBodyIssue::None;
         }
 
-        // A body shapes itself from colliders on its own object and on descendants that have no body of their own.
+        // A body shapes itself from colliders on its own object and on descendants without a runnable body of their own:
+        // a disabled body hands its colliders up to the nearest running one.
         template<typename Visit>
             requires std::invocable<Visit, const ColliderComponent&>
         void forEachBodyCollider(const TransformComponent& node, Visit&& visit)
@@ -129,7 +131,7 @@ namespace Canape
 
             for(const auto* child : node.GetChildren())
             {
-                if(!hasRigidBody(*child->GetOwnerObject()))
+                if(!hasRunnableBody(*child->GetOwnerObject()))
                 {
                     forEachBodyCollider(*child, std::forward<Visit>(visit));
                 }

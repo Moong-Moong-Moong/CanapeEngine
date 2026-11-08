@@ -748,6 +748,14 @@ namespace Canape
         return ToCanape(m_Impl->physics->GetBodyInterfaceNoLock().GetAngularVelocity(slot->id));
     }
 
+    Vector3 JoltWorld::GetPointVelocity(PhysicsBodyId id, const Vector3& worldPoint) const
+    {
+        const auto slot = m_Impl->Find(id);
+        if (slot == nullptr || !IsFinite(worldPoint)) return {};
+
+        return ToCanape(m_Impl->physics->GetBodyInterfaceNoLock().GetPointVelocity(slot->id, ToJolt(worldPoint)));
+    }
+
     float JoltWorld::GetMass(PhysicsBodyId id) const
     {
         const auto slot = m_Impl->Find(id);

@@ -56,15 +56,17 @@ namespace Canape
 		// Where a kinematic body is to be after the next step; without a target it holds its creation pose.
 		// Kept until the body is released, so a target set before the body exists reaches its first step.
 		void SetKinematicTarget(const RigidBodyComponent&, const PhysicsPose& target);
+		// The velocity of a world-space point moving with the body, as of the last step; zero without a body.
+		Vector3 GetVelocityAt(const RigidBodyComponent&, const Vector3& worldPoint) const;
 
 		// A hinge this scene has never synced has no hinge and no issue.
 		bool HasHinge(const HingeComponent&) const;
 		HingeIssue GetIssue(const HingeComponent&) const;
 		bool IsHingeHeld(const HingeComponent&) const;
-		// 0 without a hinge; a released hinge keeps reading until a body of it is rebuilt.
+		// 0 without a hinge; a released hinge keeps reading until its body is rebuilt.
 		float GetHingeAngle(const HingeComponent&) const;
 		Vector3 GetHingeAnchor(const HingeComponent&) const;
-		// Lets a built hinge go. The hinge stays released, even when its bodies are rebuilt, until the component is
+		// Lets a built hinge go. The hinge stays released, even when its body is rebuilt, until the component is
 		// disabled and enabled again; a hinge released before it exists is not made this run.
 		void ReleaseHinge(const HingeComponent&);
 
@@ -86,7 +88,7 @@ namespace Canape
 
 		void ReleaseBodies(std::span<Component* const> removed);
 		void SyncBodies(std::span<RigidBodyComponent* const>);
-		// After SyncBodies, so that both bodies of a hinge exist.
+		// After SyncBodies, so that the body of a hinge exists.
 		void SyncHinges(std::span<HingeComponent* const>);
 
 		PhysicsStepError Step(float fixedDeltaTime, std::span<RigidBodyComponent* const>);
@@ -113,10 +115,10 @@ namespace Canape
 
 		void SyncHinge(const HingeComponent&, HingeState&);
 		// Records why the hinge was not made and logs it when the reason is new.
-		void FailHinge(const HingeComponent&, HingeState&, HingeIssue, PhysicsBodyId held, PhysicsBodyId mount, const HingeAuthoring&);
+		void FailHinge(const HingeComponent&, HingeState&, HingeIssue, PhysicsBodyId held, const HingeAuthoring&);
 		void DestroyHinge(HingeState&);
-		// The backend drops a hinge with either of its bodies; the records follow. A body removed for good ends its
-		// hinges like a release, one merely rebuilt lets them be made again.
+		// The backend drops a hinge with its body; the record follows. A body removed for good ends its hinge like a
+		// release, one merely rebuilt lets it be made again.
 		void DropHingesOf(PhysicsBodyId body, bool ended);
 
     private:

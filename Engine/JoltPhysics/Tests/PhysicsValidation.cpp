@@ -692,6 +692,25 @@ namespace
         Check(world.GetAngularVelocity(spun).Length() > 0.1f, "an impulse off the centre adds spin");
     }
 
+    void PointVelocityFollowsTheSpin(JoltRuntime& runtime)
+    {
+        BeginCase("a point's velocity is the linear velocity plus the spin across the offset from the centre");
+        PhysicsWorldDesc desc;
+        desc.gravity = { 0.0f, 0.0f, 0.0f };
+        JoltWorld world(runtime, desc);
+        const PhysicsBodyId box = world.CreateBody(BoxBody({ 0, 0, 0 }));
+        world.AddImpulse(box, { 300.0f, 0.0f, 0.0f });
+        world.AddImpulseAt(box, { 0.0f, 0.0f, 500.0f }, { 0.5f, 0.0f, 0.0f });
+        const Vector3 linear = world.GetLinearVelocity(box);
+        const Vector3 angular = world.GetAngularVelocity(box);
+        const Vector3 point{ 0.0f, 0.5f, 0.0f };
+        const Vector3 expected = linear + Vector3::Cross(angular, point - world.GetPose(box).position);
+        Check(angular.Length() > 0.1f, "the body spins");
+        Check((world.GetPointVelocity(box, point) - expected).Length() < 1.0e-4f, "the point velocity matches v + w x r");
+        Check((world.GetPointVelocity(box, world.GetPose(box).position) - linear).Length() < 1.0e-4f, "the centre moves at the linear velocity");
+        Check(world.GetPointVelocity(PhysicsBodyId{}, point).Length() == 0.0f, "a missing body has no point velocity");
+    }
+
     void StatsCountBodies(JoltRuntime& runtime)
     {
         BeginCase("stats report live and active bodies");
@@ -1416,6 +1435,7 @@ int main()
     InvalidInputReturnsInvalidIds(runtime);
     StaleAndForeignIdsAreHarmless(runtime);
     ImpulsesMoveOnlyDynamicBodies(runtime);
+    PointVelocityFollowsTheSpin(runtime);
     StatsCountBodies(runtime);
     ThinBoxesAreAccepted(runtime);
     KinematicHeldTargetLeavesZeroVelocity(runtime);

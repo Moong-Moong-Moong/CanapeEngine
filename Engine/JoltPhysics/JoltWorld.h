@@ -46,6 +46,8 @@ namespace Canape
         PhysicsPose GetPose(PhysicsBodyId id) const;
         Vector3 GetLinearVelocity(PhysicsBodyId id) const;
         Vector3 GetAngularVelocity(PhysicsBodyId id) const;
+        // The velocity of a world-space point moving with the body; zero for a missing body or a point that is not finite.
+        Vector3 GetPointVelocity(PhysicsBodyId id, const Vector3& worldPoint) const;
         float GetMass(PhysicsBodyId id) const;
         bool IsAwake(PhysicsBodyId id) const;
         PhysicsMotion GetMotion(PhysicsBodyId id) const;

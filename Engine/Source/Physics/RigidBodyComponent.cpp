@@ -41,4 +41,14 @@ namespace Canape
 			physics->SetKinematicTarget(*this, target);
 		}
 	}
+
+	Vector3 RigidBodyComponent::GetVelocityAt(const Vector3& worldPoint) const
+	{
+		if (const auto* physics = FindPhysics(*this))
+		{
+			return physics->GetVelocityAt(*this, worldPoint);
+		}
+
+		return Vector3::Zero;
+	}
 }
