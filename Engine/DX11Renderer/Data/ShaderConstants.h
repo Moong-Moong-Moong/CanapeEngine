@@ -31,7 +31,7 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(ViewConstants, ViewProjection) == 128);
     static_assert(offsetof(ViewConstants, CameraPosition) == 192);
 
-    // Matches Skybox.hlsl b6; shared by VS camera reconstruction and PS brightness.
+    // Matches SkyboxEnvironment.hlsli b6; shared by skybox and mesh IBL.
     struct alignas(16) SkyboxViewConstants
     {
         DirectX::XMFLOAT4X4 InverseProjection{};
@@ -39,13 +39,14 @@ namespace Canape::ShaderConstants
         float Brightness = 1.0f;
         float RotationCos = 1.0f;
         float RotationSin = 0.0f;
-        float Padding = 0.0f;
+        float MipCount = 0.0f;
     };
     static_assert(sizeof(SkyboxViewConstants) == 144);
     static_assert(alignof(SkyboxViewConstants) == 16);
     static_assert(offsetof(SkyboxViewConstants, InverseView) == 64);
     static_assert(offsetof(SkyboxViewConstants, Brightness) == 128);
     static_assert(offsetof(SkyboxViewConstants, RotationSin) == 136);
+    static_assert(offsetof(SkyboxViewConstants, MipCount) == 140);
 
     // Initial fixed capacities. Keep these in sync with Common/Constants.hlsli
     // and Shadow/ShadowConstants.hlsli.

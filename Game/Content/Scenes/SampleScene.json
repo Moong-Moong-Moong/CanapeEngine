@@ -451,6 +451,48 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 33,
+            "name": "IBL Metal Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": -0.8
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.5,
+                            "Y": 1.5,
+                            "Z": 1.5
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 35,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_IBLMetal.mat"
+                        ]
+                    }
+                }
+            ]
         }
     ]
 }

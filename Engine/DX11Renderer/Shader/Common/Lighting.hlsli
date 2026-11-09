@@ -2,6 +2,7 @@
 #define CANAPE_COMMON_LIGHTING_HLSLI
 
 #include "Constants.hlsli"
+#include "SkyboxEnvironment.hlsli"
 #include "../Shadow/ShadowSampling.hlsli"
 
 float3 CalculateDirectLighting(float3 worldPosition, float3 normal)
@@ -126,6 +127,21 @@ float3 CalculatePBRDirectLighting(float3 worldPosition, float3 normal, float3 ba
         lighting += EvaluatePBRPointLight(worldPosition, normal, viewDirection, baseColor,
             metallic, roughness, LocalLights[localIndex]);
     return lighting;
+}
+
+float3 CalculateSpecularIBL(float3 worldPosition, float3 normal, float3 baseColor,
+    float metallic, float roughness)
+{
+    if (MipCount < 1.0f || Brightness <= 0.0f) return 0.0f;
+    float3 toCamera = CameraPosition - worldPosition;
+    float3 viewDirection = toCamera * rsqrt(max(dot(toCamera, toCamera), 1e-12f));
+    float3 reflection = reflect(-viewDirection, normal);
+    float3 sampleDirection = RotateIntoSkybox(reflection);
+    float lod = saturate(roughness) * (MipCount - 1.0f);
+    float3 radiance = SkyboxTexture.SampleLevel(SkyboxSampler, sampleDirection, lod).rgb * Brightness;
+    float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor, saturate(metallic));
+    float3 fresnel = FresnelSchlick(saturate(dot(normal, viewDirection)), f0);
+    return radiance * fresnel;
 }
 
 #endif

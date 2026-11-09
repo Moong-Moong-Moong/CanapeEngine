@@ -304,10 +304,11 @@ namespace Canape
             return {};
         }
 
+        D3D11_TEXTURE2D_DESC created{};
+        cubemap.Texture->GetDesc(&created);
+        cubemap.MipLevels = created.MipLevels;
         if (generateMips)
         {
-            D3D11_TEXTURE2D_DESC created{};
-            cubemap.Texture->GetDesc(&created);
             const size_t faceBytes = size_t(faceSize) * faceSize * 4;
             for (uint32_t face = 0; face < 6; ++face)
             {

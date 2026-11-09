@@ -46,11 +46,12 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     if (HasORMTexture != 0)
     {
         float3 orm = ORMTexture.Sample(LinearSampler, input.UV).rgb;
-        roughness = 0.2;
+        roughness = orm.g;
         metallic = orm.b;
     }
     // Keep legacy ambient separate from the direct-light BRDF; AO is reserved for indirect light.
     float3 rgb = AmbientColor * AmbientIntensity * baseColor
-        + CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness);
+        + CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness)
+        + CalculateSpecularIBL(input.WorldPosition, normal, baseColor, metallic, roughness);
     return float4(rgb, MaterialAlphaMode == 2 ? alpha : 1.0f);
 }

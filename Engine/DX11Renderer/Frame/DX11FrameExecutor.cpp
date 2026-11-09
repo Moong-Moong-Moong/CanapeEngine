@@ -204,7 +204,10 @@ namespace Canape
             UploadPendingConstants();
             if (lighting.ShadowActive) RenderShadowPass(prepared);
             BindSharedConstants();
+            ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), prepared.Skybox.Constants);
             auto draw = GetDrawContext();
+            draw.Scene.EnvironmentView = prepared.Skybox.Texture;
+            draw.Scene.SkyboxConstants = SkyboxViewBuffer.Get();
             MainPass::DrawOpaqueAndMasked(prepared, draw);
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);

@@ -383,6 +383,7 @@ namespace Canape::ScenePreparation
         const float rotation = std::isfinite(skybox.rotationRadians) ? skybox.rotationRadians : 0.0f;
         constants.RotationCos = std::cos(rotation);
         constants.RotationSin = std::sin(rotation);
+        constants.MipCount = static_cast<float>(cubemap->MipLevels);
         result.Texture = cubemap->ShaderResourceView.Get();
         return result;
     }

@@ -191,7 +191,8 @@ namespace Canape
     {
         ID3D11SamplerState* sampler = ShadowSettings.pcf ? ShadowMap.PcfSampler.Get() : ShadowMap.PointSampler.Get();
         if (!sampler) sampler = FallbackShadowSampler.Get();
-        return { GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr, sampler };
+        return { GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr, sampler,
+            nullptr, Pipelines.ResolveSkybox().Sampler, nullptr };
     }
 
     MeshDrawContext DX11Renderer::Impl::GetDrawContext()
