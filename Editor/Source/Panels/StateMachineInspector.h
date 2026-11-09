@@ -7,6 +7,7 @@
 #include <string>
 
 // Inspector UI of a StateMachine: current state, parameters, conditions, states and their transitions.
+// Holds no FSM logic: it reads the definition and changes it only through the StateMachine API.
 class StateMachineInspector
 {
 public:
@@ -16,7 +17,7 @@ private:
     void DrawParameters(Canape::StateMachine& stateMachine);
     void DrawConditions(Canape::StateMachine& stateMachine);
     void DrawStates(Canape::StateMachine& stateMachine);
-    void DrawStateNode(Canape::StateMachine& stateMachine, const std::string& name, const std::string& activePath);
+    void DrawStateNode(Canape::StateMachine& stateMachine, const std::string& name);
     void DrawSelectedState(Canape::StateMachine& stateMachine);
     void DrawAddState(Canape::StateMachine& stateMachine);
     void AddState(Canape::StateMachine& stateMachine);

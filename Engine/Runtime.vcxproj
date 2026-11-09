@@ -161,6 +161,7 @@
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\FSM\FsmReflection.cpp" />
+    <ClCompile Include="Source\FSM\FsmState.cpp" />
     <ClCompile Include="Source\FSM\StateMachine.cpp" />
     <ClCompile Include="Source\Physics\HingeComponent.cpp" />
     <ClCompile Include="Source\Physics\PhysicsScene.cpp" />

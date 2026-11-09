@@ -54,6 +54,7 @@ if ($State)
 {
 	$baseClass = 'Canape::FsmState'
 	$functions = @(
+		@{ Name = 'Initialize'; Parameters = '' },
 		@{ Name = 'Enter'; Parameters = '' },
 		@{ Name = 'Update'; Parameters = 'float deltaTime'; Definition = '[[maybe_unused]] float deltaTime' },
 		@{ Name = 'Exit'; Parameters = '' }
