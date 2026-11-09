@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Editor (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Binaries/x64/Debug/Editor/Editor.exe",
+            "cwd": "${workspaceFolder}/Binaries/x64/Debug/Editor",
+            "console": "internalConsole",
+            "preLaunchTask": "Debug"
+        },
+        {
+            "name": "Editor (Release)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Binaries/x64/Release/Editor/Editor.exe",
+            "cwd": "${workspaceFolder}/Binaries/x64/Release/Editor",
+            "console": "internalConsole",
+            "preLaunchTask": "Release"
+        },
+        {
+            "name": "Game (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Binaries/x64/Debug/Game/Game.exe",
+            "cwd": "${workspaceFolder}/Binaries/x64/Debug/Game",
+            "console": "internalConsole",
+            "preLaunchTask": "Debug"
+        },
+        {
+            "name": "Game (Release)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Binaries/x64/Release/Game/Game.exe",
+            "cwd": "${workspaceFolder}/Binaries/x64/Release/Game",
+            "console": "internalConsole",
+            "preLaunchTask": "Release"
+        }
+    ]
+}

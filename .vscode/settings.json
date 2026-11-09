@@ -1,0 +1,33 @@
+{
+    "files.eol": "\r\n",
+    "files.exclude": {
+        "Binaries": true,
+        "Intermediate": true,
+        "vcpkg_installed": false
+    },
+    "search.exclude": {
+        "Temp": true
+    },
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/Common",
+        "${workspaceFolder}/Engine",
+        "${workspaceFolder}/Engine/Source",
+        "${workspaceFolder}/Game/Source",
+        "${workspaceFolder}/Editor/Source",
+        "${workspaceFolder}/vcpkg_installed/x64-windows-static-md/x64-windows-static-md/include"
+    ],
+    "C_Cpp.default.defines": [
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "CANAPE_RENDER_DEBUG=1",
+        "CANAPE_GAME_CONTENT_DIR=\"\"",
+        "CANAPE_GAME_DIR=\"\"",
+        "JPH_USE_CPU_COMPUTE",
+        "JPH_OBJECT_STREAM",
+        "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED"
+    ]
+}
