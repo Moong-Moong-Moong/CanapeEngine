@@ -161,6 +161,7 @@ void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component
     const rttr::instance instance(&component);
     const rttr::type type = instance.get_derived_type();
     const bool isTransform = type == rttr::type::get<TransformComponent>();
+    auto* stateMachine = dynamic_cast<StateMachine*>(&component);
 
     ImGui::PushID(&component);
     const bool open = ImGui::CollapsingHeader(type.get_name().data(), ImGuiTreeNodeFlags_DefaultOpen);
@@ -179,6 +180,10 @@ void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component
         for (const rttr::property& property : type.get_properties())
         {
             const std::string name = property.get_name().to_string();
+            if (stateMachine && name != "enabled")
+            {
+                continue; // drawn by StateMachineInspector below
+            }
             const bool readOnly = property.is_readonly() || (isTransform && name == "parent");
 
             ImGui::PushID(name.c_str());
@@ -208,6 +213,11 @@ void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component
             }
         }
         ImGui::EndTable();
+    }
+
+    if (open && stateMachine)
+    {
+        m_StateMachineInspector.Draw(*stateMachine);
     }
     ImGui::PopID();
 }

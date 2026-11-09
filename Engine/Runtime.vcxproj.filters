@@ -168,6 +168,9 @@
     <ClInclude Include="Source\FSM\FsmCondition.h">
       <Filter>Source\FSM</Filter>
     </ClInclude>
+    <ClInclude Include="Source\FSM\FsmData.h">
+      <Filter>Source\FSM</Filter>
+    </ClInclude>
     <ClInclude Include="Source\FSM\FsmState.h">
       <Filter>Source\FSM</Filter>
     </ClInclude>
@@ -313,6 +316,9 @@
     </ClCompile>
     <ClCompile Include="Source\Core\Window.cpp">
       <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FSM\FsmReflection.cpp">
+      <Filter>Source\FSM</Filter>
     </ClCompile>
     <ClCompile Include="Source\FSM\StateMachine.cpp">
       <Filter>Source\FSM</Filter>

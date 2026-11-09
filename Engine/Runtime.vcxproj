@@ -98,6 +98,7 @@
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\FSM\FsmCondition.h" />
+    <ClInclude Include="Source\FSM\FsmData.h" />
     <ClInclude Include="Source\FSM\FsmState.h" />
     <ClInclude Include="Source\FSM\StateMachine.h" />
     <ClInclude Include="Source\Physics\BoxColliderComponent.h" />
@@ -159,6 +160,7 @@
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\FSM\FsmReflection.cpp" />
     <ClCompile Include="Source\FSM\StateMachine.cpp" />
     <ClCompile Include="Source\Physics\HingeComponent.cpp" />
     <ClCompile Include="Source\Physics\PhysicsScene.cpp" />

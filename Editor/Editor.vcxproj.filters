@@ -36,6 +36,9 @@
     <ClInclude Include="Source\Panels\SceneViewPanel.h">
       <Filter>Source\Panels</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Panels\StateMachineInspector.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="@(GameScriptSource)" />
@@ -67,6 +70,9 @@
       <Filter>Source\Panels</Filter>
     </ClCompile>
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\StateMachineInspector.cpp">
       <Filter>Source\Panels</Filter>
     </ClCompile>
   </ItemGroup>

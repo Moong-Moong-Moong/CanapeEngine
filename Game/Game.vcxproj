@@ -114,6 +114,12 @@ exit /b 0</Command>
     <ClInclude Include="Source\Puzzle\PuzzleGoal.h" />
     <ClInclude Include="Source\Puzzle\PuzzleLane.h" />
     <ClInclude Include="Source\Puzzle\PuzzleTypes.h" />
+    <ClInclude Include="Source\State\Grounded.h" />
+    <ClInclude Include="Source\State\hi.h" />
+    <ClInclude Include="Source\State\hello.h" />
+    <ClInclude Include="Source\State\test.h" />
+    <ClInclude Include="Source\State\haha.h" />
+    <ClInclude Include="Source\State\hoho.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -131,6 +137,12 @@ exit /b 0</Command>
     <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleGoal.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleLane.cpp" />
+    <ClCompile Include="Source\State\Grounded.cpp" />
+    <ClCompile Include="Source\State\hi.cpp" />
+    <ClCompile Include="Source\State\hello.cpp" />
+    <ClCompile Include="Source\State\test.cpp" />
+    <ClCompile Include="Source\State\haha.cpp" />
+    <ClCompile Include="Source\State\hoho.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Materials\M_Enemy.mat" />
@@ -176,6 +188,6 @@ exit /b 0</Command>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyRendererShaders" AfterTargets="Build">
-    <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader-&gt;'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

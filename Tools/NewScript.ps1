@@ -8,6 +8,9 @@ param(
 
 	[switch]$HeaderOnly,
 
+	# Creates a Canape::FsmState under Source instead of a ScriptComponent.
+	[switch]$State,
+
 	[string]$Project = ''
 )
 
@@ -39,18 +42,32 @@ if ($Folder -and ($Folder -notmatch '^[A-Za-z0-9_]+([\\/][A-Za-z0-9_]+)*$'))
 	throw "'$Folder' is not a valid folder name."
 }
 
-$requested = @('Awake', 'Start', 'FixedUpdate', 'Update') + $With
-$functions = $lifecycleOrder | Where-Object { $requested -contains $_ }
+if ($State)
+{
+	$baseClass = 'Canape::FsmState'
+	$functions = @(
+		@{ Name = 'Enter'; Parameters = '' },
+		@{ Name = 'Update'; Parameters = 'float deltaTime'; Definition = '[[maybe_unused]] float deltaTime' },
+		@{ Name = 'Exit'; Parameters = '' }
+	)
+}
+else
+{
+	$baseClass = 'Canape::ScriptComponent'
+	$requested = @('Awake', 'Start', 'FixedUpdate', 'Update') + $With
+	$functions = @($lifecycleOrder | Where-Object { $requested -contains $_ } | ForEach-Object { @{ Name = $_; Parameters = '' } })
+}
 
 $projectPath = (Resolve-Path $Project).Path
 $projectDir = Split-Path $projectPath -Parent
 
-$relativeFolder = 'Source\Scripts'
+$relativeFolder = if ($State) { 'Source' } else { 'Source\Scripts' }
 if ($Folder)
 {
 	$relativeFolder = Join-Path $relativeFolder ($Folder -replace '/', '\')
 }
-$includeFolder = ($relativeFolder -replace '^Source\\', '') -replace '\\', '/'
+$includeFolder = ($relativeFolder -replace '^Source\\?', '') -replace '\\', '/'
+$includePath = if ($includeFolder) { "$includeFolder/$Name.h" } else { "$Name.h" }
 
 $targetDir = Join-Path $projectDir $relativeFolder
 $headerRelative = Join-Path $relativeFolder "$Name.h"
@@ -69,16 +86,18 @@ $indent = '    '
 $header = New-Object System.Text.StringBuilder
 [void]$header.Append("#pragma once$newline$newline")
 [void]$header.Append("#include <Engine.h>$newline$newline")
-[void]$header.Append("class $Name final : public Canape::ScriptComponent$newline")
+[void]$header.Append("class $Name final : public $baseClass$newline")
 [void]$header.Append("{$newline")
-[void]$header.Append("$indent" + "RTTR_ENABLE(Canape::ScriptComponent)$newline")
+[void]$header.Append("$indent" + "RTTR_ENABLE($baseClass)$newline")
 [void]$header.Append("$indent" + "RTTR_REGISTRATION_FRIEND$newline$newline")
-[void]$header.Append("protected:$newline")
+[void]$header.Append($(if ($State) { "public:$newline" } else { "protected:$newline" }))
 foreach ($function in $functions)
 {
+	$signature = "void $($function.Name)($($function.Parameters))"
 	if ($HeaderOnly)
 	{
-		[void]$header.Append("$indent" + "void $function() override$newline")
+		$definition = if ($function.Definition) { $function.Definition } else { $function.Parameters }
+		[void]$header.Append("$indent" + "void $($function.Name)($definition) override$newline")
 		[void]$header.Append("$indent{$newline")
 		[void]$header.Append("$indent}$newline")
 		if ($function -ne $functions[-1])
@@ -88,7 +107,7 @@ foreach ($function in $functions)
 	}
 	else
 	{
-		[void]$header.Append("$indent" + "void $function() override;$newline")
+		[void]$header.Append("$indent$signature override;$newline")
 	}
 }
 [void]$header.Append("};$newline")
@@ -100,7 +119,7 @@ New-Item -ItemType Directory -Force $targetDir | Out-Null
 if (-not $HeaderOnly)
 {
 	$source = New-Object System.Text.StringBuilder
-	[void]$source.Append("#include `"$includeFolder/$Name.h`"$newline")
+	[void]$source.Append("#include `"$includePath`"$newline")
 	[void]$source.Append($newline)
 	[void]$source.Append("RTTR_REGISTRATION$newline")
 	[void]$source.Append("{$newline")
@@ -110,7 +129,8 @@ if (-not $HeaderOnly)
 	foreach ($function in $functions)
 	{
 		[void]$source.Append($newline)
-		[void]$source.Append("void ${Name}::${function}()$newline")
+		$definition = if ($function.Definition) { $function.Definition } else { $function.Parameters }
+		[void]$source.Append("void ${Name}::$($function.Name)($definition)$newline")
 		[void]$source.Append("{$newline")
 		[void]$source.Append("}$newline")
 	}

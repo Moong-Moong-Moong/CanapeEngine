@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "Panels/StateMachineInspector.h"
 
 #include <filesystem>
 #include <string>
@@ -36,6 +37,7 @@ private:
     unsigned int m_ActiveTextId = 0;
     std::string m_ActiveTextBuffer;
     std::unordered_map<std::string, EulerCache> m_EulerCache;
+    StateMachineInspector m_StateMachineInspector;
 
     std::filesystem::path m_MaterialFile;
     Canape::MaterialFileData m_Material;

@@ -19,11 +19,14 @@
     <Filter Include="Source">
       <UniqueIdentifier>{D5F4A14A-296F-C4CD-3A23-84F6F0C3C3C1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Puzzle">
+      <UniqueIdentifier>{8AE1103A-F0EE-7B85-ED96-06FC1AD4EC72}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Scripts">
       <UniqueIdentifier>{0BA211BE-3D2B-B761-B652-2DC5B033D0FD}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Puzzle">
-      <UniqueIdentifier>{7C3E5A12-94B8-4D6F-A1E0-52B7D8F3C641}</UniqueIdentifier>
+    <Filter Include="Source\State">
+      <UniqueIdentifier>{7D8AD952-DF75-0986-65B8-FF56C7237457}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -72,6 +75,24 @@
     <ClInclude Include="Source\Scripts\SceneChanger.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\State\Grounded.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\State\haha.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\State\hello.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\State\hi.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\State\hoho.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\State\test.h">
+      <Filter>Source\State</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp">
@@ -118,6 +139,24 @@
     </ClCompile>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp">
       <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\Grounded.cpp">
+      <Filter>Source\State</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\haha.cpp">
+      <Filter>Source\State</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\hello.cpp">
+      <Filter>Source\State</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\hi.cpp">
+      <Filter>Source\State</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\hoho.cpp">
+      <Filter>Source\State</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\State\test.cpp">
+      <Filter>Source\State</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

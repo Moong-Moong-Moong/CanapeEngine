@@ -1,5 +1,6 @@
 #include "Scene/Scene.h"
 #include "Core/Time.h"
+#include "FSM/StateMachine.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/FogComponent.h"
@@ -140,6 +141,16 @@ namespace Canape
 		{
 			if (IsRunnable(script))
 				script->Update();
+		}
+
+		//***StateMachine: 스크립트가 이번 프레임에 넣은 파라미터로 평가
+		for (StateMachine* stateMachine : m_componentRegistry.GetStateMachines())
+		{
+			if (!IsRunnable(stateMachine))
+				continue;
+			if (!stateMachine->IsStarted())
+				stateMachine->Start();
+			stateMachine->Update(Time::DeltaTime());
 		}
 
 		//***LateUpdate

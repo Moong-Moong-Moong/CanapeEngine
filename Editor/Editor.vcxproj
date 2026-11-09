@@ -103,6 +103,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\InspectorPanel.h" />
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
     <ClInclude Include="Source\Panels\SceneViewPanel.h" />
+    <ClInclude Include="Source\Panels\StateMachineInspector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\EditorApp.cpp" />
@@ -115,10 +116,11 @@ exit /b 0</Command>
     <ClCompile Include="Source\Panels\InspectorPanel.cpp" />
     <ClCompile Include="Source\Panels\RenderDebugMenu.cpp" />
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp" />
+    <ClCompile Include="Source\Panels\StateMachineInspector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <GameScriptSource Include="$(CanapeGameDir)Source\Scripts\*.cpp" />
-    <GameScriptSource Include="$(CanapeGameDir)Source\Puzzle\*.cpp" />
+    <!-- Every game source except the game's own entry point and application. -->
+    <GameScriptSource Include="$(CanapeGameDir)Source\**\*.cpp" Exclude="$(CanapeGameDir)Source\Main.cpp;$(CanapeGameDir)Source\GameApp.cpp" />
     <ClCompile Include="@(GameScriptSource)">
       <Link>GameScripts\%(Filename)%(Extension)</Link>
       <ObjectFileName>$(IntDir)GameScripts\</ObjectFileName>

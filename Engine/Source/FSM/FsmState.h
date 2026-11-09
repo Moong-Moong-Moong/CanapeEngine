@@ -1,27 +1,26 @@
 #pragma once
 
-#include <vector>
+#include <rttr/rttr_enable.h>
+
 #include <string>
+#include <vector>
 
 namespace Canape
 {
-	class FsmCondition;
-
+	// Base class of every state. Derived classes are created by their RTTR name,
+	// so they need RTTR_ENABLE(Canape::FsmState) and a registered default constructor.
 	class FsmState
 	{
+		RTTR_ENABLE()
+
 	public:
 		virtual ~FsmState() = default;
 
 		virtual void Enter() {}
 		virtual void Exit() {}
-		virtual void Update(float dT) {}
+		virtual void Update(float /*dT*/) {}
 
 		const std::string& GetName() const { return m_Name; }
-		void SetName(const std::string& name) { m_Name = name; }
-
-		void AddTransition(FsmCondition* condition, FsmState* target) { m_Transitions.push_back({ condition, target }); }
-		void SetInitialChild(FsmState* child) { m_InitialChild = child; }
-
 		FsmState* GetParent() const { return m_Parent; }
 
 	private:
@@ -29,7 +28,7 @@ namespace Canape
 
 		struct Transition
 		{
-			FsmCondition* condition;
+			std::string condition;
 			FsmState* target;
 		};
 

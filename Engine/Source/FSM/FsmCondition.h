@@ -1,12 +1,24 @@
 #pragma once
 
+#include <string>
+
 namespace Canape
 {
-	class FsmCondition
+	enum class FsmCompare
 	{
-	public:
-		virtual ~FsmCondition() = default;
+		Greater,
+		Less,
+		Equal,
+		NotEqual,
+		True,
+		False,
+	};
 
-		virtual bool Evaluate() const = 0;
+	// Compares one StateMachine parameter. threshold is unused for True/False.
+	struct FsmCondition
+	{
+		std::string parameter;
+		FsmCompare compare = FsmCompare::True;
+		float threshold = 0.0f;
 	};
 }
