@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "baseColorTexture": "",
+    "desc": {
+        "baseColor": {
+            "X": 0.25,
+            "Y": 0.5,
+            "Z": 0.85,
+            "W": 0.35
+        },
+        "roughness": 0.1,
+        "metallic": 0.0,
+        "alphaMode": "Transparent",
+        "alphaCutoff": 0.5
+    }
+}

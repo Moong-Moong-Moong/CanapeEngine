@@ -40,6 +40,9 @@
     <Filter Include="Source\Input">
       <UniqueIdentifier>{D23E979E-2CFA-6BF4-4B69-B979A184A45B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Physics">
+      <UniqueIdentifier>{3E7B5A12-8C4D-4F6A-9B21-6D0E8F1A7C35}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Renderer">
       <UniqueIdentifier>{C0C50F43-B577-32D5-1592-8611F7350414}</UniqueIdentifier>
     </Filter>
@@ -57,57 +60,6 @@
     </Filter>
     <Filter Include="Source\ThirdParty">
       <UniqueIdentifier>{AD4FD8F4-B56F-AF91-E0CE-1FF63F1EEC75}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\nlohmann">
-      <UniqueIdentifier>{811C463A-68F5-78EE-C55E-1233E2A9857B}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr">
-      <UniqueIdentifier>{6DD04B18-D01C-ED12-F52A-F2556A2AE9EC}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr">
-      <UniqueIdentifier>{736BB971-B99E-71FD-6C29-B00541E6CAD2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail">
-      <UniqueIdentifier>{E67D3A6C-6CB3-A710-0026-94EDA7779A83}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\comparison">
-      <UniqueIdentifier>{1E40A828-7FA6-F276-E015-89B726F3FFD8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\constructor">
-      <UniqueIdentifier>{B040DEED-2843-9EC3-0B69-8506E3F7186F}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\conversion">
-      <UniqueIdentifier>{4D00AEBB-B33E-DCB3-AD29-D7AC0D139F9E}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\destructor">
-      <UniqueIdentifier>{056923E3-257C-49C7-4787-FC68D6DCE7D3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\enumeration">
-      <UniqueIdentifier>{CE6FAB8D-8A41-3A40-47F3-7A6F866547C6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\library">
-      <UniqueIdentifier>{7EC9C73C-163F-7245-AA44-983B66B8D4C7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\method">
-      <UniqueIdentifier>{659DC796-32B1-810E-0084-332B5AD536E6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\misc">
-      <UniqueIdentifier>{ABBB21E6-81F6-CEC9-8CD9-4C6668A71CAD}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\parameter_info">
-      <UniqueIdentifier>{0E489044-358C-E0F5-2C76-F07A46D0AAC0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\property">
-      <UniqueIdentifier>{7E0E3422-A394-CE8C-C501-7125600DC254}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\registration">
-      <UniqueIdentifier>{D11AEF4B-DB02-837F-7E33-2F2E60339832}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\type">
-      <UniqueIdentifier>{EDAF3FD6-5411-202C-0E0B-0EB5A546DBFB}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\ThirdParty\rttr\rttr\detail\variant">
-      <UniqueIdentifier>{4519E0A3-336D-0465-54F8-537C1F663E38}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\ThirdParty\ufbx">
       <UniqueIdentifier>{F51ADD6D-5EBD-EE87-6F67-226844A786CD}</UniqueIdentifier>
@@ -133,6 +85,9 @@
       <Filter>Common\Math</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Math\Rotator.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Math\Scalar.h">
       <Filter>Common\Math</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Math\Vector2.h">
@@ -166,6 +121,9 @@
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h">
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="Source\Asset\Texture\CubemapAsset.h">
@@ -206,6 +164,39 @@
     </ClInclude>
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\BoxColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\ColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\HingeComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\HingeState.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\PhysicsScene.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyShape.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\RigidBodyState.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\SphereColliderComponent.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\WaterState.h">
+      <Filter>Source\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\WaterVolumeComponent.h">
+      <Filter>Source\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\GpuResourceRegistry.h">
       <Filter>Source\Renderer</Filter>
@@ -258,9 +249,6 @@
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h">
       <Filter>Source\Scene\Serialization</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ThirdParty\nlohmann\json.hpp">
-      <Filter>Source\ThirdParty\nlohmann</Filter>
-    </ClInclude>
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
@@ -285,6 +273,9 @@
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\PrimitiveMeshes.cpp">
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Texture\CubemapImporter.cpp">
@@ -313,6 +304,21 @@
     </ClCompile>
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\HingeComponent.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\PhysicsScene.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyComponent.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyShape.cpp">
+      <Filter>Source\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\RigidBodyState.cpp">
+      <Filter>Source\Physics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\GpuResourceRegistry.cpp">
       <Filter>Source\Renderer</Filter>
@@ -361,99 +367,6 @@
     </ClCompile>
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp">
       <Filter>Source\Scene\Serialization</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\constructor.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\destructor.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\comparison\compare_equal.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\comparison</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\comparison\compare_less.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\comparison</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\constructor\constructor_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\constructor</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\conversion\std_conversion_functions.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\conversion</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\destructor\destructor_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\destructor</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\enumeration\enumeration_helper.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\enumeration</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\enumeration\enumeration_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\enumeration</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\library\library_unix.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\library</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\library\library_win.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\library</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\method\method_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\method</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\misc\standard_types.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\misc</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\parameter_info\parameter_info_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\parameter_info</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\property\property_wrapper_base.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\property</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\registration\registration_executer.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\registration</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\registration\registration_state_saver.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\registration</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\type\type_data.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\type</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\type\type_register.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\type</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\detail\variant\variant_compare.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr\detail\variant</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\enumeration.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\library.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\method.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\parameter_info.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\policy.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\property.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\registration.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\type.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant_associative_view.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\rttr\rttr\variant_sequential_view.cpp">
-      <Filter>Source\ThirdParty\rttr\rttr</Filter>
     </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>

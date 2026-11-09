@@ -2,10 +2,18 @@
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Input/InputManager.h"
+#include "JoltPhysics/PhysicsTypes.h"
 #include "Math/Quaternion.h"
+#include "Math/Scalar.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
+#include "Physics/BoxColliderComponent.h"
+#include "Physics/ColliderComponent.h"
+#include "Physics/HingeComponent.h"
+#include "Physics/RigidBodyComponent.h"
+#include "Physics/SphereColliderComponent.h"
+#include "Physics/WaterVolumeComponent.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/Component.h"
 #include "Scene/Component/FogComponent.h"
@@ -76,6 +84,26 @@ namespace Canape
 				value("Opaque", AlphaMode::Opaque),
 				value("Masked", AlphaMode::Masked),
 				value("Transparent", AlphaMode::Transparent)
+			);
+
+			registration::class_<PhysicsPose>("PhysicsPose")
+				.constructor<>()(policy::ctor::as_object)
+				.property("position", &PhysicsPose::position)
+				.property("rotation", &PhysicsPose::rotation);
+
+			registration::enumeration<PhysicsMotion>("PhysicsMotion")
+			(
+				value("Static", PhysicsMotion::Static),
+				value("Kinematic", PhysicsMotion::Kinematic),
+				value("Dynamic", PhysicsMotion::Dynamic)
+			);
+
+			registration::enumeration<Easing>("Easing")
+			(
+				value("Linear", Easing::Linear),
+				value("Smooth", Easing::Smooth),
+				value("EaseIn", Easing::EaseIn),
+				value("EaseOut", Easing::EaseOut)
 			);
 
 			registration::enumeration<Key>("Key")
@@ -163,6 +191,41 @@ namespace Canape
 				.property("materials", &MeshRendererComponent::GetMaterialNames, &MeshRendererComponent::SetMaterialNames);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
+
+			registration::class_<RigidBodyComponent>("RigidBodyComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("motion", &RigidBodyComponent::GetMotion, &RigidBodyComponent::SetMotion)
+				.property("mass", &RigidBodyComponent::GetMass, &RigidBodyComponent::SetMass)
+				.property("friction", &RigidBodyComponent::GetFriction, &RigidBodyComponent::SetFriction)
+				.property("restitution", &RigidBodyComponent::GetRestitution, &RigidBodyComponent::SetRestitution)
+				.property("linearDamping", &RigidBodyComponent::GetLinearDamping, &RigidBodyComponent::SetLinearDamping)
+				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping);
+
+			registration::class_<HingeComponent>("HingeComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("axis", &HingeComponent::GetAxis, &HingeComponent::SetAxis)
+				.property("minAngle", &HingeComponent::GetMinAngle, &HingeComponent::SetMinAngle)
+				.property("maxAngle", &HingeComponent::GetMaxAngle, &HingeComponent::SetMaxAngle)
+				.property("maxFrictionTorque", &HingeComponent::GetMaxFrictionTorque, &HingeComponent::SetMaxFrictionTorque);
+
+			registration::class_<ColliderComponent>("ColliderComponent")
+				.property("overrideFriction", &ColliderComponent::GetOverrideFriction, &ColliderComponent::SetOverrideFriction)
+				.property("friction", &ColliderComponent::GetFriction, &ColliderComponent::SetFriction);
+
+			registration::class_<BoxColliderComponent>("BoxColliderComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("size", &BoxColliderComponent::GetSize, &BoxColliderComponent::SetSize);
+
+			registration::class_<SphereColliderComponent>("SphereColliderComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius);
+
+			registration::class_<WaterVolumeComponent>("WaterVolumeComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("size", &WaterVolumeComponent::GetSize, &WaterVolumeComponent::SetSize)
+				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
+				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
+				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
 		}
 	}
 

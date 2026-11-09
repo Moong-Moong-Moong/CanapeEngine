@@ -7,4 +7,12 @@
     <CanapeRenderDebug Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">1</CanapeRenderDebug>
     <CanapeRenderDebug Condition="'$(Configuration)'=='Shipping'">0</CanapeRenderDebug>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$(CanapeRoot)</VcpkgManifestRoot>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+    <VcpkgApplocalDeps>false</VcpkgApplocalDeps>
+    <VcpkgConfiguration Condition="'$(Configuration)'=='Debug'">Debug</VcpkgConfiguration>
+    <VcpkgConfiguration Condition="'$(Configuration)'!='Debug'">Release</VcpkgConfiguration>
+  </PropertyGroup>
 </Project>

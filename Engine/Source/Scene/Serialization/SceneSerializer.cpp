@@ -8,7 +8,8 @@
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
-#include "ThirdParty/nlohmann/json.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -238,9 +239,9 @@ namespace Canape
 		class SceneReader
 		{
 		public:
-			std::unique_ptr<Scene> Read(const Json& root)
+			std::unique_ptr<Scene> Read(const Json& root, JoltRuntime* physicsRuntime)
 			{
-				auto scene = std::make_unique<Scene>(root.value("name", std::string("Scene")));
+				auto scene = std::make_unique<Scene>(root.value("name", std::string("Scene")), physicsRuntime);
 				m_Scene = scene.get();
 
 				ReadMaterials(root.value("materials", Json::array()));
@@ -505,7 +506,7 @@ namespace Canape
 		return true;
 	}
 
-	std::unique_ptr<Scene> SceneSerializer::Load(const std::string& path)
+	std::unique_ptr<Scene> SceneSerializer::Load(const std::string& path, JoltRuntime* physicsRuntime)
 	{
 		std::ifstream file(std::filesystem::path(path), std::ios::binary);
 		if (!file)
@@ -527,7 +528,7 @@ namespace Canape
 			return nullptr;
 		}
 
-		std::unique_ptr<Scene> scene = SceneReader().Read(root);
+		std::unique_ptr<Scene> scene = SceneReader().Read(root, physicsRuntime);
 		CN_LOG_RUNTIME("Scene", "씬 로드 완료 : ", path);
 		return scene;
 	}

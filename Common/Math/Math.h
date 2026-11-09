@@ -7,4 +7,5 @@
 #include "Math/IntVector.h"
 #include "Math/Quaternion.h"
 #include "Math/Rotator.h"
+#include "Math/Scalar.h"
 #include "Math/Matrix4.h"

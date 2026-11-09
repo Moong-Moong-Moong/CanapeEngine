@@ -11,12 +11,15 @@
 
 namespace Canape
 {
+	class JoltRuntime;
+
 	class SceneManager final
 	{
 	public:
 		using SceneFactory = Scene* (*)(SceneManager&);
 
-		SceneManager() = default;
+		// Scenes created by this manager get a physics world when a runtime is given.
+		explicit SceneManager(JoltRuntime* physicsRuntime = nullptr);
 		~SceneManager();
 
 		SceneManager(const SceneManager&) = delete;
@@ -49,6 +52,7 @@ namespace Canape
 		void ApplyPendingChanges();
 		bool Owns(const Scene* scene) const;
 
+		JoltRuntime* m_PhysicsRuntime = nullptr;
 		std::vector<std::unique_ptr<Scene>> m_Scenes;
 		Scene* m_activeScene = nullptr;
 		Scene* m_PendingActiveScene = nullptr;

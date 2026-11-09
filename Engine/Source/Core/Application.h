@@ -4,6 +4,7 @@
 #include "Core/Console/CommandRegistry.h"
 #include "Core/Window.h"
 #include "Input/InputManager.h"
+#include "JoltPhysics/JoltRuntime.h"
 #include "Renderer/Renderer.h"
 #include "Scene/SceneManager.h"
 
@@ -30,6 +31,7 @@ namespace Canape
         InputManager& GetInputManager() { return *m_InputManager; }
         Renderer& GetRenderer() { return *m_Renderer; }
         AssetManager& GetAssetManager() { return *m_AssetManager; }
+        JoltRuntime& GetPhysicsRuntime() { return *m_PhysicsRuntime; }
         CommandRegistry& GetCommands() { return *m_Commands; }
 
     protected:
@@ -46,10 +48,13 @@ namespace Canape
         std::unique_ptr<InputManager> m_InputManager;
         std::unique_ptr<Renderer> m_Renderer;
         std::unique_ptr<AssetManager> m_AssetManager;
+        std::unique_ptr<JoltRuntime> m_PhysicsRuntime;
         std::unique_ptr<SceneManager> m_SceneManager;
         std::unique_ptr<CommandRegistry> m_Commands;
 
         bool m_Running = false;
         bool m_RunSceneScripts = true;
+
+        bool m_Headless = false;
     };
 }

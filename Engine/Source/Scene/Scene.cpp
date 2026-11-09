@@ -1,4 +1,5 @@
 #include "Scene/Scene.h"
+#include "Core/Time.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/FogComponent.h"
@@ -10,8 +11,19 @@
 
 namespace Canape
 {
-	Scene::Scene(std::string name)
+	namespace
+	{
+		PhysicsScene MakePhysicsScene(JoltRuntime* runtime)
+		{
+			if (runtime)
+				return PhysicsScene(*runtime, PhysicsWorldDesc{});
+			return PhysicsScene();
+		}
+	}
+
+	Scene::Scene(std::string name, JoltRuntime* physicsRuntime)
 		: m_Name(std::move(name))
+		, m_Physics(MakePhysicsScene(physicsRuntime))
 	{
 	}
 
@@ -22,8 +34,13 @@ namespace Canape
 
 	void Scene::BeginUpdate()
 	{
+		//*** Components removed outside Update get their OnDestroy before they are destroyed below
+		OnDestroyScripts();
+
 		//***** Component
 		std::vector<Component*> pendingRemoveComps = m_componentRegistry.GetPendingRemove();
+		//*** Release physics bodies before the components are destroyed
+		m_Physics.ReleaseBodies(pendingRemoveComps);
 		//*** ComponentRegistry 정리
 		m_componentRegistry.FlushPending();
 		//*** 실제 컴포넌트 제거
@@ -39,7 +56,15 @@ namespace Canape
 	void Scene::Update()
 	{
 		BeginUpdate();
-		UpdateScripts();
+		RunAwakeAndStart();
+
+        const auto step = Time::FixedStepCount();
+		for (auto i = 0u; i < step; ++i)
+        {
+            RunFixedStep();
+        }
+
+        RunUpdate();
 		EndUpdate();
 	}
 
@@ -65,7 +90,25 @@ namespace Canape
 		}
 	}
 
-	void Scene::UpdateScripts()
+	void Scene::RunFixedStep()
+	{
+		for (ScriptComponent* script : m_componentRegistry.GetScripts())
+		{
+			if (IsRunnable(script) && script->GetStarted())
+				script->FixedUpdate();
+		}
+
+		m_componentRegistry.FlushPendingPhysics();
+		m_Physics.SyncBodies(m_componentRegistry.GetRigidBodies());
+		m_Physics.SyncHinges(m_componentRegistry.GetHinges());
+		m_Physics.Step(
+            Time::FixedDeltaTime(),
+            m_componentRegistry.GetRigidBodies(),
+            m_componentRegistry.GetWaterVolumes()
+        );
+	}
+
+	void Scene::RunAwakeAndStart()
 	{
 		std::span<ScriptComponent* const> scripts = m_componentRegistry.GetScripts();
 
@@ -86,6 +129,11 @@ namespace Canape
 			script->Start();
 			script->SetStarted(true);
 		}
+	}
+
+	void Scene::RunUpdate()
+	{
+		std::span<ScriptComponent* const> scripts = m_componentRegistry.GetScripts();
 
 		//***Update
 		for (ScriptComponent* script : scripts)

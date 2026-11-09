@@ -88,8 +88,11 @@ namespace Canape
         }
 
         m_Handle = hwnd;
-        ShowWindow(hwnd, SW_SHOWDEFAULT);
-        UpdateWindow(hwnd);
+        if (!desc.Headless)
+        {
+            ShowWindow(hwnd, SW_SHOWDEFAULT);
+            UpdateWindow(hwnd);
+        }
     }
 
     Window::~Window()

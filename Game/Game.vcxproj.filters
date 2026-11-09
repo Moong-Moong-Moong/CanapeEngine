@@ -22,15 +22,48 @@
     <Filter Include="Source\Scripts">
       <UniqueIdentifier>{0BA211BE-3D2B-B761-B652-2DC5B033D0FD}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Puzzle">
+      <UniqueIdentifier>{7C3E5A12-94B8-4D6F-A1E0-52B7D8F3C641}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Puzzle\GoalCup.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\GoalZone.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\HingeRelease.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PoseTrack.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleDirector.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleGoal.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleLane.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Puzzle\PuzzleTypes.h">
+      <Filter>Source\Puzzle</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\FlyCamera.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scripts\PhysicsStatsLog.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\PlayerController.h">
@@ -47,10 +80,37 @@
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Puzzle\GoalCup.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\GoalZone.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\HingeRelease.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PoseTrack.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleGoal.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Puzzle\PuzzleLane.cpp">
+      <Filter>Source\Puzzle</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Scripts\CameraController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scripts\FlyCamera.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PlayerController.cpp">
@@ -77,6 +137,33 @@
     <None Include="Content\Materials\M_Player.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_PuzzleGoal.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleGoalSolved.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleLever.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleMover.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzlePayload.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleRod.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleWall.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleWater.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_PuzzleWeight.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>
@@ -85,6 +172,9 @@
     </None>
     <None Include="Content\Models\Player.fbx">
       <Filter>Content\Models</Filter>
+    </None>
+    <None Include="Content\Scenes\PhysicsPlayground.json">
+      <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\SampleScene.json">
       <Filter>Content\Scenes</Filter>

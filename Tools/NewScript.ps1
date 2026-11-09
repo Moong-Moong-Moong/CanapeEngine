@@ -24,7 +24,7 @@ if ($Name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$')
 	throw "'$Name' is not a valid C++ class name."
 }
 
-$lifecycleOrder = @('Awake', 'OnEnable', 'Start', 'Update', 'LateUpdate', 'OnDisable', 'OnDestroy')
+$lifecycleOrder = @('Awake', 'OnEnable', 'Start', 'FixedUpdate', 'Update', 'LateUpdate', 'OnDisable', 'OnDestroy')
 $With = @($With | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 foreach ($function in $With)
 {
@@ -39,7 +39,7 @@ if ($Folder -and ($Folder -notmatch '^[A-Za-z0-9_]+([\\/][A-Za-z0-9_]+)*$'))
 	throw "'$Folder' is not a valid folder name."
 }
 
-$requested = @('Awake', 'Start', 'Update') + $With
+$requested = @('Awake', 'Start', 'FixedUpdate', 'Update') + $With
 $functions = $lifecycleOrder | Where-Object { $requested -contains $_ }
 
 $projectPath = (Resolve-Path $Project).Path

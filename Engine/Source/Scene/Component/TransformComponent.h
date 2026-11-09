@@ -27,6 +27,8 @@ namespace Canape
 
 		Vector3 GetPosition() const;
 		Quaternion GetRotation() const;
+		// The product of every local scale up the chain; rotation between the scales is ignored.
+		Vector3 GetLossyScale() const;
 
 		Vector3 GetRight() const;
 		Vector3 GetUp() const;

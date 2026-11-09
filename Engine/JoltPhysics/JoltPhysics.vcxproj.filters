@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{BB2C0216-7CDC-D89E-4B28-87090383450F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JoltConvert.h" />
+    <ClInclude Include="JoltRuntime.h" />
+    <ClInclude Include="JoltRuntimeImpl.h" />
+    <ClInclude Include="JoltWorld.h" />
+    <ClInclude Include="PhysicsTypes.h" />
+    <ClInclude Include="SlotMap.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="JoltRuntime.cpp" />
+    <ClCompile Include="JoltWorld.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Tests\PhysicsValidation.cpp">
+      <Filter>Tests</Filter>
+    </None>
+    <None Include="Tests\ValidatePhysics.ps1">
+      <Filter>Tests</Filter>
+    </None>
+  </ItemGroup>
+</Project>

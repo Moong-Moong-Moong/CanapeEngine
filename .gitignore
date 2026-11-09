@@ -430,6 +430,7 @@ FodyWeavers.xsd
 # Canape build outputs (all configurations, including Shipping)
 /Binaries/
 /Intermediate/
+/vcpkg_installed/
 
 # Renderer debug shader sources
 !/Engine/DX11Renderer/Shader/Debug/
