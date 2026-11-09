@@ -7,6 +7,7 @@
 #include "Core/Reflection/Reflection.h"
 #include "Core/Time.h"
 #include "Core/Window.h"
+#include "FSM/StateMachine.h"
 #include "Input/InputManager.h"
 #include "Math/Math.h"
 #include "Physics/BoxColliderComponent.h"

@@ -37,6 +37,9 @@
     <Filter Include="Source\Core\Reflection">
       <UniqueIdentifier>{7328EC49-A726-8B9F-9A95-3850A3FFDACD}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\FSM">
+      <UniqueIdentifier>{0B9DE992-5774-FB80-8EAC-C43F3E31BDBF}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Input">
       <UniqueIdentifier>{D23E979E-2CFA-6BF4-4B69-B979A184A45B}</UniqueIdentifier>
     </Filter>
@@ -161,6 +164,15 @@
     </ClInclude>
     <ClInclude Include="Source\Engine.h">
       <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FSM\FsmCondition.h">
+      <Filter>Source\FSM</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FSM\FsmState.h">
+      <Filter>Source\FSM</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FSM\StateMachine.h">
+      <Filter>Source\FSM</Filter>
     </ClInclude>
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
@@ -301,6 +313,9 @@
     </ClCompile>
     <ClCompile Include="Source\Core\Window.cpp">
       <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FSM\StateMachine.cpp">
+      <Filter>Source\FSM</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>

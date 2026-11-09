@@ -1,6 +1,7 @@
 #include "Core/Reflection/Reflection.h"
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Scene/RenderScene.h"
+#include "FSM/StateMachine.h"
 #include "Input/InputManager.h"
 #include "JoltPhysics/PhysicsTypes.h"
 #include "Math/Quaternion.h"
@@ -226,6 +227,9 @@ namespace Canape
 				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
 				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
 				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
+
+			registration::class_<StateMachine>("StateMachine")
+				.property_readonly("currentState", &StateMachine::GetCurrentStateName);
 		}
 	}
 
