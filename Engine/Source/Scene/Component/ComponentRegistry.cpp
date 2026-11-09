@@ -1,5 +1,4 @@
 #include "Scene/Component/ComponentRegistry.h"
-#include "FSM/StateMachine.h"
 #include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/WaterVolumeComponent.h"
@@ -105,11 +104,6 @@ namespace Canape
 			{
 				m_waterVolumes.push_back(water);
 			}
-
-			if (StateMachine* stateMachine = dynamic_cast<StateMachine*>(component))
-			{
-				m_stateMachines.push_back(stateMachine);
-			}
 		}
 		m_pendingAdd.clear();
 
@@ -156,11 +150,6 @@ namespace Canape
 			if (WaterVolumeComponent* water = dynamic_cast<WaterVolumeComponent*>(component))
 			{
 				std::erase(m_waterVolumes, water);
-			}
-
-			if (StateMachine* stateMachine = dynamic_cast<StateMachine*>(component))
-			{
-				std::erase(m_stateMachines, stateMachine);
 			}
 		}
 		m_pendingRemove.clear();

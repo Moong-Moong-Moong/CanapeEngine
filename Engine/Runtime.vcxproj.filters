@@ -320,6 +320,9 @@
     <ClCompile Include="Source\FSM\FsmReflection.cpp">
       <Filter>Source\FSM</Filter>
     </ClCompile>
+    <ClCompile Include="Source\FSM\FsmState.cpp">
+      <Filter>Source\FSM</Filter>
+    </ClCompile>
     <ClCompile Include="Source\FSM\StateMachine.cpp">
       <Filter>Source\FSM</Filter>
     </ClCompile>

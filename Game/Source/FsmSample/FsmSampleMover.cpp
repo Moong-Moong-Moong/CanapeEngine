@@ -11,6 +11,10 @@ RTTR_REGISTRATION
 void FsmSampleMover::Start()
 {
     m_StateMachine = GetComponent<Canape::StateMachine>();
+    if (m_StateMachine)
+    {
+        m_StateMachine->Initialize();
+    }
 }
 
 void FsmSampleMover::Update()
@@ -21,15 +25,11 @@ void FsmSampleMover::Update()
     if (input.IsKeyDown(Canape::Key::Right)) direction += 1.0f;
     if (input.IsKeyDown(Canape::Key::Left)) direction -= 1.0f;
 
-    const bool running = direction != 0.0f && input.IsKeyDown(Canape::Key::Shift);
-    const float speed = direction == 0.0f ? 0.0f : (running ? m_RunSpeed : m_WalkSpeed);
-
-    Canape::TransformComponent* transform = GetTransform();
-    transform->SetLocalPosition(transform->GetLocalPosition() + Canape::Vector3::Right * (direction * speed * Canape::Time::DeltaTime()));
-
     if (m_StateMachine)
     {
-        m_StateMachine->SetFloat("Speed", speed);
-        m_StateMachine->SetBool("IsRunning", running);
+        m_StateMachine->SetFloat("MoveInput", direction);
+        m_StateMachine->SetBool("IsRunning", input.IsKeyDown(Canape::Key::Shift));
+        // Evaluated right after this frame's parameters are set.
+        m_StateMachine->Update(Canape::Time::DeltaTime());
     }
 }

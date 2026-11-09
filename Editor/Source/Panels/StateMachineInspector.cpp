@@ -11,51 +11,11 @@
 
 using namespace Canape;
 
+// UI only: every change to the definition goes through the StateMachine API.
 namespace
 {
     const ImVec4 kWarningColor(1.0f, 0.45f, 0.35f, 1.0f);
     const ImVec4 kActiveColor(0.45f, 0.9f, 0.45f, 1.0f);
-
-    template <typename T>
-    T* FindByName(std::vector<T>& items, const std::string& name)
-    {
-        const auto it = std::find_if(items.begin(), items.end(), [&name](const T& item) { return item.name == name; });
-        return it != items.end() ? &*it : nullptr;
-    }
-
-    template <typename T>
-    std::vector<std::string> Names(const std::vector<T>& items)
-    {
-        std::vector<std::string> names;
-        for (const T& item : items)
-        {
-            names.push_back(item.name);
-        }
-        return names;
-    }
-
-    template <typename T>
-    std::string MakeUniqueName(const std::vector<T>& items, const std::string& base)
-    {
-        std::string name = base;
-        for (int index = 1; std::any_of(items.begin(), items.end(), [&name](const T& item) { return item.name == name; }); ++index)
-        {
-            name = base + std::to_string(index);
-        }
-        return name;
-    }
-
-    bool IsIdentifier(const std::string& text)
-    {
-        static const std::regex pattern("^[A-Za-z_][A-Za-z0-9_]*$");
-        return std::regex_match(text, pattern);
-    }
-
-    bool IsFolder(const std::string& text)
-    {
-        static const std::regex pattern("^[A-Za-z0-9_]+([\\\\/][A-Za-z0-9_]+)*$");
-        return text.empty() || std::regex_match(text, pattern);
-    }
 
     // Picks one of the names. A name that no longer exists is shown in the warning color.
     bool NameCombo(const char* label, std::string& value, const std::vector<std::string>& options)
@@ -120,20 +80,8 @@ namespace
         return "?";
     }
 
-    // Offers only the comparisons that make sense for the parameter type.
-    bool CompareCombo(FsmCompare& compare, const FsmParameterDesc* parameter)
+    bool CompareCombo(FsmCompare& compare, const std::vector<FsmCompare>& options)
     {
-        std::vector<FsmCompare> options;
-        if (!parameter || parameter->type != FsmParameterType::Bool)
-        {
-            options = { FsmCompare::Greater, FsmCompare::Less, FsmCompare::Equal, FsmCompare::NotEqual };
-        }
-        if (!parameter || parameter->type == FsmParameterType::Bool)
-        {
-            options.push_back(FsmCompare::True);
-            options.push_back(FsmCompare::False);
-        }
-
         if (!ImGui::BeginCombo("##compare", ToString(compare)))
         {
             return false;
@@ -151,10 +99,18 @@ namespace
         return changed;
     }
 
-    bool IsStateClassCompiled(const std::string& className)
+    //*** State class file generation (editor tooling, not FSM logic)
+
+    bool IsIdentifier(const std::string& text)
     {
-        const rttr::type type = rttr::type::get_by_name(className);
-        return type.is_valid() && type.is_derived_from<FsmState>();
+        static const std::regex pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+        return std::regex_match(text, pattern);
+    }
+
+    bool IsFolder(const std::string& text)
+    {
+        static const std::regex pattern("^[A-Za-z0-9_]+([\\\\/][A-Za-z0-9_]+)*$");
+        return text.empty() || std::regex_match(text, pattern);
     }
 
     std::filesystem::path GetStateHeaderPath(const std::string& folder, const std::string& className)
@@ -216,19 +172,20 @@ void StateMachineInspector::Draw(StateMachine& stateMachine)
 
 void StateMachineInspector::DrawParameters(StateMachine& stateMachine)
 {
-    std::vector<FsmParameterDesc>& parameters = stateMachine.EditParameterDescs();
+    // Copied, since the API calls below change the list.
+    const std::vector<FsmParameterDesc> parameters = stateMachine.GetParameterDescs();
     const bool open = ImGui::TreeNodeEx("##parameters", ImGuiTreeNodeFlags_DefaultOpen, "Parameters (%zu)", parameters.size());
     ImGui::SameLine();
     if (ImGui::SmallButton("+##addParameter"))
     {
-        parameters.push_back({ MakeUniqueName(parameters, "NewParameter") });
+        stateMachine.AddParameter();
     }
     if (!open)
     {
         return;
     }
 
-    int removeIndex = -1;
+    std::string removeName;
     if (ImGui::BeginTable("##parameterTable", 4, ImGuiTableFlags_SizingStretchProp))
     {
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 0.4f);
@@ -238,26 +195,16 @@ void StateMachineInspector::DrawParameters(StateMachine& stateMachine)
 
         for (int index = 0; index < static_cast<int>(parameters.size()); ++index)
         {
-            FsmParameterDesc& parameter = parameters[index];
+            const FsmParameterDesc& parameter = parameters[index];
             ImGui::PushID(index);
             ImGui::TableNextRow();
 
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             std::string name = parameter.name;
-            if (EditName("##name", name) && !name.empty() && name != parameter.name && !FindByName(parameters, name))
+            if (EditName("##name", name))
             {
-                for (FsmConditionDesc& condition : stateMachine.EditConditionDescs())
-                {
-                    for (FsmCondition& comparison : condition.comparisons)
-                    {
-                        if (comparison.parameter == parameter.name)
-                        {
-                            comparison.parameter = name;
-                        }
-                    }
-                }
-                parameter.name = name;
+                stateMachine.RenameParameter(parameter.name, name);
             }
 
             ImGui::TableNextColumn();
@@ -268,8 +215,7 @@ void StateMachineInspector::DrawParameters(StateMachine& stateMachine)
                 {
                     if (ImGui::Selectable(ToString(type), type == parameter.type))
                     {
-                        parameter.type = type;
-                        parameter.defaultValue = 0.0f;
+                        stateMachine.SetParameterType(parameter.name, type);
                     }
                 }
                 ImGui::EndCombo();
@@ -282,7 +228,7 @@ void StateMachineInspector::DrawParameters(StateMachine& stateMachine)
                 bool value = parameter.defaultValue != 0.0f;
                 if (ImGui::Checkbox("##default", &value))
                 {
-                    parameter.defaultValue = value ? 1.0f : 0.0f;
+                    stateMachine.SetParameterDefault(parameter.name, value ? 1.0f : 0.0f);
                 }
             }
             else if (parameter.type == FsmParameterType::Int)
@@ -290,52 +236,55 @@ void StateMachineInspector::DrawParameters(StateMachine& stateMachine)
                 int value = static_cast<int>(parameter.defaultValue);
                 if (ImGui::DragInt("##default", &value))
                 {
-                    parameter.defaultValue = static_cast<float>(value);
+                    stateMachine.SetParameterDefault(parameter.name, static_cast<float>(value));
                 }
             }
             else
             {
-                ImGui::DragFloat("##default", &parameter.defaultValue, 0.05f);
+                float value = parameter.defaultValue;
+                if (ImGui::DragFloat("##default", &value, 0.05f))
+                {
+                    stateMachine.SetParameterDefault(parameter.name, value);
+                }
             }
 
             ImGui::TableNextColumn();
             if (ImGui::SmallButton("X"))
             {
-                removeIndex = index;
+                removeName = parameter.name;
             }
             ImGui::PopID();
         }
         ImGui::EndTable();
     }
 
-    if (removeIndex >= 0)
+    if (!removeName.empty())
     {
-        parameters.erase(parameters.begin() + removeIndex);
+        stateMachine.RemoveParameter(removeName);
     }
     ImGui::TreePop();
 }
 
 void StateMachineInspector::DrawConditions(StateMachine& stateMachine)
 {
-    std::vector<FsmConditionDesc>& conditions = stateMachine.EditConditionDescs();
+    const std::vector<FsmConditionDesc> conditions = stateMachine.GetConditionDescs();
     const bool sectionOpen = ImGui::TreeNodeEx("##conditions", ImGuiTreeNodeFlags_DefaultOpen, "Conditions (%zu)", conditions.size());
     ImGui::SameLine();
     if (ImGui::SmallButton("+##addCondition"))
     {
-        conditions.push_back({ MakeUniqueName(conditions, "NewCondition") });
+        stateMachine.AddCondition();
     }
     if (!sectionOpen)
     {
         return;
     }
 
-    std::vector<FsmParameterDesc>& parameters = stateMachine.EditParameterDescs();
-    const std::vector<std::string> parameterNames = Names(parameters);
+    const std::vector<std::string> parameterNames = stateMachine.GetParameterNames();
 
-    int removeIndex = -1;
+    std::string removeName;
     for (int index = 0; index < static_cast<int>(conditions.size()); ++index)
     {
-        FsmConditionDesc& condition = conditions[index];
+        const FsmConditionDesc& condition = conditions[index];
         ImGui::PushID(index);
 
         // The header row is the arrow, the editable name, the add-comparison button and the delete button.
@@ -345,36 +294,23 @@ void StateMachineInspector::DrawConditions(StateMachine& stateMachine)
         const float buttonsWidth = ImGui::CalcTextSize("+").x + ImGui::CalcTextSize("X").x + style.FramePadding.x * 4.0f + style.ItemSpacing.x * 2.0f;
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonsWidth);
         std::string name = condition.name;
-        if (EditName("##name", name) && !name.empty() && name != condition.name && !FindByName(conditions, name))
+        if (EditName("##name", name))
         {
-            for (FsmStateDesc& state : stateMachine.EditStateDescs())
-            {
-                for (FsmTransitionDesc& transition : state.transitions)
-                {
-                    if (transition.condition == condition.name)
-                    {
-                        transition.condition = name;
-                    }
-                }
-            }
-            condition.name = name;
+            stateMachine.RenameCondition(condition.name, name);
         }
         ImGui::SameLine();
         if (ImGui::SmallButton("+##addComparison"))
         {
-            FsmCondition comparison;
-            comparison.compare = FsmCompare::Greater;
-            condition.comparisons.push_back(comparison);
+            stateMachine.AddComparison(condition.name);
         }
         ImGui::SameLine();
         if (ImGui::SmallButton("X"))
         {
-            removeIndex = index;
+            removeName = condition.name;
         }
 
         if (open)
         {
-
             int removeComparison = -1;
             if (ImGui::BeginTable("##comparisons", 4, ImGuiTableFlags_SizingStretchProp))
             {
@@ -385,44 +321,46 @@ void StateMachineInspector::DrawConditions(StateMachine& stateMachine)
 
                 for (int row = 0; row < static_cast<int>(condition.comparisons.size()); ++row)
                 {
-                    FsmCondition& comparison = condition.comparisons[row];
+                    const FsmCondition& comparison = condition.comparisons[row];
                     ImGui::PushID(row);
                     ImGui::TableNextRow();
 
                     ImGui::TableNextColumn();
                     ImGui::SetNextItemWidth(-FLT_MIN);
-                    NameCombo("##parameter", comparison.parameter, parameterNames);
-                    const FsmParameterDesc* parameter = FindByName(parameters, comparison.parameter);
-                    if (parameter && parameter->type == FsmParameterType::Bool
-                        && comparison.compare != FsmCompare::True && comparison.compare != FsmCompare::False)
+                    std::string parameterName = comparison.parameter;
+                    if (NameCombo("##parameter", parameterName, parameterNames))
                     {
-                        comparison.compare = FsmCompare::True;
-                    }
-                    else if (parameter && parameter->type != FsmParameterType::Bool
-                        && (comparison.compare == FsmCompare::True || comparison.compare == FsmCompare::False))
-                    {
-                        comparison.compare = FsmCompare::Greater;
+                        stateMachine.SetComparisonParameter(condition.name, row, parameterName);
                     }
 
                     ImGui::TableNextColumn();
                     ImGui::SetNextItemWidth(-FLT_MIN);
-                    CompareCombo(comparison.compare, parameter);
+                    FsmCompare compare = comparison.compare;
+                    if (CompareCombo(compare, stateMachine.GetCompareOptions(comparison.parameter)))
+                    {
+                        stateMachine.SetComparisonCompare(condition.name, row, compare);
+                    }
 
                     ImGui::TableNextColumn();
                     ImGui::SetNextItemWidth(-FLT_MIN);
                     if (comparison.compare != FsmCompare::True && comparison.compare != FsmCompare::False)
                     {
+                        const FsmParameterDesc* parameter = stateMachine.FindParameterDesc(comparison.parameter);
                         if (parameter && parameter->type == FsmParameterType::Int)
                         {
                             int value = static_cast<int>(comparison.threshold);
                             if (ImGui::DragInt("##threshold", &value))
                             {
-                                comparison.threshold = static_cast<float>(value);
+                                stateMachine.SetComparisonThreshold(condition.name, row, static_cast<float>(value));
                             }
                         }
                         else
                         {
-                            ImGui::DragFloat("##threshold", &comparison.threshold, 0.05f);
+                            float value = comparison.threshold;
+                            if (ImGui::DragFloat("##threshold", &value, 0.05f))
+                            {
+                                stateMachine.SetComparisonThreshold(condition.name, row, value);
+                            }
                         }
                     }
 
@@ -438,7 +376,7 @@ void StateMachineInspector::DrawConditions(StateMachine& stateMachine)
 
             if (removeComparison >= 0)
             {
-                condition.comparisons.erase(condition.comparisons.begin() + removeComparison);
+                stateMachine.RemoveComparison(condition.name, removeComparison);
             }
             if (condition.comparisons.empty())
             {
@@ -449,29 +387,21 @@ void StateMachineInspector::DrawConditions(StateMachine& stateMachine)
         ImGui::PopID();
     }
 
-    if (removeIndex >= 0)
+    if (!removeName.empty())
     {
-        conditions.erase(conditions.begin() + removeIndex);
+        stateMachine.RemoveCondition(removeName);
     }
     ImGui::TreePop();
 }
 
 void StateMachineInspector::DrawStates(StateMachine& stateMachine)
 {
-    std::vector<FsmStateDesc>& states = stateMachine.EditStateDescs();
-    if (!ImGui::TreeNodeEx("##states", ImGuiTreeNodeFlags_DefaultOpen, "States (%zu)", states.size()))
+    if (!ImGui::TreeNodeEx("##states", ImGuiTreeNodeFlags_DefaultOpen, "States (%zu)", stateMachine.GetStateDescs().size()))
     {
         return;
     }
 
-    std::vector<std::string> roots;
-    for (const FsmStateDesc& state : states)
-    {
-        if (state.parent.empty() || !FindByName(states, state.parent))
-        {
-            roots.push_back(state.name);
-        }
-    }
+    const std::vector<std::string> roots = stateMachine.GetRootStateNames();
 
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
     std::string initial = stateMachine.GetInitialState();
@@ -480,30 +410,16 @@ void StateMachineInspector::DrawStates(StateMachine& stateMachine)
         stateMachine.SetInitialState(initial);
     }
 
-    // "/Ground/Run/" so a state is active when "/Name/" is found.
-    const std::string activePath = "/" + stateMachine.GetCurrentStateName() + "/";
     for (const std::string& root : roots)
     {
-        DrawStateNode(stateMachine, root, activePath);
+        DrawStateNode(stateMachine, root);
     }
 
     // Removed after the tree is drawn, since the tree walks the state list.
     if (!m_RemoveState.empty())
     {
         const std::string name = std::exchange(m_RemoveState, {});
-        if (stateMachine.GetInitialState() == name)
-        {
-            stateMachine.SetInitialState("");
-        }
-        for (FsmStateDesc& other : states)
-        {
-            if (other.initialChild == name)
-            {
-                other.initialChild.clear();
-            }
-        }
-        std::erase_if(states, [&name](const FsmStateDesc& desc) { return desc.name == name; });
-        if (m_SelectedState == name)
+        if (stateMachine.RemoveState(name) && m_SelectedState == name)
         {
             m_SelectedState.clear();
         }
@@ -513,28 +429,18 @@ void StateMachineInspector::DrawStates(StateMachine& stateMachine)
     ImGui::TreePop();
 }
 
-void StateMachineInspector::DrawStateNode(StateMachine& stateMachine, const std::string& name, const std::string& activePath)
+void StateMachineInspector::DrawStateNode(StateMachine& stateMachine, const std::string& name)
 {
-    std::vector<FsmStateDesc>& states = stateMachine.EditStateDescs();
-    const FsmStateDesc* state = FindByName(states, name);
+    const FsmStateDesc* state = stateMachine.FindStateDesc(name);
     if (!state)
     {
         return;
     }
 
-    std::vector<std::string> children;
-    for (const FsmStateDesc& child : states)
-    {
-        if (child.parent == name)
-        {
-            children.push_back(child.name);
-        }
-    }
-
-    const FsmStateDesc* parent = FindByName(states, state->parent);
-    const bool initial = parent ? parent->initialChild == name : stateMachine.GetInitialState() == name;
-    const bool active = activePath.find("/" + name + "/") != std::string::npos;
-    const bool compiled = IsStateClassCompiled(state->type);
+    const std::vector<std::string> children = stateMachine.GetChildStateNames(name);
+    const bool initial = stateMachine.IsInitialState(name);
+    const bool active = stateMachine.IsStateActive(name);
+    const bool compiled = StateMachine::IsStateClassRegistered(state->type);
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
     if (children.empty())
@@ -567,7 +473,7 @@ void StateMachineInspector::DrawStateNode(StateMachine& stateMachine, const std:
         m_SelectedState = name;
     }
 
-    // A parent is deleted after its children so no state is left pointing at a missing parent.
+    // RemoveState refuses a state with children, so the button is disabled for them.
     ImGui::SameLine();
     const float removeWidth = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2.0f;
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - removeWidth);
@@ -586,7 +492,7 @@ void StateMachineInspector::DrawStateNode(StateMachine& stateMachine, const std:
     {
         for (const std::string& child : children)
         {
-            DrawStateNode(stateMachine, child, activePath);
+            DrawStateNode(stateMachine, child);
         }
         ImGui::TreePop();
     }
@@ -594,68 +500,71 @@ void StateMachineInspector::DrawStateNode(StateMachine& stateMachine, const std:
 
 void StateMachineInspector::DrawSelectedState(StateMachine& stateMachine)
 {
-    std::vector<FsmStateDesc>& states = stateMachine.EditStateDescs();
-    FsmStateDesc* state = FindByName(states, m_SelectedState);
-    if (!state)
+    const FsmStateDesc* found = stateMachine.FindStateDesc(m_SelectedState);
+    if (!found)
     {
         return;
     }
+    // Copied, since the API calls below change the list.
+    const FsmStateDesc state = *found;
 
     ImGui::Separator();
-    ImGui::Text("State: %s  [%s]", state->name.c_str(), state->type.c_str());
+    ImGui::Text("State: %s  [%s]", state.name.c_str(), state.type.c_str());
     ImGui::SameLine();
-    ImGui::TextDisabled("Parent: %s", state->parent.empty() ? "(root)" : state->parent.c_str());
+    ImGui::TextDisabled("Parent: %s", state.parent.empty() ? "(root)" : state.parent.c_str());
 
-    std::vector<std::string> children;
-    std::vector<std::string> targets;
-    for (const FsmStateDesc& other : states)
-    {
-        if (other.parent == state->name)
-        {
-            children.push_back(other.name);
-        }
-        if (other.name != state->name)
-        {
-            targets.push_back(other.name);
-        }
-    }
+    const std::vector<std::string> children = stateMachine.GetChildStateNames(state.name);
+    std::vector<std::string> targets = stateMachine.GetStateNames();
+    std::erase(targets, state.name);
 
     if (!children.empty())
     {
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.6f);
-        NameCombo("Initial Child", state->initialChild, children);
+        std::string initialChild = state.initialChild;
+        if (NameCombo("Initial Child", initialChild, children))
+        {
+            stateMachine.SetStateInitialChild(state.name, initialChild);
+        }
     }
 
-    const std::vector<std::string> conditionNames = Names(stateMachine.GetConditionDescs());
+    const std::vector<std::string> conditionNames = stateMachine.GetConditionNames();
     int removeIndex = -1;
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Transitions");
     ImGui::SameLine();
     if (ImGui::SmallButton("+##addTransition"))
     {
-        state->transitions.push_back({});
+        stateMachine.AddTransition(state.name);
     }
 
-    if (!state->transitions.empty() && ImGui::BeginTable("##transitions", 3, ImGuiTableFlags_SizingStretchProp))
+    if (!state.transitions.empty() && ImGui::BeginTable("##transitions", 3, ImGuiTableFlags_SizingStretchProp))
     {
         ImGui::TableSetupColumn("Target", ImGuiTableColumnFlags_WidthStretch, 0.5f);
         ImGui::TableSetupColumn("Condition", ImGuiTableColumnFlags_WidthStretch, 0.5f);
         ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
 
-        for (int index = 0; index < static_cast<int>(state->transitions.size()); ++index)
+        for (int index = 0; index < static_cast<int>(state.transitions.size()); ++index)
         {
-            FsmTransitionDesc& transition = state->transitions[index];
+            const FsmTransitionDesc& transition = state.transitions[index];
             ImGui::PushID(index);
             ImGui::TableNextRow();
 
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
-            NameCombo("##target", transition.target, targets);
+            std::string target = transition.target;
+            if (NameCombo("##target", target, targets))
+            {
+                stateMachine.SetTransitionTarget(state.name, index, target);
+            }
 
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
-            NameCombo("##condition", transition.condition, conditionNames);
+            std::string condition = transition.condition;
+            if (NameCombo("##condition", condition, conditionNames))
+            {
+                stateMachine.SetTransitionCondition(state.name, index, condition);
+            }
 
             ImGui::TableNextColumn();
             if (ImGui::SmallButton("X"))
@@ -669,7 +578,7 @@ void StateMachineInspector::DrawSelectedState(StateMachine& stateMachine)
 
     if (removeIndex >= 0)
     {
-        state->transitions.erase(state->transitions.begin() + removeIndex);
+        stateMachine.RemoveTransition(state.name, removeIndex);
     }
 }
 
@@ -699,7 +608,7 @@ void StateMachineInspector::DrawAddState(StateMachine& stateMachine)
     ImGui::SetNextItemWidth(width);
     ImGui::InputTextWithHint("Folder", "under Game/Source", &m_NewStateFolder);
     ImGui::SetNextItemWidth(width);
-    NameCombo("Parent", m_NewStateParent, Names(stateMachine.GetStateDescs()));
+    NameCombo("Parent", m_NewStateParent, stateMachine.GetStateNames());
 
     const float buttonWidth = ImGui::CalcTextSize("Make Class").x + ImGui::GetStyle().FramePadding.x * 2.0f;
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - buttonWidth);
@@ -716,17 +625,11 @@ void StateMachineInspector::DrawAddState(StateMachine& stateMachine)
 
 void StateMachineInspector::AddState(StateMachine& stateMachine)
 {
-    std::vector<FsmStateDesc>& states = stateMachine.EditStateDescs();
     const std::string className = m_NewStateClass.empty() ? m_NewStateName : m_NewStateClass;
 
-    if (m_NewStateName.empty() || m_NewStateName.find('/') != std::string::npos)
+    // Checked before any file is made, so a rejected state leaves no files behind.
+    if (!stateMachine.CanAddState(m_NewStateName, m_NewStateParent, m_Message))
     {
-        m_Message = "Enter a state name without '/'.";
-        return;
-    }
-    if (FindByName(states, m_NewStateName))
-    {
-        m_Message = "A state named '" + m_NewStateName + "' already exists.";
         return;
     }
     if (!IsIdentifier(className))
@@ -741,41 +644,26 @@ void StateMachineInspector::AddState(StateMachine& stateMachine)
     }
 
     // An existing class is reused; only a new one gets files.
+    const bool compiled = StateMachine::IsStateClassRegistered(className);
     bool created = false;
-    if (!IsStateClassCompiled(className) && !std::filesystem::exists(GetStateHeaderPath(m_NewStateFolder, className)))
+    if (!compiled && !std::filesystem::exists(GetStateHeaderPath(m_NewStateFolder, className)))
     {
-        std::string error;
-        if (!RunNewStateTool(className, m_NewStateFolder, error))
+        if (!RunNewStateTool(className, m_NewStateFolder, m_Message))
         {
-            m_Message = error;
             return;
         }
         created = true;
     }
 
-    FsmStateDesc state;
-    state.name = m_NewStateName;
-    state.type = className;
-    state.parent = m_NewStateParent;
-    states.push_back(state);
-
-    // The first child or root becomes the one entered by default.
-    if (FsmStateDesc* parent = FindByName(states, m_NewStateParent))
+    if (!stateMachine.AddState(m_NewStateName, className, m_NewStateParent, m_Message))
     {
-        if (parent->initialChild.empty())
-        {
-            parent->initialChild = state.name;
-        }
-    }
-    else if (stateMachine.GetInitialState().empty())
-    {
-        stateMachine.SetInitialState(state.name);
+        return;
     }
 
     m_Message = created
         ? "Created " + className + ".h/.cpp. Rebuild the editor before playing."
-        : IsStateClassCompiled(className) ? "Added '" + state.name + "'." : "Added '" + state.name + "'. Rebuild the editor before playing.";
-    m_SelectedState = state.name;
+        : compiled ? "Added '" + m_NewStateName + "'." : "Added '" + m_NewStateName + "'. Rebuild the editor before playing.";
+    m_SelectedState = m_NewStateName;
     m_NewStateName.clear();
     m_NewStateClass.clear();
     m_CloseAddState = true;

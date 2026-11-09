@@ -19,9 +19,6 @@
     <Filter Include="Source">
       <UniqueIdentifier>{D5F4A14A-296F-C4CD-3A23-84F6F0C3C3C1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\FsamSample">
-      <UniqueIdentifier>{84A0232F-934A-5498-3A2E-9FD1AFA2117E}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\FsmSample">
       <UniqueIdentifier>{A09F0646-7C41-C492-C5F8-96D67134117C}</UniqueIdentifier>
     </Filter>
@@ -36,9 +33,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\FsamSample\WalkStart.h">
-      <Filter>Source\FsamSample</Filter>
-    </ClInclude>
     <ClInclude Include="Source\FsmSample\FsmSampleIdle.h">
       <Filter>Source\FsmSample</Filter>
     </ClInclude>
@@ -116,9 +110,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\FsamSample\WalkStart.cpp">
-      <Filter>Source\FsamSample</Filter>
-    </ClCompile>
     <ClCompile Include="Source\FsmSample\FsmSampleIdle.cpp">
       <Filter>Source\FsmSample</Filter>
     </ClCompile>
