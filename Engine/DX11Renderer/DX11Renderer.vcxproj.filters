@@ -196,6 +196,9 @@
     <None Include="Shader\Common\MeshTypes.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\SkyboxEnvironment.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="Shader\Debug\DepthDebug.hlsl">
       <Filter>Shader\Debug</Filter>
     </None>

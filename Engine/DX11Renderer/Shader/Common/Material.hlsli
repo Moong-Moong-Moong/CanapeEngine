@@ -6,6 +6,7 @@
 
 Texture2D BaseColorTexture : register(t0);
 Texture2D TestNormalTexture : register(t3); // Linear UNORM normal-map data.
+Texture2D ORMTexture : register(t4); // Linear UNORM: AO, roughness, metallic.
 SamplerState LinearSampler : register(s0);
 
 float GetDebugAlpha(VertexOutput input)

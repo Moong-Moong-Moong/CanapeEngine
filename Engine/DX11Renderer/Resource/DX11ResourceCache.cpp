@@ -210,7 +210,9 @@ namespace Canape
     void DX11ResourceCache::DestroyTexture(TextureResourceId texture)
     {
         // Invalidate dependent material snapshots so the Runtime can rebuild them.
-        std::erase_if(Materials, [texture](const auto& entry) { return entry.second.BaseColorTexture == texture; });
+        std::erase_if(Materials, [texture](const auto& entry) {
+            return entry.second.BaseColorTexture == texture || entry.second.ORMTexture == texture;
+        });
         Textures.erase(texture.value);
     }
 
@@ -302,10 +304,11 @@ namespace Canape
             return {};
         }
 
+        D3D11_TEXTURE2D_DESC created{};
+        cubemap.Texture->GetDesc(&created);
+        cubemap.MipLevels = created.MipLevels;
         if (generateMips)
         {
-            D3D11_TEXTURE2D_DESC created{};
-            cubemap.Texture->GetDesc(&created);
             const size_t faceBytes = size_t(faceSize) * faceSize * 4;
             for (uint32_t face = 0; face < 6; ++face)
             {
@@ -344,7 +347,8 @@ namespace Canape
         Cubemaps.erase(cubemap.value);
     }
 
-    MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture, std::string& error)
+    MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
+        TextureResourceId ormTexture, std::string& error)
     {
         const Vector4& color = desc.baseColor;
         if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
@@ -368,7 +372,7 @@ namespace Canape
             return {};
         }
         const MaterialResourceId id{ nextId++ };
-        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture });
+        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture, ormTexture });
         error.clear();
         return id;
     }

@@ -36,12 +36,22 @@ float4 PSMain(VertexOutput input) : SV_TARGET
         float3x3 tangentToWorld = float3x3(tangent, bitangent, normal);
         normal = normalize(mul(tangentNormal, tangentToWorld));
     }
-    float3 lighting = AmbientColor * AmbientIntensity
-        + CalculateDirectLighting(input.WorldPosition, normal);
     // sRGB sampling decodes RGB; the FP16 SceneColor target preserves linear HDR output.
     float4 textureColor = BaseColorTexture.Sample(LinearSampler, input.UV);
     float alpha = BaseColor.a * textureColor.a;
     if (MaterialAlphaMode == 1) clip(alpha - AlphaCutoff);
-    float3 rgb = lighting * BaseColor.rgb * textureColor.rgb;
+    float3 baseColor = BaseColor.rgb * textureColor.rgb;
+    float metallic = MaterialMetallic;
+    float roughness = MaterialRoughness;
+    if (HasORMTexture != 0)
+    {
+        float3 orm = ORMTexture.Sample(LinearSampler, input.UV).rgb;
+        roughness = orm.g;
+        metallic = orm.b;
+    }
+    // Keep legacy ambient separate from the direct-light BRDF; AO is reserved for indirect light.
+    float3 rgb = AmbientColor * AmbientIntensity * baseColor
+        + CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness)
+        + CalculateSpecularIBL(input.WorldPosition, normal, baseColor, metallic, roughness);
     return float4(rgb, MaterialAlphaMode == 2 ? alpha : 1.0f);
 }

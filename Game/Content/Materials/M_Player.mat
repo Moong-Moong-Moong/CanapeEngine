@@ -8,9 +8,9 @@
             "Z": 1.0,
             "W": 1.0
         },
-        "roughness": 0.5,
-        "metallic": 0.0,
+        "roughness": -0.097,
+        "metallic": 1.05,
         "alphaMode": "Opaque",
-        "alphaCutoff": 0.5
+        "alphaCutoff": 0.3
     }
 }

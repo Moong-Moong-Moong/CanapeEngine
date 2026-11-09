@@ -37,6 +37,7 @@ namespace Canape
         MaterialDesc Description;
         ShaderConstants::MaterialConstants Constants;
         ID3D11ShaderResourceView* Texture = nullptr; // Borrowed from the resource cache.
+        ID3D11ShaderResourceView* ORMTexture = nullptr;
     };
     struct PreparedLighting
     {

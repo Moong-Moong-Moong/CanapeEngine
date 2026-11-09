@@ -32,6 +32,9 @@ namespace Canape::RenderBindings
         ID3D11SamplerState* shadowSampler = resources.ShadowSampler;
         context.PSSetShaderResources(1, 1, &shadowView);
         context.PSSetSamplers(1, 1, &shadowSampler);
+        context.PSSetShaderResources(2, 1, &resources.EnvironmentView);
+        context.PSSetSamplers(2, 1, &resources.EnvironmentSampler);
+        context.PSSetConstantBuffers(6, 1, &resources.SkyboxConstants);
     }
 
     void BindPipeline(ID3D11DeviceContext& context, const DX11PipelineSelection& pipeline)

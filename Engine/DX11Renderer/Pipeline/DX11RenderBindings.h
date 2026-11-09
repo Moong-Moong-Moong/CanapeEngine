@@ -17,6 +17,9 @@ namespace Canape
         SceneConstantBuffers Constants;
         ID3D11ShaderResourceView* ShadowView = nullptr;
         ID3D11SamplerState* ShadowSampler = nullptr;
+        ID3D11ShaderResourceView* EnvironmentView = nullptr;
+        ID3D11SamplerState* EnvironmentSampler = nullptr;
+        ID3D11Buffer* SkyboxConstants = nullptr;
     };
     namespace RenderBindings
     {

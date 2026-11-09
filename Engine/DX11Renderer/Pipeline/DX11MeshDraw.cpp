@@ -30,7 +30,8 @@ namespace Canape::MeshDraw
     {
         UploadAndBindObject(draw, context);
         UploadAndBindMaterial(draw, context);
-        // Temporary global normal-map binding; the shader does not consume it yet.
+        context.Context.PSSetShaderResources(4, 1, &draw.Material.ORMTexture);
+        // Temporary renderer-wide normal-map binding until material routing is available.
         context.Context.PSSetShaderResources(3, 1, &context.TestNormalTexture);
         const AlphaMode alpha = draw.Material.Description.alphaMode;
 #if CANAPE_RENDER_DEBUG

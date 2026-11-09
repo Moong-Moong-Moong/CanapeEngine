@@ -597,6 +597,116 @@ void SkyboxChecks(DX11Renderer& renderer)
     renderer.DestroyCubemap(cubemap);
     std::cout << "Skybox GPU integration: cubemap selection, brightness, yaw, camera, depth, missing resource, queue reset PASS\n";
 }
+void SpecularIblChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    const std::array<StaticVertex, 4> vertices{{
+        {{-1, -1, 1}, {0, 0, -1}, {0, 0}},
+        {{-1, 1, 1}, {0, 0, -1}, {0, 1}},
+        {{1, 1, 1}, {0, 0, -1}, {1, 1}},
+        {{1, -1, 1}, {0, 0, -1}, {1, 0}} }};
+    const std::array<uint32_t, 6> indices{0, 1, 2, 0, 2, 3};
+    const auto mesh = renderer.CreateMesh(vertices, indices, {});
+    Require(renderer.IsMeshValid(mesh), "IBL reflection plane");
+    RenderScene scene;
+    scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
+    scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
+    scene.ambientIntensity = 0.0f;
+    scene.items = {RenderItem{mesh}};
+    auto render = [&](float roughness, float metallic = 1.0f)
+    {
+        MaterialDesc desc;
+        desc.metallic = metallic;
+        desc.roughness = roughness;
+        const auto material = renderer.CreateMaterial(desc);
+        Require(renderer.IsMaterialValid(material), "IBL material");
+        scene.items[0].material = material;
+        const Image image = Frame(renderer, scene);
+        renderer.DestroyMaterial(material);
+        return image;
+    };
+    auto center = [](const Image& image, unsigned channel)
+    {
+        const size_t offset = ((image.height / 2) * image.width + image.width / 2) * 4;
+        return int(image.rgba[offset + channel]);
+    };
+
+    // A supplied DDS mip chain must remain intact and map roughness 0/.5/1 to mips 0/1/2.
+    std::vector<uint8_t> supplied;
+    for (unsigned face = 0; face < 6; ++face)
+        for (unsigned mip = 0; mip < 3; ++mip)
+        {
+            const unsigned size = 4u >> mip;
+            for (unsigned texel = 0; texel < size * size; ++texel)
+            {
+                supplied.push_back(face == 5 && mip == 0 ? 255 : 0);
+                supplied.push_back(face == 5 && mip == 1 ? 255 : 0);
+                supplied.push_back(face == 5 && mip == 2 ? 255 : 0);
+                supplied.push_back(255);
+            }
+        }
+    const auto existing = renderer.CreateCubemap(4, 3, TextureFormat::RGBA8_SRGB, supplied);
+    Require(renderer.IsCubemapValid(existing), "IBL supplied mip chain");
+    const auto* existingResource = impl.Resources.GetCubemap(existing);
+    D3D11_TEXTURE2D_DESC existingDesc{};
+    existingResource->Texture->GetDesc(&existingDesc);
+    Require(existingDesc.MipLevels == 3 && existingResource->MipLevels == 3,
+        "supplied mip count preserved");
+    scene.skybox.cubemap = existing;
+    const auto red = render(0.0f);
+    const auto green = render(0.5f);
+    const auto blue = render(1.0f);
+    Require(center(red, 0) > 240 && center(red, 1) < 5 && center(red, 2) < 5,
+        "roughness zero samples sharp supplied mip");
+    Require(center(green, 1) > 240 && center(green, 0) < 5 && center(green, 2) < 5,
+        "roughness half samples middle supplied mip");
+    Require(center(blue, 2) > 240 && center(blue, 0) < 5 && center(blue, 1) < 5,
+        "roughness one samples last supplied mip");
+    renderer.DestroyCubemap(existing);
+
+    // A single-level source generates its ordinary mip chain once at resource creation.
+    constexpr unsigned size = 16;
+    std::vector<uint8_t> source(6 * size * size * 4, 0);
+    for (unsigned face = 0; face < 6; ++face)
+        for (unsigned y = 0; y < size; ++y)
+            for (unsigned x = 0; x < size; ++x)
+            {
+                const size_t offset = ((face * size + y) * size + x) * 4;
+                source[offset] = face == 5 && x >= 6 && x < 10 && y >= 6 && y < 10 ? 255 : 0;
+                source[offset + 3] = 255;
+            }
+    const auto generated = renderer.CreateCubemap(size, 1, TextureFormat::RGBA8_SRGB, source);
+    Require(renderer.IsCubemapValid(generated), "IBL generated mip chain");
+    const auto* generatedResource = impl.Resources.GetCubemap(generated);
+    D3D11_TEXTURE2D_DESC generatedDesc{};
+    generatedResource->Texture->GetDesc(&generatedDesc);
+    Require(generatedDesc.MipLevels == 5 && generatedResource->MipLevels == 5,
+        "single-level cubemap generates full mip chain");
+    scene.skybox.cubemap = generated;
+    const auto sharp = render(0.0f);
+    const auto medium = render(0.5f);
+    const auto blurred = render(1.0f);
+    std::cout << "Specular IBL center red at roughness 0/.5/1: "
+        << center(sharp, 0) << '/' << center(medium, 0) << '/' << center(blurred, 0) << '\n';
+    Require(center(sharp, 0) > center(medium, 0) + 10
+        && center(medium, 0) > center(blurred, 0) + 10,
+        "generated mips progressively soften the reflection");
+    Require(center(render(0.0f, 0.0f), 0) < center(sharp, 0) / 3,
+        "dielectric F0 reduces specular IBL relative to metal");
+    scene.skybox.brightness = 0.25f;
+    Require(center(render(0.0f), 0) < center(sharp, 0),
+        "specular IBL follows skybox brightness");
+    scene.skybox.brightness = 1.0f;
+    scene.skybox.rotationRadians = DirectX::XM_PIDIV2;
+    Require(center(render(0.0f), 0) == 0,
+        "specular IBL follows skybox rotation");
+    scene.skybox.rotationRadians = 0.0f;
+    renderer.DestroyCubemap(generated);
+    scene.skybox = {};
+    Require(center(render(0.0f), 0) == 0, "missing skybox contributes no specular IBL");
+    renderer.DestroyMesh(mesh);
+    std::cout << "Specular IBL: supplied mips reused, missing mips generated, roughness 0/.5/1 PASS\n";
+}
 // Read raw linear SceneColor rather than the legacy display-byte test adapter.
 std::array<float, 4> ReadHdrCenter(Backend& impl)
 {
@@ -782,8 +892,12 @@ void ShadowChecks()
         ComPtr<ID3D11InfoQueue> queue;
         Require(SUCCEEDED(impl.Device.As(&queue)), "debug info queue");
         Require(impl.CreateTargets(256, 256) && impl.CreatePipeline() && impl.CreateSkyboxQuad(), "targets and pipeline");
+        impl.Initialized = true;
         SkyboxChecks(renderer);
         HdrChecks(renderer);
+        SpecularIblChecks(renderer);
+        CheckMessages(queue.Get());
+        queue->ClearStoredMessages();
         if (!impl.Pipelines.ShadowsAvailable())
             CheckMessages(queue.Get());
         Require(impl.Pipelines.ShadowsAvailable(), "shadow pipeline compiled");
