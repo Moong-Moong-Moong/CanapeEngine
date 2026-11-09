@@ -10,5 +10,6 @@ namespace Canape
     {
         MaterialDesc Desc;
         TextureResourceId BaseColorTexture;
+        TextureResourceId ORMTexture;
     };
 }

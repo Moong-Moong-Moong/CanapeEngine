@@ -254,7 +254,13 @@
     <None Include="Content\Texture\Enemy_BaseColor.png">
       <Filter>Content\Texture</Filter>
     </None>
+    <None Include="Content\Texture\Enemy_ORM.png">
+      <Filter>Content\Texture</Filter>
+    </None>
     <None Include="Content\Texture\Player_BaseColor.png">
+      <Filter>Content\Texture</Filter>
+    </None>
+    <None Include="Content\Texture\Player_ORM.png">
       <Filter>Content\Texture</Filter>
     </None>
     <None Include="Content\Texture\README.md">

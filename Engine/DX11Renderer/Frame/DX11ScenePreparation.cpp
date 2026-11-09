@@ -247,7 +247,9 @@ namespace Canape::ScenePreparation
         const DX11MaterialResource* resource = resources.GetMaterial(material);
         const MaterialDesc desc = resource ? resource->Desc : MaterialDesc{};
         ID3D11ShaderResourceView* textureView = resources.GetWhiteTextureView();
+        ID3D11ShaderResourceView* ormView = nullptr;
         uint32_t hasTexture = 0;
+        uint32_t hasORMTexture = 0;
         if (resource)
         {
             if (const auto* texture = resources.GetTexture(resource->BaseColorTexture))
@@ -257,10 +259,15 @@ namespace Canape::ScenePreparation
                 hasTexture = 1;
 #endif
             }
+            if (const auto* texture = resources.GetTexture(resource->ORMTexture))
+            {
+                ormView = texture->ShaderResourceView.Get();
+                hasORMTexture = 1;
+            }
         }
         const SC::MaterialConstants constants{ desc.baseColor, static_cast<uint32_t>(desc.alphaMode),
-            desc.alphaCutoff, hasTexture };
-        return { desc, constants, textureView };
+            desc.alphaCutoff, hasTexture, 0.0f, desc.metallic, desc.roughness, hasORMTexture };
+        return { desc, constants, textureView, ormView };
     }
 
     PreparedLighting PrepareLights(std::span<const RenderLight> lights, const DirectionalShadowSettings& settings)

@@ -287,7 +287,8 @@ namespace Canape
         m_Impl->QueuedScene.ambientIntensity = intensity;
     }
 
-    MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture)
+    MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
+        TextureResourceId ormTexture)
     {
         if (!m_Impl->Initialized)
         {
@@ -295,7 +296,7 @@ namespace Canape
             CN_LOG_RENDERER("Error", m_Impl->LastError);
             return {};
         }
-        return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, m_Impl->LastError);
+        return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, ormTexture, m_Impl->LastError);
     }
 
     MaterialDesc DX11Renderer::GetMaterial(MaterialResourceId material) const

@@ -210,7 +210,9 @@ namespace Canape
     void DX11ResourceCache::DestroyTexture(TextureResourceId texture)
     {
         // Invalidate dependent material snapshots so the Runtime can rebuild them.
-        std::erase_if(Materials, [texture](const auto& entry) { return entry.second.BaseColorTexture == texture; });
+        std::erase_if(Materials, [texture](const auto& entry) {
+            return entry.second.BaseColorTexture == texture || entry.second.ORMTexture == texture;
+        });
         Textures.erase(texture.value);
     }
 
@@ -344,7 +346,8 @@ namespace Canape
         Cubemaps.erase(cubemap.value);
     }
 
-    MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture, std::string& error)
+    MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
+        TextureResourceId ormTexture, std::string& error)
     {
         const Vector4& color = desc.baseColor;
         if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
@@ -368,7 +371,7 @@ namespace Canape
             return {};
         }
         const MaterialResourceId id{ nextId++ };
-        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture });
+        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture, ormTexture });
         error.clear();
         return id;
     }
