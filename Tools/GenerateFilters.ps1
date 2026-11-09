@@ -37,11 +37,21 @@ foreach ($project in $Projects)
 
 	# Keep filters already assigned to existing items; only new items get a folder-based filter.
 	$existingFilters = @{}
+	# Keep the identifiers of filters that already exist so unrelated filters do not change.
+	$existingIdentifiers = @{}
 	if (Test-Path "$projectPath.filters")
 	{
 		[xml]$existingXml = Get-Content "$projectPath.filters" -Raw
 		$existingNamespaces = New-Object System.Xml.XmlNamespaceManager($existingXml.NameTable)
 		$existingNamespaces.AddNamespace('m', $msbuildNamespace)
+		foreach ($node in $existingXml.SelectNodes('//m:ItemGroup/m:Filter[@Include]', $existingNamespaces))
+		{
+			$identifier = $node.SelectSingleNode('m:UniqueIdentifier', $existingNamespaces)
+			if ($identifier)
+			{
+				$existingIdentifiers[$node.GetAttribute('Include')] = $identifier.InnerText
+			}
+		}
 		foreach ($node in $existingXml.SelectNodes('//m:ItemGroup/m:*[@Include and not(self::m:Filter)]', $existingNamespaces))
 		{
 			$filterNode = $node.SelectSingleNode('m:Filter', $existingNamespaces)
@@ -82,7 +92,8 @@ foreach ($project in $Projects)
 		foreach ($filter in $filters)
 		{
 			[void]$builder.AppendLine("    <Filter Include=`"$filter`">")
-			[void]$builder.AppendLine("      <UniqueIdentifier>{$(Get-StableGuid "$projectName|$filter")}</UniqueIdentifier>")
+			$identifier = if ($existingIdentifiers.ContainsKey($filter)) { $existingIdentifiers[$filter] } else { "{$(Get-StableGuid "$projectName|$filter")}" }
+			[void]$builder.AppendLine("      <UniqueIdentifier>$identifier</UniqueIdentifier>")
 			[void]$builder.AppendLine('    </Filter>')
 		}
 		[void]$builder.AppendLine('  </ItemGroup>')

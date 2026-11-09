@@ -2,9 +2,129 @@
 
 #include <DirectXMath.h>
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#include <shellapi.h>
+#include <TlHelp32.h>
+
 #include <cmath>
 
 using namespace Canape;
+
+namespace
+{
+    // Runs a command line without a console window. output (optional) receives stdout and stderr.
+    bool RunProcess(std::wstring commandLine, DWORD waitMilliseconds, DWORD& exitCode, std::string* output)
+    {
+        SECURITY_ATTRIBUTES security{ sizeof(security), nullptr, TRUE };
+        HANDLE readPipe = nullptr;
+        HANDLE writePipe = nullptr;
+        if (output)
+        {
+            if (!CreatePipe(&readPipe, &writePipe, &security, 0))
+            {
+                return false;
+            }
+            SetHandleInformation(readPipe, HANDLE_FLAG_INHERIT, 0);
+        }
+
+        STARTUPINFOW startup{};
+        startup.cb = sizeof(startup);
+        if (output)
+        {
+            startup.dwFlags = STARTF_USESTDHANDLES;
+            startup.hStdOutput = writePipe;
+            startup.hStdError = writePipe;
+        }
+
+        PROCESS_INFORMATION process{};
+        const BOOL started = CreateProcessW(nullptr, commandLine.data(), nullptr, nullptr, output != nullptr,
+            CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process);
+        if (writePipe)
+        {
+            CloseHandle(writePipe);
+        }
+        if (!started)
+        {
+            if (readPipe)
+            {
+                CloseHandle(readPipe);
+            }
+            return false;
+        }
+
+        if (readPipe)
+        {
+            char buffer[512];
+            DWORD read = 0;
+            while (ReadFile(readPipe, buffer, sizeof(buffer), &read, nullptr) && read > 0)
+            {
+                output->append(buffer, read);
+            }
+            CloseHandle(readPipe);
+        }
+
+        exitCode = STILL_ACTIVE;
+        if (waitMilliseconds > 0)
+        {
+            WaitForSingleObject(process.hProcess, waitMilliseconds);
+            GetExitCodeProcess(process.hProcess, &exitCode);
+        }
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
+        return true;
+    }
+
+    std::wstring Quote(const std::wstring& text)
+    {
+        return L"\"" + text + L"\"";
+    }
+
+    const std::wstring& FindVisualStudio()
+    {
+        static const std::wstring devenv = []
+        {
+            wchar_t programFiles[MAX_PATH] = {};
+            if (!GetEnvironmentVariableW(L"ProgramFiles(x86)", programFiles, MAX_PATH))
+            {
+                return std::wstring();
+            }
+            const std::wstring vswhere = std::wstring(programFiles) + L"\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+            DWORD exitCode = 0;
+            std::string output;
+            if (!RunProcess(Quote(vswhere) + L" -latest -property productPath", 10000, exitCode, &output) || exitCode != 0)
+            {
+                return std::wstring();
+            }
+            while (!output.empty() && (output.back() == '\r' || output.back() == '\n'))
+            {
+                output.pop_back();
+            }
+            return EditorUtils::FromUtf8(output).wstring();
+        }();
+        return devenv;
+    }
+
+    bool IsProcessRunning(const wchar_t* exeName)
+    {
+        HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (snapshot == INVALID_HANDLE_VALUE)
+        {
+            return false;
+        }
+        PROCESSENTRY32W entry{};
+        entry.dwSize = sizeof(entry);
+        bool found = false;
+        for (BOOL more = Process32FirstW(snapshot, &entry); more && !found; more = Process32NextW(snapshot, &entry))
+        {
+            found = _wcsicmp(entry.szExeFile, exeName) == 0;
+        }
+        CloseHandle(snapshot);
+        return found;
+    }
+}
 
 namespace EditorUtils
 {
@@ -86,5 +206,45 @@ namespace EditorUtils
             return ToUtf8(path);
         }
         return ToUtf8(relative);
+    }
+
+    bool RunTool(const std::string& script, const std::wstring& arguments, std::string& error)
+    {
+        const std::filesystem::path path = (GetGameDirectory() / ".." / "Tools" / script).lexically_normal();
+        const std::wstring command = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File " + Quote(path.wstring()) + L" " + arguments;
+
+        DWORD exitCode = 1;
+        std::string output;
+        if (!RunProcess(command, 30000, exitCode, &output))
+        {
+            error = "Could not start " + script;
+            return false;
+        }
+        if (exitCode != 0)
+        {
+            // PowerShell prints the thrown message first.
+            const size_t end = output.find_first_of("\r\n");
+            error = script + " failed: " + (end == std::string::npos ? output : output.substr(0, end));
+            return false;
+        }
+        return true;
+    }
+
+    void OpenInVisualStudio(const std::filesystem::path& file)
+    {
+        const std::wstring& devenv = FindVisualStudio();
+        if (!devenv.empty())
+        {
+            const std::filesystem::path solution = (GetGameDirectory() / ".." / "Canape.slnx").lexically_normal();
+            const std::wstring command = IsProcessRunning(L"devenv.exe")
+                ? Quote(devenv) + L" /Edit " + Quote(file.wstring())
+                : Quote(devenv) + L" " + Quote(solution.wstring()) + L" /Command " + Quote(L"File.OpenFile " + file.wstring());
+            DWORD exitCode = 0;
+            if (RunProcess(command, 0, exitCode, nullptr))
+            {
+                return;
+            }
+        }
+        ShellExecuteW(nullptr, L"open", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }

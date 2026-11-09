@@ -3,8 +3,6 @@
 
 #include <imgui_stdlib.h>
 
-#include <Windows.h>
-
 #include <algorithm>
 #include <filesystem>
 #include <regex>
@@ -169,38 +167,15 @@ namespace
         return (path / (className + ".h")).lexically_normal();
     }
 
-    // Runs Tools/NewScript.ps1 -State and waits for it. Returns false with a message on failure.
+    // Runs Tools/NewScript.ps1 -State. Returns false with a message on failure.
     bool RunNewStateTool(const std::string& className, const std::string& folder, std::string& error)
     {
-        const std::filesystem::path script = (EditorUtils::GetGameDirectory() / ".." / "Tools" / "NewScript.ps1").lexically_normal();
-        std::wstring command = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + script.wstring()
-            + L"\" -State -Name " + EditorUtils::FromUtf8(className).wstring();
+        std::wstring arguments = L"-State -Name " + EditorUtils::FromUtf8(className).wstring();
         if (!folder.empty())
         {
-            command += L" -Folder " + EditorUtils::FromUtf8(folder).wstring();
+            arguments += L" -Folder " + EditorUtils::FromUtf8(folder).wstring();
         }
-
-        STARTUPINFOW startup{};
-        startup.cb = sizeof(startup);
-        PROCESS_INFORMATION process{};
-        if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process))
-        {
-            error = "Could not start NewScript.ps1";
-            return false;
-        }
-
-        WaitForSingleObject(process.hProcess, 30000);
-        DWORD exitCode = 1;
-        GetExitCodeProcess(process.hProcess, &exitCode);
-        CloseHandle(process.hThread);
-        CloseHandle(process.hProcess);
-
-        if (exitCode != 0)
-        {
-            error = "NewScript.ps1 failed (exit " + std::to_string(exitCode) + ")";
-            return false;
-        }
-        return true;
+        return EditorUtils::RunTool("NewScript.ps1", arguments, error);
     }
 }
 

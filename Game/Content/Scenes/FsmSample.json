@@ -1,0 +1,344 @@
+{
+    "version": 1,
+    "name": "FsmSample",
+    "mainCamera": 3,
+    "materials": [
+        {
+            "name": "M_FsmSampleFloor",
+            "baseColorTexture": "",
+            "desc": {
+                "baseColor": {
+                    "X": 0.5,
+                    "Y": 0.5,
+                    "Z": 0.5,
+                    "W": 1.0
+                },
+                "roughness": 0.8,
+                "metallic": 0.0,
+                "alphaMode": "Opaque",
+                "alphaCutoff": 0.5
+            }
+        },
+        {
+            "name": "M_FsmSamplePlayer",
+            "baseColorTexture": "",
+            "desc": {
+                "baseColor": {
+                    "X": 0.9,
+                    "Y": 0.45,
+                    "Z": 0.15,
+                    "W": 1.0
+                },
+                "roughness": 0.5,
+                "metallic": 0.0,
+                "alphaMode": "Opaque",
+                "alphaCutoff": 0.5
+            }
+        }
+    ],
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 3.0,
+                            "Z": -9.0
+                        },
+                        "localRotation": {
+                            "X": 0.13052619,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9914449
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Directional Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.25881904,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9659258
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.0,
+                        "range": 10.0,
+                        "innerAngle": 1.5,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 30.0,
+                            "Y": 1.0,
+                            "Z": 10.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Plane",
+                        "materials": [
+                            "M_FsmSampleFloor"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Player",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.5,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "M_FsmSamplePlayer"
+                        ]
+                    }
+                },
+                {
+                    "type": "FsmSampleMover",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "walkSpeed": 2.0,
+                        "runSpeed": 5.0
+                    }
+                },
+                {
+                    "type": "StateMachine",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "name": "Locomotion",
+                        "parameters": [
+                            {
+                                "name": "Speed",
+                                "type": "Float",
+                                "defaultValue": 0.0
+                            },
+                            {
+                                "name": "IsRunning",
+                                "type": "Bool",
+                                "defaultValue": 0.0
+                            }
+                        ],
+                        "conditions": [
+                            {
+                                "name": "Stopped",
+                                "comparisons": [
+                                    {
+                                        "parameter": "Speed",
+                                        "compare": "Less",
+                                        "threshold": 0.01
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Walking",
+                                "comparisons": [
+                                    {
+                                        "parameter": "Speed",
+                                        "compare": "Greater",
+                                        "threshold": 0.01
+                                    },
+                                    {
+                                        "parameter": "IsRunning",
+                                        "compare": "False",
+                                        "threshold": 0.0
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Running",
+                                "comparisons": [
+                                    {
+                                        "parameter": "Speed",
+                                        "compare": "Greater",
+                                        "threshold": 0.01
+                                    },
+                                    {
+                                        "parameter": "IsRunning",
+                                        "compare": "True",
+                                        "threshold": 0.0
+                                    }
+                                ]
+                            }
+                        ],
+                        "states": [
+                            {
+                                "name": "Grounded",
+                                "type": "FsmState",
+                                "parent": "",
+                                "initialChild": "Idle",
+                                "transitions": []
+                            },
+                            {
+                                "name": "Idle",
+                                "type": "FsmSampleIdle",
+                                "parent": "Grounded",
+                                "initialChild": "",
+                                "transitions": [
+                                    {
+                                        "target": "Walk",
+                                        "condition": "Walking"
+                                    },
+                                    {
+                                        "target": "Run",
+                                        "condition": "Running"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Walk",
+                                "type": "FsmSampleWalk",
+                                "parent": "Grounded",
+                                "initialChild": "",
+                                "transitions": [
+                                    {
+                                        "target": "Idle",
+                                        "condition": "Stopped"
+                                    },
+                                    {
+                                        "target": "Run",
+                                        "condition": "Running"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Run",
+                                "type": "FsmSampleRun",
+                                "parent": "Grounded",
+                                "initialChild": "",
+                                "transitions": [
+                                    {
+                                        "target": "Idle",
+                                        "condition": "Stopped"
+                                    },
+                                    {
+                                        "target": "Walk",
+                                        "condition": "Walking"
+                                    }
+                                ]
+                            }
+                        ],
+                        "initialState": "Grounded"
+                    }
+                }
+            ]
+        }
+    ]
+}

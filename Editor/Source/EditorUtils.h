@@ -22,4 +22,9 @@ namespace EditorUtils
     const std::filesystem::path& GetGameDirectory();
     std::filesystem::path GetSceneDirectory();
     std::string ToGameRelativePath(const std::filesystem::path& path);
+
+    // Runs Tools/<script> with PowerShell and waits for it. On failure error holds the tool's output.
+    bool RunTool(const std::string& script, const std::wstring& arguments, std::string& error);
+    // Opens the file in the running Visual Studio, or opens the solution with it, or falls back to the default program.
+    void OpenInVisualStudio(const std::filesystem::path& file);
 }

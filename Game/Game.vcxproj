@@ -120,6 +120,11 @@ exit /b 0</Command>
     <ClInclude Include="Source\State\test.h" />
     <ClInclude Include="Source\State\haha.h" />
     <ClInclude Include="Source\State\hoho.h" />
+    <ClInclude Include="Source\FsmSample\FsmSampleMover.h" />
+    <ClInclude Include="Source\FsmSample\FsmSampleIdle.h" />
+    <ClInclude Include="Source\FsmSample\FsmSampleWalk.h" />
+    <ClInclude Include="Source\FsmSample\FsmSampleRun.h" />
+    <ClInclude Include="Source\FsamSample\WalkStart.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -143,6 +148,11 @@ exit /b 0</Command>
     <ClCompile Include="Source\State\test.cpp" />
     <ClCompile Include="Source\State\haha.cpp" />
     <ClCompile Include="Source\State\hoho.cpp" />
+    <ClCompile Include="Source\FsmSample\FsmSampleMover.cpp" />
+    <ClCompile Include="Source\FsmSample\FsmSampleIdle.cpp" />
+    <ClCompile Include="Source\FsmSample\FsmSampleWalk.cpp" />
+    <ClCompile Include="Source\FsmSample\FsmSampleRun.cpp" />
+    <ClCompile Include="Source\FsamSample\WalkStart.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Materials\M_Enemy.mat" />
@@ -162,6 +172,7 @@ exit /b 0</Command>
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />
     <None Include="Content\Game.json" />
+    <None Include="Content\Scenes\FsmSample.json" />
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />
     <None Include="Content\Scenes\SampleScene2.json" />

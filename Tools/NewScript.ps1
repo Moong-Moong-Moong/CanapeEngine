@@ -11,6 +11,9 @@ param(
 	# Creates a Canape::FsmState under Source instead of a ScriptComponent.
 	[switch]$State,
 
+	# Folder relative to the project (e.g. Source\Player). Replaces the default folder and -Folder.
+	[string]$Directory = '',
+
 	[string]$Project = ''
 )
 
@@ -42,6 +45,11 @@ if ($Folder -and ($Folder -notmatch '^[A-Za-z0-9_]+([\\/][A-Za-z0-9_]+)*$'))
 	throw "'$Folder' is not a valid folder name."
 }
 
+if ($Directory -and ($Directory -notmatch '^Source([\\/][A-Za-z0-9_]+)*$'))
+{
+	throw "'$Directory' is not a folder under Source."
+}
+
 if ($State)
 {
 	$baseClass = 'Canape::FsmState'
@@ -61,8 +69,8 @@ else
 $projectPath = (Resolve-Path $Project).Path
 $projectDir = Split-Path $projectPath -Parent
 
-$relativeFolder = if ($State) { 'Source' } else { 'Source\Scripts' }
-if ($Folder)
+$relativeFolder = if ($Directory) { $Directory -replace '/', '\' } elseif ($State) { 'Source' } else { 'Source\Scripts' }
+if ($Folder -and -not $Directory)
 {
 	$relativeFolder = Join-Path $relativeFolder ($Folder -replace '/', '\')
 }

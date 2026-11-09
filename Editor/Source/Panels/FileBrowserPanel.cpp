@@ -2,6 +2,7 @@
 #include "EditorUtils.h"
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <system_error>
@@ -59,6 +60,19 @@ namespace
     bool IsSceneFile(const fs::path& path)
     {
         return path.extension() == ".json" && EditorUtils::ToGameRelativePath(path).starts_with("Content/Scenes/");
+    }
+
+    bool IsSourceFile(const fs::path& path)
+    {
+        const fs::path extension = path.extension();
+        return extension == ".h" || extension == ".hpp" || extension == ".cpp" || extension == ".inl";
+    }
+
+    // "Source" or "Source/..." relative to the game folder, or empty when the folder is outside Game/Source.
+    std::string GetSourceDirectory(const fs::path& directory)
+    {
+        const std::string relative = EditorUtils::ToGameRelativePath(directory);
+        return relative == "Source" || relative.starts_with("Source/") ? relative : std::string();
     }
 }
 
@@ -150,6 +164,10 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::TextUnformatted(location == "." ? "Game" : ("Game/" + location).c_str());
+    if (!m_Message.empty())
+    {
+        ImGui::TextWrapped("%s", m_Message.c_str());
+    }
     ImGui::Separator();
 
     fs::path nextDirectory;
@@ -178,6 +196,17 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             ImGui::EndDragDropSource();
         }
 
+        if (!entry.directory && IsSourceFile(entry.path) && !GetSourceDirectory(entry.path.parent_path()).empty()
+            && ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem("Delete"))
+            {
+                m_DeleteSource = entry.path.parent_path() / entry.path.stem();
+                m_OpenDeleteSource = true;
+            }
+            ImGui::EndPopup();
+        }
+
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
             if (entry.directory)
@@ -187,6 +216,10 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             else if (IsSceneFile(entry.path))
             {
                 context.RequestOpenScene(entry.path.string());
+            }
+            else if (IsSourceFile(entry.path))
+            {
+                EditorUtils::OpenInVisualStudio(entry.path);
             }
         }
 
@@ -201,7 +234,7 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
         m_CurrentDirectory = nextDirectory;
     }
 
-    if (ImGui::BeginPopupContextWindow("##FileBrowserContext"))
+    if (ImGui::BeginPopupContextWindow("##FileBrowserContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
     {
         if (ImGui::BeginMenu("Create"))
         {
@@ -209,10 +242,134 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             {
                 CreateMaterial(context);
             }
+
+            // Classes go through Tools/NewScript.ps1, so they must live under Game/Source.
+            const bool inSource = !GetSourceDirectory(m_CurrentDirectory).empty();
+            if (ImGui::BeginMenu("C++ Source", inSource))
+            {
+                if (ImGui::MenuItem("ScriptComponent"))
+                {
+                    m_NewSourceKind = SourceKind::ScriptComponent;
+                    m_OpenNewSource = true;
+                }
+                if (ImGui::MenuItem("FsmState"))
+                {
+                    m_NewSourceKind = SourceKind::FsmState;
+                    m_OpenNewSource = true;
+                }
+                ImGui::EndMenu();
+            }
             ImGui::EndMenu();
         }
         ImGui::EndPopup();
     }
+
+    DrawNewSourcePopup();
+    DrawDeleteSourcePopup(context);
+}
+
+void FileBrowserPanel::DrawNewSourcePopup()
+{
+    constexpr const char* kPopup = "New C++ Source";
+    if (m_OpenNewSource)
+    {
+        ImGui::OpenPopup(kPopup);
+        m_NewSourceName.clear();
+        m_OpenNewSource = false;
+    }
+    if (!ImGui::BeginPopupModal(kPopup, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+
+    const std::string directory = GetSourceDirectory(m_CurrentDirectory);
+    const char* kind = m_NewSourceKind == SourceKind::ScriptComponent ? "ScriptComponent" : "FsmState";
+    ImGui::Text("%s in Game/%s", kind, directory.c_str());
+
+    if (ImGui::IsWindowAppearing())
+    {
+        ImGui::SetKeyboardFocusHere();
+    }
+    const bool submitted = ImGui::InputText("Class", &m_NewSourceName, ImGuiInputTextFlags_EnterReturnsTrue);
+
+    if (ImGui::Button("Create") || submitted)
+    {
+        std::wstring arguments = L"-Name " + EditorUtils::FromUtf8(m_NewSourceName).wstring()
+            + L" -Directory " + EditorUtils::FromUtf8(directory).wstring();
+        if (m_NewSourceKind == SourceKind::FsmState)
+        {
+            arguments += L" -State";
+        }
+
+        std::string error;
+        m_Message = EditorUtils::RunTool("NewScript.ps1", arguments, error)
+            ? "Created " + m_NewSourceName + ".h/.cpp. Rebuild the editor to use it."
+            : error;
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel"))
+    {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
+void FileBrowserPanel::DrawDeleteSourcePopup(EditorContext& context)
+{
+    constexpr const char* kPopup = "Delete C++ Source";
+    if (m_OpenDeleteSource)
+    {
+        ImGui::OpenPopup(kPopup);
+        m_OpenDeleteSource = false;
+    }
+    if (!ImGui::BeginPopupModal(kPopup, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+
+    std::vector<fs::path> files;
+    std::error_code error;
+    for (const char* extension : { ".h", ".cpp" })
+    {
+        fs::path file = m_DeleteSource;
+        file += extension;
+        if (fs::exists(file, error))
+        {
+            files.push_back(file);
+        }
+    }
+
+    ImGui::TextUnformatted("Move to the Recycle Bin and remove from Game.vcxproj:");
+    for (const fs::path& file : files)
+    {
+        ImGui::BulletText("%s", EditorUtils::ToGameRelativePath(file).c_str());
+    }
+
+    if (ImGui::Button("Delete"))
+    {
+        std::string message;
+        const std::string path = EditorUtils::ToGameRelativePath(m_DeleteSource);
+        if (EditorUtils::RunTool("RemoveSource.ps1", EditorUtils::FromUtf8(path).wstring(), message))
+        {
+            m_Message = "Deleted " + path + ". Rebuild the editor.";
+            if (std::find(files.begin(), files.end(), context.GetSelectedAsset()) != files.end())
+            {
+                context.SelectAsset({});
+            }
+        }
+        else
+        {
+            m_Message = message;
+        }
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel"))
+    {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
 }
 
 void FileBrowserPanel::CreateMaterial(EditorContext& context)
