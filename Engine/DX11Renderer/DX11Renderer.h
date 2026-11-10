@@ -87,6 +87,11 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        // Called inside DrawScene with the scene targets, the viewport and the shared constants bound.
+        // The callee keeps the triangle-list topology, uses only b9, t8-t10, s8 and u0-u1 and unbinds them.
+        void SetAfterOpaqueCallback(std::function<void()>);
+        void SetAfterTransparentCallback(std::function<void()>);
+
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;

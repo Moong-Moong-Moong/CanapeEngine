@@ -90,6 +90,8 @@ namespace Canape
         Width = Height = BackBufferWidth = BackBufferHeight = 0;
         RequestedSceneWidth = RequestedSceneHeight = 0;
         Overlay = {};
+        AfterOpaqueCallback = {};
+        AfterTransparentCallback = {};
         LastError.clear();
         ViewData = {};
         DirectX::XMStoreFloat4x4(&ViewData.View, DirectX::XMMatrixIdentity());

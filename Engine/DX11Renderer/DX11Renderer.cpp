@@ -397,6 +397,16 @@ namespace Canape
         m_Impl->Overlay = std::move(overlay);
     }
 
+    void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
+    {
+        m_Impl->AfterOpaqueCallback = std::move(callback);
+    }
+
+    void DX11Renderer::SetAfterTransparentCallback(std::function<void()> callback)
+    {
+        m_Impl->AfterTransparentCallback = std::move(callback);
+    }
+
     void* DX11Renderer::GetNativeDevice() const
     {
         return m_Impl->Device.Get();
