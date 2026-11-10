@@ -80,9 +80,9 @@ namespace Canape
             depthDisplay, PostProcessBuffer.Get(), stats);
     }
 
+#if CANAPE_RENDER_DEBUG
     void DX11Renderer::Impl::BeginFrameProfiling(ID3D11DeviceContext* context)
     {
-#if CANAPE_RENDER_DEBUG
 
         CurrentStats = {};
         CurrentStats.frameId = ++NextFrameId;
@@ -92,8 +92,8 @@ namespace Canape
             if (DebugSettings.captureGpuTimings)
                 Profiler.BeginFrame(context, CurrentStats.frameId);
         }
-#endif
     }
+#endif
 
     bool DX11Renderer::Impl::BeginFrame()
     {
@@ -117,7 +117,9 @@ namespace Canape
 
         ID3D11DeviceContext* context = Context.Get();
 
+#if CANAPE_RENDER_DEBUG
         BeginFrameProfiling(context);
+#endif
 
         // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
@@ -139,6 +141,7 @@ namespace Canape
         return true;
     }
 
+#if CANAPE_RENDER_DEBUG
     struct SceneScope {
         bool ProfilerAvailable;
         Canape::GPUProfiler& Profiler;
@@ -184,6 +187,7 @@ namespace Canape
         FinalOutputScope(FinalOutputScope&&) = delete;
         FinalOutputScope& operator=(FinalOutputScope&&) = delete;
     };
+#endif
 
     void DX11Renderer::Impl::ExecuteScene(const RenderScene& scene)
     {
@@ -193,7 +197,9 @@ namespace Canape
         }
 
         {
+#if CANAPE_RENDER_DEBUG
             SceneScope scope(ProfilerAvailable, Profiler, Context.Get());
+#endif
 
             const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
             ViewData = prepared.View;
@@ -237,7 +243,9 @@ namespace Canape
         }
 
         {
+#if CANAPE_RENDER_DEBUG
             FinalOutputScope scope(ProfilerAvailable, Profiler, Context.Get());
+#endif
 
             if (Overlay)
             {
