@@ -175,7 +175,9 @@ exit /b 0</Command>
     <None Include="Content\Scenes\SampleScene.json" />
     <None Include="Content\Scenes\SampleScene2.json" />
     <None Include="Content\Texture\Enemy_BaseColor.png" />
+    <None Include="Content\Texture\Enemy_ORM.png" />
     <None Include="Content\Texture\Player_BaseColor.png" />
+    <None Include="Content\Texture\Player_ORM.png" />
     <None Include="Content\Texture\README.md" />
   </ItemGroup>
   <ItemGroup>

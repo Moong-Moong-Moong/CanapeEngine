@@ -1,6 +1,7 @@
 {
     "version": 1,
     "baseColorTexture": "Content/Texture/Enemy_BaseColor.png",
+    "ormTexture": "Content/Texture/Enemy_ORM.png",
     "desc": {
         "baseColor": {
             "X": 1.0,
@@ -8,7 +9,7 @@
             "Z": 1.0,
             "W": 1.0
         },
-        "roughness": 0.5,
+        "roughness": 0.751931,
         "metallic": 0.0,
         "alphaMode": "Masked",
         "alphaCutoff": 0.5

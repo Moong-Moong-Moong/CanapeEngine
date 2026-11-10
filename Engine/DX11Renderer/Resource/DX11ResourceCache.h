@@ -46,7 +46,8 @@ namespace Canape
         void DestroyCubemap(CubemapResourceId cubemap);
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
-        MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture, std::string& error);
+        MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
+            TextureResourceId ormTexture, std::string& error);
         const DX11MaterialResource* GetMaterial(MaterialResourceId material) const;
         bool IsMaterialValid(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);

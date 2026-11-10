@@ -42,7 +42,8 @@ namespace Canape
         bool IsMeshValid(MeshResourceId mesh) const;
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
-        MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {});
+        MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {},
+            TextureResourceId ormTexture = {});
         // Invalid/stale IDs resolve to a default white descriptor.
         MaterialDesc GetMaterial(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);
