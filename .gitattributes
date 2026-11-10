@@ -1,0 +1,21 @@
+# Text files are stored with LF in the repository and checked out with CRLF.
+* text=auto eol=crlf
+
+# vcpkg overlay patches must match upstream sources byte for byte.
+*.patch -text
+
+# Binary assets
+*.[dD][dD][sS] filter=lfs diff=lfs merge=lfs -text
+*.[fF][bB][xX] filter=lfs diff=lfs merge=lfs -text
+*.[gG][lL][bB] filter=lfs diff=lfs merge=lfs -text
+*.[pP][nN][gG] filter=lfs diff=lfs merge=lfs -text
+*.[jJ][pP][gG] filter=lfs diff=lfs merge=lfs -text
+*.[jJ][pP][eE][gG] filter=lfs diff=lfs merge=lfs -text
+*.[tT][gG][aA] filter=lfs diff=lfs merge=lfs -text
+*.[hH][dD][rR] filter=lfs diff=lfs merge=lfs -text
+*.[eE][xX][rR] filter=lfs diff=lfs merge=lfs -text
+*.[wW][aA][vV] filter=lfs diff=lfs merge=lfs -text
+*.[oO][gG][gG] filter=lfs diff=lfs merge=lfs -text
+*.[mM][pP]3 filter=lfs diff=lfs merge=lfs -text
+*.[tT][tT][fF] filter=lfs diff=lfs merge=lfs -text
+*.[oO][tT][fF] filter=lfs diff=lfs merge=lfs -text
