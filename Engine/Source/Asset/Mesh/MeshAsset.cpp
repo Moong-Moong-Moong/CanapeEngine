@@ -6,11 +6,10 @@
 namespace Canape
 {
 	MeshAsset::MeshAsset(std::vector<Vector3> positions, std::vector<uint32_t> indices)
-		: m_Positions(std::move(positions))
-		, m_Indices(std::move(indices))
+		: m_Indices(std::move(indices))
 	{
-		m_Vertices.reserve(m_Positions.size());
-		for (const Vector3& position : m_Positions)
+		m_Vertices.reserve(positions.size());
+		for (const Vector3& position : positions)
 			m_Vertices.push_back({ position, {}, {} });
 		InitializeSubMeshes();
 	}
@@ -18,9 +17,6 @@ namespace Canape
 	MeshAsset::MeshAsset(std::vector<StaticVertex> vertices, std::vector<uint32_t> indices, std::vector<SubMesh> submeshes)
 		: m_Vertices(std::move(vertices)), m_Indices(std::move(indices)), m_SubMeshes(std::move(submeshes))
 	{
-		// Retain the position-only accessor for callers of the old Mesh API.
-		m_Positions.reserve(m_Vertices.size());
-		for (const StaticVertex& vertex : m_Vertices) m_Positions.push_back(vertex.Position);
 		InitializeSubMeshes();
 	}
 

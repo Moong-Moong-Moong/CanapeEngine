@@ -18,7 +18,6 @@ namespace Canape
 		MeshAsset(std::vector<Vector3> positions, std::vector<uint32_t> indices);
 		MeshAsset(std::vector<StaticVertex> vertices, std::vector<uint32_t> indices, std::vector<SubMesh> submeshes);
 
-		const std::vector<Vector3>& GetPositions() const { return m_Positions; }
 		const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 		const std::vector<StaticVertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<SubMesh>& GetSubMeshes() const { return m_SubMeshes; }
@@ -35,7 +34,6 @@ namespace Canape
 		static MeshAssetId AllocateAssetId();
 
 		const MeshAssetId m_AssetId = AllocateAssetId();
-		std::vector<Vector3> m_Positions;
 		std::vector<StaticVertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
 		std::vector<SubMesh> m_SubMeshes;

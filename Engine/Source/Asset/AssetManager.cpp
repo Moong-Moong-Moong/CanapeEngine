@@ -1,6 +1,7 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
+#include "Asset/Importer/glTF/CNglTFImporter.h"
 #include "Asset/Mesh/PrimitiveMeshes.h"
 #include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
@@ -357,6 +358,15 @@ namespace Canape
 			{
 				mesh = FbxImporter::LoadMesh(filePath);
 			}
+
+			else if (extension == ".gltf")
+			{
+				CNglTF cnglTF;
+				CNglTFImporter glTFImporter;
+				glTFImporter.ReadglTF(filePath, cnglTF);
+				mesh = glTFImporter.LoadMeshAsset(cnglTF);
+			}
+
 			else
 			{
 				CN_LOG_RUNTIME("Asset", "메쉬 에셋 로드 오류 : 지원하지 않는 확장자, ", path);

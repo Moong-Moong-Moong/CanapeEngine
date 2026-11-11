@@ -70,6 +70,9 @@
     <Filter Include="Source\Asset\Importer">
       <UniqueIdentifier>{273df2e6-aad2-4c33-8e4d-deadd0eec52c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Asset\Importer\glTF">
+      <UniqueIdentifier>{2b41fc15-3d8f-41f3-b636-382fb89a4037}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\CNDebug\DebugLog.h">
@@ -270,8 +273,8 @@
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Asset\Importer\CNglTFImporter.h">
-      <Filter>Source\Asset\Importer</Filter>
+    <ClInclude Include="Source\Asset\Importer\glTF\CNglTFImporter.h">
+      <Filter>Source\Asset\Importer\glTF</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -401,8 +404,8 @@
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Asset\Importer\CNglTFImporter.cpp">
-      <Filter>Source\Asset\Importer</Filter>
+    <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp">
+      <Filter>Source\Asset\Importer\glTF</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
