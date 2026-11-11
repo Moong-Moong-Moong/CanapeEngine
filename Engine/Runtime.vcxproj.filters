@@ -67,6 +67,9 @@
     <Filter Include="Source\ThirdParty\ufbx">
       <UniqueIdentifier>{F51ADD6D-5EBD-EE87-6F67-226844A786CD}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Asset\Importer">
+      <UniqueIdentifier>{273df2e6-aad2-4c33-8e4d-deadd0eec52c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\CNDebug\DebugLog.h">
@@ -267,6 +270,9 @@
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Importer\CNglTFImporter.h">
+      <Filter>Source\Asset\Importer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\CNDebug\DebugLog.cpp">
@@ -394,6 +400,9 @@
     </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Importer\CNglTFImporter.cpp">
+      <Filter>Source\Asset\Importer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

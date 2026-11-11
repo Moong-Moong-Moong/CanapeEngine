@@ -24,4 +24,5 @@
   <Project Path="Engine/JoltPhysics/JoltPhysics.vcxproj" Id="b6a1c3e4-5d2f-4e8a-9c71-3f0d8a2b6e15" />
   <Project Path="Game/Game.vcxproj" Id="9888319e-1ec6-47ab-903e-fa649afa53b8" />
   <Project Path="Editor/Editor.vcxproj" Id="45ddb9be-2566-4414-ab3b-6be1929a26d4" />
+  <Project Path="TestBed/TestBed.vcxproj" Id="0fe01a07-b245-4fff-b5f4-f88ae751be87" />
 </Solution>
