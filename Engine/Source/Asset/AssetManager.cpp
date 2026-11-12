@@ -363,8 +363,14 @@ namespace Canape
 			{
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
-				glTFImporter.ReadglTF(filePath, cnglTF);
-				mesh = glTFImporter.LoadMeshAsset(cnglTF);
+				if (glTFImporter.ReadglTF(filePath, cnglTF))
+				{
+					mesh = glTFImporter.LoadMeshAsset(cnglTF);
+				}
+				if (mesh)
+				{
+					WriteDefaultMaterialFiles(*mesh);
+				}
 			}
 
 			else
@@ -391,6 +397,34 @@ namespace Canape
 		return id;
 	}	
 
+	void AssetManager::WriteDefaultMaterialFiles(const MeshAsset& mesh)
+	{
+		for (const MaterialData& slot : mesh.GetMaterialSlots())
+		{
+			if (!MaterialFile::IsMaterialPath(slot.name))
+			{
+				continue;
+			}
+
+			// 이미 있으면 사용자가 편집했을 수 있으므로 덮어쓰지 않는다.
+			const std::filesystem::path file = GetAssetFile(slot.name);
+			std::error_code error;
+			if (std::filesystem::exists(file, error))
+			{
+				continue;
+			}
+
+			if (MaterialFile::Save(file, slot))
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 기본 머티리얼 파일 생성 : ", slot.name);
+			}
+			else
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 기본 머티리얼 파일 생성 실패 : ", slot.name);
+			}
+		}
+	}
+
 	MeshAssetHandle AssetManager::CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner)
 	{
 		return CreateHandle(m_MeshesById, AssetType::Mesh, id, owner);
@@ -416,7 +450,7 @@ namespace Canape
 
 	// Texture
 
-	TextureAssetHandle AssetManager::GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner)
+	TextureAssetHandle AssetManager::GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner, TextureFormat format)
 	{
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
@@ -425,10 +459,12 @@ namespace Canape
 			return {};
 		}
 
-		TextureAssetId id = FindTexture(resolved.key);
+		// 같은 파일을 sRGB(색상)와 UNORM(데이터)로 동시에 쓸 수 있으므로 format별로 캐시 키를 분리한다.
+		const std::string key = format == TextureFormat::RGBA8_UNORM ? resolved.key + "|unorm" : resolved.key;
+		TextureAssetId id = FindTexture(key);
 		if (!id.IsValid())
 		{
-			id = LoadTexture(resolved.assetPath, resolved.key, resolved.utf8File);
+			id = LoadTexture(resolved.assetPath, key, resolved.utf8File, format);
 			if (!id.IsValid())
 			{
 				return {};
@@ -447,14 +483,15 @@ namespace Canape
 		return FindAssetId(m_TextureIdByPath, pathKey);
 	}
 
-	TextureAssetId AssetManager::LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath)
+	TextureAssetId AssetManager::LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath,
+		TextureFormat format)
 	{
 		const std::string extension = GetLowerExtension(filePath);
 
 		std::unique_ptr<TextureAsset> texture;
 		if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp")
 		{
-			texture = TextureImporter::LoadTexture(std::filesystem::path(std::u8string(filePath.begin(), filePath.end())));
+			texture = TextureImporter::LoadTexture(std::filesystem::path(std::u8string(filePath.begin(), filePath.end())), nullptr, format);
 		}
 		else
 		{
@@ -589,8 +626,7 @@ namespace Canape
 
 	// Material
 
-	MaterialAssetHandle AssetManager::CreateMaterial(const std::string& name, const MaterialDesc& desc,
-		const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner)
+	MaterialAssetHandle AssetManager::CreateMaterial(const std::string& name, const MaterialData& data, const AssetOwnerInfo& owner)
 	{
 		if (name.empty())
 		{
@@ -603,18 +639,7 @@ namespace Canape
 			return CreateMaterialHandle(existing, owner);
 		}
 
-		TextureAssetHandle texture;
-		if (baseColorTexture.IsValid())
-		{
-			if (!GetTexture(baseColorTexture))
-			{
-				CN_LOG_RUNTIME("Asset", "머티리얼 에셋 생성 오류 : 해제된 텍스처 참조, ", name);
-				return {};
-			}
-			texture = CreateTextureHandle(baseColorTexture.GetId(), { owner.sceneName, "Material:" + name, "MaterialAsset" });
-		}
-
-		auto material = std::make_unique<MaterialAsset>(desc, std::move(texture));
+		auto material = std::make_unique<MaterialAsset>(data.desc, LoadMaterialTextures(name, data, owner.sceneName));
 		if (!m_GpuRegistry.CreateMaterialResource(*material).IsValid())
 		{
 			CN_LOG_RUNTIME("Asset", "머티리얼 에셋 Gpu 로드 실패, ", name);
@@ -647,22 +672,39 @@ namespace Canape
 
 	MaterialAssetHandle AssetManager::LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner)
 	{
-		MaterialFileData data;
+		MaterialData data;
 		if (!MaterialFile::Load(GetAssetFile(assetPath), data))
 		{
 			CN_LOG_RUNTIME("Asset", "머티리얼 파일 로드 실패 : ", assetPath);
 			return {};
 		}
 
-		TextureAssetHandle texture;
-		if (!data.baseColorTexture.empty())
-		{
-			texture = GetTextureHandle(data.baseColorTexture, owner);
-		}
-		return CreateMaterial(assetPath, data.desc, texture, owner);
+		return CreateMaterial(assetPath, data, owner);
 	}
 
-	bool AssetManager::UpdateMaterial(const std::string& name, const MaterialFileData& data)
+	MaterialTextures AssetManager::LoadMaterialTextures(const std::string& materialName, const MaterialData& data,
+		const std::string& sceneName)
+	{
+		// 텍스처 핸들의 소유자는 머티리얼. 머티리얼이 살아 있는 동안 텍스처도 유지된다.
+		const AssetOwnerInfo textureOwner{ sceneName, "Material:" + materialName, "MaterialAsset" };
+
+		MaterialTextures textures;
+		for (size_t index = 0; index < kMaterialTextureSlotCount; ++index)
+		{
+			const MaterialTextureSlot slot = static_cast<MaterialTextureSlot>(index);
+			const std::string& path = data.GetTexturePath(slot);
+			if (path.empty())
+			{
+				continue;
+			}
+
+			// 로드 실패 시 해당 슬롯만 비워두고 머티리얼은 계속 만든다. (실패 로그는 GetTextureHandle에서 출력)
+			textures[index] = GetTextureHandle(path, textureOwner, GetMaterialTextureFormat(slot));
+		}
+		return textures;
+	}
+
+	bool AssetManager::UpdateMaterial(const std::string& name, const MaterialData& data)
 	{
 		const std::string key = MaterialFile::IsMaterialPath(name) ? ToAssetPath(name) : name;
 		const MaterialAssetId id = FindMaterial(key);
@@ -672,15 +714,9 @@ namespace Canape
 			return false;
 		}
 
-		TextureAssetHandle texture;
-		if (!data.baseColorTexture.empty())
-		{
-			texture = GetTextureHandle(data.baseColorTexture, { "", "Material:" + key, "MaterialAsset" });
-		}
-
 		MaterialAsset& material = *found->second.asset;
 		material.SetDesc(data.desc);
-		material.SetBaseColorTexture(std::move(texture));
+		material.SetTextures(LoadMaterialTextures(key, data, ""));
 
 		const MaterialAssetId ids[] = { id };
 		m_GpuRegistry.ReleaseMaterials(ids);
@@ -690,18 +726,6 @@ namespace Canape
 	const MaterialAsset* AssetManager::GetMaterial(const MaterialAssetHandle& handle) const
 	{
 		return FindAsset(m_MaterialsById, handle);
-	}
-
-	const MaterialAsset* AssetManager::FindMaterialByName(const std::string& name) const
-	{
-		const auto found = m_MaterialsById.find(FindMaterial(name));
-		return found != m_MaterialsById.end() ? found->second.asset.get() : nullptr;
-	}
-
-	std::string AssetManager::GetTexturePath(const TextureAssetHandle& handle) const
-	{
-		const auto found = m_TexturesById.find(handle.GetId());
-		return found != m_TexturesById.end() ? found->second.path : std::string();
 	}
 
 	MaterialAssetId AssetManager::FindMaterial(const std::string& name) const

@@ -2,7 +2,6 @@
     "version": 1,
     "name": "SampleScene",
     "mainCamera": 17,
-    "materials": [],
     "gameObjects": [
         {
             "id": 1,

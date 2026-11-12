@@ -7,8 +7,8 @@
 
 namespace Canape
 {
-    MaterialAsset::MaterialAsset(const MaterialDesc& desc, TextureAssetHandle baseColorTexture)
-        : m_Desc(desc), m_BaseColorTexture(std::move(baseColorTexture))
+    MaterialAsset::MaterialAsset(const MaterialDesc& desc, MaterialTextures textures)
+        : m_Desc(desc), m_Textures(std::move(textures))
     {
     }
 

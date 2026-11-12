@@ -22,6 +22,7 @@ namespace Canape
 	};
 
 	class MeshAsset;
+	class TextureAsset;
 
 	class CNglTFImporter
 	{
@@ -30,6 +31,7 @@ namespace Canape
 		// bin 파일은 glTF와 같은 디렉토리에 있고, 파일 이름은 glTF의 buffers[0].uri를 따른다.
 		bool ReadglTF(std::string filePath, CNglTF& cNglTF);
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
+		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);
 
 	};
 }

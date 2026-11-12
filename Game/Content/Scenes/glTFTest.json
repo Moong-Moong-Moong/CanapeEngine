@@ -2,7 +2,6 @@
     "version": 1,
     "name": "Untitled",
     "mainCamera": 3,
-    "materials": [],
     "gameObjects": [
         {
             "id": 1,

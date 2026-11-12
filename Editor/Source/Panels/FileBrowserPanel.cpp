@@ -381,7 +381,7 @@ void FileBrowserPanel::CreateMaterial(EditorContext& context)
         file = m_CurrentDirectory / ("NewMaterial" + std::to_string(index) + Canape::MaterialFile::kExtension);
     }
 
-    if (Canape::MaterialFile::Save(file, Canape::MaterialFileData{}))
+    if (Canape::MaterialFile::Save(file, Canape::MaterialData{}))
     {
         context.SelectAsset(file);
     }

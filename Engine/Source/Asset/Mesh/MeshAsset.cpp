@@ -14,8 +14,8 @@ namespace Canape
 		InitializeSubMeshes();
 	}
 
-	MeshAsset::MeshAsset(std::vector<StaticVertex> vertices, std::vector<uint32_t> indices, std::vector<SubMesh> submeshes)
-		: m_Vertices(std::move(vertices)), m_Indices(std::move(indices)), m_SubMeshes(std::move(submeshes))
+	MeshAsset::MeshAsset(std::vector<StaticVertex> vertices, std::vector<uint32_t> indices, std::vector<SubMesh> submeshes, std::vector<MaterialData> materialSlots)
+		: m_Vertices(std::move(vertices)), m_Indices(std::move(indices)), m_SubMeshes(std::move(submeshes)), m_materialSlots(std::move(materialSlots))
 	{
 		InitializeSubMeshes();
 	}

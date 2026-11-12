@@ -80,6 +80,7 @@
     <ClInclude Include="Source\Asset\AssetManager.h" />
     <ClInclude Include="Source\Asset\AssetTracker.h" />
     <ClInclude Include="Source\Asset\Importer\glTF\CNglTFImporter.h" />
+    <ClInclude Include="Source\Asset\Material\MaterialData.h" />
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
     <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h" />
