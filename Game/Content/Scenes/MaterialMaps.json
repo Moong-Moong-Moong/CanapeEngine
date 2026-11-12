@@ -1,0 +1,354 @@
+{
+    "version": 1,
+    "name": "MaterialMaps",
+    "mainCamera": 3,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 4.0,
+                            "Z": -16.0
+                        },
+                        "localRotation": {
+                            "X": 0.1305262,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9914449
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Directional Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.4082179,
+                            "Y": -0.23456971,
+                            "Z": 0.10938165,
+                            "W": 0.87542605
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.0,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Player - normal and packed ORM",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Player.fbx",
+                        "materials": [
+                            "Content/Materials/M_Player.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Enemy - different normal and packed ORM",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Enemy.fbx",
+                        "materials": [
+                            "Content/Materials/M_Enemy.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "name": "Player - no maps",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Player.fbx",
+                        "materials": [
+                            "Content/Materials/M_MapCheck_NoMaps.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "Player - MR only (ignore red)",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Player.fbx",
+                        "materials": [
+                            "Content/Materials/M_MapCheck_MROnly.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "name": "Player - AO only (ambient)",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 1.0,
+                            "Z": 0.0,
+                            "W": 0.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Player.fbx",
+                        "materials": [
+                            "Content/Materials/M_MapCheck_AOOnly.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 22,
+            "name": "Ambient AO check",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "",
+                        "brightness": 0.0,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "ambientIntensity": 0.6
+                    }
+                }
+            ]
+        }
+    ]
+}

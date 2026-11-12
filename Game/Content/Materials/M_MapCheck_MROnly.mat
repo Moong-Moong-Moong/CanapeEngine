@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "baseColorTexture": "Content/Texture/Player_BaseColor.png",
+    "metallicRoughnessTexture": "Content/Texture/MaterialMaps_ORM.png",
+    "normalTexture": "",
+    "occlusionTexture": "",
+    "desc": {
+        "baseColor": {
+            "X": 1.0,
+            "Y": 1.0,
+            "Z": 1.0,
+            "W": 1.0
+        },
+        "roughness": 1.0,
+        "metallic": 1.0,
+        "alphaMode": "Opaque",
+        "alphaCutoff": 0.3
+    }
+}

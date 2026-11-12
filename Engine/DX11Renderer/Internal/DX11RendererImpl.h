@@ -79,7 +79,6 @@ namespace Canape
         // Reverse member destruction releases cached resources before Context and Device.
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
         DX11ResourceCache Resources;
-        TextureResourceId TestNormalTexture{};
         ComPtr<ID3D11Buffer> SkyboxVertexBuffer;
         ComPtr<ID3D11Buffer> SkyboxIndexBuffer;
         static constexpr UINT SkyboxIndexCount = 6;

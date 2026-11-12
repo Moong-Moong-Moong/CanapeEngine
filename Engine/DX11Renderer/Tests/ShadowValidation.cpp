@@ -858,6 +858,122 @@ void HdrChecks(DX11Renderer& renderer)
     renderer.SetPostProcessSettings({});
     std::cout << "HDR GPU integration: FP16, settings, Reinhard, sRGB, debug bypass, skybox, overlay, resize, single final draw PASS\n";
 }
+void MaterialMapChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    std::array<StaticVertex, 4> vertices{{
+        {{-1, -1, .5f}, {0, 0, -1}, {.5f, .5f}, {1, 0, 0, 1}},
+        {{-1, 1, .5f}, {0, 0, -1}, {.5f, .5f}, {1, 0, 0, 1}},
+        {{1, 1, .5f}, {0, 0, -1}, {.5f, .5f}, {1, 0, 0, 1}},
+        {{1, -1, .5f}, {0, 0, -1}, {.5f, .5f}, {1, 0, 0, 1}} }};
+    const std::array<uint32_t, 6> indices{0, 1, 2, 0, 2, 3};
+    const auto mesh = renderer.CreateMesh(vertices, indices, {});
+    for (auto& vertex : vertices) vertex.Tangent = {};
+    const auto noTangentMesh = renderer.CreateMesh(vertices, indices, {});
+    Require(renderer.IsMeshValid(mesh) && renderer.IsMeshValid(noTangentMesh), "material map meshes");
+    auto texture = [&](std::array<uint8_t, 4> pixel) {
+        const auto id = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, pixel);
+        Require(renderer.IsTextureValid(id), "material map linear texture");
+        return id;
+    };
+    const auto normalX = texture({255, 128, 128, 255});
+    const auto normalY = texture({128, 255, 128, 255});
+    const auto orm = texture({0, 128, 64, 255});
+    const auto ao = texture({64, 255, 255, 255});
+    MaterialDesc desc;
+    desc.roughness = .8f;
+    desc.metallic = .6f;
+    const auto plain = renderer.CreateMaterial(desc);
+    const auto mappedX = renderer.CreateMaterial(desc, {}, {}, normalX);
+    const auto mappedY = renderer.CreateMaterial(desc, {}, {}, normalY);
+    const auto mr = renderer.CreateMaterial(desc, {}, orm);
+    const auto occluded = renderer.CreateMaterial(desc, {}, {}, {}, ao);
+    const auto combined = renderer.CreateMaterial(desc, {}, orm, normalX, ao);
+    for (auto id : {plain, mappedX, mappedY, mr, occluded, combined})
+        Require(renderer.IsMaterialValid(id), "material map material");
+    const auto prepared = ScenePreparation::PrepareMaterial(impl.Resources, combined);
+    Require(prepared.NormalTexture && prepared.ORMTexture && prepared.OcclusionTexture
+        && prepared.Constants.HasNormalTexture == 1 && prepared.Constants.HasORMTexture == 1
+        && prepared.Constants.HasOcclusionTexture == 1, "prepare all material map views and flags");
+
+    RenderScene scene;
+    scene.ambientColor = {.8f, .4f, .2f};
+    scene.ambientIntensity = 1.0f;
+    scene.items = {RenderItem{mesh}};
+    auto render = [&](MaterialResourceId material, MeshResourceId drawMesh) {
+        scene.items[0].material = material;
+        scene.items[0].mesh = drawMesh;
+        Require(renderer.BeginFrame(), "material maps BeginFrame");
+        renderer.DrawScene(scene);
+        const auto pixel = ReadHdrCenter(impl);
+        renderer.EndFrame();
+        return pixel;
+    };
+    auto near = [](const std::array<float, 4>& actual, const std::array<float, 3>& expected,
+        const char* message) {
+        for (size_t channel = 0; channel < 3; ++channel)
+            Require(std::abs(actual[channel] - expected[channel]) < .01f, message);
+    };
+    RendererDebugSettings debug;
+    debug.enabled = true;
+    debug.viewMode = DebugViewMode::WorldNormal;
+    renderer.SetDebugSettings(debug);
+    near(render(mappedX, mesh), {1, .5f, .5f}, "WorldNormal uses first material normal");
+    near(render(mappedY, mesh), {.5f, 0, .5f}, "WorldNormal uses second material normal");
+    near(render(plain, mesh), {.5f, .5f, 0}, "no-map draw keeps mesh normal");
+    near(render(mappedX, noTangentMesh), {.5f, .5f, 0}, "invalid tangent keeps mesh normal");
+    render(combined, mesh);
+    render(plain, mesh);
+    for (UINT slot = 3; slot <= 5; ++slot)
+    {
+        ComPtr<ID3D11ShaderResourceView> view;
+        impl.Context->PSGetShaderResources(slot, 1, view.GetAddressOf());
+        Require(!view.Get(), "no-map draw clears previous material SRVs");
+    }
+    renderer.SetDebugSettings({});
+    near(render(mr, mesh), {.8f, .4f, .2f}, "MR red channel does not occlude ambient");
+    constexpr float aoValue = 64.0f / 255.0f;
+    near(render(occluded, mesh), {.8f * aoValue, .4f * aoValue, .2f * aoValue},
+        "AO red channel scales ambient in linear space");
+    near(render(plain, mesh), {.8f, .4f, .2f}, "missing AO restores ambient");
+
+    scene.ambientIntensity = 0.0f;
+    RenderLight light;
+    light.id = 1;
+    light.type = LightType::Directional;
+    light.direction = {0, 0, 1};
+    scene.lights = {light};
+    const auto direct = render(plain, mesh);
+    Require(direct[0] > .01f, "material map direct-light reference is nonzero");
+    near(render(occluded, mesh), {direct[0], direct[1], direct[2]}, "AO leaves direct light unchanged");
+    MaterialDesc reference = desc;
+    reference.roughness *= 128.0f / 255.0f;
+    reference.metallic *= 64.0f / 255.0f;
+    const auto factored = renderer.CreateMaterial(reference);
+    const auto expected = render(factored, mesh);
+    near(render(mr, mesh), {expected[0], expected[1], expected[2]}, "MR multiplies material factors");
+
+    render(combined, mesh);
+    renderer.DestroyTexture(normalX);
+    Require(!renderer.IsMaterialValid(mappedX) && !renderer.IsMaterialValid(combined)
+        && renderer.IsMaterialValid(mappedY), "normal destruction invalidates only dependent materials");
+    for (UINT slot = 3; slot <= 5; ++slot)
+    {
+        ComPtr<ID3D11ShaderResourceView> view;
+        impl.Context->PSGetShaderResources(slot, 1, view.GetAddressOf());
+        Require(!view.Get(), "texture destruction unbinds material map views");
+    }
+    renderer.DestroyTexture(ao);
+    Require(!renderer.IsMaterialValid(occluded), "AO destruction invalidates dependent material");
+    renderer.DestroyTexture(orm);
+    renderer.DestroyTexture(normalY);
+    for (auto id : {plain, mappedX, mappedY, mr, occluded, combined, factored})
+        renderer.DestroyMaterial(id);
+    renderer.DestroyMesh(mesh);
+    renderer.DestroyMesh(noTangentMesh);
+    std::cout << "Material maps: normals, absent maps, AO, MR factors, resource invalidation PASS\n";
+}
+
 void ShadowChecks()
 {
     const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -896,6 +1012,7 @@ void ShadowChecks()
         SkyboxChecks(renderer);
         HdrChecks(renderer);
         SpecularIblChecks(renderer);
+        MaterialMapChecks(renderer);
         CheckMessages(queue.Get());
         queue->ClearStoredMessages();
         if (!impl.Pipelines.ShadowsAvailable())

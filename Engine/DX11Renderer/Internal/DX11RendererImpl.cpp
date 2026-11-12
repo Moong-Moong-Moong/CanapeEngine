@@ -54,7 +54,6 @@ namespace Canape
         MinGpuFrameId = 0;
 #endif
         Resources.Clear();
-        TestNormalTexture = {};
         Pipelines = DX11PipelineState{};
         ShadowMap = {};
         SkyboxVertexBuffer.Reset();
@@ -198,8 +197,6 @@ namespace Canape
     MeshDrawContext DX11Renderer::Impl::GetDrawContext()
     {
         MeshDrawContext result{ *Context.Get(), Pipelines, ObjectBuffer.Get(), MaterialBuffer.Get(), GetSceneBindings() };
-        if (const auto* texture = Resources.GetTexture(TestNormalTexture))
-            result.TestNormalTexture = texture->ShaderResourceView.Get();
 #if CANAPE_RENDER_DEBUG
         result.DebugSettings = &DebugSettings;
         result.Stats = &CurrentStats;

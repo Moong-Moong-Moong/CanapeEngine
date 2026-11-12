@@ -323,11 +323,6 @@ namespace Canape
             width, height, format, pixels, m_Impl->LastError);
     }
 
-    void DX11Renderer::SetTestNormalTexture(TextureResourceId texture)
-    {
-        m_Impl->TestNormalTexture = m_Impl->Resources.IsTextureValid(texture) ? texture : TextureResourceId{};
-    }
-
     bool DX11Renderer::IsTextureValid(TextureResourceId texture) const
     {
         return m_Impl->Resources.IsTextureValid(texture);
@@ -337,12 +332,10 @@ namespace Canape
     {
         if (!IsTextureValid(texture)) return;
         ID3D11ShaderResourceView* unbound = nullptr;
-        if (m_Impl->TestNormalTexture == texture)
-        {
-            m_Impl->TestNormalTexture = {};
-            m_Impl->Context->PSSetShaderResources(3, 1, &unbound);
-        }
         m_Impl->Context->PSSetShaderResources(0, 1, &unbound);
+        // Release context-held material views before invalidating dependent snapshots.
+        ID3D11ShaderResourceView* unboundMaps[3] = {};
+        m_Impl->Context->PSSetShaderResources(3, 3, unboundMaps);
         m_Impl->Resources.DestroyTexture(texture);
     }
 

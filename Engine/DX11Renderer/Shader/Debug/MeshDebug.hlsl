@@ -53,7 +53,7 @@ float4 PSDebugPcssFilterRadius(VertexOutput input) : SV_TARGET
 
 float4 PSDebugWorldNormal(VertexOutput input) : SV_TARGET
 {
-    float3 normal = GetWorldNormal(input);
+    float3 normal = GetShadingNormal(input);
     return float4(normal * 0.5f + 0.5f, GetDebugAlpha(input));
 }
 

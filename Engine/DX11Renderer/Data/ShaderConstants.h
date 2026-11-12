@@ -193,16 +193,18 @@ namespace Canape::ShaderConstants
         uint32_t Mode;
         float AlphaCutoff;
         uint32_t HasBaseColorTexture = 0;
-        float Padding = 0.0f;
+        uint32_t HasNormalTexture = 0;
         float Metallic = 0.0f;
         float Roughness = 0.5f;
         uint32_t HasORMTexture = 0;
-        float Padding2 = 0.0f;
+        uint32_t HasOcclusionTexture = 0;
     };
     static_assert(sizeof(MaterialConstants) == 48);
     static_assert(offsetof(MaterialConstants, Mode) == 16 && offsetof(MaterialConstants, AlphaCutoff) == 20);
     static_assert(offsetof(MaterialConstants, HasBaseColorTexture) == 24);
+    static_assert(offsetof(MaterialConstants, HasNormalTexture) == 28);
     static_assert(offsetof(MaterialConstants, Metallic) == 32 && offsetof(MaterialConstants, HasORMTexture) == 40);
+    static_assert(offsetof(MaterialConstants, HasOcclusionTexture) == 44);
 
 #if CANAPE_RENDER_DEBUG
     struct alignas(16) DepthDisplayConstants

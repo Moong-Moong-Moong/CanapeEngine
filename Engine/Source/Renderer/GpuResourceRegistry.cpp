@@ -102,7 +102,7 @@ namespace Canape
         const TextureResourceId baseColorTexture = resolve(MaterialTextureSlot::BaseColor);
         // 셰이더 ORM 텍스처는 G = roughness, B = metallic만 읽으므로 glTF metallicRoughness 텍스처를 그대로 쓴다.
         const TextureResourceId ormTexture = resolve(MaterialTextureSlot::MetallicRoughness);
-        // Normal/Occlusion/Emissive는 렌더러 머티리얼 스냅샷에 저장만 한다. 셰이딩 적용은 렌더러 쪽 작업.
+        // 노멀/AO는 드로우별 셰이딩에 사용한다. Emissive는 아직 저장만 한다.
         const TextureResourceId normalTexture = resolve(MaterialTextureSlot::Normal);
         const TextureResourceId occlusionTexture = resolve(MaterialTextureSlot::Occlusion);
         const TextureResourceId emissiveTexture = resolve(MaterialTextureSlot::Emissive);
