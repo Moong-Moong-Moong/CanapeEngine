@@ -23,7 +23,13 @@ private:
 
     void DrawAsset(Canape::Scene* scene, const std::filesystem::path& file);
     void DrawGameObjectHeader(Canape::GameObject& gameObject);
-    void DrawComponent(Canape::Scene& scene, Canape::Component& component, Canape::Component*& removeRequest);
+    void DrawComponent(EditorContext& context, Canape::Scene& scene, Canape::Component& component, Canape::Component*& removeRequest);
+    void DrawMaterialSlots(EditorContext& context, Canape::Scene& scene, Canape::MeshRendererComponent& renderer);
+    // MaterialData 편집 UI. 값이 바뀌면 true.
+    bool DrawMaterialData(Canape::Scene* scene, Canape::MaterialData& material);
+    // 에셋 경로 기준 캐시. reload면 파일에서 다시 읽는다. 로드 실패 시 nullptr.
+    Canape::MaterialData* GetMaterialData(const std::string& assetPath, bool reload);
+    void SaveMaterialData(const std::string& assetPath, const Canape::MaterialData& material);
     void DrawAddComponent(Canape::Scene& scene, Canape::GameObject& gameObject);
 
     bool DrawValue(Canape::Scene* scene, rttr::variant& value, const std::string& cacheKey);
@@ -40,6 +46,5 @@ private:
     StateMachineInspector m_StateMachineInspector;
 
     std::filesystem::path m_MaterialFile;
-    Canape::MaterialData m_Material;
-    bool m_MaterialLoaded = false;
+    std::unordered_map<std::string, Canape::MaterialData> m_MaterialCache;
 };
