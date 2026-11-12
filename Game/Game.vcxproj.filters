@@ -200,6 +200,15 @@
     <None Include="Content\Materials\M_Enemy_Transparent.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_MapCheck_AOOnly.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_MapCheck_MROnly.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_MapCheck_NoMaps.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Materials\M_Player.mat">
       <Filter>Content\Materials</Filter>
     </None>
@@ -242,6 +251,9 @@
     <None Include="Content\Scenes\FsmSample.json">
       <Filter>Content\Scenes</Filter>
     </None>
+    <None Include="Content\Scenes\MaterialMaps.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
     <None Include="Content\Scenes\PhysicsPlayground.json">
       <Filter>Content\Scenes</Filter>
     </None>
@@ -255,6 +267,9 @@
       <Filter>Content\Texture</Filter>
     </None>
     <None Include="Content\Texture\Enemy_ORM.png">
+      <Filter>Content\Texture</Filter>
+    </None>
+    <None Include="Content\Texture\MaterialMaps_ORM.png">
       <Filter>Content\Texture</Filter>
     </None>
     <None Include="Content\Texture\Player_BaseColor.png">

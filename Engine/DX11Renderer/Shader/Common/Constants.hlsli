@@ -15,11 +15,11 @@ cbuffer MaterialBuffer : register(b1)
     uint MaterialAlphaMode;
     float AlphaCutoff;
     uint HasBaseColorTexture;
-    float MaterialPadding;
+    uint HasNormalTexture;
     float MaterialMetallic;
     float MaterialRoughness;
     uint HasORMTexture;
-    float MaterialPadding2;
+    uint HasOcclusionTexture;
 };
 
 // Per view. Layout matches the 208-byte CPU ViewConstants.
