@@ -2,40 +2,6 @@
     "version": 1,
     "name": "FsmSample",
     "mainCamera": 3,
-    "materials": [
-        {
-            "name": "M_FsmSampleFloor",
-            "baseColorTexture": "",
-            "desc": {
-                "baseColor": {
-                    "X": 0.5,
-                    "Y": 0.5,
-                    "Z": 0.5,
-                    "W": 1.0
-                },
-                "roughness": 0.8,
-                "metallic": 0.0,
-                "alphaMode": "Opaque",
-                "alphaCutoff": 0.5
-            }
-        },
-        {
-            "name": "M_FsmSamplePlayer",
-            "baseColorTexture": "",
-            "desc": {
-                "baseColor": {
-                    "X": 0.9,
-                    "Y": 0.45,
-                    "Z": 0.15,
-                    "W": 1.0
-                },
-                "roughness": 0.5,
-                "metallic": 0.0,
-                "alphaMode": "Opaque",
-                "alphaCutoff": 0.5
-            }
-        }
-    ],
     "gameObjects": [
         {
             "id": 1,
@@ -163,7 +129,7 @@
                         "enabled": true,
                         "mesh": "Builtin/Plane",
                         "materials": [
-                            "M_FsmSampleFloor"
+                            "Content/Materials/M_FsmSampleFloor.mat"
                         ]
                     }
                 }
@@ -205,7 +171,7 @@
                         "enabled": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
-                            "M_FsmSamplePlayer"
+                            "Content/Materials/M_FsmSamplePlayer.mat"
                         ]
                     }
                 },

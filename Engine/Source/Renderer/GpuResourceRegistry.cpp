@@ -85,18 +85,31 @@ namespace Canape
             return existing;
         }
 
-        TextureResourceId baseColorTexture{};
-        if (const TextureAssetHandle& texture = material.GetBaseColorTexture(); texture.IsValid())
+        // 핸들이 있는데 GPU 리소스가 없으면 실패. 핸들이 없으면 빈 ID(렌더러 기본값 사용).
+        bool missing = false;
+        auto resolve = [&](MaterialTextureSlot slot) -> TextureResourceId
         {
-            baseColorTexture = GetResourceId(texture.GetId());
-            if (!baseColorTexture.IsValid())
+            const TextureAssetHandle& texture = material.GetTexture(slot);
+            if (!texture.IsValid())
             {
                 return {};
             }
+            const TextureResourceId resourceId = GetResourceId(texture.GetId());
+            missing |= !resourceId.IsValid();
+            return resourceId;
+        };
+
+        const TextureResourceId baseColorTexture = resolve(MaterialTextureSlot::BaseColor);
+        // 셰이더 ORM 텍스처는 G = roughness, B = metallic만 읽으므로 glTF metallicRoughness 텍스처를 그대로 쓴다.
+        // Normal/Occlusion/Emissive는 아직 렌더러 머티리얼에 슬롯이 없어 GPU로 넘기지 않는다.
+        const TextureResourceId ormTexture = resolve(MaterialTextureSlot::MetallicRoughness);
+        if (missing)
+        {
+            return {};
         }
 
         m_Materials.erase(assetId);
-        const MaterialResourceId resourceId = m_Renderer.CreateMaterial(material.GetDesc(), baseColorTexture);
+        const MaterialResourceId resourceId = m_Renderer.CreateMaterial(material.GetDesc(), baseColorTexture, ormTexture);
         if (resourceId.IsValid())
         {
             m_Materials.emplace(assetId, resourceId);

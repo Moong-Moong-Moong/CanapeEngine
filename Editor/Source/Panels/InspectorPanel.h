@@ -40,6 +40,6 @@ private:
     StateMachineInspector m_StateMachineInspector;
 
     std::filesystem::path m_MaterialFile;
-    Canape::MaterialFileData m_Material;
+    Canape::MaterialData m_Material;
     bool m_MaterialLoaded = false;
 };

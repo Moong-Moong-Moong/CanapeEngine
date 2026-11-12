@@ -79,6 +79,8 @@
     <ClInclude Include="Source\Asset\AssetHandle.h" />
     <ClInclude Include="Source\Asset\AssetManager.h" />
     <ClInclude Include="Source\Asset\AssetTracker.h" />
+    <ClInclude Include="Source\Asset\Importer\glTF\CNglTFImporter.h" />
+    <ClInclude Include="Source\Asset\Material\MaterialData.h" />
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
     <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h" />
@@ -145,6 +147,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
+    <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialFile.cpp" />
     <ClCompile Include="..\Common\CNDebug\DebugLog.cpp" />
