@@ -288,7 +288,8 @@ namespace Canape
     }
 
     MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
-        TextureResourceId ormTexture)
+        TextureResourceId ormTexture, TextureResourceId normalTexture,
+        TextureResourceId occlusionTexture, TextureResourceId emissiveTexture)
     {
         if (!m_Impl->Initialized)
         {
@@ -296,7 +297,8 @@ namespace Canape
             CN_LOG_RENDERER("Error", m_Impl->LastError);
             return {};
         }
-        return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, ormTexture, m_Impl->LastError);
+        return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, ormTexture, normalTexture,
+            occlusionTexture, emissiveTexture, m_Impl->LastError);
     }
 
     MaterialDesc DX11Renderer::GetMaterial(MaterialResourceId material) const

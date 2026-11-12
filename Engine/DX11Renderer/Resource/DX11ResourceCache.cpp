@@ -211,7 +211,10 @@ namespace Canape
     {
         // Invalidate dependent material snapshots so the Runtime can rebuild them.
         std::erase_if(Materials, [texture](const auto& entry) {
-            return entry.second.BaseColorTexture == texture || entry.second.ORMTexture == texture;
+            const DX11MaterialResource& material = entry.second;
+            return material.BaseColorTexture == texture || material.ORMTexture == texture
+                || material.NormalTexture == texture || material.OcclusionTexture == texture
+                || material.EmissiveTexture == texture;
         });
         Textures.erase(texture.value);
     }
@@ -348,7 +351,7 @@ namespace Canape
     }
 
     MaterialResourceId DX11ResourceCache::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
-        TextureResourceId ormTexture, std::string& error)
+        TextureResourceId ormTexture, TextureResourceId normalTexture, TextureResourceId occlusionTexture, TextureResourceId emissionTexture, std::string& error)
     {
         const Vector4& color = desc.baseColor;
         if (!std::isfinite(color.X) || !std::isfinite(color.Y) || !std::isfinite(color.Z) || !std::isfinite(color.W))
@@ -372,7 +375,8 @@ namespace Canape
             return {};
         }
         const MaterialResourceId id{ nextId++ };
-        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture, ormTexture });
+        Materials.emplace(id.value, DX11MaterialResource{ desc, baseColorTexture, ormTexture,
+            normalTexture, occlusionTexture, emissionTexture });
         error.clear();
         return id;
     }

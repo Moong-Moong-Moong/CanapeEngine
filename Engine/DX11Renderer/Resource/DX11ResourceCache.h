@@ -47,7 +47,8 @@ namespace Canape
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
         MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
-            TextureResourceId ormTexture, std::string& error);
+            TextureResourceId ormTexture, TextureResourceId normalTexture,
+            TextureResourceId occlusionTexture, TextureResourceId emissiveTexture, std::string& error);
         const DX11MaterialResource* GetMaterial(MaterialResourceId material) const;
         bool IsMaterialValid(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);

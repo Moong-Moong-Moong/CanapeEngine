@@ -42,8 +42,10 @@ namespace Canape
         bool IsMeshValid(MeshResourceId mesh) const;
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
+        // Normal/Occlusion/Emissive are stored on the material snapshot; shading support is renderer-side work.
         MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {},
-            TextureResourceId ormTexture = {});
+            TextureResourceId ormTexture = {}, TextureResourceId normalTexture = {},
+            TextureResourceId occlusionTexture = {}, TextureResourceId emissiveTexture = {});
         // Invalid/stale IDs resolve to a default white descriptor.
         MaterialDesc GetMaterial(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);
