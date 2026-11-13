@@ -57,13 +57,13 @@
                         "localPosition": {
                             "X": 0.0,
                             "Y": 0.0,
-                            "Z": 0.0
+                            "Z": 5.1
                         },
                         "localRotation": {
-                            "X": 0.4082179,
-                            "Y": -0.23456971,
-                            "Z": 0.10938165,
-                            "W": 0.87542605
+                            "X": -0.08135187,
+                            "Y": -0.9025882,
+                            "Z": 0.42177367,
+                            "W": -0.028694112
                         },
                         "localScale": {
                             "X": 1.0,
@@ -84,7 +84,7 @@
                             "Y": 1.0,
                             "Z": 1.0
                         },
-                        "intensity": 1.0,
+                        "intensity": 2.45,
                         "range": 10.0,
                         "innerAngle": 0.35,
                         "outerAngle": 0.52,
@@ -127,8 +127,55 @@
                     "id": 9,
                     "properties": {
                         "enabled": true,
-                        "mesh": "Content/Models/CastleGuard01.gltf",
+                        "mesh": "Content/Models/MasterChief_v4.gltf",
                         "materials": []
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "GameObject",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "Content/HDRI/uffizi_cross_Mark.dds",
+                        "brightness": 6.15,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "ambientIntensity": 0.1
                     }
                 }
             ]

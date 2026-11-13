@@ -54,6 +54,26 @@ namespace Canape
 			return FromXM(inverse);
 		}
 
+		static Matrix4 Scale(const Vector3& scale)
+		{
+			return FromXM(DirectX::XMMatrixScaling(scale.X, scale.Y, scale.Z));
+		}
+
+		static Matrix4 Scale(float uniformScale)
+		{
+			return FromXM(DirectX::XMMatrixScaling(uniformScale, uniformScale, uniformScale));
+		}
+
+		static Matrix4 Rotation(const Quaternion& rotation)
+		{
+			return FromXM(DirectX::XMMatrixRotationQuaternion(rotation.Normalized().ToXM()));
+		}
+
+		static Matrix4 Translation(const Vector3& translation)
+		{
+			return FromXM(DirectX::XMMatrixTranslation(translation.X, translation.Y, translation.Z));
+		}
+
 		static Matrix4 TRS(const Vector3& translation, const Quaternion& rotation, const Vector3& scale)
 		{
 			return FromXM(

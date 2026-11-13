@@ -1,6 +1,5 @@
 #include "CNglTFImporter.h"
 #include <cstdio>
-#include <rapidjson/filereadstream.h>
 #include <filesystem>
 #include <cstring>
 #include <cmath>
@@ -181,139 +180,37 @@ namespace Canape
 	}
 	std::unique_ptr<MeshAsset> CNglTFImporter::LoadMeshAsset(CNglTF& cNglTF)
 	{
+		//***** 머터리얼 슬롯 추출
+		std::vector<MaterialData> materialSlots;
+		LoadMaterials(cNglTF, materialSlots);
+		
+		//***** 노드 데이터 추출
+		Value& doc = cNglTF.m_doc;
+		if (!doc.HasMember("scene")) // scene이 없는 glTF는 지원하지 않음
+			return std::make_unique<MeshAsset>();
+		uint32_t defaultSceneIndex = doc["scene"].GetUint();
+		Value& scene = doc["scenes"][defaultSceneIndex];
+		if (!scene.HasMember("nodes")) // 노드가 없으면 모델이 로드되지 않음
+			return std::make_unique<MeshAsset>();
+		
+		//***** 정점 데이터 추출을 위한 데이터
 		std::vector<StaticVertex> vertices;
 		std::vector<uint32_t> indices;
 		std::vector<SubMesh> subMeshes;
-		std::vector<MaterialData> materialSlots;
 
-		Value& doc = cNglTF.m_doc;
-
-		if (!doc.HasMember("meshes"))
-			return nullptr;
-
-		Value& meshes = doc["meshes"];
-		Value& accessors = doc["accessors"];
-		Value& bufferView = doc["bufferViews"];
-		Value& textures = doc["textures"];
-		Value& images = doc["images"];
-
-		//**** 머터리얼 슬롯정보 저장
-		Value& materials = doc["materials"];
-		materialSlots.resize(materials.Size()); // 매터리얼 개수만큼 슬롯 공간 확보
-		for (uint32_t i = 0; i < materials.Size(); i++)
+		Value& rootNodes = scene["nodes"];
+		for (Value& nodeIndex : rootNodes.GetArray())
 		{
-			Value& material = materials[i];
-			materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, std::string(material["name"].GetString()) + ".mat");
-			materialSlots[i].doubleSided = material["doubleSided"].GetBool();
-
-			if (material.HasMember("pbrMetallicRoughness"))
-			{
-				materialSlots[i].desc.metallic = material["pbrMetallicRoughness"]["metallicFactor"].GetFloat();
-				materialSlots[i].desc.roughness = material["pbrMetallicRoughness"]["roughnessFactor"].GetFloat();
-
-				uint32_t baseIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"].GetUint();
-				uint32_t sourceIndex = textures[baseIndex]["source"].GetUint();
-				materialSlots[i].baseColorTexture = MakeAssetPath(cNglTF.m_filePath, images[sourceIndex]["uri"].GetString());
-				
-				if (material["pbrMetallicRoughness"].HasMember("metallicRoughnessTexture"))
-				{
-					uint32_t metallicRoughnessIndex = material["pbrMetallicRoughness"]["metallicRoughnessTexture"]["index"].GetUint();
-					sourceIndex = textures[metallicRoughnessIndex]["source"].GetUint();
-					materialSlots[i].metallicRoughnessTexture = MakeAssetPath(cNglTF.m_filePath, images[sourceIndex]["uri"].GetString());
-				}
-			}
-
-			if (material.HasMember("normalTexture"))
-			{
-				uint32_t normalIndex = material["normalTexture"]["index"].GetUint();
-				uint32_t sourceIndex = textures[normalIndex]["source"].GetUint();
-				materialSlots[i].normalTexture = MakeAssetPath(cNglTF.m_filePath, images[sourceIndex]["uri"].GetString());
-			}
-
-			if (material.HasMember("occlusionTexture"))
-			{
-				uint32_t occlusionIndex = material["occlusionTexture"]["index"].GetUint();
-				uint32_t sourceIndex = textures[occlusionIndex]["source"].GetUint();
-				materialSlots[i].occlusionTexture = MakeAssetPath(cNglTF.m_filePath, images[sourceIndex]["uri"].GetString());
-			}
-
-			if (material.HasMember("emissiveTexture"))
-			{
-				uint32_t emissiveIndex = material["emissiveTexture"]["index"].GetUint();
-				uint32_t sourceIndex = textures[emissiveIndex]["source"].GetUint();
-				materialSlots[i].emissiveTexture = MakeAssetPath(cNglTF.m_filePath, images[sourceIndex]["uri"].GetString());
-			}
-		}
-
-		for (Value& mesh : meshes.GetArray())
-		{	
-			for (Value& primitive : mesh["primitives"].GetArray())
-			{
-				//***** 서브메쉬 정보 넣기 - 1
-				SubMesh sm;
-				sm.startIndex = indices.size(); // 이 primitve에 인덱스 넣기전 개수
-				sm.baseVertex = vertices.size(); // `` 정점 넣기 전 개수
-				if (primitive.HasMember("material"))
-				{
-					sm.materialSlot = primitive["material"].GetUint();
-				}
-
-				//***** 버텍스 포지션, 노말, uv, tangent
-				//*** primitive 별 position, normal, uv 엑세서 인덱스
-				Value& attributes = primitive["attributes"];
-				uint32_t aPos = attributes["POSITION"].GetUint();
-				uint32_t aNormal = attributes["NORMAL"].GetUint();
-				uint32_t aUv = attributes["TEXCOORD_0"].GetUint();
-
-				//*** 버퍼 뷰 인덱스
-				uint32_t bPos = accessors[aPos]["bufferView"].GetUint();
-				uint32_t posCnt = accessors[aPos]["count"].GetUint(); // 읽을 포지션 개수
-
-				uint32_t bNormal = accessors[aNormal]["bufferView"].GetUint();
-				uint32_t norCnt = accessors[aNormal]["count"].GetUint(); // 읽을 노말 개수
-
-				uint32_t bUv = accessors[aUv]["bufferView"].GetUint();
-				uint32_t uvCnt = accessors[aUv]["count"].GetUint(); // 읽을 uv 개수
-
-				//*** 바이너리에서 정점 정보 복사
-				uint32_t pOffset = bufferView[bPos]["byteOffset"].GetUint();
-				uint32_t nOffset = bufferView[bNormal]["byteOffset"].GetUint();
-				uint32_t uvOffset = bufferView[bUv]["byteOffset"].GetUint();
-
-				uint32_t svStart = static_cast<uint32_t>(vertices.size());
-				vertices.resize(svStart + posCnt);
-
-				for (int i = 0; i < posCnt; i++)
-				{
-					StaticVertex v;
-					std::memcpy(&v.Position, cNglTF.m_bin.data() + pOffset + (i * sizeof(Vector3)), sizeof(Vector3));
-					std::memcpy(&v.Normal, cNglTF.m_bin.data() + nOffset + (i * sizeof(Vector3)), sizeof(Vector3));
-					std::memcpy(&v.UV, cNglTF.m_bin.data() + uvOffset + (i * sizeof(Vector2)), sizeof(Vector2));
-					vertices[svStart + i] = v;
-				}
-
-				//***** 인덱스 복사
-				uint32_t aIndex = primitive["indices"].GetUint();
-				uint32_t bIndex = accessors[aIndex]["bufferView"].GetUint();
-				uint32_t iOffset = bufferView[bIndex]["byteOffset"].GetUint();
-				uint32_t indexCnt = accessors[aIndex]["count"].GetUint();
-				const uint32_t iStart = static_cast<uint32_t>(indices.size());  // = sm.startIndex
-				indices.resize(iStart + indexCnt);
-				for (int i = 0; i < indexCnt; i++)
-				{
-					uint16_t vi; // componentType : 5123 - 2byte; 인덱스는 2바이트
-					std::memcpy(&vi, cNglTF.m_bin.data() + iOffset + (i * sizeof(uint16_t)), sizeof(uint16_t));
-					indices[iStart + i] = vi;
-				}
-
-				//***** 탄젠트 계산 (정점, 인덱스가 모두 채워진 뒤에 해야 함)
-				ComputeTangents(vertices, svStart, posCnt, indices, iStart, indexCnt);
-
-				//***** 서브메쉬 정보 넣기 - 2
-				sm.indexCount = indexCnt;
-				subMeshes.push_back(sm);
-			}
-
+			//*** 노드에 메쉬가 있다면 정점 데이터 추출
+			Matrix4 TRS = Matrix4::Identity; // 루트 노드의 부모 TRS는 단위행렬
+			LoadNodeMesh(
+				cNglTF,
+				doc["nodes"][nodeIndex.GetUint()],
+				TRS,
+				vertices,
+				indices,
+				subMeshes
+			);
 		}
 
 		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes), std::move(materialSlots));
@@ -332,6 +229,342 @@ namespace Canape
 
 		return std::unique_ptr<TextureAsset>();
 	}
+
+	void CNglTFImporter::LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots)
+	{
+		Value& doc = cNglTF.m_doc;
+
+		//**** 머터리얼 추출
+		if (!doc.HasMember("materials"))
+			return;
+
+		Value& materials = doc["materials"];
+		materialSlots.resize(materials.Size()); // 매터리얼 개수만큼 메쉬의 머터리얼 슬롯 공간 확보
+
+		//*** 이 모델에서 사용하는 모든 머터리얼 추출
+		for (uint32_t i = 0; i < materials.Size(); i++)
+		{
+			Value& material = materials[i];
+
+			//*** 머터리얼 이름으로 머터리얼 에셋 경로 저장
+			//* 머터리얼 이름이 있다면 사용, 없다면 glTF 파일 이름 + Material_i 사용
+			if (material.HasMember("name"))
+			{
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, std::string(material["name"].GetString()) + ".mat");
+			}
+			else
+			{
+				std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, fileStem + "_Material_" + std::to_string(i) + ".mat"); 
+			}
+
+			//*** doubleSided 양면 렌더
+			if (material.HasMember("doubleSided"))
+			{
+				materialSlots[i].doubleSided = material["doubleSided"].GetBool();
+			}
+
+			//*** pprMetallicRoughness 옵션
+			if (material.HasMember("pbrMetallicRoughness"))
+			{
+				Value& pbrMetallicRoughness = material["pbrMetallicRoughness"];
+
+				//* metallicFactor
+				if (pbrMetallicRoughness.HasMember("metallicFactor"))
+				{
+					materialSlots[i].desc.metallic = material["pbrMetallicRoughness"]["metallicFactor"].GetFloat();
+				}
+				else
+				{
+					materialSlots[i].desc.metallic = 1.0f;
+				}
+
+				//* roughnessFactor
+				if (pbrMetallicRoughness.HasMember("roughnessFactor"))
+				{
+					materialSlots[i].desc.roughness = material["pbrMetallicRoughness"]["roughnessFactor"].GetFloat();
+				}
+				else
+				{
+					materialSlots[i].desc.roughness = 1.0f;
+				}
+
+				//* baseColorFactor
+				if (pbrMetallicRoughness.HasMember("baseColorFactor"))
+				{
+					materialSlots[i].desc.baseColor =
+					{
+						material["pbrMetallicRoughness"]["baseColorFactor"][0].GetFloat(),
+						material["pbrMetallicRoughness"]["baseColorFactor"][1].GetFloat(),
+						material["pbrMetallicRoughness"]["baseColorFactor"][2].GetFloat(),
+						material["pbrMetallicRoughness"]["baseColorFactor"][3].GetFloat()
+					};
+				}
+
+				//* baseColorTexture
+				if (pbrMetallicRoughness.HasMember("baseColorTexture"))
+				{
+					uint32_t baseIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"].GetUint();
+					uint32_t sourceIndex = doc["textures"][baseIndex]["source"].GetUint();
+					materialSlots[i].baseColorTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+				}
+
+				//* metallicRoughnessTexture
+				if (pbrMetallicRoughness.HasMember("metallicRoughnessTexture"))
+				{
+					uint32_t metallicRoughnessIndex = material["pbrMetallicRoughness"]["metallicRoughnessTexture"]["index"].GetUint();
+					uint32_t sourceIndex = doc["textures"][metallicRoughnessIndex]["source"].GetUint();
+					materialSlots[i].metallicRoughnessTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+				}
+			}
+
+			if (material.HasMember("normalTexture"))
+			{
+				uint32_t normalIndex = material["normalTexture"]["index"].GetUint();
+				uint32_t sourceIndex = doc["textures"][normalIndex]["source"].GetUint();
+				materialSlots[i].normalTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+			}
+
+			if (material.HasMember("occlusionTexture"))
+			{
+				uint32_t occlusionIndex = material["occlusionTexture"]["index"].GetUint();
+				uint32_t sourceIndex = doc["textures"][occlusionIndex]["source"].GetUint();
+				materialSlots[i].occlusionTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+			}
+
+			if (material.HasMember("emissiveTexture"))
+			{
+				uint32_t emissiveIndex = material["emissiveTexture"]["index"].GetUint();
+				uint32_t sourceIndex = doc["textures"][emissiveIndex]["source"].GetUint();
+				materialSlots[i].emissiveTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+			}
+		}
+
+		return;
+	}
+
+	Matrix4 CNglTFImporter::GetNodeTRS(Value& node)
+	{
+		Matrix4 s;
+		Matrix4 r;
+		Matrix4 t;
+		if (node.HasMember("rotation"))
+		{
+			Value& rotation = node["rotation"];
+			r = Matrix4::Rotation(
+				{
+					rotation[0].GetFloat(),
+					rotation[1].GetFloat(),
+					rotation[2].GetFloat(),
+					rotation[3].GetFloat(),
+				}
+				);
+		}
+
+		if (node.HasMember("scale"))
+		{
+			Value& scale = node["scale"];
+			s = Matrix4::Scale(
+				{
+					scale[0].GetFloat(),
+					scale[1].GetFloat(),
+					scale[2].GetFloat(),
+				}
+				);
+		}
+
+		if (node.HasMember("translation"))
+		{
+			Value& translation = node["translation"];
+			t = Matrix4::Translation(
+				{
+					translation[0].GetFloat(),
+					translation[1].GetFloat(),
+					translation[2].GetFloat(),
+				}
+				);
+		}
+
+		return s * r * t;
+	}
+
+	void CNglTFImporter::LoadNodeMesh(
+		CNglTF& cNglTF, 
+		Value& node, 
+		Matrix4& parentTM,
+		std::vector<StaticVertex>& vertices,
+		std::vector<uint32_t>& indices,
+		std::vector<SubMesh>& subMeshes
+	)
+	{
+		Value& doc = cNglTF.m_doc;
+
+		//*** 노드 로컬 tm 행렬
+		Matrix4 TRS = GetNodeTRS(node) * parentTM; // 우리 엔진은 행벡터 규약을 사용
+
+		//*** 행렬식: 음수면 노드에 미러링(음수 스케일)이 있음 → 와인딩 판단용
+		float det = DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(TRS.ToXM()));
+
+		//*** 노드에 메쉬가 있다면 메쉬 정보 추출
+		if (node.HasMember("mesh"))
+		{
+			uint32_t meshIndex = node["mesh"].GetUint();
+			Value& mesh = doc["meshes"][meshIndex];
+
+			for (Value& primitive : mesh["primitives"].GetArray())
+			{
+				//***** 서브메쉬 정보 넣기 - 1
+				SubMesh sm;
+				sm.startIndex = indices.size();  // 이 primitve의 인덱스 넣기전 시작점
+				sm.baseVertex = vertices.size(); //     ``        정점 넣기전 시작점
+
+				if (primitive.HasMember("material")) // 머터리얼을 사용한다면
+				{
+					sm.materialSlot = primitive["material"].GetUint();
+				}
+
+				//***** Vertex 정보 추출 : position, normal, uv, tangent
+				Value& attributes = primitive["attributes"];
+				Value& accessors = doc["accessors"];
+				Value& bufferViews = doc["bufferViews"];
+
+				//*** Position
+				uint32_t aPos = attributes["POSITION"].GetUint(); // 포지션 엑세서 인덱스
+				uint32_t bPos = accessors[aPos]["bufferView"].GetUint(); // 포지션 버퍼뷰 인덱스
+				uint32_t posCnt = accessors[aPos]["count"].GetUint(); // 읽을 포지션 개수
+				uint32_t pOffset = bufferViews[bPos]["byteOffset"].GetUint(); // 포지션 버퍼 뷰 오프셋
+
+				//***** 바이너리에서 정점 정보 복사
+				//*** 이 primitive를 위한 정점 데이터 메모리 할당
+				uint32_t svStart = static_cast<uint32_t>(vertices.size());
+				vertices.resize(svStart + posCnt);
+
+				for (uint32_t i = 0; i < posCnt; i++)
+				{
+					Vector3 pos;
+					std::memcpy(&pos, cNglTF.m_bin.data() + pOffset + (i * sizeof(Vector3)), sizeof(Vector3));
+					pos = TRS.TransformPoint(pos);
+					// 좌표계 변환
+					pos.X = -pos.X;
+					vertices[svStart + i].Position = pos;
+				}
+
+				//*** Normal
+				if (attributes.HasMember("NORMAL"))
+				{
+					uint32_t aNormal = attributes["NORMAL"].GetUint(); // 노말 엑세서 인덱스
+					uint32_t bNormal = accessors[aNormal]["bufferView"].GetUint(); // 노말 버퍼뷰 인덱스
+					uint32_t norCnt = accessors[aNormal]["count"].GetUint(); // 읽을 노말 개수
+					uint32_t nOffset = bufferViews[bNormal]["byteOffset"].GetUint(); // 노말 버퍼 뷰 오프셋
+
+					//* Normal에는 스케일이 포함되면 방향이 바뀌기 때문에 역전체 행렬을 사용해야함
+					DirectX::XMMATRIX normalMat = DirectX::XMMatrixTranspose(TRS.Inverse().ToXM());
+					for (uint32_t i = 0; i < norCnt; i++)
+					{
+						Vector3 normal;
+						std::memcpy(&normal, cNglTF.m_bin.data() + nOffset + (i * sizeof(Vector3)), sizeof(Vector3));
+						DirectX::XMVECTOR n =
+							DirectX::XMVector3TransformNormal(normal.ToXM(), normalMat);
+						Vector3 nrm = Vector3::FromXM(DirectX::XMVector3Normalize(n));
+						nrm.X = -nrm.X; // 좌표계 변환
+						vertices[svStart + i].Normal = nrm;
+					}
+				}
+
+				//*** uv
+				if (attributes.HasMember("TEXCOORD_0"))
+				{
+					uint32_t aUv = attributes["TEXCOORD_0"].GetUint(); // UV 엑세서 인덱스
+					uint32_t bUv = accessors[aUv]["bufferView"].GetUint(); // UV 버퍼뷰 인덱스
+					uint32_t uvCnt = accessors[aUv]["count"].GetUint(); // 읽을 UV 개수
+					uint32_t uvOffset = bufferViews[bUv]["byteOffset"].GetUint(); // UV 버퍼 뷰 오프셋
+
+					for (uint32_t i = 0; i < uvCnt; i++)
+					{
+						Vector2 uv;
+						std::memcpy(&uv, cNglTF.m_bin.data() + uvOffset + (i * sizeof(Vector2)), sizeof(Vector2));
+						vertices[svStart + i].UV = uv;
+					}
+				}
+
+				//*** 탄젠트
+				bool hasTangent = attributes.HasMember("TANGENT");
+				if (hasTangent)
+				{
+					uint32_t aTan = attributes["TANGENT"].GetUint();
+					uint32_t bTan = accessors[aTan]["bufferView"].GetUint();
+					uint32_t tanCnt = accessors[aTan]["count"].GetUint();
+					uint32_t tOffset = bufferViews[bTan]["byteOffset"].GetUint();
+					const DirectX::XMMATRIX M = TRS.ToXM();
+
+					for (uint32_t i = 0; i < tanCnt; i++)
+					{
+						Vector4 t; // VEC4 float
+						std::memcpy(&t, cNglTF.m_bin.data() + tOffset + (i * sizeof(Vector4)), sizeof(Vector4));
+
+						// 탄젠트는 표면 방향 → 역전치 X, TRS 그대로 w=0
+						Vector3 tv = Vector3::FromXM(DirectX::XMVector3Normalize(
+							DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(t.X, t.Y, t.Z, 0.0f), M)));
+						tv.X = -tv.X;                              // 좌표계 미러링
+						const float w = (det > 0.0f) ? -t.W : t.W; // 손 방향이 뒤집히면 부호 반전
+						vertices[svStart + i].Tangent = { tv.X, tv.Y, tv.Z, w };
+					}
+				}
+
+				//***** 인덱스 복사
+				uint32_t aIndex = primitive["indices"].GetUint();
+				uint32_t bIndex = accessors[aIndex]["bufferView"].GetUint();
+				uint32_t iOffset = bufferViews[bIndex]["byteOffset"].GetUint();
+				uint32_t indexCnt = accessors[aIndex]["count"].GetUint();
+				const uint32_t iStart = static_cast<uint32_t>(indices.size());  // = sm.startIndex
+				indices.resize(iStart + indexCnt);
+				for (uint32_t i = 0; i < indexCnt; i++)
+				{
+					uint16_t vi; // componentType : 5123 - 2byte; 인덱스는 2바이트
+					std::memcpy(&vi, cNglTF.m_bin.data() + iOffset + (i * sizeof(uint16_t)), sizeof(uint16_t));
+					indices[iStart + i] = vi;
+				}
+
+				//***** 와인딩 반전: X 미러링으로 앞뒷면이 바뀜 (노드에도 미러링이 있으면 원래대로)
+				if (det > 0.0f)
+				{
+					for (uint32_t i = 0; i + 2 < indexCnt; i += 3)
+						std::swap(indices[iStart + i + 1], indices[iStart + i + 2]);
+				}
+
+				//***** 탄젠트 계산 (정점, 인덱스가 모두 채워진 뒤에 해야 함)
+				if (!hasTangent)
+				{
+					ComputeTangents(vertices, svStart, posCnt, indices, iStart, indexCnt);
+				}
+
+				//***** 서브메쉬 정보 넣기 - 2
+				sm.indexCount = indexCnt; // 인덱스 값 몇개 넣었는지 저장
+				subMeshes.push_back(sm);
+			}
+		}
+
+		//***** 자식노드로 재귀
+		if (node.HasMember("children"))
+		{
+			for (Value& child : node["children"].GetArray())
+			{
+				uint32_t childNodeIndex = child.GetUint();
+				Value& childNode = cNglTF.m_doc["nodes"][childNodeIndex];
+
+				LoadNodeMesh(
+					cNglTF,
+					childNode,
+					TRS,
+					vertices,
+					indices,
+					subMeshes
+				);
+			}
+		}
+	}
+
+
 }
 
 

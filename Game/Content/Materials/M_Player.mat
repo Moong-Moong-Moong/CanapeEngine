@@ -4,6 +4,7 @@
     "metallicRoughnessTexture": "Content/Texture/Player_ORM.png",
     "normalTexture": "Content/Texture/Player_Normal.png",
     "occlusionTexture": "Content/Texture/Player_ORM.png",
+    "emissiveTexture": "",
     "desc": {
         "baseColor": {
             "X": 1.0,

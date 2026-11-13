@@ -1,8 +1,12 @@
 #pragma once
-#include <rapidjson/document.h>
 #include <string>
 #include <vector>
 #include <memory>
+
+#include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
+#include "../../Mesh/MeshAsset.h"
+#include "Math/Matrix4.h"
 
 namespace Canape
 {
@@ -21,7 +25,6 @@ namespace Canape
 		uint32_t m_meshCnt = 0; // 메쉬 개수
 	};
 
-	class MeshAsset;
 	class TextureAsset;
 
 	class CNglTFImporter
@@ -32,6 +35,18 @@ namespace Canape
 		bool ReadglTF(std::string filePath, CNglTF& cNglTF);
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
 		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);
+
+	private:
+		void LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots);
+		Matrix4 GetNodeTRS(rapidjson::Value& node);
+		void LoadNodeMesh(
+			CNglTF& cNglTF, 
+			rapidjson::Value& node,
+			Matrix4& parentTM, 
+			std::vector<StaticVertex>& vertices, 
+			std::vector<uint32_t>& indices,
+			std::vector<SubMesh>& subMeshes
+		);
 
 	};
 }
