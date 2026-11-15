@@ -58,11 +58,17 @@ namespace Canape
 			return PrimitiveMeshes::BuildSphere();
 		}
 
+		PrimitiveMeshData BuildDefaultCylinder()
+		{
+			return PrimitiveMeshes::BuildCylinder();
+		}
+
 		constexpr BuiltinMeshEntry BuiltinMeshes[] =
 		{
 			{ "builtin/cube", "Builtin/Cube", &PrimitiveMeshes::BuildCube },
 			{ "builtin/sphere", "Builtin/Sphere", &BuildDefaultSphere },
 			{ "builtin/plane", "Builtin/Plane", &PrimitiveMeshes::BuildPlane },
+			{ "builtin/cylinder", "Builtin/Cylinder", &BuildDefaultCylinder },
 		};
 
 		std::string NormalizeSeparators(std::string text)
