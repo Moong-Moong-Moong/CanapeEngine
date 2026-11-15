@@ -52,6 +52,9 @@
       <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>d3dcompiler.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

@@ -149,8 +149,8 @@ namespace
                 target
             ),
             diagnostics != nullptr ?
-                static_cast<const char*>(diagnostics->GetBufferPointer()) :
-                nullptr
+                std::string_view(static_cast<const char*>(diagnostics->GetBufferPointer())) :
+                std::string_view()
         );
 
         return bytecode;
