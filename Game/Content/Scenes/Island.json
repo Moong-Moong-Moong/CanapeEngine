@@ -1,0 +1,534 @@
+{
+    "version": 1,
+    "name": "Island",
+    "mainCamera": 4,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 5.5,
+                            "Z": -11.5
+                        },
+                        "localRotation": {
+                            "X": 0.207912,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.978148
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "FlyCamera",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "moveSpeed": 5.0,
+                        "lookSensitivity": 0.17188732,
+                        "resetKey": "F"
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 500.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Moon",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.369644,
+                            "Y": 0.239118,
+                            "Z": -0.099046,
+                            "W": 0.892399
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 0.55,
+                            "Y": 0.65,
+                            "Z": 1.0
+                        },
+                        "intensity": 0.25,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "Island",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": -1.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 24.0,
+                            "Y": 2.0,
+                            "Z": 24.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_IslandSand.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Campfire Log 1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.09,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.4,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Campfire Log 2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.09,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.707107,
+                            "Z": 0.0,
+                            "W": 0.707107
+                        },
+                        "localScale": {
+                            "X": 1.4,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 16,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Campfire Log 3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.27,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.382683,
+                            "Z": 0.0,
+                            "W": 0.92388
+                        },
+                        "localScale": {
+                            "X": 1.25,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "Campfire Log 4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.27,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": -0.382683,
+                            "Z": 0.0,
+                            "W": 0.92388
+                        },
+                        "localScale": {
+                            "X": 1.25,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 23,
+            "name": "Campfire Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.9,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Point",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 0.45,
+                            "Z": 0.15
+                        },
+                        "intensity": 1.5,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 26,
+            "name": "Tree 1 Trunk",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6.0,
+                            "Y": 2.1,
+                            "Z": 3.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.56,
+                            "Y": 4.2,
+                            "Z": 0.56
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TreeBark.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 29,
+            "name": "Tree 1 Crown",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 30,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6.0,
+                            "Y": 4.6,
+                            "Z": 3.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.6,
+                            "Y": 3.6,
+                            "Z": 3.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_TreeCrown.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 32,
+            "name": "Tree 2 Trunk",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6.5,
+                            "Y": 1.7,
+                            "Z": 4.5
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.48,
+                            "Y": 3.4,
+                            "Z": 0.48
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TreeBark.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 35,
+            "name": "Tree 2 Crown",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 36,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6.5,
+                            "Y": 3.8,
+                            "Z": 4.5
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 37,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_TreeCrown.mat"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

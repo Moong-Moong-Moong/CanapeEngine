@@ -153,9 +153,11 @@ exit /b 0</Command>
     <ClCompile Include="Source\FsmSample\FsmSampleRun.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Content\Materials\M_CampfireLog.mat" />
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />
     <None Include="Content\Materials\M_Enemy_Transparent.mat" />
+    <None Include="Content\Materials\M_IslandSand.mat" />
     <None Include="Content\Materials\M_MapCheck_AOOnly.mat" />
     <None Include="Content\Materials\M_MapCheck_MROnly.mat" />
     <None Include="Content\Materials\M_MapCheck_NoMaps.mat" />
@@ -169,11 +171,14 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_PuzzleWall.mat" />
     <None Include="Content\Materials\M_PuzzleWater.mat" />
     <None Include="Content\Materials\M_PuzzleWeight.mat" />
+    <None Include="Content\Materials\M_TreeBark.mat" />
+    <None Include="Content\Materials\M_TreeCrown.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />
     <None Include="Content\Game.json" />
     <None Include="Content\Scenes\FsmSample.json" />
+    <None Include="Content\Scenes\Island.json" />
     <None Include="Content\Scenes\MaterialMaps.json" />
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />

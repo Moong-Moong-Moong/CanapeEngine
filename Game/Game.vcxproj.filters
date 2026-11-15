@@ -191,6 +191,9 @@
     <None Include="Content\Game.json">
       <Filter>Content</Filter>
     </None>
+    <None Include="Content\Materials\M_CampfireLog.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Materials\M_Enemy.mat">
       <Filter>Content\Materials</Filter>
     </None>
@@ -198,6 +201,9 @@
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_Enemy_Transparent.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_IslandSand.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_MapCheck_AOOnly.mat">
@@ -239,6 +245,12 @@
     <None Include="Content\Materials\M_PuzzleWeight.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_TreeBark.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_TreeCrown.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>
@@ -249,6 +261,9 @@
       <Filter>Content\Models</Filter>
     </None>
     <None Include="Content\Scenes\FsmSample.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\Island.json">
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\MaterialMaps.json">
