@@ -156,6 +156,9 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />
     <None Include="Content\Materials\M_Enemy_Transparent.mat" />
+    <None Include="Content\Materials\M_MapCheck_AOOnly.mat" />
+    <None Include="Content\Materials\M_MapCheck_MROnly.mat" />
+    <None Include="Content\Materials\M_MapCheck_NoMaps.mat" />
     <None Include="Content\Materials\M_Player.mat" />
     <None Include="Content\Materials\M_PuzzleGoal.mat" />
     <None Include="Content\Materials\M_PuzzleGoalSolved.mat" />
@@ -171,11 +174,13 @@ exit /b 0</Command>
     <None Include="Content\Models\Player.fbx" />
     <None Include="Content\Game.json" />
     <None Include="Content\Scenes\FsmSample.json" />
+    <None Include="Content\Scenes\MaterialMaps.json" />
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />
     <None Include="Content\Scenes\SampleScene2.json" />
     <None Include="Content\Texture\Enemy_BaseColor.png" />
     <None Include="Content\Texture\Enemy_ORM.png" />
+    <None Include="Content\Texture\MaterialMaps_ORM.png" />
     <None Include="Content\Texture\Player_BaseColor.png" />
     <None Include="Content\Texture\Player_ORM.png" />
     <None Include="Content\Texture\README.md" />

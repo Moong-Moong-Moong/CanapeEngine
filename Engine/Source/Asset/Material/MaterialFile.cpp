@@ -61,7 +61,7 @@ namespace Canape
 			return true;
 		}
 
-		bool Load(const std::filesystem::path& file, MaterialFileData& data)
+		bool Load(const std::filesystem::path& file, MaterialData& data)
 		{
 			std::ifstream stream(file, std::ios::binary);
 			if (!stream)
@@ -78,6 +78,11 @@ namespace Canape
 
 			data = {};
 			data.baseColorTexture = root.value("baseColorTexture", std::string());
+			data.metallicRoughnessTexture = root.value("metallicRoughnessTexture", std::string());
+			data.normalTexture = root.value("normalTexture", std::string());
+			data.occlusionTexture = root.value("occlusionTexture", std::string());
+			data.emissiveTexture = root.value("emissiveTexture", std::string());
+			
 
 			const auto desc = root.find("desc");
 			if (desc != root.end() && desc->is_object())
@@ -97,7 +102,7 @@ namespace Canape
 			return true;
 		}
 
-		bool Save(const std::filesystem::path& file, const MaterialFileData& data)
+		bool Save(const std::filesystem::path& file, const MaterialData& data)
 		{
 			std::error_code error;
 			if (file.has_parent_path())
@@ -108,6 +113,11 @@ namespace Canape
 			Json root;
 			root["version"] = kMaterialFormatVersion;
 			root["baseColorTexture"] = data.baseColorTexture;
+			root["metallicRoughnessTexture"] = data.metallicRoughnessTexture;
+			root["normalTexture"] = data.normalTexture;
+			root["occlusionTexture"] = data.occlusionTexture;
+			root["emissiveTexture"] = data.emissiveTexture;
+
 
 			Json desc;
 			desc["baseColor"] = {

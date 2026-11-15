@@ -1,10 +1,7 @@
 ﻿#include "Scene/Serialization/SceneSerializer.h"
-#include "Asset/AssetManager.h"
 #include "CNDebug/DebugLog.h"
-#include "Core/Application.h"
 #include "Core/Reflection/Reflection.h"
 #include "Scene/Component/CameraComponent.h"
-#include "Scene/Component/MeshRendererComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
@@ -15,7 +12,6 @@
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace Canape
@@ -63,7 +59,6 @@ namespace Canape
 
 				CameraComponent* mainCamera = m_Scene.GetMainCamera();
 				root["mainCamera"] = mainCamera ? mainCamera->GetId() : 0;
-				root["materials"] = WriteMaterials(gameObjects);
 
 				Json objects = Json::array();
 				for (GameObject* gameObject : gameObjects)
@@ -99,41 +94,6 @@ namespace Canape
 						AppendHierarchy(*childObject, result);
 					}
 				}
-			}
-
-			Json WriteMaterials(const std::vector<GameObject*>& gameObjects)
-			{
-				const AssetManager& assets = Application::Get().GetAssetManager();
-
-				Json materials = Json::array();
-				std::unordered_set<std::string> written;
-				for (GameObject* gameObject : gameObjects)
-				{
-					for (MeshRendererComponent* renderer : gameObject->GetComponents<MeshRendererComponent>())
-					{
-						for (const std::string& name : renderer->GetMaterialNames())
-						{
-							if (name.empty() || MaterialFile::IsMaterialPath(name) || !written.insert(name).second)
-							{
-								continue;
-							}
-
-							const MaterialAsset* material = assets.FindMaterialByName(name);
-							if (!material)
-							{
-								CN_LOG_RUNTIME("Scene", "씬 저장 경고 : 머티리얼을 찾을 수 없음, ", name);
-								continue;
-							}
-
-							Json entry;
-							entry["name"] = name;
-							entry["baseColorTexture"] = AssetManager::ToAssetPath(assets.GetTexturePath(material->GetBaseColorTexture()));
-							entry["desc"] = WriteValue(material->GetDesc());
-							materials.push_back(std::move(entry));
-						}
-					}
-				}
-				return materials;
 			}
 
 			Json WriteGameObject(GameObject& gameObject)
@@ -244,8 +204,6 @@ namespace Canape
 				auto scene = std::make_unique<Scene>(root.value("name", std::string("Scene")), physicsRuntime);
 				m_Scene = scene.get();
 
-				ReadMaterials(root.value("materials", Json::array()));
-
 				struct PendingComponent
 				{
 					Component* component;
@@ -305,37 +263,6 @@ namespace Canape
 			}
 
 		private:
-			void ReadMaterials(const Json& materials)
-			{
-				AssetManager& assets = Application::Get().GetAssetManager();
-				const AssetOwnerInfo owner{ m_Scene->GetName(), "SceneSerializer", "MaterialSetup" };
-
-				for (const Json& entry : materials)
-				{
-					const std::string name = entry.value("name", std::string());
-					if (name.empty() || assets.FindMaterialByName(name))
-					{
-						continue;
-					}
-
-					MaterialDesc desc;
-					const auto descJson = entry.find("desc");
-					if (descJson != entry.end() && descJson->is_object())
-					{
-						ReadProperties(rttr::instance(desc), *descJson, false);
-					}
-
-					TextureAssetHandle texture;
-					const std::string texturePath = entry.value("baseColorTexture", std::string());
-					if (!texturePath.empty())
-					{
-						texture = assets.GetTextureHandle(texturePath, owner);
-					}
-
-					assets.CreateMaterial(name, desc, texture, owner);
-				}
-			}
-
 			Component* CreateComponent(GameObject& gameObject, const std::string& typeName)
 			{
 				const rttr::type type = rttr::type::get_by_name(typeName);

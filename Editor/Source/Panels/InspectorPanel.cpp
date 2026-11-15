@@ -123,7 +123,7 @@ void InspectorPanel::Draw(EditorContext& context, Scene* scene)
     Component* removeRequest = nullptr;
     for (Component* component : gameObject->GetAllComponents())
     {
-        DrawComponent(*scene, *component, removeRequest);
+        DrawComponent(context, *scene, *component, removeRequest);
     }
 
     ImGui::Spacing();
@@ -156,12 +156,13 @@ void InspectorPanel::DrawGameObjectHeader(GameObject& gameObject)
     ImGui::Separator();
 }
 
-void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component*& removeRequest)
+void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Component& component, Component*& removeRequest)
 {
     const rttr::instance instance(&component);
     const rttr::type type = instance.get_derived_type();
     const bool isTransform = type == rttr::type::get<TransformComponent>();
     auto* stateMachine = dynamic_cast<StateMachine*>(&component);
+    auto* meshRenderer = dynamic_cast<MeshRendererComponent*>(&component);
 
     ImGui::PushID(&component);
     const bool open = ImGui::CollapsingHeader(type.get_name().data(), ImGuiTreeNodeFlags_DefaultOpen);
@@ -183,6 +184,10 @@ void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component
             if (stateMachine && name != "enabled")
             {
                 continue; // drawn by StateMachineInspector below
+            }
+            if (meshRenderer && name == "materials")
+            {
+                continue; // 오버라이드 이름 목록 대신 DrawMaterialSlots에서 슬롯별로 그린다.
             }
             const bool readOnly = property.is_readonly() || (isTransform && name == "parent");
 
@@ -213,6 +218,11 @@ void InspectorPanel::DrawComponent(Scene& scene, Component& component, Component
             }
         }
         ImGui::EndTable();
+    }
+
+    if (open && meshRenderer)
+    {
+        DrawMaterialSlots(context, scene, *meshRenderer);
     }
 
     if (open && stateMachine)
@@ -288,66 +298,229 @@ void InspectorPanel::DrawAsset(Scene* scene, const std::filesystem::path& file)
         return;
     }
 
-    if (file != m_MaterialFile)
-    {
-        m_MaterialFile = file;
-        m_MaterialLoaded = MaterialFile::Load(file, m_Material);
-    }
-    if (!m_MaterialLoaded)
+    const std::string assetPath = AssetManager::ToAssetPath(EditorUtils::ToUtf8(file));
+    const bool reload = file != m_MaterialFile;
+    m_MaterialFile = file;
+    MaterialData* material = GetMaterialData(assetPath, reload);
+    if (!material)
     {
         ImGui::TextDisabled("Failed to load material");
         return;
     }
 
     ImGui::PushID("MaterialAsset");
-    bool changed = false;
-    if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen) && BeginPropertyTable("##Material"))
+    if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen) && DrawMaterialData(scene, *material))
     {
-        BeginPropertyRow("baseColorTexture");
-        ImGui::PushID("baseColorTexture");
-        rttr::variant texture = m_Material.baseColorTexture;
-        if (DrawValue(scene, texture, {}))
-        {
-            m_Material.baseColorTexture = AssetManager::ToAssetPath(texture.get_value<std::string>());
-            changed = true;
-        }
-        ImGui::PopID();
-
-        BeginPropertyRow("baseColor");
-        ImGui::PushID("baseColor");
-        if (ImGui::ColorEdit4("##value", &m_Material.desc.baseColor.X, ImGuiColorEditFlags_Float))
-        {
-            changed = true;
-        }
-        ImGui::PopID();
-
-        const rttr::instance instance(m_Material.desc);
-        for (const rttr::property& property : rttr::type::get<MaterialDesc>().get_properties())
-        {
-            const std::string name = property.get_name().to_string();
-            if (name == "baseColor")
-            {
-                continue;
-            }
-
-            ImGui::PushID(name.c_str());
-            BeginPropertyRow(name.c_str());
-            rttr::variant value = property.get_value(instance);
-            if (DrawValue(scene, value, {}))
-            {
-                changed |= property.set_value(instance, value);
-            }
-            ImGui::PopID();
-        }
-        ImGui::EndTable();
+        SaveMaterialData(assetPath, *material);
     }
     ImGui::PopID();
+}
 
-    if (changed)
+void InspectorPanel::DrawMaterialSlots(EditorContext& context, Scene& scene, MeshRendererComponent& renderer)
+{
+    AssetManager& assets = Application::Get().GetAssetManager();
+    const MeshAsset* mesh = assets.GetMesh(renderer.GetMesh());
+    const std::vector<std::string>& overrides = renderer.GetMaterialNames();
+
+    // 슬롯 수 = 메쉬 머티리얼 슬롯, 서브메쉬가 참조하는 슬롯, 오버라이드 중 가장 큰 값.
+    size_t slotCount = overrides.size();
+    if (mesh)
     {
-        MaterialFile::Save(file, m_Material);
-        Application::Get().GetAssetManager().UpdateMaterial(EditorUtils::ToUtf8(file), m_Material);
+        slotCount = std::max(slotCount, mesh->GetMaterialSlots().size());
+        for (const SubMesh& subMesh : mesh->GetSubMeshes())
+        {
+            slotCount = std::max(slotCount, size_t(subMesh.materialSlot) + 1);
+        }
     }
+
+    ImGui::PushID("MaterialSlots");
+    if (!ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
+        "Materials (%zu)", slotCount))
+    {
+        ImGui::PopID();
+        return;
+    }
+
+    for (size_t slot = 0; slot < slotCount; ++slot)
+    {
+        ImGui::PushID(static_cast<int>(slot));
+
+        const bool isOverride = slot < overrides.size() && !overrides[slot].empty();
+        std::string materialPath;
+        if (isOverride)
+        {
+            materialPath = overrides[slot];
+        }
+        else if (mesh && slot < mesh->GetMaterialSlots().size()
+            && MaterialFile::IsMaterialPath(mesh->GetMaterialSlots()[slot].name))
+        {
+            materialPath = mesh->GetMaterialSlots()[slot].name;
+        }
+
+        const std::string fileName = materialPath.empty() ? std::string("None")
+            : EditorUtils::ToUtf8(EditorUtils::FromUtf8(materialPath).filename());
+        const bool loaded = assets.GetMaterial(renderer.GetMaterial(static_cast<uint32_t>(slot))) != nullptr;
+        const char* source = materialPath.empty() ? "" : (isOverride ? " (Override)" : " (Default)");
+
+        const bool canOpen = MaterialFile::IsMaterialPath(materialPath);
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+        if (!canOpen)
+        {
+            flags |= ImGuiTreeNodeFlags_Leaf;
+        }
+        if (!materialPath.empty() && !loaded)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+        }
+        const bool open = ImGui::TreeNodeEx("##slot", flags, "Slot %zu: %s%s", slot, fileName.c_str(), source);
+        if (!materialPath.empty() && !loaded)
+        {
+            ImGui::PopStyleColor();
+        }
+        const bool toggledOpen = ImGui::IsItemToggledOpen();
+        if (!materialPath.empty() && ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s%s", materialPath.c_str(), loaded ? "" : "\n(load failed)");
+        }
+
+        // .mat 파일을 드롭하면 이 슬롯을 오버라이드한다.
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUtils::kAssetPathPayload))
+            {
+                const std::string dropped(static_cast<const char*>(payload->Data), static_cast<size_t>(payload->DataSize));
+                if (MaterialFile::IsMaterialPath(dropped))
+                {
+                    renderer.SetMaterial(static_cast<uint32_t>(slot), dropped);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+        if (ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem("Select Material Asset", nullptr, false, canOpen))
+            {
+                context.SelectAsset(AssetManager::GetAssetFile(materialPath));
+            }
+            if (ImGui::MenuItem("Clear Override", nullptr, false, isOverride))
+            {
+                std::vector<std::string> names = overrides;
+                names[slot].clear();
+                while (!names.empty() && names.back().empty())
+                {
+                    names.pop_back();
+                }
+                renderer.SetMaterialNames(names);
+            }
+            ImGui::EndPopup();
+        }
+
+        if (open)
+        {
+            if (canOpen)
+            {
+                // 펼칠 때마다 파일에서 다시 읽어 다른 곳에서 수정한 내용도 반영한다.
+                if (MaterialData* material = GetMaterialData(AssetManager::ToAssetPath(materialPath), toggledOpen))
+                {
+                    if (DrawMaterialData(&scene, *material))
+                    {
+                        SaveMaterialData(AssetManager::ToAssetPath(materialPath), *material);
+                    }
+                }
+                else
+                {
+                    ImGui::TextDisabled("Failed to load material");
+                }
+            }
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
+    }
+
+    ImGui::TextDisabled("Drop a .mat on a slot to override it");
+    ImGui::TreePop();
+    ImGui::PopID();
+}
+
+bool InspectorPanel::DrawMaterialData(Scene* scene, MaterialData& material)
+{
+    if (!BeginPropertyTable("##Material"))
+    {
+        return false;
+    }
+
+    bool changed = false;
+    const auto drawTexture = [&](const char* label, std::string& path)
+    {
+        BeginPropertyRow(label);
+        ImGui::PushID(label);
+        rttr::variant texture = path;
+        if (DrawValue(scene, texture, {}))
+        {
+            path = AssetManager::ToAssetPath(texture.get_value<std::string>());
+            changed = true;
+        }
+        if (!path.empty() && ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s", path.c_str());
+        }
+        ImGui::PopID();
+    };
+    drawTexture("baseColorTexture", material.baseColorTexture);
+    drawTexture("metallicRoughnessTexture", material.metallicRoughnessTexture);
+    drawTexture("normalTexture", material.normalTexture);
+    drawTexture("occlusionTexture", material.occlusionTexture);
+    drawTexture("emissiveTexture", material.emissiveTexture);
+
+    BeginPropertyRow("baseColor");
+    ImGui::PushID("baseColor");
+    changed |= ImGui::ColorEdit4("##value", &material.desc.baseColor.X, ImGuiColorEditFlags_Float);
+    ImGui::PopID();
+
+    const rttr::instance instance(material.desc);
+    for (const rttr::property& property : rttr::type::get<MaterialDesc>().get_properties())
+    {
+        const std::string name = property.get_name().to_string();
+        if (name == "baseColor")
+        {
+            continue;
+        }
+
+        ImGui::PushID(name.c_str());
+        BeginPropertyRow(name.c_str());
+        rttr::variant value = property.get_value(instance);
+        if (DrawValue(scene, value, {}))
+        {
+            changed |= property.set_value(instance, value);
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndTable();
+    return changed;
+}
+
+MaterialData* InspectorPanel::GetMaterialData(const std::string& assetPath, bool reload)
+{
+    auto found = m_MaterialCache.find(assetPath);
+    if (found != m_MaterialCache.end() && !reload)
+    {
+        return &found->second;
+    }
+
+    MaterialData material;
+    if (!MaterialFile::Load(AssetManager::GetAssetFile(assetPath), material))
+    {
+        m_MaterialCache.erase(assetPath);
+        return nullptr;
+    }
+    return &(m_MaterialCache[assetPath] = std::move(material));
+}
+
+void InspectorPanel::SaveMaterialData(const std::string& assetPath, const MaterialData& material)
+{
+    MaterialFile::Save(AssetManager::GetAssetFile(assetPath), material);
+    // 로드돼 있지 않은 머티리얼이면 false지만 파일은 저장됐으므로 다음 로드 때 반영된다.
+    Application::Get().GetAssetManager().UpdateMaterial(assetPath, material);
 }
 
 bool InspectorPanel::DrawValue(Scene* scene, rttr::variant& value, const std::string& cacheKey)

@@ -92,7 +92,6 @@ namespace Canape
         std::unique_ptr<GpuResourceRegistry> m_Registry;
         std::optional<RenderView> m_ViewOverride;
         bool m_WarnedNoCamera = false;
-        bool m_TestNormalAttempted = false;
         RendererDebugSettings m_DebugSettings{};
         ShadowFilterSettings m_ShadowFilterSettings{};
 

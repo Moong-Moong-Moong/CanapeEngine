@@ -53,20 +53,20 @@ namespace Canape
 		const MeshAsset* GetMesh(const MeshAssetHandle& handle) const;
 
 		//***** Texture
-		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner);
+		// 같은 파일이라도 format이 다르면 별도 에셋으로 캐시된다.
+		TextureAssetHandle GetTextureHandle(const std::string& path, const AssetOwnerInfo& owner,
+			TextureFormat format = TextureFormat::RGBA8_SRGB);
 		const TextureAsset* GetTexture(const TextureAssetHandle& handle) const;
-		std::string GetTexturePath(const TextureAssetHandle& handle) const;
 
 		CubemapAssetHandle GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const CubemapAsset* GetCubemap(const CubemapAssetHandle& handle) const;
 
 		//***** Material
-		MaterialAssetHandle CreateMaterial(const std::string& name, const MaterialDesc& desc,
-			const TextureAssetHandle& baseColorTexture, const AssetOwnerInfo& owner);
+		// data의 텍스처 경로들을 슬롯별 format으로 로드해서 머티리얼을 만든다. 같은 이름이 있으면 기존 것을 반환.
+		MaterialAssetHandle CreateMaterial(const std::string& name, const MaterialData& data, const AssetOwnerInfo& owner);
 		MaterialAssetHandle GetMaterialHandle(const std::string& name, const AssetOwnerInfo& owner);
-		bool UpdateMaterial(const std::string& name, const MaterialFileData& data);
+		bool UpdateMaterial(const std::string& name, const MaterialData& data);
 		const MaterialAsset* GetMaterial(const MaterialAssetHandle& handle) const;
-		const MaterialAsset* FindMaterialByName(const std::string& name) const;
 
 		//***** Asset Tracker
 		const AssetTracker& GetTracker() const { return m_Tracker; }
@@ -88,7 +88,10 @@ namespace Canape
 
 		MaterialAssetHandle LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner);
 		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
-		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath);
+		// 메쉬 머티리얼 슬롯의 기본 데이터를 슬롯 경로(.mat)에 저장한다. 파일이 이미 있으면 건너뛴다.
+		void WriteDefaultMaterialFiles(const MeshAsset& mesh);
+		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath, TextureFormat format);
+		MaterialTextures LoadMaterialTextures(const std::string& materialName, const MaterialData& data, const std::string& sceneName);
 		CubemapAssetId LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath);
 
 		MeshAssetHandle CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner);

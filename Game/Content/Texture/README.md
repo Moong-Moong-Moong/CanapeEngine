@@ -5,9 +5,19 @@
 
 두 이미지는 실제 FBX의 폴리곤 코너 UV와 정점 위치에서 추출한 색상 영역 가이드를 참조하여 Codex의 내장 image_gen 도구로 생성했습니다. 기존 UV 방향을 유지하며 Player의 음수 U 좌표는 Renderer의 Wrap 샘플링으로 처리합니다. 원본 캐릭터의 공식 텍스처를 복원한 것이 아닌 렌더링 확인용 자산입니다. 정밀한 이음새 보정과 최종 아트 검수는 별도로 필요합니다.
 
-SampleScene.cpp에서 ResourceManager.LoadTexture()로 로드하여 각 모델의 실제 Material Slot에 지정합니다. Player의 몸과 검은 Material Slot 0과 같은 아틀라스를 공유합니다. 빌드 후 기존 Content 복사 이벤트를 통해 실행 파일 옆 Content/Texture에도 복사됩니다.
+SampleScene.json의 MeshRendererComponent가 참조하는 `.mat`에서 텍스처 경로를 읽어 각 모델의 Material Slot에 지정합니다. Player의 몸과 검은 Material Slot 0과 같은 아틀라스를 공유합니다. 빌드 후 기존 Content 복사 이벤트를 통해 실행 파일 옆 Content/Texture에도 복사됩니다.
 
 포맷은 불투명 PNG, RGB는 sRGB 색상 데이터입니다. BaseColor는 흰색이며 기존 조명·출력 타깃·카메라 설정은 유지합니다. 이미지 교체 후 실행 중 자동 갱신은 없으므로 게임을 다시 실행하세요.
+
+## 머티리얼 맵 검증
+
+노말맵과 ORM맵은 렌더러의 공통 테스트 입력 대신 각 `.mat`의
+`normalTexture`, `metallicRoughnessTexture`, `occlusionTexture`에서 연결됩니다.
+packed ORM은 같은 파일을 뒤의 두 슬롯에 지정합니다. 세 슬롯 모두 linear
+UNORM으로 읽으며, G/B는 머티리얼 roughness/metallic 배율과 곱하고 R은 ambient
+AO에만 사용합니다. `MaterialMaps_ORM.png`는 채널 분리 확인용 32x32 절차적
+RGBA8 데이터입니다. 비교 씬과 확인 절차는 `Docs/RendererDebugQuickTest.md`를
+참고하세요.
 
 ## 생성 프롬프트
 

@@ -2,17 +2,19 @@
 
 #include "Asset/AssetHandle.h"
 #include "Asset/AssetId.h"
-#include "DX11Renderer/Data/MaterialDesc.h"
-
+#include "MaterialData.h"
+#include <array>
 #include <utility>
 
 namespace Canape
 {
-    // Immutable after creation. Created only by AssetManager::CreateMaterial.
+    using MaterialTextures = std::array<TextureAssetHandle, kMaterialTextureSlotCount>;
+
+    // 생성/변경은 AssetManager(CreateMaterial, UpdateMaterial)를 통해서만 한다.
     class MaterialAsset
     {
     public:
-        MaterialAsset(const MaterialDesc& desc, TextureAssetHandle baseColorTexture);
+        MaterialAsset(const MaterialDesc& desc, MaterialTextures textures);
         ~MaterialAsset();
 
         MaterialAsset(const MaterialAsset&) = delete;
@@ -20,16 +22,16 @@ namespace Canape
 
         MaterialAssetId GetAssetId() const { return m_AssetId; }
         const MaterialDesc& GetDesc() const { return m_Desc; }
-        const TextureAssetHandle& GetBaseColorTexture() const { return m_BaseColorTexture; }
+        const TextureAssetHandle& GetTexture(MaterialTextureSlot slot) const { return m_Textures[static_cast<size_t>(slot)]; }
 
         void SetDesc(const MaterialDesc& desc) { m_Desc = desc; }
-        void SetBaseColorTexture(TextureAssetHandle texture) { m_BaseColorTexture = std::move(texture); }
+        void SetTextures(MaterialTextures textures) { m_Textures = std::move(textures); }
 
     private:
         static MaterialAssetId AllocateAssetId();
 
         const MaterialAssetId m_AssetId = AllocateAssetId();
         MaterialDesc m_Desc;
-        TextureAssetHandle m_BaseColorTexture;
+        MaterialTextures m_Textures;
     };
 }

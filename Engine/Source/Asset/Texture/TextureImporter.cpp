@@ -23,7 +23,8 @@ namespace Canape
 		};
 	}
 
-	std::unique_ptr<TextureAsset> TextureImporter::LoadTexture(const std::filesystem::path& path, std::string* outError)
+	std::unique_ptr<TextureAsset> TextureImporter::LoadTexture(const std::filesystem::path& path, std::string* outError,
+		TextureFormat format)
 	{
 		using Microsoft::WRL::ComPtr;
 		auto fail = [&](const char* operation, HRESULT result) -> std::unique_ptr<TextureAsset>
@@ -67,6 +68,6 @@ namespace Canape
 		result = converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data());
 		if (FAILED(result)) return fail("Copy image pixels", result);
 		if (outError) outError->clear();
-		return std::make_unique<TextureAsset>(width, height, std::move(pixels));
+		return std::make_unique<TextureAsset>(width, height, std::move(pixels), format);
 	}
 }

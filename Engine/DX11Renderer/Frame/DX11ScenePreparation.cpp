@@ -248,8 +248,12 @@ namespace Canape::ScenePreparation
         const MaterialDesc desc = resource ? resource->Desc : MaterialDesc{};
         ID3D11ShaderResourceView* textureView = resources.GetWhiteTextureView();
         ID3D11ShaderResourceView* ormView = nullptr;
+        ID3D11ShaderResourceView* normalView = nullptr;
+        ID3D11ShaderResourceView* occlusionView = nullptr;
         uint32_t hasTexture = 0;
         uint32_t hasORMTexture = 0;
+        uint32_t hasNormalTexture = 0;
+        uint32_t hasOcclusionTexture = 0;
         if (resource)
         {
             if (const auto* texture = resources.GetTexture(resource->BaseColorTexture))
@@ -264,10 +268,21 @@ namespace Canape::ScenePreparation
                 ormView = texture->ShaderResourceView.Get();
                 hasORMTexture = 1;
             }
+            if (const auto* texture = resources.GetTexture(resource->NormalTexture))
+            {
+                normalView = texture->ShaderResourceView.Get();
+                hasNormalTexture = 1;
+            }
+            if (const auto* texture = resources.GetTexture(resource->OcclusionTexture))
+            {
+                occlusionView = texture->ShaderResourceView.Get();
+                hasOcclusionTexture = 1;
+            }
         }
         const SC::MaterialConstants constants{ desc.baseColor, static_cast<uint32_t>(desc.alphaMode),
-            desc.alphaCutoff, hasTexture, 0.0f, desc.metallic, desc.roughness, hasORMTexture };
-        return { desc, constants, textureView, ormView };
+            desc.alphaCutoff, hasTexture, hasNormalTexture, desc.metallic, desc.roughness,
+            hasORMTexture, hasOcclusionTexture };
+        return { desc, constants, textureView, ormView, normalView, occlusionView };
     }
 
     PreparedLighting PrepareLights(std::span<const RenderLight> lights, const DirectionalShadowSettings& settings)

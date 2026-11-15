@@ -49,12 +49,39 @@ namespace Canape
 		if (!gameObject)
 		{
 			m_Mesh.Reset();
+			m_DefaultMaterials.clear();
 			return false;
 		}
 
 		m_MeshPath = AssetManager::ToAssetPath(path);
 		m_Mesh = Application::Get().GetAssetManager().GetMeshHandle(m_MeshPath, MakeOwnerInfo(*gameObject));
+		// 오버라이드(m_Materials)는 건드리지 않는다. 프로퍼티 적용 순서와 무관하게 같은 결과가 나와야 한다.
+		LoadDefaultMaterials();
 		return m_Mesh.IsValid();
+	}
+
+	void MeshRendererComponent::LoadDefaultMaterials()
+	{
+		m_DefaultMaterials.clear();
+
+		GameObject* gameObject = GetOwnerObject();
+		AssetManager& assets = Application::Get().GetAssetManager();
+		const MeshAsset* mesh = assets.GetMesh(m_Mesh);
+		if (!gameObject || !mesh)
+		{
+			return;
+		}
+
+		const std::vector<MaterialData>& slots = mesh->GetMaterialSlots();
+		m_DefaultMaterials.resize(slots.size());
+		for (size_t slot = 0; slot < slots.size(); ++slot)
+		{
+			// 슬롯 name은 임포트 시 생성된 .mat 경로. 머티리얼 로드 시 텍스처도 함께 로드된다.
+			if (MaterialFile::IsMaterialPath(slots[slot].name))
+			{
+				m_DefaultMaterials[slot] = assets.GetMaterialHandle(slots[slot].name, MakeOwnerInfo(*gameObject));
+			}
+		}
 	}
 
 	bool MeshRendererComponent::SetMaterial(uint32_t slot, const std::string& materialName)
@@ -78,6 +105,7 @@ namespace Canape
 		{
 			m_MeshPath.clear();
 			m_Mesh.Reset();
+			m_DefaultMaterials.clear();
 			return;
 		}
 
@@ -103,7 +131,11 @@ namespace Canape
 
 	const MaterialAssetHandle& MeshRendererComponent::GetMaterial(uint32_t slot) const
 	{
+		if (slot < m_Materials.size() && m_Materials[slot].IsValid())
+		{
+			return m_Materials[slot];
+		}
 		static const MaterialAssetHandle invalid;
-		return slot < m_Materials.size() ? m_Materials[slot] : invalid;
+		return slot < m_DefaultMaterials.size() ? m_DefaultMaterials[slot] : invalid;
 	}
 }

@@ -42,15 +42,16 @@ namespace Canape
         bool IsMeshValid(MeshResourceId mesh) const;
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
+        // Normal and occlusion participate in shading; emissive is stored for future shading support.
         MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {},
-            TextureResourceId ormTexture = {});
+            TextureResourceId ormTexture = {}, TextureResourceId normalTexture = {},
+            TextureResourceId occlusionTexture = {}, TextureResourceId emissiveTexture = {});
         // Invalid/stale IDs resolve to a default white descriptor.
         MaterialDesc GetMaterial(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);
         bool IsMaterialValid(MaterialResourceId material) const;
 
         TextureResourceId CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels);
-        void SetTestNormalTexture(TextureResourceId texture);
         bool IsTextureValid(TextureResourceId texture) const;
         // Explicit texture removal also invalidates materials referencing it; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);

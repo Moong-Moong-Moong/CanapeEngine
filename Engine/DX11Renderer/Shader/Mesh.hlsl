@@ -24,18 +24,7 @@ VertexOutput VSMain(VertexInput input)
 
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
-    float3 normal = GetWorldNormal(input);
-    float3 tangent = input.Tangent.xyz - normal * dot(normal, input.Tangent.xyz);
-    float tangentLengthSquared = dot(tangent, tangent);
-    if (tangentLengthSquared > 1e-12f)
-    {
-        tangent *= rsqrt(tangentLengthSquared);
-        float handedness = input.Tangent.w < 0.0f ? -1.0f : 1.0f;
-        float3 bitangent = cross(normal, tangent) * handedness;
-        float3 tangentNormal = TestNormalTexture.Sample(LinearSampler, input.UV).xyz * 2.0f - 1.0f;
-        float3x3 tangentToWorld = float3x3(tangent, bitangent, normal);
-        normal = normalize(mul(tangentNormal, tangentToWorld));
-    }
+    float3 normal = GetShadingNormal(input);
     // sRGB sampling decodes RGB; the FP16 SceneColor target preserves linear HDR output.
     float4 textureColor = BaseColorTexture.Sample(LinearSampler, input.UV);
     float alpha = BaseColor.a * textureColor.a;
@@ -46,11 +35,15 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     if (HasORMTexture != 0)
     {
         float3 orm = ORMTexture.Sample(LinearSampler, input.UV).rgb;
-        roughness = orm.g;
-        metallic = orm.b;
+        roughness *= orm.g;
+        metallic *= orm.b;
     }
-    // Keep legacy ambient separate from the direct-light BRDF; AO is reserved for indirect light.
-    float3 rgb = AmbientColor * AmbientIntensity * baseColor
+    // AO is a separate material input: metallicRoughness images need not contain AO in R.
+    float occlusion = 1.0f;
+    if (HasOcclusionTexture != 0)
+        occlusion = OcclusionTexture.Sample(LinearSampler, input.UV).r;
+    // Apply AO to ambient diffuse only; direct lighting and specular IBL stay independent.
+    float3 rgb = AmbientColor * AmbientIntensity * baseColor * occlusion
         + CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness)
         + CalculateSpecularIBL(input.WorldPosition, normal, baseColor, metallic, roughness);
     return float4(rgb, MaterialAlphaMode == 2 ? alpha : 1.0f);
