@@ -6,25 +6,20 @@
 #include <utility>
 #include <vector>
 
+#include "DX11Simulation/SlotHandle.h"
+
 namespace Canape
 {
-    // A default handle names nothing: generations start at 1 and skip 0 when they wrap.
-    template<typename T>
-    struct SlotHandle {
-        std::uint32_t index = 0;
-        std::uint32_t generation = 0;
-
-        constexpr bool operator==(const SlotHandle&) const = default;
-    };
-
     // Elements live in place, so Add may move them; a freed index is reused last in, first out.
     template<typename T>
-    class SlotMap {
+    class SlotMap
+    {
     public:
         using Handle = SlotHandle<T>;
 
     private:
-        struct Slot {
+        struct Slot
+        {
             std::optional<T> value;
             std::uint32_t generation = 1;
         };
