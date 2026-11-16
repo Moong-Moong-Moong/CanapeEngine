@@ -93,9 +93,9 @@ EndFrame
   기존 계측 종료/통계 완료/Present
 ```
 
-AfterOpaque/AfterTransparent 콜백은 장면 타겟, 뷰포트, 공통 상수가 바인딩된 상태에서 불린다.
-콜백은 자기 파이프라인을 바인딩하되 삼각형 리스트 토폴로지는 유지하고, b9, t8~t10, s8,
-u0~u1만 쓴 뒤 해제한다. 렌더러는 이 슬롯을 쓰지 않는다.
+AfterOpaque/AfterTransparent 콜백은 장면 타겟, 뷰포트, 장면의 공통 상수가 바인딩된 상태에서 불린다.
+콜백에서 바인딩된 셰이더는 토폴로지는 유지하면서 그 공통 상수를 그대로 읽되,
+자기 파이프라인을 b9~b11, t8~t10, s8에 묶은 후 바인딩을 푼다.
 
 `UploadLights`는 제거했다. CPU 계산은 `PrepareLights`/`PrepareShadow`, GPU 버퍼 갱신은
 `UploadLighting`, 실제 그림자 드로우는 `ShadowPass::Execute`로 나뉜다.

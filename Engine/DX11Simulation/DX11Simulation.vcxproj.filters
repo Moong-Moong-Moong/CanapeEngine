@@ -2,13 +2,18 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="Buffer.h" />
+    <ClInclude Include="ConstantView.h" />
     <ClInclude Include="D3D.h" />
     <ClInclude Include="D3DFwd.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceContext.h" />
     <ClInclude Include="FrameStats.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="GpuTimer.h" />
     <ClInclude Include="Handles.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="Outer.h" />
+    <ClInclude Include="RenderPass.h" />
     <ClInclude Include="RingBuffer.h" />
     <ClInclude Include="Session.h" />
     <ClInclude Include="Shader.h" />
@@ -23,7 +28,11 @@
     <ClCompile Include="D3D.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="DeviceContext.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GpuTimer.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Outer.cpp" />
+    <ClCompile Include="RenderPass.cpp" />
     <ClCompile Include="Session.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Simulator.cpp" />

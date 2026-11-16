@@ -6,14 +6,19 @@
 #include <d3d11.h>
 
 #include "DX11Simulation/FrameStats.h"
+#include "DX11Simulation/Handles.h"
 
 namespace Canape
 {
     class DeviceContext;
+    class Geometry;
     class GpuTimer;
+    class Material;
+    class Outer;
+    class RenderPass;
     class Session;
 
-    // Runs the simulation on the renderer's D3D11 context, a frame at a time, on the resources a Session owns.
+    // Runs the simulation on the renderer's D3D11 context
     class Simulator {
     private:
         Session& session;
@@ -34,6 +39,7 @@ namespace Canape
         GpuTiming timing;
     #ifndef NDEBUG
         bool frameOpen = false;
+        bool renderOpen = false;
     #endif
 
     public:
@@ -52,6 +58,11 @@ namespace Canape
         void EnableGpuTiming();
         void DisableGpuTiming();
 
+        // Inside a renderer callback. The pass's render states are not restored.
+        void BeginRenderPass(const RenderPass&, const Outer&);
+        void Draw(const Material&, const Geometry&);
+        void EndRenderPass();
+
         // Of the frame that just ended.
         const CommandCounts& GetCommandCounts() const
         {
@@ -68,6 +79,30 @@ namespace Canape
         {
             return *context;
         }
+
+    private:
+        void bind(std::uint32_t slot, BufferHandle constants);
+    };
+
+    class RenderPassScope {
+    private:
+        Simulator& simulator;
+
+    public:
+        RenderPassScope(Simulator& simulator, const RenderPass& pass, const Outer& outer)
+            : simulator(simulator)
+        {
+            simulator.BeginRenderPass(pass, outer);
+        }
+        ~RenderPassScope()
+        {
+            simulator.EndRenderPass();
+        }
+
+        RenderPassScope(const RenderPassScope&) = delete;
+        RenderPassScope& operator=(const RenderPassScope&) = delete;
+        RenderPassScope(RenderPassScope&&) = delete;
+        RenderPassScope& operator=(RenderPassScope&&) = delete;
     };
 
     class FrameScope {

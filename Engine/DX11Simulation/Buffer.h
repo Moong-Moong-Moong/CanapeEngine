@@ -54,6 +54,10 @@ namespace Canape
 
         // Replaces the content of a dynamic buffer; data is as large as the buffer.
         void Upload(std::span<const std::byte> data);
+        void Upload(const void* data, std::size_t size)
+        {
+            return Upload(std::span{static_cast<const std::byte*>(data), size});
+        }
         // Copies the whole buffer out through a staging copy; data is as large as the buffer.
         void Download(std::span<std::byte> data) const;
 

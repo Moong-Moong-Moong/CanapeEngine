@@ -2,9 +2,14 @@
 
 #include <cassert>
 
+#include "DX11Simulation/Buffer.h"
 #include "DX11Simulation/Device.h"
 #include "DX11Simulation/DeviceContext.h"
+#include "DX11Simulation/Geometry.h"
 #include "DX11Simulation/GpuTimer.h"
+#include "DX11Simulation/Material.h"
+#include "DX11Simulation/Outer.h"
+#include "DX11Simulation/RenderPass.h"
 #include "DX11Simulation/Session.h"
 
 namespace Canape
@@ -94,5 +99,78 @@ namespace Canape
 
         timing = {};
     #endif
+    }
+
+    void Simulator::BeginRenderPass(const RenderPass& pass, const Outer& outer)
+    {
+        assert(!renderOpen);
+
+    #ifndef NDEBUG
+        renderOpen = true;
+    #endif
+
+    #if CANAPE_RENDER_DEBUG
+        if(timer != nullptr && timer->IsRecording())
+        {
+            timer->BeginRender();
+        }
+    #endif
+
+        auto rasterizer = session.Get(pass.GetRasterizer())->Get();
+        auto depthStencil = session.Get(pass.GetDepthStencil())->Get();
+        auto blendState = session.Get(pass.GetBlend())->Get();
+        constexpr UINT sampleMask = D3D11_DEFAULT_SAMPLE_MASK;
+
+        auto& d3dContext = context->GetRef();
+        d3dContext.IASetInputLayout(nullptr);
+        d3dContext.RSSetState(rasterizer);
+        d3dContext.OMSetDepthStencilState(depthStencil, 0);
+        d3dContext.OMSetBlendState(blendState, nullptr, sampleMask);
+        bind(OuterSlot, outer.GetConstants());
+    }
+
+    void Simulator::Draw(const Material& material, const Geometry& geometry)
+    {
+        assert(renderOpen);
+
+        bind(GeometrySlot, geometry.GetConstants());
+        bind(MaterialSlot, material.GetConstants());
+
+        auto vertexShader = session.Get(material.GetVertexShader())->Get();
+        auto pixelShader = session.Get(material.GetPixelShader())->Get();
+
+        auto& d3dContext = context->GetRef();
+        d3dContext.VSSetShader(vertexShader, nullptr, 0);
+        d3dContext.PSSetShader(pixelShader, nullptr, 0);
+        context->Draw(geometry.GetVertexCount(), geometry.GetInstanceCount());
+    }
+
+    void Simulator::EndRenderPass()
+    {
+        assert(renderOpen);
+
+    #ifndef NDEBUG
+        renderOpen = false;
+    #endif
+
+        for(const auto slot : { OuterSlot, GeometrySlot, MaterialSlot })
+        {
+            context->ClearVertexConstant(slot);
+            context->ClearPixelConstant(slot);
+        }
+
+    #if CANAPE_RENDER_DEBUG
+        if(timer != nullptr && timer->IsRecording())
+        {
+            timer->EndRender();
+        }
+    #endif
+    }
+
+    void Simulator::bind(std::uint32_t slot, BufferHandle constants)
+    {
+        auto& buffer = *session.Get(constants);
+        context->SetVertexConstant(slot, buffer);
+        context->SetPixelConstant(slot, buffer);
     }
 }
