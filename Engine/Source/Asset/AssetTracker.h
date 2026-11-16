@@ -7,7 +7,7 @@
 
 namespace Canape
 {
-	enum class AssetType { Mesh, Material, Texture, Cubemap };
+	enum class AssetType { Mesh, Material, Texture, Cubemap, AnimationClip };
 
 	const char* ToString(AssetType type);
 

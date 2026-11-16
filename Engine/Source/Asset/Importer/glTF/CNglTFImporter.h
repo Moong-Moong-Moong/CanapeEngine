@@ -36,6 +36,8 @@ namespace Canape
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
 		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);
 
+
+
 	private:
 		void LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots);
 		Matrix4 GetNodeTRS(rapidjson::Value& node);

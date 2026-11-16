@@ -73,6 +73,9 @@
     <Filter Include="Source\Asset\Importer\glTF">
       <UniqueIdentifier>{2b41fc15-3d8f-41f3-b636-382fb89a4037}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Asset\Animation">
+      <UniqueIdentifier>{e19d5515-1434-4dbb-932e-3ef4bc346904}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\CNDebug\DebugLog.h">
@@ -279,6 +282,15 @@
     <ClInclude Include="Source\Asset\Material\MaterialData.h">
       <Filter>Source\Asset\Material</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Animation\AnimationClipAsset.h">
+      <Filter>Source\Asset\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\SkinnedMeshRendererComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Component\AnimatorComponent.h">
+      <Filter>Source\Scene\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\CNDebug\DebugLog.cpp">
@@ -409,6 +421,12 @@
     </ClCompile>
     <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp">
       <Filter>Source\Asset\Importer\glTF</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\SkinnedMeshRendererComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Component\AnimatorComponent.cpp">
+      <Filter>Source\Scene\Component</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

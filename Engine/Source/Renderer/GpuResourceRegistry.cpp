@@ -30,8 +30,14 @@ namespace Canape
             return existing;
         }
 
+        if (mesh.GetVertexFormat() == VertexFormat::Skinned)
+        {
+            return {};
+        }
+
         // 실패한 업로드가 이전 등록을 남기지 않도록 먼저 지운다.
         m_Meshes.erase(assetId);
+
         const MeshResourceId resourceId = m_Renderer.CreateMesh(std::span<const StaticVertex>(mesh.GetVertices()),
             mesh.GetIndices(), mesh.GetSubMeshes());
         if (resourceId.IsValid())

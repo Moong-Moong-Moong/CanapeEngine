@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "baseColorTexture": "",
+    "metallicRoughnessTexture": "",
+    "normalTexture": "",
+    "occlusionTexture": "",
+    "emissiveTexture": "",
+    "desc": {
+        "baseColor": {
+            "X": 0.38062906,
+            "Y": 0.38062906,
+            "Z": 0.38062906,
+            "W": 1.0
+        },
+        "roughness": 0.278858,
+        "metallic": 1.0,
+        "alphaMode": "Opaque",
+        "alphaCutoff": 0.5
+    }
+}

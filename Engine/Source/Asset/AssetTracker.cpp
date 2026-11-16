@@ -20,6 +20,7 @@ namespace Canape
 	{
 		switch (type)
 		{
+		case AssetType::AnimationClip: return "AnimationClip";
 		case AssetType::Mesh: return "Mesh";
 		case AssetType::Material: return "Material";
 		case AssetType::Texture: return "Texture";
@@ -49,7 +50,7 @@ namespace Canape
 			std::vector<std::pair<uint64_t, const Record*>> records;
 		};
 
-		constexpr AssetType kTypes[] = { AssetType::Mesh, AssetType::Material, AssetType::Texture, AssetType::Cubemap };
+		constexpr AssetType kTypes[] = { AssetType::Mesh, AssetType::Material, AssetType::Texture, AssetType::Cubemap, AssetType::AnimationClip };
 		constexpr size_t kTypeCount = std::size(kTypes);
 
 		std::map<uint64_t, AssetNode> nodesByType[kTypeCount];

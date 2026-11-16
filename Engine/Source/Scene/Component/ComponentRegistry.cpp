@@ -7,6 +7,7 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
+#include "Scene/Component/AnimatorComponent.h"
 
 #include <algorithm>
 #include <vector>
@@ -104,6 +105,11 @@ namespace Canape
 			{
 				m_waterVolumes.push_back(water);
 			}
+
+			if (AnimatorComponent* animator = dynamic_cast<AnimatorComponent*>(component))
+			{
+				m_animators.push_back(animator);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -150,6 +156,10 @@ namespace Canape
 			if (WaterVolumeComponent* water = dynamic_cast<WaterVolumeComponent*>(component))
 			{
 				std::erase(m_waterVolumes, water);
+			}
+			if (AnimatorComponent* animatorComponent = dynamic_cast<AnimatorComponent*>(component))
+			{
+				std::erase(m_animators, animatorComponent);
 			}
 		}
 		m_pendingRemove.clear();
