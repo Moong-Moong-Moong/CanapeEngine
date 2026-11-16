@@ -42,7 +42,7 @@ if errorlevel 1 exit /b %errorlevel%
 "$msbuild" Engine\Runtime.vcxproj /p:Configuration=$Configuration /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
-cl /nologo /std:c++20 /EHsc $crt /utf-8 /W4 /DCANAPE_RENDER_DEBUG=1 /ICommon /IEngine /IEngine\Source /I$vcpkgDir\include /IGame\Source Game\Tests\PlaygroundValidation.cpp Game\Source\Scripts\*.cpp Game\Source\Puzzle\*.cpp Binaries\x64\$Configuration\Runtime\Runtime.lib Binaries\x64\$Configuration\DX11Renderer\DX11Renderer.lib Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $vcpkgLibs /FoIntermediate\PlaygroundValidation\$Configuration\ /FeIntermediate\PlaygroundValidation\$Configuration\PlaygroundValidation.exe /link user32.lib gdi32.lib d3d11.lib dxgi.lib d3dcompiler.lib shell32.lib ole32.lib advapi32.lib
+cl /nologo /std:c++23preview /EHsc $crt /utf-8 /W4 /D_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING /DCANAPE_RENDER_DEBUG=1 /ICommon /IEngine /IEngine\Source /I$vcpkgDir\include /IGame\Source Game\Tests\PlaygroundValidation.cpp Game\Source\Scripts\*.cpp Game\Source\Puzzle\*.cpp Binaries\x64\$Configuration\Runtime\Runtime.lib Binaries\x64\$Configuration\DX11Renderer\DX11Renderer.lib Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $vcpkgLibs /FoIntermediate\PlaygroundValidation\$Configuration\ /FeIntermediate\PlaygroundValidation\$Configuration\PlaygroundValidation.exe /link user32.lib gdi32.lib d3d11.lib dxgi.lib d3dcompiler.lib shell32.lib ole32.lib advapi32.lib
 exit /b %errorlevel%
 "@
 $batchPath = Join-Path $validationDir 'validate.cmd'
