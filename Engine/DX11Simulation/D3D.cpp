@@ -206,42 +206,42 @@ namespace
 
 namespace Canape
 {
-    std::size_t DescHash::operator()(const D3D11_SAMPLER_DESC& desc) const noexcept
+    std::size_t DescHash::operator()(const D3D11_SAMPLER_DESC& desc) noexcept
     {
         return hashOf(fieldsOf(desc));
     }
 
-    std::size_t DescHash::operator()(const D3D11_RASTERIZER_DESC& desc) const noexcept
+    std::size_t DescHash::operator()(const D3D11_RASTERIZER_DESC& desc) noexcept
     {
         return hashOf(fieldsOf(desc));
     }
 
-    std::size_t DescHash::operator()(const D3D11_DEPTH_STENCIL_DESC& desc) const noexcept
+    std::size_t DescHash::operator()(const D3D11_DEPTH_STENCIL_DESC& desc) noexcept
     {
         return hashOf(fieldsOf(desc));
     }
 
-    std::size_t DescHash::operator()(const D3D11_BLEND_DESC& desc) const noexcept
+    std::size_t DescHash::operator()(const D3D11_BLEND_DESC& desc) noexcept
     {
         return hashOf(fieldsOf(desc));
     }
 
-    bool DescEqual::operator()(const D3D11_SAMPLER_DESC& a, const D3D11_SAMPLER_DESC& b) const noexcept
+    bool DescEqual::operator()(const D3D11_SAMPLER_DESC& a, const D3D11_SAMPLER_DESC& b) noexcept
     {
         return fieldsOf(a) == fieldsOf(b);
     }
 
-    bool DescEqual::operator()(const D3D11_RASTERIZER_DESC& a, const D3D11_RASTERIZER_DESC& b) const noexcept
+    bool DescEqual::operator()(const D3D11_RASTERIZER_DESC& a, const D3D11_RASTERIZER_DESC& b) noexcept
     {
         return fieldsOf(a) == fieldsOf(b);
     }
 
-    bool DescEqual::operator()(const D3D11_DEPTH_STENCIL_DESC& a, const D3D11_DEPTH_STENCIL_DESC& b) const noexcept
+    bool DescEqual::operator()(const D3D11_DEPTH_STENCIL_DESC& a, const D3D11_DEPTH_STENCIL_DESC& b) noexcept
     {
         return fieldsOf(a) == fieldsOf(b);
     }
 
-    bool DescEqual::operator()(const D3D11_BLEND_DESC& a, const D3D11_BLEND_DESC& b) const noexcept
+    bool DescEqual::operator()(const D3D11_BLEND_DESC& a, const D3D11_BLEND_DESC& b) noexcept
     {
         return fieldsOf(a) == fieldsOf(b);
     }

@@ -61,19 +61,13 @@ namespace Canape
         }
 
         // nullptr for a handle that names nothing or something removed.
-        const T* Get(Handle handle) const
+        template<typename Self>
+        auto* Get(this Self& self, Handle handle)
         {
-            if(handle.index >= slots.size()) return nullptr;
+            auto* slot = handle.index < self.slots.size() ? &self.slots[handle.index] : nullptr;
+            const bool named = slot != nullptr && slot->value && slot->generation == handle.generation;
 
-            const auto& slot = slots[handle.index];
-
-            return slot.value && slot.generation == handle.generation ?
-                std::addressof(*slot.value) :
-                nullptr;
-        }
-        T* Get(Handle handle)
-        {
-            return const_cast<T*>(std::as_const(*this).Get(handle));
+            return named ? std::addressof(*slot->value) : nullptr;
         }
     };
 }

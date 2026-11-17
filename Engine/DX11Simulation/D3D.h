@@ -26,17 +26,17 @@ namespace Canape
     // By their fields, so that a state's DESC can be the key of a map.
     struct DescHash
     {
-        std::size_t operator()(const D3D11_SAMPLER_DESC&) const noexcept;
-        std::size_t operator()(const D3D11_RASTERIZER_DESC&) const noexcept;
-        std::size_t operator()(const D3D11_DEPTH_STENCIL_DESC&) const noexcept;
-        std::size_t operator()(const D3D11_BLEND_DESC&) const noexcept;
+        static std::size_t operator()(const D3D11_SAMPLER_DESC&) noexcept;
+        static std::size_t operator()(const D3D11_RASTERIZER_DESC&) noexcept;
+        static std::size_t operator()(const D3D11_DEPTH_STENCIL_DESC&) noexcept;
+        static std::size_t operator()(const D3D11_BLEND_DESC&) noexcept;
     };
 
     struct DescEqual
     {
-        bool operator()(const D3D11_SAMPLER_DESC&, const D3D11_SAMPLER_DESC&) const noexcept;
-        bool operator()(const D3D11_RASTERIZER_DESC&, const D3D11_RASTERIZER_DESC&) const noexcept;
-        bool operator()(const D3D11_DEPTH_STENCIL_DESC&, const D3D11_DEPTH_STENCIL_DESC&) const noexcept;
-        bool operator()(const D3D11_BLEND_DESC&, const D3D11_BLEND_DESC&) const noexcept;
+        static bool operator()(const D3D11_SAMPLER_DESC&, const D3D11_SAMPLER_DESC&) noexcept;
+        static bool operator()(const D3D11_RASTERIZER_DESC&, const D3D11_RASTERIZER_DESC&) noexcept;
+        static bool operator()(const D3D11_DEPTH_STENCIL_DESC&, const D3D11_DEPTH_STENCIL_DESC&) noexcept;
+        static bool operator()(const D3D11_BLEND_DESC&, const D3D11_BLEND_DESC&) noexcept;
     };
 }

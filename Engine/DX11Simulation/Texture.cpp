@@ -127,11 +127,11 @@ namespace Canape
         );
         const auto rowBytes = data.size() / desc.Height;
         assert(rowBytes <= mapped.RowPitch);
-        for(auto row = 0u; row < desc.Height; ++row)
+        for(auto row = 0uz; row < desc.Height; ++row)
         {
             std::memcpy(
                 data.data() + row * rowBytes,
-                static_cast<const std::byte*>(mapped.pData) + static_cast<std::size_t>(row) * mapped.RowPitch,
+                static_cast<const std::byte*>(mapped.pData) + row * mapped.RowPitch,
                 rowBytes
             );
         }

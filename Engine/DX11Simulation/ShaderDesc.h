@@ -20,7 +20,7 @@ namespace Canape
 template<>
 struct std::hash<Canape::ShaderDesc>
 {
-    std::size_t operator()(const Canape::ShaderDesc& desc) const noexcept
+    static std::size_t operator()(const Canape::ShaderDesc& desc) noexcept
     {
         const auto pathHash = std::filesystem::hash_value(desc.path);
         const auto entryPointHash = std::hash<std::string>{}(desc.entryPoint);

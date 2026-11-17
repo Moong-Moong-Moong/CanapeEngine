@@ -124,8 +124,8 @@ namespace Canape
             case GpuPass::Render:
                 timing.renderMs += elapsedMs;
                 break;
-            // default:
-            //     std::unreachable();
+            default:
+                std::unreachable();
             }
         }
         if(measurable)
