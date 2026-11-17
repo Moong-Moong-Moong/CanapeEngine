@@ -3,6 +3,8 @@
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
 
+#include <span>
+
 namespace Canape
 {
     // A draw only borrows its immediate context, constants, pipeline and existing diagnostics.
@@ -15,6 +17,8 @@ namespace Canape
         SceneBindings Scene;
         const RendererDebugSettings* DebugSettings = nullptr;
         RendererDebugStats* Stats = nullptr;
+        ID3D11Buffer* SkinningBuffer = nullptr;
+        std::span<const Matrix4> BonePalettes{}; // Borrowed for this PreparedScene's submission.
     };
     namespace MeshDraw
     {

@@ -10,7 +10,7 @@
     },
     "C_Cpp.intelliSenseEngine": "default",
     "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
-    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cppStandard": "c++23",
     "C_Cpp.default.includePath": [
         "${workspaceFolder}/Common",
         "${workspaceFolder}/Engine",

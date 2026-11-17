@@ -19,6 +19,8 @@
 #include "Scene/Component/FogComponent.h"
 #include "Scene/Component/LightComponent.h"
 #include "Scene/Component/MeshRendererComponent.h"
+#include "Scene/Component/SkinnedMeshRendererComponent.h"
+#include "Scene/Component/AnimatorComponent.h"
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
@@ -190,6 +192,14 @@ namespace Canape
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("mesh", &MeshRendererComponent::GetMeshPath, &MeshRendererComponent::SetMeshPath)
 				.property("materials", &MeshRendererComponent::GetMaterialNames, &MeshRendererComponent::SetMaterialNames);
+
+			registration::class_<SkinnedMeshRendererComponent>("SkinnedMeshRendererComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("skeleton", &SkinnedMeshRendererComponent::GetSkeleton, &SkinnedMeshRendererComponent::SetSkeleton);
+
+			registration::class_<AnimatorComponent>("AnimatorComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
 

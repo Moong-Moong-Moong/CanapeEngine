@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DX11Renderer/Scene/RenderScene.h"
+#include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
 
@@ -10,6 +11,18 @@
 
 namespace Canape::ShaderConstants
 {
+    // Per-draw palette capacity; keep in sync with Shader/Common/Skinning.hlsli.
+    inline constexpr uint32_t MaxSkinMatrices = 256;
+    inline constexpr uint32_t SkinningSlot = 9;
+
+    // VS b9, row-major matrices uploaded without a transpose.
+    struct alignas(16) SkinningConstants
+    {
+        // Matrix4 defaults to Identity, including entries outside the draw's palette.
+        Matrix4 SkinMatrices[MaxSkinMatrices]{};
+    };
+    static_assert(sizeof(SkinningConstants) == 16384);
+
     struct alignas(16) ObjectConstants
     {
         DirectX::XMFLOAT4X4 World;

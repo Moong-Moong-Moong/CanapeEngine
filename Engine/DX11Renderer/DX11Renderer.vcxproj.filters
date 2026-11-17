@@ -123,7 +123,7 @@
     <ClInclude Include="Resource\DX11TextureResource.h">
       <Filter>Source\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\RenderItem.h">
+    <ClInclude Include="Scene\MeshItem.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\RenderScene.h">
@@ -193,7 +193,13 @@
     <None Include="Shader\Common\MeshSurface.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\MeshTransform.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="Shader\Common\MeshTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Skinning.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
     <None Include="Shader\Common\SkyboxEnvironment.hlsli">
@@ -209,6 +215,15 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\MeshPS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\MeshSkinnedVS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\MeshStaticVS.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Shadow\PCSS.hlsli">

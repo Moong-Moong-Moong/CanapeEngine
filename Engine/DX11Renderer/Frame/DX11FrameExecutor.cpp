@@ -128,8 +128,8 @@ namespace Canape
 
         BindMainTargets();
 
-        // Direct draws start with scene defaults instead of inheriting the previous frame.
-        // Always upload a freshly initialized LightConstants, even with no scene draws.
+        // Start with fresh light/shadow state, including frames with no scene submission.
+        // Each DrawScene replaces this data with its own prepared lighting.
         const auto lighting = ResolveLighting(QueuedScene.lights, false);
         ConstantBuffers::UploadLighting(*context, GetSceneBuffers(), lighting);
         SceneData = {};
@@ -212,6 +212,7 @@ namespace Canape
             BindSharedConstants();
             ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), prepared.Skybox.Constants);
             auto draw = GetDrawContext();
+            draw.BonePalettes = std::span<const Matrix4>{ prepared.BonePalettes };
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;
             draw.Scene.SkyboxConstants = SkyboxViewBuffer.Get();
             MainPass::DrawOpaqueAndMasked(prepared, draw);
@@ -220,21 +221,6 @@ namespace Canape
             MainPass::DrawTransparent(prepared, draw);
             if (AfterTransparentCallback) AfterTransparentCallback();
         }
-    }
-
-    void DX11Renderer::Impl::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
-    {
-        if (!FrameActive)
-        {
-            return;
-        }
-
-        PreparedMeshDraw prepared;
-        if (!ScenePreparation::PrepareMeshDraw(Resources, mesh, world, submeshIndex,
-            material, prepared, LastError)) return;
-        UploadPendingConstants();
-        auto draw = GetDrawContext();
-        MeshDraw::SubmitMain(prepared, draw);
     }
 
     void DX11Renderer::Impl::EndFrame()

@@ -5,6 +5,8 @@
 #include "Asset/Mesh/PrimitiveMeshes.h"
 #include "Asset/Texture/CubemapImporter.h"
 #include "Asset/Texture/TextureImporter.h"
+#include "Asset/Animation/AnimationClipAsset.h"
+#include "Asset/Animation/AnimationClipSerializer.h"
 #include "CNDebug/DebugLog.h"
 #include "Renderer/GpuResourceRegistry.h"
 
@@ -315,6 +317,47 @@ namespace Canape
 				}
 			}
 			return CreateMeshHandle(builtinId, owner);
+		}
+
+		const size_t skinHash = path.find("#skin");
+		if (skinHash != std::string::npos)
+		{
+			ResolvedAssetPath skinFile;
+			if (!ResolveAssetPath(path.substr(0, skinHash), skinFile))
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 에셋 경로 오류 : ", path);
+				return {};
+			}
+
+			const std::string subPart = path.substr(skinHash + 1);
+			const std::string skinKey = skinFile.key + "#" + subPart;
+			MeshAssetId skinId = FindMesh(skinKey);
+			if (!skinId.IsValid())
+			{
+				CNglTF cnglTF;
+				CNglTFImporter glTFImporter;
+				std::unique_ptr<MeshAsset> mesh;
+				if (glTFImporter.ReadglTF(skinFile.utf8File, cnglTF))
+				{
+					mesh = glTFImporter.LoadSkinnedMeshAsset(cnglTF, static_cast<uint32_t>(std::stoul(subPart.substr(4))));
+				}
+				if (!mesh || mesh->GetVertexFormat() != VertexFormat::Skinned)
+				{
+					CN_LOG_RUNTIME("Asset", "스킨드 메쉬 에셋 로드 오류 : ", path);
+					return {};
+				}
+				WriteDefaultMaterialFiles(*mesh);
+				if (!m_GpuRegistry.CreateMeshResource(*mesh).IsValid())
+				{
+					CN_LOG_RUNTIME("Asset", "메쉬 에셋 Gpu 로드 실패, ", path);
+					return {};
+				}
+
+				skinId = mesh->GetAssetId();
+				m_MeshIdByPath.emplace(skinKey, skinId);
+				m_MeshesById.emplace(skinId, AssetEntry<MeshAsset>{ std::move(mesh), skinFile.assetPath + "#" + subPart, skinKey }).first->second.gpuUploaded = true;
+			}
+			return CreateMeshHandle(skinId, owner);
 		}
 
 		ResolvedAssetPath resolved;
@@ -761,6 +804,107 @@ namespace Canape
 		return unused.size();
 	}
 
+	//***** AnimationClipAsset
+	AnimationClipAssetHandle AssetManager::GetAnimationClipHandle(const std::string& path, const AssetOwnerInfo& owner)
+	{
+		if (GetLowerExtension(path) == ".aclip")
+		{
+			ResolvedAssetPath clipPath;
+			if (!ResolveAssetPath(path, clipPath))
+			{
+				CN_LOG_RUNTIME("Asset", "애니메이션 에셋 경로 오류 : ", path);
+				return {};
+			}
+
+			AnimationClipAssetId clipId = FindAnimationClip(clipPath.key);
+			if (!clipId.IsValid())
+			{
+				std::unique_ptr<AnimationClipAsset> clip = AnimationClipSerializer::Load(clipPath.utf8File);
+				if (!clip)
+				{
+					return {};
+				}
+				clipId = clip->GetAssetId();
+				m_AnimationClipIdByPath.emplace(clipPath.key, clipId);
+				m_AnimationClipsById.emplace(clipId, AssetEntry<AnimationClipAsset>{ std::move(clip), clipPath.assetPath, clipPath.key });
+			}
+			return CreateAnimationClipHandle(clipId, owner);
+		}
+
+		const size_t hash = path.find('#');
+		const std::string filePart = path.substr(0, hash);
+		const std::string subPart = hash == std::string::npos ? "0" : path.substr(hash + 1);
+
+		ResolvedAssetPath resolved;
+		if (!ResolveAssetPath(filePart, resolved))
+		{
+			CN_LOG_RUNTIME("Asset", "애니메이션 에셋 경로 오류 : ", path);
+			return {};
+		}
+
+		const std::string key = resolved.key + "#" + subPart;
+		AnimationClipAssetId id = FindAnimationClip(key);
+		if (!id.IsValid())
+		{
+			// 처음 요청된 파일이면 그 파일의 클립을 전부 등록
+			if (!LoadAnimationClips(resolved.assetPath, resolved.key, resolved.utf8File))
+				return {};
+			id = FindAnimationClip(key);
+			if (!id.IsValid())
+			{
+				CN_LOG_RUNTIME("Asset", "애니메이션 클립 없음 : ", path);
+				return {};
+			}
+		}
+		return CreateAnimationClipHandle(id, owner);
+	}
+
+	bool AssetManager::LoadAnimationClips(const std::string& assetPath, const std::string& fileKey, const std::string& filePath)
+	{
+		CNglTF cnglTF;
+		CNglTFImporter importer;
+		if (!importer.ReadglTF(filePath, cnglTF))
+			return false;
+
+		std::vector<std::unique_ptr<AnimationClipAsset>> clips = importer.LoadAnimationClipAsset(cnglTF);  
+		for (size_t i = 0; i < clips.size(); ++i)
+		{
+			const std::string key = fileKey + "#" + std::to_string(i);
+			const std::string path = assetPath + "#" + std::to_string(i);
+			const AnimationClipAssetId id = clips[i]->GetAssetId();
+			m_AnimationClipIdByPath.emplace(key, id);
+			m_AnimationClipsById.emplace(id, AssetEntry<AnimationClipAsset>{ std::move(clips[i]), path, key });
+		}
+		return !clips.empty();
+	}
+
+	const AnimationClipAsset* AssetManager::GetAnimationClip(const AnimationClipAssetHandle& handle) const
+	{
+		return FindAsset(m_AnimationClipsById, handle);
+	}
+
+	AnimationClipAssetId AssetManager::FindAnimationClip(const std::string& pathKey) const
+	{
+		return FindAssetId(m_AnimationClipIdByPath, pathKey);
+	}
+
+	AnimationClipAssetHandle AssetManager::CreateAnimationClipHandle(AnimationClipAssetId id, const AssetOwnerInfo& owner)
+	{
+		return CreateHandle(m_AnimationClipsById, AssetType::AnimationClip, id, owner);
+	}
+
+	void AssetManager::Release(AnimationClipAssetId id, AssetRecordId recordId)
+	{
+		ReleaseReference(m_AnimationClipsById, id, recordId);
+	}
+
+	size_t AssetManager::ReleaseUnusedAnimationClips()
+	{
+		const std::vector<AnimationClipAssetId> unused = CollectUnused(m_AnimationClipsById);
+		EraseAssets(m_AnimationClipIdByPath, m_AnimationClipsById, unused); // GPU 리소스가 없으므로 해제 호출 없음
+		return unused.size();
+	}
+
 	void AssetManager::PrintAssetRecords() const
 	{
 		std::vector<AssetStatus> statuses;
@@ -769,6 +913,7 @@ namespace Canape
 		AppendAssetStatuses(m_MaterialsById, AssetType::Material, statuses);
 		AppendAssetStatuses(m_TexturesById, AssetType::Texture, statuses);
 		AppendAssetStatuses(m_CubemapsById, AssetType::Cubemap, statuses);
+		AppendAssetStatuses(m_AnimationClipsById, AssetType::AnimationClip, statuses);
 		m_Tracker.PrintRecord(statuses);
 	}
 	size_t AssetManager::ReleaseUnusedAssets()
@@ -777,6 +922,7 @@ namespace Canape
 		released += ReleaseUnusedMaterials();
 		released += ReleaseUnusedTextures();
 		released += ReleaseUnusedCubemaps();
+		released += ReleaseUnusedAnimationClips();
 		return released;
 	}
 }

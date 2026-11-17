@@ -397,18 +397,9 @@ Image Frame(DX11Renderer &renderer, const RenderScene &scene, const std::vector<
     Require(!impl.ShadowActive, "BeginFrame clears shadow state");
     if (lights)
     {
-        renderer.SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
-        impl.SceneData.AmbientColor = scene.ambientColor;
-        impl.SceneData.AmbientIntensity = scene.ambientIntensity;
-        impl.SceneDirty = true;
-        const auto lighting = impl.ResolveLighting(*lights, true);
-        ConstantBuffers::UploadLighting(*impl.Context.Get(), impl.GetSceneBuffers(), lighting);
-        if (lighting.ShadowActive)
-            impl.RenderShadowPass(ScenePreparation::PrepareScene(scene, impl.Resources, impl.LastError));
-        impl.UploadPendingConstants();
-        impl.BindSharedConstants();
-        for (const auto &item : scene.items)
-            renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+        RenderScene submitted = scene;
+        submitted.lights = *lights;
+        renderer.DrawScene(submitted);
     }
     else
         renderer.DrawScene(scene);
@@ -460,21 +451,26 @@ void FrameContractChecks(DX11Renderer& renderer, const RenderScene& scene)
     Require(multipleStats.drawCalls == referenceStats.drawCalls
         && multipleStats.triangleCount == referenceStats.triangleCount, "pass draw statistics preserved");
 
-    Require(renderer.BeginFrame(), "direct mesh frame");
-    const auto& item = scene.items.front();
+    Require(renderer.BeginFrame(), "scene camera update frame");
+    RenderScene cameraScene = scene;
+    cameraScene.items = {scene.items.front()};
+    cameraScene.skinnedItems.clear();
+    cameraScene.bonePalettes.clear();
+    cameraScene.lights.clear();
     const Matrix4 firstView = Matrix4::LookTo({1, 2, -3}, {0, 0, 1});
-    renderer.SetCamera(firstView.Data(), scene.camera.projection.Data());
-    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+    cameraScene.camera.view = firstView;
+    cameraScene.camera.cameraPosition = {1, 2, -3};
+    renderer.DrawScene(cameraScene);
     auto camera = ReadViewConstants(impl);
     Require(std::memcmp(&camera.View, firstView.Data(), sizeof(camera.View)) == 0
         && std::memcmp(&camera.Projection, scene.camera.projection.Data(), sizeof(camera.Projection)) == 0,
-        "direct draw uploads camera constants before binding");
-    renderer.SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
-    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+        "scene submission uploads camera constants before binding");
+    cameraScene.camera = scene.camera;
+    renderer.DrawScene(cameraScene);
     camera = ReadViewConstants(impl);
     Require(std::memcmp(&camera.View, scene.camera.view.Data(), sizeof(camera.View)) == 0,
-        "second direct draw observes a changed camera in the same frame");
-    Require(!impl.ShadowActive, "direct frame does not inherit previous scene shadows");
+        "second scene observes a changed camera in the same frame");
+    Require(!impl.ShadowActive, "unlit scene does not inherit previous scene shadows");
     renderer.EndFrame();
 
     std::string profilerError;
@@ -612,7 +608,7 @@ void SpecularIblChecks(DX11Renderer& renderer)
     scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
     scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
     scene.ambientIntensity = 0.0f;
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto render = [&](float roughness, float metallic = 1.0f)
     {
         MaterialDesc desc;
@@ -744,7 +740,7 @@ void HdrChecks(DX11Renderer& renderer)
     scene.ambientColor = {4.0f, 2.0f, .5f};
     scene.ambientIntensity = 1.0f;
     scene.camera.postProcess = {false, false}; // Deliberately ignored at this development stage.
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto center = [](const Image& image) {
         const size_t offset = ((image.height / 2) * image.width + image.width / 2) * 4;
         return std::array<int, 3>{image.rgba[offset], image.rgba[offset + 1], image.rgba[offset + 2]};
@@ -834,7 +830,7 @@ void HdrChecks(DX11Renderer& renderer)
     renderer.DestroyCubemap(cubemap);
     scene.skybox = {};
     scene.camera.projection = {};
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     scene.ambientColor = {4, 2, .5f};
     renderer.SetOverlay([] {});
     expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
@@ -899,7 +895,7 @@ void MaterialMapChecks(DX11Renderer& renderer)
     RenderScene scene;
     scene.ambientColor = {.8f, .4f, .2f};
     scene.ambientIntensity = 1.0f;
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto render = [&](MaterialResourceId material, MeshResourceId drawMesh) {
         scene.items[0].material = material;
         scene.items[0].mesh = drawMesh;
@@ -1048,7 +1044,7 @@ void ShadowChecks()
         scene.camera.view = Matrix4::LookTo({-12, 15, -18}, {12, -15, 18});
         scene.camera.projection = Matrix4::Perspective(0.95f, 1, .1f, 100);
         scene.camera.cameraPosition = {-12, 15, -18};
-        scene.items = {RenderItem{ground}, RenderItem{cube}};
+        scene.items = {MeshItem{ground}, MeshItem{cube}};
         impl.ShadowSettings.enabled = false;
         auto unshadowed = Frame(renderer, scene);
         Save(unshadowed, "unshadowed");
@@ -1154,7 +1150,7 @@ void ShadowChecks()
         masked.alphaMode = AlphaMode::Masked;
         const auto maskMaterial = renderer.CreateMaterial(masked, maskTexture);
         RenderScene maskScene = scene;
-        maskScene.items[1] = RenderItem{maskMesh, 0, maskMaterial};
+        maskScene.items[1] = MeshItem{maskMesh, 0, maskMaterial};
         Frame(renderer, maskScene);
         constants = ReadShadowConstants(impl);
         depth = ReadShadowDepth(impl);

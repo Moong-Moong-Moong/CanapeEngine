@@ -37,7 +37,7 @@ if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
 "$msbuild" Engine\JoltPhysics\JoltPhysics.vcxproj /p:Configuration=$Configuration /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++20 /EHsc $crt /utf-8 /W4 /WX $joltDefines /ICommon /IEngine /external:I$joltInclude /external:W0 Engine\JoltPhysics\Tests\PhysicsValidation.cpp Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $joltLib /FoIntermediate\PhysicsValidation\$Configuration\PhysicsValidation.obj /FeIntermediate\PhysicsValidation\$Configuration\PhysicsValidation.exe /link user32.lib
+cl /nologo /std:c++23preview /EHsc $crt /utf-8 /W4 /WX $joltDefines /ICommon /IEngine /external:I$joltInclude /external:W0 Engine\JoltPhysics\Tests\PhysicsValidation.cpp Binaries\x64\$Configuration\JoltPhysics\JoltPhysics.lib $joltLib /FoIntermediate\PhysicsValidation\$Configuration\PhysicsValidation.obj /FeIntermediate\PhysicsValidation\$Configuration\PhysicsValidation.exe /link user32.lib
 exit /b %errorlevel%
 "@
 $batchPath = Join-Path $validationDir 'validate.cmd'

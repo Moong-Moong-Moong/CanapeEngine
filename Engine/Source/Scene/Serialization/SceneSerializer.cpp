@@ -69,6 +69,23 @@ namespace Canape
 				return root;
 			}
 
+			Json WriteTree(GameObject& rootObject)
+			{
+				std::vector<GameObject*> gameObjects;
+				AppendHierarchy(rootObject, gameObjects);
+
+				Json root;
+				root["version"] = kSceneFormatVersion;
+
+				Json objects = Json::array();
+				for (GameObject* gameObject : gameObjects)
+				{
+					objects.push_back(WriteGameObject(*gameObject));
+				}
+				root["gameObjects"] = std::move(objects);
+				return root;
+			}
+
 		private:
 			std::vector<GameObject*> CollectInHierarchyOrder()
 			{
@@ -264,6 +281,54 @@ namespace Canape
 				}
 
 				return scene;
+			}
+
+			GameObject* ReadInto(Scene& scene, const Json& root)
+			{
+				m_Scene = &scene;
+
+				struct PendingComponent
+				{
+					Component* component;
+					Json properties;
+				};
+				std::vector<PendingComponent> pending;
+				GameObject* rootObject = nullptr;
+
+				for (const Json& objectJson : root.value("gameObjects", Json::array()))
+				{
+					GameObject* gameObject = m_Scene->GetGameObject(m_Scene->AddGameObject(objectJson.value("name", std::string("GameObject"))));
+					gameObject->SetActive(objectJson.value("active", true));
+					m_Objects[objectJson.value("id", uint64_t{ 0 })] = gameObject;
+					if (!rootObject)
+					{
+						rootObject = gameObject;
+					}
+
+					for (const Json& componentJson : objectJson.value("components", Json::array()))
+					{
+						Component* component = CreateComponent(*gameObject, componentJson.value("type", std::string()));
+						if (!component)
+						{
+							continue;
+						}
+						m_Components[componentJson.value("id", uint64_t{ 0 })] = component;
+
+						const auto properties = componentJson.find("properties");
+						if (properties != componentJson.end() && properties->is_object())
+						{
+							ReadProperties(rttr::instance(component), *properties, false);
+							pending.push_back({ component, *properties });
+						}
+					}
+				}
+
+				for (const PendingComponent& entry : pending)
+				{
+					ReadProperties(rttr::instance(entry.component), entry.properties, true);
+				}
+
+				return rootObject;
 			}
 
 		private:
@@ -462,5 +527,58 @@ namespace Canape
 		std::unique_ptr<Scene> scene = SceneReader().Read(root, physicsRuntime, simulationSession);
 		CN_LOG_RUNTIME("Scene", "씬 로드 완료 : ", path);
 		return scene;
+	}
+
+	bool SceneSerializer::SavePrefab(GameObject& root, const std::string& path)
+	{
+		Scene* scene = root.GetScene();
+		if (!scene)
+		{
+			return false;
+		}
+
+		const Json json = SceneWriter(*scene).WriteTree(root);
+
+		const std::filesystem::path filePath(std::u8string(path.begin(), path.end()));
+		if (filePath.has_parent_path())
+		{
+			std::error_code error;
+			std::filesystem::create_directories(filePath.parent_path(), error);
+		}
+
+		std::ofstream file(filePath);
+		if (!file)
+		{
+			CN_LOG_RUNTIME("Scene", "프리팹 저장 실패 : 파일을 열 수 없음, ", path);
+			return false;
+		}
+
+		file << json.dump(4);
+		CN_LOG_RUNTIME("Scene", "프리팹 저장 완료 : ", path);
+		return true;
+	}
+
+	GameObject* SceneSerializer::InstantiatePrefab(Scene& scene, const std::string& path, TransformComponent* parent)
+	{
+		std::ifstream file(std::filesystem::path(std::u8string(path.begin(), path.end())), std::ios::binary);
+		if (!file)
+		{
+			CN_LOG_RUNTIME("Scene", "프리팹 로드 실패 : 파일을 열 수 없음, ", path);
+			return nullptr;
+		}
+
+		const Json root = Json::parse(file, nullptr, false);
+		if (root.is_discarded() || !root.is_object() || root.value("version", 0) != kSceneFormatVersion)
+		{
+			CN_LOG_RUNTIME("Scene", "프리팹 로드 실패 : JSON 파싱 오류, ", path);
+			return nullptr;
+		}
+
+		GameObject* rootObject = SceneReader().ReadInto(scene, root);
+		if (rootObject && parent)
+		{
+			rootObject->GetTransform()->SetParent(parent);
+		}
+		return rootObject;
 	}
 }
