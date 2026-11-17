@@ -175,6 +175,22 @@ namespace Canape
         m_DX11->SetUIDrawList(list);
     }
 
+    TextureResourceId Renderer::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels)
+    {
+        return m_DX11->CreateTexture(width, height, format, pixels);
+    }
+
+    bool Renderer::UpdateTexture(TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+        std::span<const uint8_t> pixels)
+    {
+        return m_DX11->UpdateTexture(texture, x, y, width, height, pixels);
+    }
+
+    void Renderer::DestroyTexture(TextureResourceId texture)
+    {
+        m_DX11->DestroyTexture(texture);
+    }
+
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
         if (!m_DX11->BeginFrame())

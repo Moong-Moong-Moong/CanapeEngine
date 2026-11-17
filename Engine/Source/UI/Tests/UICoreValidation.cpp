@@ -1,16 +1,24 @@
-// Standalone CPU test for the UI core (layout, painting, pointer routing); not part of Runtime.vcxproj.
+// Standalone CPU test for the UI core (layout, painting, pointer routing, text, boxes); not part of Runtime.vcxproj.
 // Compiled together with the UI sources by ValidateUI.ps1. No renderer, scene or RTTR dependency.
+// Run from the repository root: the text checks load Game/Content/Fonts/Pretendard-Regular.ttf.
+#include "UI/Text/UIFont.h"
+#include "UI/Text/UIGlyphAtlas.h"
+#include "UI/Text/UITextLayout.h"
+#include "UI/UIBox.h"
 #include "UI/UIButton.h"
 #include "UI/UIElement.h"
 #include "UI/UIImage.h"
 #include "UI/UIPainter.h"
 #include "UI/UIPointerRouter.h"
+#include "UI/UIText.h"
 
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using namespace Canape;
 
@@ -231,6 +239,307 @@ namespace
 	}
 }
 
+namespace
+{
+	//***** 2단계: 텍스트, 아틀라스, 9-slice, 클리핑, 박스
+
+	struct FakeDevice
+	{
+		int creates = 0;
+		std::vector<UIRect> updates;
+		UITextureDevice device;
+
+		FakeDevice()
+		{
+			device.Create = [this](uint32_t width, uint32_t height, std::span<const uint8_t> rgba) {
+				Require(width == UIGlyphAtlas::kSize && height == UIGlyphAtlas::kSize && rgba.size() == size_t(width) * height * 4,
+					"atlas texture created whole");
+				++creates;
+				return TextureResourceId{ 42 };
+			};
+			device.Update = [this](TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+				std::span<const uint8_t> rgba) {
+				Require(texture == TextureResourceId{ 42 } && rgba.size() == size_t(width) * height * 4, "atlas update is tightly packed");
+				updates.push_back({ float(x), float(y), float(width), float(height) });
+				return true;
+			};
+		}
+	};
+
+	std::shared_ptr<UIFont> LoadTestFont()
+	{
+		std::string error;
+		auto font = UIFont::LoadFromFile("Game/Content/Fonts/Pretendard-Regular.ttf", error);
+		if (!font)
+			throw std::runtime_error("font load failed (run from the repository root): " + error);
+		return font;
+	}
+
+	size_t CountNonSpace(const UITextLayout& layout, uint32_t spaceGlyph)
+	{
+		size_t count = 0;
+		for (const UITextGlyph& glyph : layout.Glyphs)
+			count += glyph.Glyph != spaceGlyph ? 1 : 0;
+		return count;
+	}
+
+	void TextChecks(const UIFont& font)
+	{
+		const std::u32string decoded = DecodeUtf8("A\xEA\xB0\x80\xF0\x9F\x98\x80");
+		Require(decoded == std::u32string{ U'A', U'가', U'\U0001F600' }, "UTF-8 decode: ASCII, Hangul, 4-byte");
+		Require(DecodeUtf8("\xFF") == std::u32string{ U'�' }, "invalid lead byte");
+		Require(DecodeUtf8("a\xE0\xA0") == std::u32string{ U'a', U'�' }, "truncated sequence");
+		Require(DecodeUtf8("\xC0\xAF") == std::u32string{ U'�' }, "overlong encoding");
+		Require(DecodeUtf8("\xED\xA0\x80") == std::u32string{ U'�' }, "surrogate rejected");
+
+		Require(font.FindGlyph(U'A') != 0 && font.FindGlyph(U'가') != 0, "font has Latin and Hangul glyphs");
+		const UIFontMetrics metrics = font.GetMetrics(20.0f);
+		Require(metrics.Ascent > 0 && metrics.Descent > 0 && metrics.LineHeight() >= 20.0f, "font metrics");
+
+		const uint32_t space = font.FindGlyph(U' ');
+		UITextLayout single = LayoutText(font, U"Hello world", 20.0f, 0.0f);
+		Require(single.Lines.size() == 1 && single.Glyphs.size() == 11, "single line keeps every glyph");
+		Require(Near(single.Size.Y, single.LineHeight) && single.Size.X > 50.0f, "single line size");
+		Require(LayoutText(font, U"a\nb", 20.0f, 0.0f).Lines.size() == 2, "explicit newline");
+		Require(LayoutText(font, U"a\n", 20.0f, 0.0f).Lines.size() == 2, "trailing newline adds an empty line");
+		Require(LayoutText(font, U"", 20.0f, 0.0f).Lines.empty(), "empty text has no lines");
+
+		const std::u32string paragraph = DecodeUtf8(
+			"\xEB\xB2\x84\xED\x8A\xBC\xEC\x9D\x84 \xEB\x88\x84\xEB\xA5\xB4\xEB\xA9\xB4 \xEC\xB2\xB4\xEB\xA0\xA5\xEC\x9D\xB4 "
+			"\xED\x9A\x8C\xEB\xB3\xB5\xEB\x90\xA9\xEB\x8B\x88\xEB\x8B\xA4. Long English words wrap at word boundaries.");
+		const float maxWidth = 160.0f;
+		const UITextLayout wrapped = LayoutText(font, paragraph, 20.0f, maxWidth);
+		Require(wrapped.Lines.size() >= 3, "paragraph wraps into several lines");
+		size_t nonSpace = 0;
+		for (char32_t c : paragraph)
+			nonSpace += c != U' ' ? 1 : 0;
+		Require(CountNonSpace(wrapped, space) == nonSpace, "wrapping loses no glyph");
+		for (size_t i = 0; i < wrapped.Lines.size(); ++i)
+		{
+			const UITextLine& line = wrapped.Lines.at(i);
+			Require(line.Width <= maxWidth + 0.01f, "every wrapped line fits the width");
+			if (i > 0 && line.Count > 0)
+				Require(wrapped.Glyphs.at(line.First).Glyph != space, "wrapped line does not start with a space");
+		}
+
+		const std::u32string longWord(14, U'가');
+		const UITextLayout split = LayoutText(font, longWord, 20.0f, 60.0f);
+		Require(split.Lines.size() >= 4 && split.Glyphs.size() == 14, "word longer than the width splits by character");
+		for (const UITextLine& line : split.Lines)
+			Require(line.Width <= 60.01f, "character split lines fit");
+		std::cout << "UI text decode/layout/wrap PASS\n";
+	}
+
+	void AtlasChecks(const UIFont& font)
+	{
+		FakeDevice fake;
+		UIGlyphAtlas atlas;
+		atlas.BeginFrame(fake.device);
+		Require(fake.creates == 1 && atlas.GetTexture() == TextureResourceId{ 42 }, "atlas creates its texture once");
+		const auto pixels = atlas.GetPixels();
+		Require(pixels[3] == 255 && pixels[(3 * UIGlyphAtlas::kSize + 3) * 4 + 3] == 255, "white block for solid quads");
+		Require(pixels[(UIGlyphAtlas::kWhiteBlock) * 4 + 3] == 0, "atlas starts empty beside the white block");
+		atlas.Flush(fake.device);
+		Require(fake.updates.empty(), "nothing to upload right after creation");
+
+		const UIAtlasGlyph* a = atlas.GetGlyph(font, 24, font.FindGlyph(U'가'));
+		const UIAtlasGlyph* b = atlas.GetGlyph(font, 24, font.FindGlyph(U'A'));
+		Require(a && b && a->Width > 0 && b->Width > 0, "glyphs rasterized");
+		Require(atlas.GetGlyph(font, 24, font.FindGlyph(U'가')) == a, "cached glyph reused");
+		Require(atlas.GetGlyph(font, 25, font.FindGlyph(U'가')) != a, "pixel size is part of the key");
+		const UIAtlasGlyph* space = atlas.GetGlyph(font, 24, font.FindGlyph(U' '));
+		Require(space && space->Width == 0, "space has nothing to draw");
+		const UIRect ra{ a->UV.X * UIGlyphAtlas::kSize, a->UV.Y * UIGlyphAtlas::kSize, float(a->Width), float(a->Height) };
+		const UIRect rb{ b->UV.X * UIGlyphAtlas::kSize, b->UV.Y * UIGlyphAtlas::kSize, float(b->Width), float(b->Height) };
+		Require(Intersect(ra, rb).IsEmpty(), "packed glyphs do not overlap");
+		Require(ra.X >= UIGlyphAtlas::kWhiteBlock || ra.Y >= UIGlyphAtlas::kWhiteBlock, "glyphs avoid the white block");
+
+		atlas.Flush(fake.device);
+		Require(fake.updates.size() == 1, "one upload per frame covers new glyphs");
+		const UIRect& dirty = fake.updates.front();
+		Require(Near(Intersect(dirty, ra).Width, ra.Width) && Near(Intersect(dirty, rb).Height, rb.Height), "upload covers new glyphs");
+		atlas.Flush(fake.device);
+		Require(fake.updates.size() == 1, "no upload without new glyphs");
+
+		// 가득 채우기: 큰 글자를 계속 요청하면 자리가 없어 다음 프레임에 비운다.
+		const UIAtlasGlyph* last = nullptr;
+		char32_t c = U'가';
+		for (int i = 0; i < 2000 && (last = atlas.GetGlyph(font, 160, font.FindGlyph(c))) != nullptr; ++i)
+			++c;
+		Require(last == nullptr && atlas.IsResetPending(), "full atlas schedules a reset");
+		atlas.BeginFrame(fake.device);
+		Require(!atlas.IsResetPending() && atlas.GetGlyphCount() == 0, "reset clears the atlas next frame");
+		atlas.Flush(fake.device);
+		Require(Near(fake.updates.back().Width, float(UIGlyphAtlas::kSize)), "reset uploads the whole atlas");
+		std::cout << "UI glyph atlas PASS\n";
+	}
+
+	void TextElementChecks(const std::shared_ptr<UIFont>& font)
+	{
+		UIFont::SetDefault(font);
+		UIElement root("Root");
+		SetupRoot(root);
+		auto* label = root.AddChild<UIText>("Label");
+		label->SetAnchors({ 0, 0 }, { 1, 1 });
+		label->SetSize({ 0, 0 });
+		label->SetText("HP 72%");
+		label->SetFontSize(20.0f);
+		label->SetColor({ 10, 200, 30, 255 });
+		label->SetHorizontalAlign(UITextAlign::Center);
+		label->SetVerticalAlign(UITextAlign::Center);
+		root.Layout({ 0, 0, 400, 100 }, 1.0f);
+		Require(label->GetPixelSize(1.0f) == 20 && label->GetPixelSize(0.5f) == 10, "font size follows canvas scale");
+		const Vector2 preferred = label->GetPreferredSize(1.0f);
+		Require(preferred.X > 30.0f && preferred.X < 200.0f && preferred.Y >= 20.0f, "label preferred size");
+
+		FakeDevice fake;
+		UIGlyphAtlas atlas;
+		atlas.BeginFrame(fake.device);
+		UIDrawList list;
+		UIPainter painter(list, { 0, 0, 400, 100 });
+		painter.SetGlyphAtlas(&atlas);
+		painter.SetSolidSource(atlas.GetTexture(), atlas.GetWhiteUV());
+		root.Paint(painter);
+		Require(list.Vertices.size() == 5 * 4, "one quad per visible glyph (space skipped)");
+		Require(list.Commands.size() == 1 && list.Commands[0].Texture == TextureResourceId{ 42 }, "text draws from the atlas in one batch");
+		Require(list.Vertices[0].Color == UIColor(10, 200, 30, 255).Pack(), "text color on vertices");
+		float left = 1e9f, right = -1e9f, top = 1e9f, bottom = -1e9f;
+		for (const UIVertex& v : list.Vertices)
+		{
+			left = std::min(left, v.Position[0]);
+			right = std::max(right, v.Position[0]);
+			top = std::min(top, v.Position[1]);
+			bottom = std::max(bottom, v.Position[1]);
+			Require(v.Position[0] == std::round(v.Position[0]) && v.Position[1] == std::round(v.Position[1]), "glyph quads on whole pixels");
+		}
+		Require(std::abs((left + right) * 0.5f - 200.0f) < 6.0f, "centered horizontally");
+		Require(std::abs((top + bottom) * 0.5f - 50.0f) < 8.0f, "centered vertically");
+
+		// 단색은 아틀라스의 흰 텍셀로 그려 글자와 같은 배치에 들어간다.
+		auto* back = root.AddChild<UIImage>("Back");
+		back->SetSize({ 50, 10 });
+		list.Clear();
+		root.Layout({ 0, 0, 400, 100 }, 1.0f);
+		UIPainter mixed(list, { 0, 0, 400, 100 });
+		mixed.SetGlyphAtlas(&atlas);
+		mixed.SetSolidSource(atlas.GetTexture(), atlas.GetWhiteUV());
+		root.Paint(mixed);
+		Require(list.Commands.size() == 1, "text and solid quads share one draw");
+		Require(Near(list.Vertices.back().UV[0], atlas.GetWhiteUV().X), "solid quad samples the white texel");
+		std::cout << "UI text element PASS\n";
+	}
+
+	void NineSliceAndClipChecks()
+	{
+		UIElement root("Root");
+		SetupRoot(root);
+		auto* panel = root.AddChild<UIImage>("Panel");
+		panel->SetSize({ 100, 60 });
+		panel->SetNineSlice({ UIEdges(0.25f), UIEdges(10.0f) });
+		root.Layout({ 0, 0, 400, 200 }, 1.0f);
+		UIDrawList list;
+		UIPainter painter(list, { 0, 0, 400, 200 });
+		root.Paint(painter);
+		Require(list.Vertices.size() == 9 * 4, "nine-slice draws nine quads");
+		Require(Near(list.Vertices[1].Position[0], 10.0f) && Near(list.Vertices[1].UV[0], 0.25f), "corner keeps its size and UV");
+		const UIVertex& centerTL = list.Vertices[4 * 4];
+		const UIVertex& centerBR = list.Vertices[4 * 4 + 2];
+		Require(Near(centerTL.Position[0], 10.0f) && Near(centerBR.Position[0], 90.0f) && Near(centerBR.Position[1], 50.0f),
+			"center cell stretches");
+		Require(Near(centerTL.UV[0], 0.25f) && Near(centerBR.UV[0], 0.75f), "center cell UV");
+
+		panel->SetSize({ 12, 12 });
+		root.Layout({ 0, 0, 400, 200 }, 1.0f);
+		list.Clear();
+		UIPainter small(list, { 0, 0, 400, 200 });
+		root.Paint(small);
+		Require(list.Vertices.size() == 4 * 4 && Near(list.Vertices[1].Position[0], 6.0f), "borders shrink to fit a small rect");
+
+		panel->SetSize({ 100, 60 });
+		panel->SetFillAmount(0.5f);
+		root.Layout({ 0, 0, 400, 200 }, 1.0f);
+		list.Clear();
+		UIPainter gauge(list, { 0, 0, 400, 200 });
+		root.Paint(gauge);
+		Require(!list.Commands.empty() && list.Commands.back().Clip == UIClipRect{ 0, 0, 50, 60 }, "nine-slice gauge clips to the fill");
+		Require(list.Vertices.size() < 9 * 4, "cells outside the fill are culled");
+
+		// 자식 잘라 내기
+		UIElement clipRoot("Root");
+		SetupRoot(clipRoot);
+		auto* box = clipRoot.AddChild<UIImage>("Box");
+		box->SetSize({ 50, 50 });
+		box->SetClipChildren(true);
+		auto* inside = box->AddChild<UIButton>("Partly");
+		inside->SetPosition({ 40, 40 });
+		inside->SetSize({ 30, 30 });
+		auto* outside = box->AddChild<UIImage>("Outside");
+		outside->SetPosition({ 100, 100 });
+		outside->SetSize({ 10, 10 });
+		clipRoot.Layout({ 0, 0, 400, 200 }, 1.0f);
+		list.Clear();
+		UIPainter clipped(list, { 0, 0, 400, 200 });
+		clipped.PushClip({ 20, 0, 400, 200 });
+		clipRoot.Paint(clipped);
+		clipped.PopClip();
+		Require(list.Vertices.size() == 2 * 4, "fully clipped child is culled");
+		Require(list.Commands.back().Clip == UIClipRect{ 20, 0, 50, 50 }, "nested clips intersect");
+		Require(clipRoot.HitTest({ 45, 45 }) == inside, "child hit inside the clip");
+		Require(clipRoot.HitTest({ 60, 60 }) == nullptr, "child not hit outside the clip");
+		std::cout << "UI nine-slice and clipping PASS\n";
+	}
+
+	void BoxChecks(const std::shared_ptr<UIFont>& font)
+	{
+		UIFont::SetDefault(font);
+		UIElement root("Root");
+		SetupRoot(root);
+		auto* column = root.AddChild<UIVerticalBox>("Column");
+		column->SetSize({ 200, 300 });
+		column->SetPadding(UIEdges(10));
+		column->SetSpacing(5);
+		column->SetChildAlign(UIBoxAlign::Stretch);
+		auto* first = column->AddChild<UIElement>("First");
+		first->SetSize({ 50, 20 });
+		auto* hidden = column->AddChild<UIElement>("Hidden");
+		hidden->SetSize({ 40, 40 });
+		hidden->SetVisible(false);
+		auto* second = column->AddChild<UIElement>("Second");
+		second->SetSize({ 80, 30 });
+		second->SetPosition({ 500, 500 }); // 박스 안에서는 무시
+		auto* text = column->AddChild<UIText>("Text");
+		text->SetText("one two three four five six seven eight nine ten");
+		text->SetFontSize(20);
+		text->SetWrap(true);
+
+		auto* row = root.AddChild<UIHorizontalBox>("Row");
+		row->SetPosition({ 300, 0 });
+		row->SetFitContent(true);
+		row->SetPadding(UIEdges(2));
+		row->SetSpacing(4);
+		row->SetChildAlign(UIBoxAlign::Center);
+		auto* small = row->AddChild<UIElement>("Small");
+		small->SetSize({ 50, 20 });
+		auto* big = row->AddChild<UIElement>("Big");
+		big->SetSize({ 80, 30 });
+
+		root.Layout({ 0, 0, 800, 600 }, 1.0f);
+		ExpectRect(first->GetLayoutRect(), 10, 10, 180, 20, "vertical box: stretch + padding");
+		ExpectRect(second->GetLayoutRect(), 10, 35, 180, 30, "vertical box: spacing, hidden child takes no space");
+		const UIRect& textRect = text->GetLayoutRect();
+		Require(Near(textRect.Y, 70) && Near(textRect.Width, 180), "wrapped text placed after siblings");
+		Require(textRect.Height > text->GetPreferredSize(1.0f).Y, "wrapped text height follows the box width");
+		Require(text->GetTextLayout().Lines.size() >= 2, "text wraps inside the box");
+		ExpectRect(row->GetLayoutRect(), 300, 0, 138, 34, "horizontal box fits its content");
+		ExpectRect(small->GetLayoutRect(), 302, 7, 50, 20, "horizontal box: cross-axis center");
+		ExpectRect(big->GetLayoutRect(), 356, 2, 80, 30, "horizontal box: spacing");
+
+		root.Layout({ 0, 0, 1600, 1200 }, 2.0f);
+		ExpectRect(row->GetLayoutRect(), 600, 0, 276, 68, "box spacing and padding scale with the canvas");
+		std::cout << "UI boxes PASS\n";
+	}
+}
+
 int main()
 {
 	try
@@ -239,6 +548,13 @@ int main()
 		LayoutChecks();
 		PaintChecks();
 		PointerChecks();
+		const std::shared_ptr<UIFont> font = LoadTestFont();
+		TextChecks(*font);
+		AtlasChecks(*font);
+		TextElementChecks(font);
+		NineSliceAndClipChecks();
+		BoxChecks(font);
+		UIFont::SetDefault(nullptr);
 		return 0;
 	}
 	catch (const std::exception& e)

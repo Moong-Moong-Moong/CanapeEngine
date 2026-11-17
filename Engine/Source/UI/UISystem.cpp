@@ -1,6 +1,9 @@
 #include "UI/UISystem.h"
+#include "Asset/AssetManager.h"
+#include "CNDebug/DebugLog.h"
 #include "Input/InputManager.h"
 #include "Scene/Scene.h"
+#include "UI/Text/UIFont.h"
 #include "UI/UICanvasComponent.h"
 
 #include <algorithm>
@@ -81,21 +84,49 @@ namespace Canape
 		input.SetPointerCapturedByUI(m_Router.IsCapturingPointer());
 	}
 
-	void UISystem::BuildDrawList(Scene* scene, uint32_t targetWidth, uint32_t targetHeight, const UITextureResolver& resolver)
+	void UISystem::EnsureDefaultFont()
+	{
+		if (m_DefaultFontTried || UIFont::GetDefault())
+		{
+			return;
+		}
+		m_DefaultFontTried = true;
+		std::string error;
+		std::shared_ptr<UIFont> font = UIFont::LoadFromFile(AssetManager::GetAssetFile(kDefaultFontPath), error);
+		if (!font)
+		{
+			CN_LOG_RUNTIME("UI", "Default font load failed: ", error);
+			return;
+		}
+		UIFont::SetDefault(std::move(font));
+	}
+
+	void UISystem::BuildDrawList(Scene* scene, uint32_t targetWidth, uint32_t targetHeight, const UITextureResolver& resolver,
+		const UITextureDevice& device)
 	{
 		m_DrawList.Clear();
 		m_TargetSize = { static_cast<float>(targetWidth), static_cast<float>(targetHeight) };
-		if (targetWidth == 0 || targetHeight == 0)
+		const std::vector<UICanvasComponent*> canvases = CollectCanvases(scene);
+		if (targetWidth == 0 || targetHeight == 0 || canvases.empty())
 		{
 			return;
 		}
 
+		EnsureDefaultFont();
+		m_Atlas.BeginFrame(device);
+
 		const UIClipRect fullTarget{ 0, 0, static_cast<int32_t>(targetWidth), static_cast<int32_t>(targetHeight) };
 		UIPainter painter(m_DrawList, fullTarget, &resolver);
-		for (UICanvasComponent* canvas : CollectCanvases(scene))
+		painter.SetGlyphAtlas(&m_Atlas);
+		// 단색도 아틀라스의 흰 텍셀로 그려서 글자와 한 드로우로 묶는다.
+		painter.SetSolidSource(m_Atlas.GetTexture(), m_Atlas.GetWhiteUV());
+		for (UICanvasComponent* canvas : canvases)
 		{
 			canvas->Layout(m_TargetSize);
 			canvas->GetRoot().Paint(painter);
 		}
+
+		// 이번 프레임에 새로 구운 글자를 그리기 전에 올린다.
+		m_Atlas.Flush(device);
 	}
 }

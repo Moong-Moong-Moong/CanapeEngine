@@ -13,6 +13,7 @@
     "joltphysics",
     "nlohmann-json",
     "rttr",
-    "rapidjson"
+    "rapidjson",
+    "stb"
   ]
 }

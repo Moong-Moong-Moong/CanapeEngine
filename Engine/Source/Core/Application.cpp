@@ -114,7 +114,18 @@ namespace Canape
                 Scene* activeScene = m_SceneManager->GetActiveScene();
                 const GpuResourceRegistry& registry = m_Renderer->GetRegistry();
                 const UITextureResolver resolver = [&registry](TextureAssetId texture) { return registry.GetResourceId(texture); };
-                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver);
+                Renderer& renderer = *m_Renderer;
+                UITextureDevice device;
+                device.Create = [&renderer](uint32_t width, uint32_t height, std::span<const uint8_t> rgba)
+                {
+                    return renderer.CreateTexture(width, height, TextureFormat::RGBA8_UNORM, rgba);
+                };
+                device.Update = [&renderer](TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                    std::span<const uint8_t> rgba)
+                {
+                    return renderer.UpdateTexture(texture, x, y, width, height, rgba);
+                };
+                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device);
                 m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
                 m_Renderer->Render(activeScene, *m_AssetManager);
             }
