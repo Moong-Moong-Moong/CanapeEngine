@@ -20,6 +20,6 @@ namespace Canape::ShadowPass
         gpu.VSSetConstantBuffers(5, 1, &shadowBuffer);
         for (size_t index : scene.ShadowCasters) MeshDraw::SubmitShadow(scene.Draws[index], context);
         RenderBindings::BindMainTargets(gpu, main);
-        RenderBindings::BindPipeline(gpu, context.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque));
+        RenderBindings::BindPipeline(gpu, context.Pipelines.Resolve(VertexFormat::Static, AlphaMode::Opaque));
     }
 }

@@ -11,9 +11,7 @@ struct ShadowVertexOutput
 struct ShadowVertexInput
 {
     float3 Position : POSITION;
-#ifdef STATIC_VERTEX
     float2 UV : TEXCOORD0;
-#endif
 };
 
 ShadowVertexOutput VSShadow(ShadowVertexInput input)
@@ -21,11 +19,7 @@ ShadowVertexOutput VSShadow(ShadowVertexInput input)
     ShadowVertexOutput output;
     float4 worldPosition = mul(float4(input.Position, 1.0f), World);
     output.Position = mul(worldPosition, ShadowViews[0].LightViewProjection);
-#ifdef STATIC_VERTEX
     output.UV = input.UV;
-#else
-    output.UV = 0.0f;
-#endif
     return output;
 }
 

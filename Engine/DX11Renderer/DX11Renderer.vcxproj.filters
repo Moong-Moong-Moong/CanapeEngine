@@ -214,9 +214,6 @@
     <None Include="Shader\FinalOutput.hlsl">
       <Filter>Shader</Filter>
     </None>
-    <None Include="Shader\Mesh.hlsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="Shader\MeshPS.hlsl">
       <Filter>Shader</Filter>
     </None>

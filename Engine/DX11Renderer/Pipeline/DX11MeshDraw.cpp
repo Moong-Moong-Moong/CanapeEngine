@@ -79,7 +79,7 @@ namespace Canape::MeshDraw
         // Also protect direct callers while skinned shadow rendering is unavailable.
         if (draw.Mesh->Format == VertexFormat::Skinned) return;
         const AlphaMode alpha = draw.Material.Description.alphaMode;
-        RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolveShadow(draw.Mesh->Format, alpha));
+        RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolveShadow(alpha));
         UploadAndBindObject(draw, context);
         if (alpha == AlphaMode::Masked) UploadAndBindMaterial(draw, context);
         SubmitGeometry(draw, context);

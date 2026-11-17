@@ -27,7 +27,7 @@ struct Fixture
     ComPtr<ID3D11Device> Device;
     ComPtr<ID3D11DeviceContext> Context;
     DX11ResourceCache Resources;
-    MeshResourceId Position, Static, Skinned;
+    MeshResourceId Static, Skinned;
     MaterialResourceId Opaque, Masked, Transparent;
     std::string Error;
 
@@ -47,13 +47,11 @@ struct Fixture
         }
         const std::array<uint32_t, 3> indices{0, 1, 2};
         const std::array<SubMesh, 2> submeshes{ SubMesh{0, 3, 0, 0}, SubMesh{0, 3, 0, 1} };
-        Position = Resources.CreateMesh(Device.Get(), positions.data(), positions.size(),
-            sizeof(Vector3), VertexFormat::Position, indices, {}, Error);
         Static = Resources.CreateMesh(Device.Get(), staticVertices.data(), staticVertices.size(),
             sizeof(StaticVertex), VertexFormat::Static, indices, submeshes, Error);
         Skinned = Resources.CreateMesh(Device.Get(), skinnedVertices.data(), skinnedVertices.size(),
             sizeof(SkinnedVertex), VertexFormat::Skinned, indices, submeshes, Error);
-        Require(Position.IsValid() && Static.IsValid() && Skinned.IsValid(), "fixture meshes");
+        Require(Static.IsValid() && Skinned.IsValid(), "fixture meshes");
         auto material = [&](AlphaMode alpha)
         {
             MaterialDesc desc;
@@ -79,7 +77,7 @@ void QueueAndOwnershipChecks(Fixture& fixture)
     scene.bonePalettes = { Matrix4::Translation({1, 2, 3}), Matrix4::Identity,
         Matrix4::Translation({4, 5, 6}), Matrix4::Identity };
     scene.items = {
-        {fixture.Position, 0, fixture.Opaque, Matrix4::Translation({0, 0, 2}), true},
+        {fixture.Static, 0, fixture.Opaque, Matrix4::Translation({0, 0, 2}), true},
         {fixture.Static, 1, fixture.Masked, Matrix4::Translation({0, 0, 3}), true},
         {fixture.Static, 0, fixture.Transparent, Matrix4::Translation({0, 0, 10}), true},
         {fixture.Static, 0, fixture.Transparent, Matrix4::Translation({0, 0, 6}), true},
@@ -92,7 +90,7 @@ void QueueAndOwnershipChecks(Fixture& fixture)
     Require(prepared.Opaque == std::vector<size_t>{0, 4}, "shared opaque queue");
     Require(prepared.Masked == std::vector<size_t>{1, 5}, "shared masked queue");
     Require(prepared.Transparent == std::vector<size_t>{2, 6, 3, 7}, "global stable transparent sorting");
-    Require(prepared.ShadowCasters == std::vector<size_t>{0, 1}, "only eligible static/position shadow casters");
+    Require(prepared.ShadowCasters == std::vector<size_t>{0, 1}, "only eligible Static shadow casters");
     for (size_t i = 0; i < 4; ++i)
         Require(prepared.Draws[i].PaletteOffset == 0 && prepared.Draws[i].PaletteCount == 0,
             "non-skinned draws have no palette");

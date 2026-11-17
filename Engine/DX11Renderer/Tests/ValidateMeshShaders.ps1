@@ -18,25 +18,17 @@ $batch = @"
 @echo off
 call "$vcvars" >nul
 if errorlevel 1 exit /b %errorlevel%
-for %%S in (MeshStaticVS MeshSkinnedVS Mesh) do (
+for %%S in (MeshStaticVS MeshSkinnedVS) do (
   fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Shaders\%%S.hlsl
   if errorlevel 1 exit /b 1
 )
-fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSMain /Fo NUL Shaders\Mesh.hlsl
-if errorlevel 1 exit /b %errorlevel%
-for %%S in (MeshPS Mesh) do (
-  fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Shaders\%%S.hlsl
-  if errorlevel 1 exit /b 1
-)
-fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T ps_5_0 /E PSMain /Fo NUL Shaders\Mesh.hlsl
+fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Shaders\MeshPS.hlsl
 if errorlevel 1 exit /b %errorlevel%
 for %%E in (PSDebugShadowVisibility PSDebugPcssFilterRadius PSDebugWorldNormal PSDebugUV PSDebugMipLOD) do (
   fxc /nologo /WX /Zpr /T ps_5_0 /E %%E /Fo NUL Shaders\Debug\MeshDebug.hlsl
   if errorlevel 1 exit /b 1
 )
 fxc /nologo /WX /Zpr /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
-if errorlevel 1 exit /b %errorlevel%
-fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSShadowMasked /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%

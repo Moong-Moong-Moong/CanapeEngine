@@ -12,7 +12,7 @@
 namespace Canape
 {
 
-    enum class VertexFormat { Position, Static, Skinned };
+    enum class VertexFormat { Static, Skinned };
 
     struct StaticVertex
     {

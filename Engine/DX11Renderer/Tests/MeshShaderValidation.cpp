@@ -113,12 +113,6 @@ int main()
         auto pixelCode = Compile(L"Shaders/MeshPS.hlsl", "PSMain", "ps_5_0");
         CheckInterface(staticCode.Get(), pixelCode.Get());
         CheckInterface(skinnedCode.Get(), pixelCode.Get());
-        const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
-        auto legacyPosition = Compile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0");
-        auto legacyStatic = Compile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", staticDefines);
-        auto legacyPixel = Compile(L"Shaders/Mesh.hlsl", "PSMain", "ps_5_0");
-        CheckInterface(legacyPosition.Get(), legacyPixel.Get());
-        CheckInterface(legacyStatic.Get(), legacyPixel.Get());
         auto skinReflection = Reflect(skinnedCode.Get());
         D3D11_SHADER_INPUT_BIND_DESC binding{};
         Check(skinReflection->GetResourceBindingDescByName("SkinningBuffer", &binding));

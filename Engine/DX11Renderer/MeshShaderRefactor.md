@@ -1,5 +1,10 @@
 # Mesh VS/PS 분리
 
+현재는 후속 정리로 `VertexFormat::Position`과 `Mesh.hlsl` 호환 진입점을 제거했다.
+런타임은 `MeshStaticVS.hlsl`, `MeshSkinnedVS.hlsl`, `MeshPS.hlsl`을 직접 컴파일한다.
+그림자 VS/InputLayout은 Static용 하나이며 `STATIC_VERTEX` 매크로를 사용하지 않는다.
+아래 내용은 최초 VS/PS 분리 당시의 변경 및 검증 기록이다.
+
 이번 변경은 HLSL 구현과 독립 검증 코드에 한정한다. 제품 C++ 코드, InputLayout,
 VertexFormat, RenderItem/RenderScene, Shadow Pass 및 Shadow VS는 변경하지 않았다.
 

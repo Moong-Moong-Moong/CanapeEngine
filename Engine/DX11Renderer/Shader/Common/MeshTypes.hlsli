@@ -1,11 +1,6 @@
 #ifndef CANAPE_COMMON_MESHTYPES_HLSLI
 #define CANAPE_COMMON_MESHTYPES_HLSLI
 
-struct PositionVertexInput
-{
-    float3 Position : POSITION;
-};
-
 struct StaticVertexInput
 {
     float3 Position : POSITION;

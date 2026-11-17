@@ -16,7 +16,7 @@ namespace Canape
         Microsoft::WRL::ComPtr<ID3D11Buffer> IndexBuffer;
         uint32_t IndexCount = 0;
         uint32_t Stride = 0;
-        VertexFormat Format = VertexFormat::Position;
+        VertexFormat Format = VertexFormat::Static;
         std::vector<SubMesh> SubMeshes;
     };
 }

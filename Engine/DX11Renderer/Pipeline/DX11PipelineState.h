@@ -23,7 +23,7 @@ namespace Canape
         ID3D11SamplerState* Sampler = nullptr;
     };
 
-    // The three fixed vertex formats and three existing alpha modes share these objects.
+    // The two fixed vertex formats and three existing alpha modes share these objects.
     // No Device/Context ownership, resource registry, or frame execution lives here.
     class DX11PipelineState
     {
@@ -38,24 +38,22 @@ namespace Canape
         DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
             DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false) const;
         DX11PipelineSelection ResolveFinalOutput(bool cameraDepth) const;
-        DX11PipelineSelection ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        // Only Static meshes submit shadows until a skinned shadow VS is connected.
+        DX11PipelineSelection ResolveShadow(AlphaMode alphaMode) const;
         bool SetShadowRasterizer(ID3D11Device* device, ShadowCullMode cullMode, float slopeBias, std::string& error);
         // Sampler is for PS s2; the skybox pass binds it separately from the generic s0 path.
         DX11PipelineSelection ResolveSkybox() const;
-        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
+        bool ShadowsAvailable() const { return ShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
 
     private:
         bool InitializeShadows(ID3D11Device* device, std::string& error);
         Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> MaskedShadowPixelShader;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> ShadowInputLayout;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticShadowInputLayout;
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11PixelShader> ShadowVisibilityPixelShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PcssFilterRadiusPixelShader;
 #endif
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> SkinnedVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> FinalOutputVertexShader;
@@ -71,7 +69,6 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11PixelShader> CameraDepthPixelShader;
 #endif
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> SkinnedInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> SkyboxInputLayout;

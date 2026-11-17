@@ -905,7 +905,7 @@ void MaterialMapChecks(DX11Renderer& renderer)
         renderer.EndFrame();
         return pixel;
     };
-    auto near = [](const std::array<float, 4>& actual, const std::array<float, 3>& expected,
+    auto requireNear = [](const std::array<float, 4>& actual, const std::array<float, 3>& expected,
         const char* message) {
         for (size_t channel = 0; channel < 3; ++channel)
             Require(std::abs(actual[channel] - expected[channel]) < .01f, message);
@@ -914,10 +914,10 @@ void MaterialMapChecks(DX11Renderer& renderer)
     debug.enabled = true;
     debug.viewMode = DebugViewMode::WorldNormal;
     renderer.SetDebugSettings(debug);
-    near(render(mappedX, mesh), {1, .5f, .5f}, "WorldNormal uses first material normal");
-    near(render(mappedY, mesh), {.5f, 0, .5f}, "WorldNormal uses second material normal");
-    near(render(plain, mesh), {.5f, .5f, 0}, "no-map draw keeps mesh normal");
-    near(render(mappedX, noTangentMesh), {.5f, .5f, 0}, "invalid tangent keeps mesh normal");
+    requireNear(render(mappedX, mesh), {1, .5f, .5f}, "WorldNormal uses first material normal");
+    requireNear(render(mappedY, mesh), {.5f, 0, .5f}, "WorldNormal uses second material normal");
+    requireNear(render(plain, mesh), {.5f, .5f, 0}, "no-map draw keeps mesh normal");
+    requireNear(render(mappedX, noTangentMesh), {.5f, .5f, 0}, "invalid tangent keeps mesh normal");
     render(combined, mesh);
     render(plain, mesh);
     for (UINT slot = 3; slot <= 5; ++slot)
@@ -927,11 +927,11 @@ void MaterialMapChecks(DX11Renderer& renderer)
         Require(!view.Get(), "no-map draw clears previous material SRVs");
     }
     renderer.SetDebugSettings({});
-    near(render(mr, mesh), {.8f, .4f, .2f}, "MR red channel does not occlude ambient");
+    requireNear(render(mr, mesh), {.8f, .4f, .2f}, "MR red channel does not occlude ambient");
     constexpr float aoValue = 64.0f / 255.0f;
-    near(render(occluded, mesh), {.8f * aoValue, .4f * aoValue, .2f * aoValue},
+    requireNear(render(occluded, mesh), {.8f * aoValue, .4f * aoValue, .2f * aoValue},
         "AO red channel scales ambient in linear space");
-    near(render(plain, mesh), {.8f, .4f, .2f}, "missing AO restores ambient");
+    requireNear(render(plain, mesh), {.8f, .4f, .2f}, "missing AO restores ambient");
 
     scene.ambientIntensity = 0.0f;
     RenderLight light;
@@ -941,13 +941,13 @@ void MaterialMapChecks(DX11Renderer& renderer)
     scene.lights = {light};
     const auto direct = render(plain, mesh);
     Require(direct[0] > .01f, "material map direct-light reference is nonzero");
-    near(render(occluded, mesh), {direct[0], direct[1], direct[2]}, "AO leaves direct light unchanged");
+    requireNear(render(occluded, mesh), {direct[0], direct[1], direct[2]}, "AO leaves direct light unchanged");
     MaterialDesc reference = desc;
     reference.roughness *= 128.0f / 255.0f;
     reference.metallic *= 64.0f / 255.0f;
     const auto factored = renderer.CreateMaterial(reference);
     const auto expected = render(factored, mesh);
-    near(render(mr, mesh), {expected[0], expected[1], expected[2]}, "MR multiplies material factors");
+    requireNear(render(mr, mesh), {expected[0], expected[1], expected[2]}, "MR multiplies material factors");
 
     render(combined, mesh);
     renderer.DestroyTexture(normalX);
@@ -1026,17 +1026,17 @@ void ShadowChecks()
         const std::array<uint32_t, 12> groundIndices{0, 1, 2, 0, 2, 3, 0, 1, 2, 0, 2, 3};
         const std::array<SubMesh, 1> parts{{{6, 6, 4, 0}}};
         const auto ground = renderer.CreateMesh(groundVertices, groundIndices, parts);
-        const std::array<DX11Renderer::Vertex, 8> cubeVertices{{{{-.8f, 0, -.8f}},
-                                                                {{.8f, 0, -.8f}},
-                                                                {{.8f, 2, -.8f}},
-                                                                {{-.8f, 2, -.8f}},
-                                                                {{-.8f, 0, .8f}},
-                                                                {{.8f, 0, .8f}},
-                                                                {{.8f, 2, .8f}},
-                                                                {{-.8f, 2, .8f}}}};
+        const std::array<StaticVertex, 8> cubeVertices{{{{-.8f, 0, -.8f}},
+                                                       {{.8f, 0, -.8f}},
+                                                       {{.8f, 2, -.8f}},
+                                                       {{-.8f, 2, -.8f}},
+                                                       {{-.8f, 0, .8f}},
+                                                       {{.8f, 0, .8f}},
+                                                       {{.8f, 2, .8f}},
+                                                       {{-.8f, 2, .8f}}}};
         const std::array<uint32_t, 36> cubeIndices{0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4,
                                                    3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5};
-        const auto cube = renderer.CreateMesh(cubeVertices, cubeIndices);
+        const auto cube = renderer.CreateMesh(cubeVertices, cubeIndices, {});
         Require(renderer.IsMeshValid(ground) && renderer.IsMeshValid(cube), "scene meshes");
         RenderScene scene;
         const auto sceneLights = CreateTestLights();
@@ -1056,8 +1056,8 @@ void ShadowChecks()
                 "shadow pass preserves the camera depth buffer");
         Require(impl.ShadowActive, "public DrawScene shadow active");
         Require(impl.ShadowMap.Resolution == impl.ShadowSettings.resolution, "default resolution");
-        auto shadowPipeline = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
-        auto mainPipeline = impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque);
+        auto shadowPipeline = impl.Pipelines.ResolveShadow(AlphaMode::Opaque);
+        auto mainPipeline = impl.Pipelines.Resolve(VertexFormat::Static, AlphaMode::Opaque);
         Require(shadowPipeline.Rasterizer && mainPipeline.Rasterizer
                     && shadowPipeline.Rasterizer != mainPipeline.Rasterizer,
                 "shadow pass uses its own rasterizer state");
@@ -1078,7 +1078,7 @@ void ShadowChecks()
         tuning.shadowReceiverBias = 0.0001f;
         tuning.shadowPcf = false;
         renderer.SetDebugSettings(tuning);
-        auto tunedShadow = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
+        auto tunedShadow = impl.Pipelines.ResolveShadow(AlphaMode::Opaque);
         tunedShadow.Rasterizer->GetDesc(&shadowRasterizer);
         Require(shadowRasterizer.CullMode == D3D11_CULL_FRONT && shadowRasterizer.SlopeScaledDepthBias == 0.5f,
                 "runtime front cull and slope bias");
@@ -1090,7 +1090,7 @@ void ShadowChecks()
         tuning.shadowSlopeBias = 2.0f;
         tuning.shadowReceiverBias = 0.001f;
         renderer.SetDebugSettings(tuning);
-        tunedShadow = impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque);
+        tunedShadow = impl.Pipelines.ResolveShadow(AlphaMode::Opaque);
         tunedShadow.Rasterizer->GetDesc(&shadowRasterizer);
         Require(shadowRasterizer.CullMode == D3D11_CULL_BACK && shadowRasterizer.SlopeScaledDepthBias == 2.0f,
                 "runtime back cull and slope bias");
@@ -1099,7 +1099,7 @@ void ShadowChecks()
                 "runtime receiver bias update");
         tuning.shadowSlopeBias = 8.0f;
         renderer.SetDebugSettings(tuning);
-        impl.Pipelines.ResolveShadow(VertexFormat::Position, AlphaMode::Opaque).Rasterizer
+        impl.Pipelines.ResolveShadow(AlphaMode::Opaque).Rasterizer
             ->GetDesc(&shadowRasterizer);
         Require(shadowRasterizer.SlopeScaledDepthBias == 8.0f,
             "extended slope bias applies to shadow rasterizer");
@@ -1285,7 +1285,7 @@ void ShadowChecks()
         Save(widePcssVisibility, "pcss-wide-visibility");
         Require(!SetPcfSampleCount(renderer, 24) && renderer.GetShadowFilterSettings().pcfSampleCount == 64,
             "unsupported PCSS sample count rejected");
-        const auto debugShader = impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque,
+        const auto debugShader = impl.Pipelines.Resolve(VertexFormat::Static, AlphaMode::Opaque,
             DebugViewMode::ShadowVisibility).PS;
         Require(SetPcfSampleCount(renderer, 25), "legacy 25 mode remains selectable");
         auto legacy25Visibility = Frame(renderer, scene);
@@ -1305,7 +1305,7 @@ void ShadowChecks()
             const auto gpu = ReadPcssConstants(impl);
             Require(gpu.PcfSampleCount == count && gpu.FilterMode == 2,
                 "PCSS sample count uploaded without changing the filter mode");
-            Require(impl.Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque,
+            Require(impl.Pipelines.Resolve(VertexFormat::Static, AlphaMode::Opaque,
                 DebugViewMode::ShadowVisibility).PS == debugShader,
                 "PCSS sample count changes without recompiling the pixel shader");
             if (count == 64) vogel64Visibility = std::move(image);

@@ -21,11 +21,6 @@ namespace Canape
     class DX11Renderer
     {
     public:
-        struct Vertex
-        {
-            float Position[3];
-        };
-
         DX11Renderer();
         ~DX11Renderer();
 
@@ -35,7 +30,6 @@ namespace Canape
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
         void Shutdown();
 
-        MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
         MeshResourceId CreateMesh(std::span<const StaticVertex> vertices, std::span<const uint32_t> indices,
             std::span<const SubMesh> submeshes);
         MeshResourceId CreateMesh(std::span<const SkinnedVertex> vertices, std::span<const uint32_t> indices,

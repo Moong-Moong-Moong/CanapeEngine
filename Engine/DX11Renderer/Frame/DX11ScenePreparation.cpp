@@ -397,9 +397,9 @@ namespace Canape::ScenePreparation
             PreparedMeshDraw draw;
             if (!PrepareMeshDraw(resources, item.mesh, item.world.Data(), item.submeshIndex,
                 item.material, draw, error)) continue;
-            if (draw.Mesh->Format != VertexFormat::Position && draw.Mesh->Format != VertexFormat::Static)
+            if (draw.Mesh->Format != VertexFormat::Static)
             {
-                error = "MeshItem requires a Position or Static mesh; use SkinnedMeshItem for skinning";
+                error = "MeshItem requires a Static mesh; use SkinnedMeshItem for skinning";
                 CN_LOG_RENDERER("Draw", error);
                 continue;
             }

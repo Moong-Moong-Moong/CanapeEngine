@@ -106,13 +106,6 @@ namespace Canape
         m_Impl->Shutdown();
     }
 
-    MeshResourceId DX11Renderer::CreateMesh(
-        std::span<const Vertex> vertices,
-        std::span<const uint32_t> indices)
-    {
-        return CreateMeshData(vertices.data(), vertices.size(), sizeof(Vertex), VertexFormat::Position, indices, {});
-    }
-
     MeshResourceId DX11Renderer::CreateMesh(std::span<const StaticVertex> vertices,
         std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
     {

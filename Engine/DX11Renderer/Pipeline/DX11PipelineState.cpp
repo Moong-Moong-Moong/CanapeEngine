@@ -41,23 +41,11 @@ namespace Canape
         DX11PipelineState pending;
         ComPtr<ID3DBlob> vertexBytecode;
         ComPtr<ID3DBlob> pixelBytecode;
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", nullptr,
-            kShaderCompileFlags, vertexBytecode, error)
-            || !CompileShaderFile(L"Shaders/Mesh.hlsl", "PSMain", "ps_5_0", nullptr,
-                kShaderCompileFlags, pixelBytecode, error))
+        if (!CompileShaderFile(L"Shaders/MeshPS.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error))
             return false;
 
-        HRESULT result = device->CreateVertexShader(
-            vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
-            nullptr, &pending.VertexShader);
-        if (FAILED(result))
-        {
-            error = HResultMessage("ID3D11Device::CreateVertexShader", result);
-            CN_LOG_RENDERER("Pipeline", error);
-            return false;
-        }
-
-        result = device->CreatePixelShader(
+        HRESULT result = device->CreatePixelShader(
             pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
             nullptr, &pending.PixelShader);
         if (FAILED(result))
@@ -105,25 +93,8 @@ namespace Canape
         }
 #endif
 
-        constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-              D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-
-        result = device->CreateInputLayout(
-            inputElements, static_cast<UINT>(std::size(inputElements)),
-            vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
-            &pending.InputLayout);
-        if (FAILED(result))
-        {
-            error = HResultMessage("ID3D11Device::CreateInputLayout", result);
-            CN_LOG_RENDERER("Pipeline", error);
-            return false;
-        }
-
         // Each mesh vertex format is compiled against its actual input signature.
-        const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
-        if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", staticDefines,
+        if (!CompileShaderFile(L"Shaders/MeshStaticVS.hlsl", "VSMain", "vs_5_0", nullptr,
             kShaderCompileFlags, vertexBytecode, error))
             return false;
         result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
@@ -371,30 +342,23 @@ namespace Canape
     {
         DX11PipelineState pending;
         ComPtr<ID3DBlob> bytecode;
-        const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
-        auto createVertex = [&](bool isStatic) -> bool
-        {
-            if (!CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "VSShadow", "vs_5_0",
-                isStatic ? staticDefines : nullptr, kShaderCompileFlags, bytecode, error)) return false;
-            auto& shader = isStatic ? pending.StaticShadowVertexShader : pending.ShadowVertexShader;
-            HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
-                nullptr, &shader);
-            if (FAILED(result)) { error = HResultMessage("CreateVertexShader(shadow)", result); return false; }
-            const D3D11_INPUT_ELEMENT_DESC elements[] = {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV)),
-                  D3D11_INPUT_PER_VERTEX_DATA, 0 }
-            };
-            auto& layout = isStatic ? pending.StaticShadowInputLayout : pending.ShadowInputLayout;
-            result = device->CreateInputLayout(elements, isStatic ? 2u : 1u,
-                bytecode->GetBufferPointer(), bytecode->GetBufferSize(), &layout);
-            if (FAILED(result)) { error = HResultMessage("CreateInputLayout(shadow)", result); return false; }
-            return true;
+        if (!CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "VSShadow", "vs_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.ShadowVertexShader);
+        if (FAILED(result)) { error = HResultMessage("CreateVertexShader(shadow)", result); return false; }
+        const D3D11_INPUT_ELEMENT_DESC elements[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, Position)),
+              D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV)),
+              D3D11_INPUT_PER_VERTEX_DATA, 0 }
         };
-        if (!createVertex(false) || !createVertex(true)
-            || !CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
-                kShaderCompileFlags, bytecode, error)) return false;
-        HRESULT result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+        result = device->CreateInputLayout(elements, static_cast<UINT>(std::size(elements)),
+            bytecode->GetBufferPointer(), bytecode->GetBufferSize(), &pending.ShadowInputLayout);
+        if (FAILED(result)) { error = HResultMessage("CreateInputLayout(shadow)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
             nullptr, &pending.MaskedShadowPixelShader);
         if (FAILED(result)) { error = HResultMessage("CreatePixelShader(masked shadow)", result); return false; }
 #if CANAPE_RENDER_DEBUG
@@ -413,10 +377,8 @@ namespace Canape
 #endif
         if (!SetShadowRasterizer(device, ShadowCullMode::Back, DefaultShadowSlopeBias, error)) return false;
         ShadowVertexShader = std::move(pending.ShadowVertexShader);
-        StaticShadowVertexShader = std::move(pending.StaticShadowVertexShader);
         MaskedShadowPixelShader = std::move(pending.MaskedShadowPixelShader);
         ShadowInputLayout = std::move(pending.ShadowInputLayout);
-        StaticShadowInputLayout = std::move(pending.StaticShadowInputLayout);
         return true;
     }
 
@@ -450,13 +412,12 @@ namespace Canape
         return true;
     }
 
-    DX11PipelineSelection DX11PipelineState::ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const
+    DX11PipelineSelection DX11PipelineState::ResolveShadow(AlphaMode alphaMode) const
     {
-        const bool isStatic = vertexFormat == VertexFormat::Static;
         return {
-            isStatic ? StaticShadowVertexShader.Get() : ShadowVertexShader.Get(),
+            ShadowVertexShader.Get(),
             alphaMode == AlphaMode::Masked ? MaskedShadowPixelShader.Get() : nullptr,
-            isStatic ? StaticShadowInputLayout.Get() : ShadowInputLayout.Get(),
+            ShadowInputLayout.Get(),
             ShadowRasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), LinearSampler.Get()
         };
     }
@@ -468,10 +429,6 @@ namespace Canape
         ID3D11InputLayout* inputLayout = nullptr;
         switch (vertexFormat)
         {
-        case VertexFormat::Position:
-            vertexShader = VertexShader.Get();
-            inputLayout = InputLayout.Get();
-            break;
         case VertexFormat::Static:
             vertexShader = StaticVertexShader.Get();
             inputLayout = StaticInputLayout.Get();

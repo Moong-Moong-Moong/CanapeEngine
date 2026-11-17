@@ -135,7 +135,7 @@ namespace Canape
         SceneData = {};
         SceneDirty = true;
         // Reset the complete default pipeline, including frames ending in transparency.
-        BindPipeline(Pipelines.Resolve(VertexFormat::Position, AlphaMode::Opaque));
+        BindPipeline(Pipelines.Resolve(VertexFormat::Static, AlphaMode::Opaque));
 
         FrameActive = true;
         return true;

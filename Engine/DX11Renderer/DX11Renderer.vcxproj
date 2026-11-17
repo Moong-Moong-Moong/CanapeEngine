@@ -138,7 +138,6 @@
     <None Include="Shader\Debug\DepthDebug.hlsl" />
     <None Include="Shader\Debug\MeshDebug.hlsl" />
     <None Include="Shader\FinalOutput.hlsl" />
-    <None Include="Shader\Mesh.hlsl" />
     <None Include="Shader\MeshPS.hlsl" />
     <None Include="Shader\MeshSkinnedVS.hlsl" />
     <None Include="Shader\MeshStaticVS.hlsl" />
