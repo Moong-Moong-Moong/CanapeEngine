@@ -436,3 +436,6 @@ FodyWeavers.xsd
 # Renderer debug shader sources
 !/Engine/DX11Renderer/Shader/Debug/
 !/Engine/DX11Renderer/Shader/Debug/*.hlsl
+
+# Model assets
+/Game/Content/Models/
