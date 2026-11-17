@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include "DX11Simulation/Buffer.h"
+#include "DX11Simulation/ConstantView.h"
 #include "DX11Simulation/D3D.h"
 #include "DX11Simulation/Handles.h"
 #include "DX11Simulation/Shader.h"
@@ -63,6 +64,20 @@ namespace Canape
             const D3D11_SUBRESOURCE_DATA* initialData = nullptr,
             std::string_view name = {}
         );
+        // Starts with values.
+        [[nodiscard]] BufferHandle CreateConstantBuffer(
+            ConstantView values,
+            std::string_view name = {})
+        {
+            const D3D11_SUBRESOURCE_DATA initialData{
+                .pSysMem = values.Data()
+            };
+            return CreateBuffer(
+                ConstantBufferDesc(values.Size()),
+                &initialData,
+                name
+            );
+        }
         [[nodiscard]] TextureHandle CreateTexture(
             const D3D11_TEXTURE2D_DESC&,
             const D3D11_SUBRESOURCE_DATA* initialData = nullptr,

@@ -16,10 +16,7 @@ namespace Canape
         : session(session)
         , vertexShader(session.GetOrCreateVertexShader(vertexShader))
         , pixelShader(session.GetOrCreatePixelShader(pixelShader))
-        , constants(session.CreateBuffer(ConstantBufferDesc(values.Size())))
-    {
-        Upload(session, values);
-    }
+        , constants(session.CreateConstantBuffer(values)) {}
 
     void Material::Upload(Session& session, ConstantView values)
     {

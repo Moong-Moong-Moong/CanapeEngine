@@ -9,10 +9,7 @@ namespace Canape
 {
     Outer::Outer(Session& session, ConstantView values)
         : session(session)
-        , constants(session.CreateBuffer(ConstantBufferDesc(values.Size())))
-    {
-        Upload(session, values);
-    }
+        , constants(session.CreateConstantBuffer(values)) {}
 
     void Outer::Upload(Session& session, ConstantView values)
     {

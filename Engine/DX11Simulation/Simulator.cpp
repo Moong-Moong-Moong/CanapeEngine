@@ -3,15 +3,25 @@
 #include <cassert>
 
 #include "DX11Simulation/Buffer.h"
+#include "DX11Simulation/ComputePass.h"
 #include "DX11Simulation/DeviceContext.h"
+#include "DX11Simulation/Field.h"
 #include "DX11Simulation/Geometry.h"
 #include "DX11Simulation/GpuTimer.h"
+#include "DX11Simulation/Kernel.h"
 #include "DX11Simulation/Material.h"
 #include "DX11Simulation/Outer.h"
 #include "DX11Simulation/RenderPass.h"
+#include "DX11Simulation/Shader.h"
 
 namespace
 {
+    template<std::unsigned_integral T>
+    constexpr T ceilDiv(T n, T d) noexcept
+    {
+        return (n + (d - 1)) / d;
+    }
+
     ID3D11Device& deviceOf(ID3D11DeviceContext& context)
     {
         Microsoft::WRL::ComPtr<ID3D11Device> device;
@@ -97,6 +107,70 @@ namespace Canape
         assert(!frameOpen);
 
         timer->SetEnabled(false);
+    #endif
+    }
+
+    void Simulator::BeginComputePass(const ComputePass&, const Outer& outer)
+    {
+        assert(!computeOpen);
+
+    #ifndef NDEBUG
+        computeOpen = true;
+    #endif
+
+    #if CANAPE_RENDER_DEBUG
+        if(timer->IsRecording())
+        {
+            timer->BeginCompute();
+        }
+    #endif
+
+        context->SetComputeConstant(
+            ComputeOuterSlot,
+            outer.GetConstants()
+        );
+    }
+
+    void Simulator::Dispatch(const Kernel& kernel, Field& field)
+    {
+        assert(computeOpen);
+
+        const auto& shader = kernel.GetShader();
+
+        const auto& groupSize = shader.GetThreadGroupSize();
+        const auto& desc = field.GetDesc();
+
+        context->SetComputeConstant(KernelSlot, kernel.GetConstants());
+        context->SetComputeShader(shader);
+        context->SetComputeReadable(FieldLatestSlot, field.GetLatest());
+        context->SetComputeWritable(FieldNextSlot, field.GetNext());
+        context->Dispatch(
+            ceilDiv(desc.width, groupSize[0]),
+            ceilDiv(desc.height, groupSize[1])
+        );
+        context->ClearComputeWritable(FieldNextSlot);
+        context->ClearComputeReadable(FieldLatestSlot);
+
+        field.Advance();
+    }
+
+    void Simulator::EndComputePass()
+    {
+        assert(computeOpen);
+
+    #ifndef NDEBUG
+        computeOpen = false;
+    #endif
+
+        context->ClearComputeShader();
+        context->ClearComputeConstant(KernelSlot);
+        context->ClearComputeConstant(ComputeOuterSlot);
+
+    #if CANAPE_RENDER_DEBUG
+        if(timer->IsRecording())
+        {
+            timer->EndCompute();
+        }
     #endif
     }
 

@@ -80,6 +80,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Buffer.h" />
+    <ClInclude Include="ComputePass.h" />
     <ClInclude Include="ConstantView.h" />
     <ClInclude Include="D3D.h" />
     <ClInclude Include="D3DFwd.h" />
@@ -90,6 +91,7 @@
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="GpuTimer.h" />
     <ClInclude Include="Handles.h" />
+    <ClInclude Include="Kernel.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Outer.h" />
     <ClInclude Include="RenderPass.h" />
@@ -110,6 +112,7 @@
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GpuTimer.cpp" />
+    <ClCompile Include="Kernel.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Outer.cpp" />
     <ClCompile Include="RenderPass.cpp" />

@@ -6,19 +6,23 @@
 #include <d3d11.h>
 
 #include "DX11Simulation/FrameStats.h"
-#include "DX11Simulation/Handles.h"
 
 namespace Canape
 {
+    class Buffer;
+    class ComputePass;
     class DeviceContext;
+    class Field;
     class Geometry;
     class GpuTimer;
+    class Kernel;
     class Material;
     class Outer;
     class RenderPass;
 
     // Runs the simulation on the renderer's D3D11 context
-    class Simulator {
+    class Simulator
+    {
     private:
         std::unique_ptr<DeviceContext> context;
 
@@ -36,6 +40,7 @@ namespace Canape
         GpuTiming timing;
     #ifndef NDEBUG
         bool frameOpen = false;
+        bool computeOpen = false;
         bool renderOpen = false;
     #endif
 
@@ -55,6 +60,10 @@ namespace Canape
         // Off by default; takes effect from the next frame.
         void EnableGpuTiming();
         void DisableGpuTiming();
+
+        void BeginComputePass(const ComputePass&, const Outer&);
+        void Dispatch(const Kernel&, Field&);
+        void EndComputePass();
 
         // Inside a renderer callback. The pass's render states are not restored.
         void BeginRenderPass(const RenderPass&, const Outer&);
@@ -82,7 +91,30 @@ namespace Canape
         void bind(std::uint32_t slot, Buffer&);
     };
 
-    class RenderPassScope {
+    class ComputePassScope
+    {
+    private:
+        Simulator& simulator;
+
+    public:
+        ComputePassScope(Simulator& simulator, const ComputePass& pass, const Outer& outer)
+            : simulator(simulator)
+        {
+            simulator.BeginComputePass(pass, outer);
+        }
+        ~ComputePassScope()
+        {
+            simulator.EndComputePass();
+        }
+
+        ComputePassScope(const ComputePassScope&) = delete;
+        ComputePassScope& operator=(const ComputePassScope&) = delete;
+        ComputePassScope(ComputePassScope&&) = delete;
+        ComputePassScope& operator=(ComputePassScope&&) = delete;
+    };
+
+    class RenderPassScope
+    {
     private:
         Simulator& simulator;
 
@@ -103,7 +135,8 @@ namespace Canape
         RenderPassScope& operator=(RenderPassScope&&) = delete;
     };
 
-    class FrameScope {
+    class FrameScope
+    {
     private:
         Simulator& simulator;
 

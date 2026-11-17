@@ -9,11 +9,8 @@ namespace Canape
 {
     Geometry::Geometry(Session& session, ConstantView values, std::uint32_t vertexCount)
         : session(session)
-        , constants(session.CreateBuffer(ConstantBufferDesc(values.Size())))
-        , vertexCount(vertexCount)
-    {
-        Upload(session, values);
-    }
+        , constants(session.CreateConstantBuffer(values))
+        , vertexCount(vertexCount) {}
 
     void Geometry::Upload(Session& session, ConstantView values)
     {
