@@ -16,16 +16,13 @@ namespace Canape
     class Material;
     class Outer;
     class RenderPass;
-    class Session;
 
     // Runs the simulation on the renderer's D3D11 context
     class Simulator {
     private:
-        Session& session;
         std::unique_ptr<DeviceContext> context;
 
     #if CANAPE_RENDER_DEBUG
-        // Only while GPU timing is on, Off by default.
         std::unique_ptr<GpuTimer> timer;
     #endif
 
@@ -43,7 +40,7 @@ namespace Canape
     #endif
 
     public:
-        Simulator(Session&, ID3D11DeviceContext&);
+        explicit Simulator(ID3D11DeviceContext&);
         ~Simulator();
 
         Simulator(const Simulator&) = delete;
@@ -55,6 +52,7 @@ namespace Canape
         void BeginFrame();
         void EndFrame();
 
+        // Off by default; takes effect from the next frame.
         void EnableGpuTiming();
         void DisableGpuTiming();
 

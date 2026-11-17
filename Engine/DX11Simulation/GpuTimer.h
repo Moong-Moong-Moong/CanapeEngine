@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -129,8 +130,8 @@ namespace Canape
         QueryPool timestamps;
         // Frames waiting for the GPU, oldest in front; while recording, the back one is being recorded.
         RingBuffer<Frame, RingSize> frames;
-        GpuTiming latest;
 
+        bool enabled = false;
         bool recording = false;
     #ifndef NDEBUG
         bool renderOpen = false;
@@ -140,8 +141,15 @@ namespace Canape
     public:
         GpuTimer(ID3D11Device&, ID3D11DeviceContext&);
 
-        // Reads the frames the GPU has finished. Not while a frame is being recorded.
-        void Collect();
+        // Takes effect from the next BeginFrame.
+        void SetEnabled(bool value) noexcept
+        {
+            enabled = value;
+        }
+
+        // Reads the frames the GPU has finished, giving the measurement of the last that could be trusted.
+        // Not while a frame is being recorded.
+        std::optional<GpuTiming> Collect();
         // Every frame of the ring waits for the GPU. Frames paced by Present leave room once collected;
         // only a CPU running ahead without that pacing fills the ring.
         bool IsFull() const
@@ -161,12 +169,6 @@ namespace Canape
         bool IsRecording() const noexcept
         {
             return recording;
-        }
-
-        // Of the last frame whose measurement could be trusted.
-        const GpuTiming& GetLatest() const noexcept
-        {
-            return latest;
         }
 
     private:

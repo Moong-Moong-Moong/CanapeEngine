@@ -2,7 +2,6 @@
 
 #include "DX11Simulation/Buffer.h"
 #include "DX11Simulation/D3D.h"
-#include "DX11Simulation/GpuTimer.h"
 #include "DX11Simulation/Shader.h"
 #include "DX11Simulation/Texture.h"
 
@@ -73,8 +72,6 @@ namespace Canape
             const ShaderDesc&,
             std::string_view name = {}
         );
-
-        GpuTimer CreateGpuTimer();
 
     private:
         ID3D11Device* getDevice() const

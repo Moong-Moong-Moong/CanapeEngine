@@ -3,22 +3,35 @@
 #include <cassert>
 
 #include "DX11Simulation/Buffer.h"
-#include "DX11Simulation/Device.h"
 #include "DX11Simulation/DeviceContext.h"
 #include "DX11Simulation/Geometry.h"
 #include "DX11Simulation/GpuTimer.h"
 #include "DX11Simulation/Material.h"
 #include "DX11Simulation/Outer.h"
 #include "DX11Simulation/RenderPass.h"
-#include "DX11Simulation/Session.h"
+
+namespace
+{
+    ID3D11Device& deviceOf(ID3D11DeviceContext& context)
+    {
+        Microsoft::WRL::ComPtr<ID3D11Device> device;
+        context.GetDevice(&device);
+        assert(device != nullptr);
+
+        return *device.Get();
+    }
+}
 
 namespace Canape
 {
     Simulator::~Simulator() = default;
 
-    Simulator::Simulator(Session& session, ID3D11DeviceContext& context)
-        : session(session),
-          context(std::make_unique<DeviceContext>(context)) {}
+    Simulator::Simulator(ID3D11DeviceContext& context)
+        : context(std::make_unique<DeviceContext>(context))
+    #if CANAPE_RENDER_DEBUG
+        , timer(std::make_unique<GpuTimer>(deviceOf(context), context))
+    #endif
+    {}
 
     void Simulator::BeginFrame()
     {
@@ -32,15 +45,15 @@ namespace Canape
         drawsBefore = context->GetDrawCount();
 
     #if CANAPE_RENDER_DEBUG
-        if(timer != nullptr)
+        if(auto measured = timer->Collect())
         {
-            timer->Collect();
-            // Present keeps the GPU within the frames the timer holds. Only frames that run ahead without it,
-            // as in a test that never presents, find the timer full, and such a frame goes untimed.
-            if(!timer->IsFull())
-            [[likely]] {
-                timer->BeginFrame(frameNumber);
-            }
+            timing = *measured;
+        }
+        // Present keeps the GPU within the frames the timer holds. Only frames that run ahead without it,
+        // as in a test that never presents, find the timer full, and such a frame goes untimed.
+        if(!timer->IsFull())
+        [[likely]] {
+            timer->BeginFrame(frameNumber);
         }
     #endif
     }
@@ -62,14 +75,9 @@ namespace Canape
         );
 
     #if CANAPE_RENDER_DEBUG
-        if(timer != nullptr)
-        {
-            if(timer->IsRecording())
-            [[likely]] {
-                timer->EndFrame();
-            }
-
-            timing = timer->GetLatest();
+        if(timer->IsRecording())
+        [[likely]] {
+            timer->EndFrame();
         }
     #endif
     }
@@ -79,12 +87,7 @@ namespace Canape
     #if CANAPE_RENDER_DEBUG
         assert(!frameOpen);
 
-        if(timer != nullptr) return;
-
-        auto& device = session.GetDevice();
-        timer = std::make_unique<GpuTimer>(device.CreateGpuTimer());
-
-        timing = {};
+        timer->SetEnabled(true);
     #endif
     }
 
@@ -93,11 +96,7 @@ namespace Canape
     #if CANAPE_RENDER_DEBUG
         assert(!frameOpen);
 
-        if(timer == nullptr) return;
-
-        timer = nullptr;
-
-        timing = {};
+        timer->SetEnabled(false);
     #endif
     }
 
@@ -110,7 +109,7 @@ namespace Canape
     #endif
 
     #if CANAPE_RENDER_DEBUG
-        if(timer != nullptr && timer->IsRecording())
+        if(timer->IsRecording())
         {
             timer->BeginRender();
         }
@@ -152,7 +151,7 @@ namespace Canape
         }
 
     #if CANAPE_RENDER_DEBUG
-        if(timer != nullptr && timer->IsRecording())
+        if(timer->IsRecording())
         {
             timer->EndRender();
         }

@@ -61,7 +61,7 @@ namespace Canape
         auto& device = *static_cast<ID3D11Device*>(m_Renderer->GetNativeDevice());
         auto& context = *static_cast<ID3D11DeviceContext*>(m_Renderer->GetNativeContext());
         m_SimulationSession = std::make_unique<Session>(device, context);
-        m_Simulator = std::make_unique<Simulator>(*m_SimulationSession, context);
+        m_Simulator = std::make_unique<Simulator>(context);
 
         m_SceneManager = std::make_unique<SceneManager>(m_PhysicsRuntime.get(), m_SimulationSession.get());
 

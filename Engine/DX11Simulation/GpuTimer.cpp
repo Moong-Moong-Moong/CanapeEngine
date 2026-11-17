@@ -139,10 +139,11 @@ namespace Canape
     GpuTimer::GpuTimer(ID3D11Device& device, ID3D11DeviceContext& context)
         : context(context), timestamps(device, TimestampQueryDesc), frames(createFrames(device)) {}
 
-    void GpuTimer::Collect()
+    std::optional<GpuTiming> GpuTimer::Collect()
     {
         assert(!recording);
 
+        GpuTiming latest;
         // The GPU finishes the frames in the order they were recorded.
         while(!frames.Empty())
         {
@@ -153,12 +154,18 @@ namespace Canape
 
             frames.Pop();
         }
+
+        if(latest.frame == NoFrame) [[unlikely]] return std::nullopt;
+
+        return latest;
     }
 
     void GpuTimer::BeginFrame(std::uint64_t number)
     {
         assert(!recording);
         assert(!frames.Full());
+
+        if(!enabled) return;
 
         auto& frame = frames.Push();
         assert(frame.ranges.empty());

@@ -151,9 +151,4 @@ namespace Canape
     {
         return ComputeShader(*getDevice(), desc, name);
     }
-
-    GpuTimer Device::CreateGpuTimer()
-    {
-        return GpuTimer(*getDevice(), *getContext());
-    }
 }

@@ -57,11 +57,6 @@ namespace Canape
         Session(Session&&) = delete;
         Session& operator=(Session&&) = delete;
 
-        Device& GetDevice() const
-        {
-            return *device;
-        }
-
         // Each throws as the Device's Create does; what it makes is kept until the session dies.
         [[nodiscard]] BufferHandle CreateBuffer(
             const D3D11_BUFFER_DESC&,
