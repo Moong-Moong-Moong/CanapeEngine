@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DX11Renderer/Scene/RenderItem.h"
+#include "DX11Renderer/Scene/MeshItem.h"
 #include "DX11Renderer/Data/PostProcessSettings.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
@@ -57,7 +57,9 @@ namespace Canape
     struct RenderScene
     {
         RenderView camera;
-        std::vector<RenderItem> items;
+        std::vector<MeshItem> items;
+        std::vector<SkinnedMeshItem> skinnedItems;
+        std::vector<Matrix4> bonePalettes;
 
         Vector3 ambientColor{ 1.0f, 1.0f, 1.0f }; // Linear RGB.
         float ambientIntensity = 0.1f;

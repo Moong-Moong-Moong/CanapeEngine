@@ -7,7 +7,7 @@
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Texture/CubemapAsset.h"
 #include "Asset/Texture/TextureAsset.h"
-
+#include "Asset/Animation/AnimationClipAsset.h"
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -68,6 +68,10 @@ namespace Canape
 		bool UpdateMaterial(const std::string& name, const MaterialData& data);
 		const MaterialAsset* GetMaterial(const MaterialAssetHandle& handle) const;
 
+		//***** AnimationClip
+		AnimationClipAssetHandle GetAnimationClipHandle(const std::string& path, const AssetOwnerInfo& owner);
+		const AnimationClipAsset* GetAnimationClip(const AnimationClipAssetHandle& handle) const;
+
 		//***** Asset Tracker
 		const AssetTracker& GetTracker() const { return m_Tracker; }
 		void PrintAssetRecords() const;
@@ -80,11 +84,13 @@ namespace Canape
 		size_t ReleaseUnusedMaterials();
 		size_t ReleaseUnusedTextures();
 		size_t ReleaseUnusedCubemaps();
+		size_t ReleaseUnusedAnimationClips();
 
 		MeshAssetId FindMesh(const std::string& pathKey) const;
 		TextureAssetId FindTexture(const std::string& pathKey) const;
 		CubemapAssetId FindCubemap(const std::string& pathKey) const;
 		MaterialAssetId FindMaterial(const std::string& name) const;
+		AnimationClipAssetId FindAnimationClip(const std::string& pathKey) const;
 
 		MaterialAssetHandle LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner);
 		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
@@ -93,16 +99,19 @@ namespace Canape
 		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath, TextureFormat format);
 		MaterialTextures LoadMaterialTextures(const std::string& materialName, const MaterialData& data, const std::string& sceneName);
 		CubemapAssetId LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath);
+		bool LoadAnimationClips(const std::string& assetPath, const std::string& fileKey, const std::string& filePath);
 
 		MeshAssetHandle CreateMeshHandle(MeshAssetId id, const AssetOwnerInfo& owner);
 		TextureAssetHandle CreateTextureHandle(TextureAssetId id, const AssetOwnerInfo& owner);
 		CubemapAssetHandle CreateCubemapHandle(CubemapAssetId id, const AssetOwnerInfo& owner);
 		MaterialAssetHandle CreateMaterialHandle(MaterialAssetId id, const AssetOwnerInfo& owner);
+		AnimationClipAssetHandle CreateAnimationClipHandle(AnimationClipAssetId id, const AssetOwnerInfo& owner);
 
 		void Release(MeshAssetId id, AssetRecordId recordId);
 		void Release(TextureAssetId id, AssetRecordId recordId);
 		void Release(CubemapAssetId id, AssetRecordId recordId);
 		void Release(MaterialAssetId id, AssetRecordId recordId);
+		void Release(AnimationClipAssetId id, AssetRecordId recordId);
 
 		template <typename T>
 		AssetHandle<T> CreateHandle(AssetMap<T>& entries, AssetType type, AssetId<T> id, const AssetOwnerInfo& owner);
@@ -123,6 +132,9 @@ namespace Canape
 
 		std::unordered_map<std::string, MeshAssetId> m_MeshIdByPath;
 		std::unordered_map<MeshAssetId, AssetEntry<MeshAsset>, AssetIdHash<MeshAsset>> m_MeshesById;
+
+		std::unordered_map<std::string, AnimationClipAssetId> m_AnimationClipIdByPath;
+		std::unordered_map<AnimationClipAssetId, AssetEntry<AnimationClipAsset>, AssetIdHash<AnimationClipAsset>> m_AnimationClipsById;
 	};
 
 	template <typename T>

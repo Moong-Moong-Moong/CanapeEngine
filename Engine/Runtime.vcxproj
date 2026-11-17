@@ -75,6 +75,8 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Asset\Animation\AnimationClipAsset.h" />
+    <ClInclude Include="Source\Asset\Animation\AnimationClipSerializer.h" />
     <ClInclude Include="Source\Asset\AssetId.h" />
     <ClInclude Include="Source\Asset\AssetHandle.h" />
     <ClInclude Include="Source\Asset\AssetManager.h" />
@@ -124,8 +126,10 @@
     <ClInclude Include="..\Common\Math\Vector2.h" />
     <ClInclude Include="..\Common\Math\Vector3.h" />
     <ClInclude Include="..\Common\Math\Vector4.h" />
+    <ClInclude Include="Source\Scene\Component\AnimatorComponent.h" />
     <ClInclude Include="Source\Scene\Component\CameraComponent.h" />
     <ClInclude Include="Source\Scene\Component\Component.h" />
+    <ClInclude Include="Source\Scene\Component\SkinnedMeshRendererComponent.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObject.h" />
     <ClInclude Include="Source\Scene\GameObject\GameObjectManager.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
@@ -145,12 +149,15 @@
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Asset\Animation\AnimationClipAsset.cpp" />
+    <ClCompile Include="Source\Asset\Animation\AnimationClipSerializer.cpp" />
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialFile.cpp" />
     <ClCompile Include="..\Common\CNDebug\DebugLog.cpp" />
+    <ClCompile Include="Source\Scene\Component\AnimatorComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
@@ -177,6 +184,7 @@
     <ClCompile Include="Source\Scene\Component\ComponentRegistry.cpp" />
     <ClCompile Include="Source\Scene\Component\LightComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\FogComponent.cpp" />
+    <ClCompile Include="Source\Scene\Component\SkinnedMeshRendererComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObject.cpp" />
     <ClCompile Include="Source\Scene\GameObject\GameObjectManager.cpp" />

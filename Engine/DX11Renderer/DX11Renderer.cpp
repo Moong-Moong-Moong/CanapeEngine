@@ -119,6 +119,12 @@ namespace Canape
         return CreateMeshData(vertices.data(), vertices.size(), sizeof(StaticVertex), VertexFormat::Static, indices, submeshes);
     }
 
+    MeshResourceId DX11Renderer::CreateMesh(std::span<const SkinnedVertex> vertices,
+        std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
+    {
+        return CreateMeshData(vertices.data(), vertices.size(), sizeof(SkinnedVertex), VertexFormat::Skinned, indices, submeshes);
+    }
+
     MeshResourceId DX11Renderer::CreateMeshData(const void* vertices, size_t vertexCount,
         uint32_t stride, VertexFormat format, std::span<const uint32_t> indices, std::span<const SubMesh> submeshes)
     {
@@ -261,9 +267,22 @@ namespace Canape
         m_Impl->QueuedScene.camera = view;
     }
 
-    void DX11Renderer::AddRenderItem(const RenderItem& item)
+    void DX11Renderer::AddRenderItem(const MeshItem& item)
     {
         m_Impl->QueuedScene.items.push_back(item);
+    }
+
+    uint32_t DX11Renderer::AddBonePalette(std::span<const Matrix4> palette)
+    {
+        std::vector<Matrix4>& palettes = m_Impl->QueuedScene.bonePalettes;
+        const uint32_t offset = static_cast<uint32_t>(palettes.size());
+        palettes.insert(palettes.end(), palette.begin(), palette.end());
+        return offset;
+    }
+
+    void DX11Renderer::AddSkinnedRenderItem(const SkinnedMeshItem& item)
+    {
+        m_Impl->QueuedScene.skinnedItems.push_back(item);
     }
 
     void DX11Renderer::AddLight(const RenderLight& light)

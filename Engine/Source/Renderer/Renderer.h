@@ -13,6 +13,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Canape
@@ -75,6 +76,9 @@ namespace Canape
         void SetBlockerSearchRadius(float radius);
 
         void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
+        uint32_t AddBonePalette(std::span<const Matrix4> palette);
+        void AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+            uint32_t paletteOffset, uint32_t paletteCount);
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);

@@ -14,6 +14,7 @@ namespace Canape
 	class RigidBodyComponent;
 	class HingeComponent;
 	class WaterVolumeComponent;
+	class AnimatorComponent;
 
 	//***** Scene 이 순회할 특정 컴포넌트 목록을 보관
 	class ComponentRegistry final
@@ -24,10 +25,11 @@ namespace Canape
 
 		ComponentRegistry(const ComponentRegistry&) = delete;
 		ComponentRegistry& operator=(const ComponentRegistry&) = delete;
-
+		
 		void Register(Component* component);
 		void Unregister(Component* component);
 		void FlushPending();
+
 		//*** Registers only physics components early so ones added during FixedUpdate join the same tick.
 		void FlushPendingPhysics();
 
@@ -39,6 +41,7 @@ namespace Canape
 		std::span<RigidBodyComponent* const> GetRigidBodies() const { return m_rigidBodies; }
 		std::span<HingeComponent* const> GetHinges() const { return m_hinges; }
 		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
+		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
 
 
@@ -51,6 +54,7 @@ namespace Canape
 		std::vector<RigidBodyComponent*> m_rigidBodies;
 		std::vector<HingeComponent*> m_hinges;
 		std::vector<WaterVolumeComponent*> m_waterVolumes;
+		std::vector<AnimatorComponent*> m_animators;
 
 		std::vector<Component*> m_pendingAdd;
 		std::vector<Component*> m_pendingRemove;
