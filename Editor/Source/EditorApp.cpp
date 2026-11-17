@@ -140,7 +140,7 @@ void EditorApp::OnUpdate(float deltaTime)
     DrawDockSpace();
 
     m_Hierarchy.Draw(m_Context, scene);
-    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(GetRenderer(), deltaTime, m_Playing);
+    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(GetRenderer(), GetUISystem(), deltaTime, m_Playing);
     m_Inspector.Draw(m_Context, scene);
     m_FileBrowser.Draw(m_Context);
     m_DebugConsole.Draw(GetCommands());

@@ -63,6 +63,9 @@
     <ClInclude Include="Data\TextureData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\UIDrawList.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\ShaderConstants.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
@@ -88,6 +91,9 @@
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Pass\DX11FinalOutputPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11UIPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Internal\DX11RendererImpl.h">
@@ -153,6 +159,9 @@
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11UIPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Internal\DX11RendererImpl.cpp">
@@ -239,6 +248,9 @@
       <Filter>Shader\Shadow</Filter>
     </None>
     <None Include="Shader\Skybox.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\UI.hlsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

@@ -15,7 +15,8 @@ public:
         Stop
     };
 
-    PlayRequest Draw(Canape::Renderer& renderer, float deltaTime, bool playing);
+    // Also tells the UI system where the scene image sits so game UI receives the mouse while playing.
+    PlayRequest Draw(Canape::Renderer& renderer, Canape::UISystem& ui, float deltaTime, bool playing);
     void FrameMainCamera(Canape::Scene* scene);
 
 private:

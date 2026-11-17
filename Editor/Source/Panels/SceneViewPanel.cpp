@@ -15,11 +15,14 @@ namespace
     constexpr float kFarClip = 2000.0f;
 }
 
-SceneViewPanel::PlayRequest SceneViewPanel::Draw(Renderer& renderer, float deltaTime, bool playing)
+SceneViewPanel::PlayRequest SceneViewPanel::Draw(Renderer& renderer, UISystem& ui, float deltaTime, bool playing)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const bool visible = ImGui::Begin(kName);
     ImGui::PopStyleVar();
+
+    // Hidden scene view: game UI gets no pointer.
+    ui.SetPointerViewport({}, false);
 
     PlayRequest request = PlayRequest::None;
     if (visible)
@@ -42,6 +45,12 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(Renderer& renderer, float delta
 
         const ImVec2 min = ImGui::GetItemRectMin();
         const ImVec2 max = ImGui::GetItemRectMax();
+        // ImGui positions are relative to the main viewport; InputManager reports window client coordinates.
+        // AllowWhenBlockedByActiveItem keeps the pointer while a click held on the image would otherwise block hover.
+        const ImVec2 origin = ImGui::GetMainViewport()->Pos;
+        const bool pointerOverImage = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+        ui.SetPointerViewport({ min.x - origin.x, min.y - origin.y, max.x - min.x, max.y - min.y },
+            playing && pointerOverImage);
         if (playing)
         {
             m_Navigating = false;

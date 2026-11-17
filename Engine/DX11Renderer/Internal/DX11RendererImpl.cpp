@@ -66,6 +66,7 @@ namespace Canape
         SceneColorShaderResourceView.Reset();
         DisplayTexture.Reset();
         DisplayRenderTargetView.Reset();
+        DisplayUIRenderTargetView.Reset();
         DisplayShaderResourceView.Reset();
         RetiredDisplayShaderResourceView.Reset();
         DepthTexture.Reset();
@@ -82,6 +83,8 @@ namespace Canape
         SceneBuffer.Reset();
         LightBuffer.Reset();
         PostProcessBuffer.Reset();
+        UIBuffers = {};
+        PendingUI = nullptr;
         SwapChain.Reset();
         Context.Reset();
         Device.Reset();
@@ -220,6 +223,24 @@ namespace Canape
         RenderBindings::BindPipeline(*Context.Get(), pipeline);
     }
 
+    void DX11Renderer::Impl::ExecuteUIPass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
+    {
+        const UIDrawList* list = PendingUI;
+        PendingUI = nullptr;
+        if (!list || list->IsEmpty() || !Pipelines.UIAvailable()) return;
+        RendererDebugStats* stats = nullptr;
+#if CANAPE_RENDER_DEBUG
+        stats = &CurrentStats;
+#endif
+        std::string error;
+        if (!UIPass::Execute(*list, Pipelines.ResolveUI(), Resources, UIBuffers, *Device.Get(), *Context.Get(),
+                target, width, height, stats, error))
+        {
+            LastError = error;
+            CN_LOG_RENDERER("UI", LastError);
+        }
+    }
+
     void DX11Renderer::Impl::RenderOverlay()
     {
         ID3D11RenderTargetView* target = OverlayRenderTargetView.Get();
@@ -341,6 +362,14 @@ namespace Canape
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }
+        sceneTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        result = Device->CreateRenderTargetView(DisplayTexture.Get(), &sceneTargetDesc, &DisplayUIRenderTargetView);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateRenderTargetView(display UI)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
         sceneResourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         result = Device->CreateShaderResourceView(DisplayTexture.Get(), &sceneResourceDesc, &DisplayShaderResourceView);
         if (FAILED(result))
@@ -425,6 +454,7 @@ namespace Canape
         {
             RetiredDisplayShaderResourceView = std::move(DisplayShaderResourceView);
             DisplayRenderTargetView.Reset();
+            DisplayUIRenderTargetView.Reset();
             DisplayTexture.Reset();
             SceneColorShaderResourceView.Reset();
             SceneColorRenderTargetView.Reset();

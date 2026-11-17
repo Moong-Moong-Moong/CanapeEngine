@@ -8,6 +8,7 @@
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
 #include "DX11Renderer/Data/PostProcessSettings.h"
+#include "DX11Renderer/Data/UIDrawList.h"
 
 #include <cstdint>
 #include <functional>
@@ -35,6 +36,9 @@ namespace Canape
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
 
         void Render(Scene* scene, const AssetManager& assets);
+
+        // 다음 Render 한 번에만 그려진다. Render가 끝날 때까지 list를 살려 둘 것.
+        void SetUIDrawList(const UIDrawList* list);
 
         void SetViewOverride(const RenderView& view) { m_ViewOverride = view; }
         void ClearViewOverride() { m_ViewOverride.reset(); }

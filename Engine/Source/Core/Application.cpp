@@ -3,6 +3,7 @@
 #include "Core/Reflection/Reflection.h"
 #include "Core/Time.h"
 #include "CNDebug/DebugLog.h"
+#include "Renderer/GpuResourceRegistry.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -39,6 +40,7 @@ namespace Canape
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
         m_SceneManager(std::make_unique<SceneManager>(m_PhysicsRuntime.get())),
         m_Commands(std::make_unique<CommandRegistry>()),
+        m_UISystem(std::make_unique<UISystem>()),
         m_Headless(windowDesc.Headless)
     {
         if (!m_PhysicsRuntime->IsValid())
@@ -96,6 +98,8 @@ namespace Canape
             OnUpdate(Time::DeltaTime());
 
             m_InputManager->Update();
+            // 스크립트보다 먼저: UI가 쓴 마우스 입력은 게임 쪽 조회에서 빠진다.
+            m_UISystem->ProcessInput(m_SceneManager->GetActiveScene(), *m_InputManager);
 
 #if defined(_DEBUG)
             UpdateDebugConsole(*m_InputManager);
@@ -107,7 +111,12 @@ namespace Canape
 
             if (!m_Headless)
             {
-                m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
+                Scene* activeScene = m_SceneManager->GetActiveScene();
+                const GpuResourceRegistry& registry = m_Renderer->GetRegistry();
+                const UITextureResolver resolver = [&registry](TextureAssetId texture) { return registry.GetResourceId(texture); };
+                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver);
+                m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
+                m_Renderer->Render(activeScene, *m_AssetManager);
             }
 
             m_InputManager->EndFrame();

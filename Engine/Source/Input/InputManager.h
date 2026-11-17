@@ -94,9 +94,14 @@ namespace Canape
 		bool IsKeyPressed(Key key) const { return m_Input.Keys[Index(key)] && !m_Previous.Keys[Index(key)]; }
 		bool IsKeyReleased(Key key) const { return !m_Input.Keys[Index(key)] && m_Previous.Keys[Index(key)]; }
 
-		bool IsMouseDown(MouseButton button) const { return m_Input.MouseButtons[Index(button)]; }
-		bool IsMousePressed(MouseButton button) const { return m_Input.MouseButtons[Index(button)] && !m_Previous.MouseButtons[Index(button)]; }
-		bool IsMouseReleased(MouseButton button) const { return !m_Input.MouseButtons[Index(button)] && m_Previous.MouseButtons[Index(button)]; }
+		// UI가 포인터를 쓰는 프레임에는 아래 마우스 버튼·휠 조회가 비어 있다(UI 버튼 클릭이 게임으로 새지 않게).
+		// 원본 상태는 GetInput()으로 읽는다. 위치·이동량은 막지 않는다.
+		bool IsMouseDown(MouseButton button) const { return !m_PointerCapturedByUI && m_Input.MouseButtons[Index(button)]; }
+		bool IsMousePressed(MouseButton button) const { return !m_PointerCapturedByUI && m_Input.MouseButtons[Index(button)] && !m_Previous.MouseButtons[Index(button)]; }
+		bool IsMouseReleased(MouseButton button) const { return !m_PointerCapturedByUI && !m_Input.MouseButtons[Index(button)] && m_Previous.MouseButtons[Index(button)]; }
+
+		void SetPointerCapturedByUI(bool captured) { m_PointerCapturedByUI = captured; }
+		bool IsPointerCapturedByUI() const { return m_PointerCapturedByUI; }
 
 		bool IsGamepadDown(GamepadButton button) const { return m_Input.Gamepad.Buttons[Index(button)]; }
 		bool IsGamepadPressed(GamepadButton button) const { return m_Input.Gamepad.Buttons[Index(button)] && !m_Previous.Gamepad.Buttons[Index(button)]; }
@@ -104,7 +109,7 @@ namespace Canape
 
 		const IntVector2& GetMousePosition() const { return m_Input.MousePosition; }
 		const IntVector2& GetMouseDelta() const { return m_Input.MouseDelta; }
-		float GetMouseWheel() const { return m_Input.MouseWheel; }
+		float GetMouseWheel() const { return m_PointerCapturedByUI ? 0.0f : m_Input.MouseWheel; }
 		const GamepadState& GetGamepad() const { return m_Input.Gamepad; }
 
 	private:
@@ -119,5 +124,6 @@ namespace Canape
 		Input m_Previous;
 		void* m_WindowHandle = nullptr;
 		uint64_t m_NextGamepadPollTime = 0;
+		bool m_PointerCapturedByUI = false;
 	};
 }

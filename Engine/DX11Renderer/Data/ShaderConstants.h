@@ -228,4 +228,14 @@ namespace Canape::ShaderConstants
     };
     static_assert(sizeof(DepthDisplayConstants) == 16);
 #endif
+
+    // UI.hlsl b0; only bound while the UI pass runs.
+    struct alignas(16) UIConstants
+    {
+        float InverseTargetSize[2]{};
+        uint32_t EncodeSrgb = 0;
+        uint32_t Padding = 0;
+    };
+    static_assert(sizeof(UIConstants) == 16);
+    static_assert(offsetof(UIConstants, EncodeSrgb) == 8);
 }

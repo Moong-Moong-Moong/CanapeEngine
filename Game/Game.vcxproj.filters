@@ -90,6 +90,9 @@
     <ClInclude Include="Source\Scripts\SceneChanger.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\UIDemoHud.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\State\Grounded.h">
       <Filter>Source\State</Filter>
     </ClInclude>
@@ -165,6 +168,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\UIDemoHud.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\State\Grounded.cpp">
