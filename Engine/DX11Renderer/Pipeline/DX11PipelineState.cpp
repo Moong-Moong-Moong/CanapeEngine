@@ -121,7 +121,7 @@ namespace Canape
             return false;
         }
 
-        // Two fixed vertex formats, each compiled against its actual input signature.
+        // Each mesh vertex format is compiled against its actual input signature.
         const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
         if (!CompileShaderFile(L"Shaders/Mesh.hlsl", "VSMain", "vs_5_0", staticDefines,
             kShaderCompileFlags, vertexBytecode, error))
@@ -146,6 +146,35 @@ namespace Canape
         if (FAILED(result))
         {
             error = HResultMessage("ID3D11Device::CreateInputLayout(static)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+
+        if (!CompileShaderFile(L"Shaders/MeshSkinnedVS.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, vertexBytecode, error))
+            return false;
+        result = device->CreateVertexShader(vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
+            nullptr, &pending.SkinnedVertexShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateVertexShader(skinned)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+
+        const D3D11_INPUT_ELEMENT_DESC skinnedElements[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Normal)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, UV)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Tangent)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "BLENDINDICES", 0, DXGI_FORMAT_R16G16B16A16_UINT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Joints)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Weights)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+        result = device->CreateInputLayout(skinnedElements, static_cast<UINT>(std::size(skinnedElements)),
+            vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.SkinnedInputLayout);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateInputLayout(skinned)", result);
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
@@ -435,7 +464,23 @@ namespace Canape
     DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
         DebugViewMode debugView, bool wireframe) const
     {
-        const bool isStatic = vertexFormat == VertexFormat::Static;
+        ID3D11VertexShader* vertexShader = nullptr;
+        ID3D11InputLayout* inputLayout = nullptr;
+        switch (vertexFormat)
+        {
+        case VertexFormat::Position:
+            vertexShader = VertexShader.Get();
+            inputLayout = InputLayout.Get();
+            break;
+        case VertexFormat::Static:
+            vertexShader = StaticVertexShader.Get();
+            inputLayout = StaticInputLayout.Get();
+            break;
+        case VertexFormat::Skinned:
+            vertexShader = SkinnedVertexShader.Get();
+            inputLayout = SkinnedInputLayout.Get();
+            break;
+        }
         const bool transparent = alphaMode == AlphaMode::Transparent;
         ID3D11PixelShader* pixelShader = PixelShader.Get();
 #if CANAPE_RENDER_DEBUG
@@ -451,9 +496,9 @@ namespace Canape
         (void)wireframe;
 #endif
         return {
-            isStatic ? StaticVertexShader.Get() : VertexShader.Get(),
+            vertexShader,
             pixelShader,
-            isStatic ? StaticInputLayout.Get() : InputLayout.Get(),
+            inputLayout,
 #if CANAPE_RENDER_DEBUG
             wireframe ? WireframeRasterizerState.Get() : RasterizerState.Get(),
 #else

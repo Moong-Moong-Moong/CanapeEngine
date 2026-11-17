@@ -1,5 +1,9 @@
 # DX11Renderer 책임 분리 결과
 
+아래 책임 분리와 검증 기록은 최초 리팩터링 당시 기준이다. 후속 정리에서는
+개별 메시 즉시 제출과 별도 카메라 설정 API를 제거하고 DrawScene으로 통일했다.
+관련 테스트 소스도 씬 제출 방식으로 옮겼으며, 이 정리 후 빌드/실행은 하지 않았다.
+
 ## 범위와 기존 호출 흐름
 
 변경은 `Engine/DX11Renderer/` 내부에 한정했다. 공개 `DX11Renderer.h`, 엔진의
@@ -48,7 +52,7 @@ Overlay와 Present를 수행했다. 이 호출 계약과 출력 순서는 그대
 - PipelineState는 셰이더와 고정 상태를 소유하고, 기존 PipelineSelection으로 포인터를 전달한다.
 - SceneConstantBuffers, SceneBindings, MainTargets, MeshDrawContext는 필요한 핸들과 참조만 빌린다.
 - 각 패스는 공개 렌더러나 Impl에 직접 의존하지 않는다. Window/SwapChain/설정 전체도 전달하지 않는다.
-- 준비한 메시와 SRV 참조는 동기적인 DrawScene/DrawMesh 호출 동안만 유효하다. 다음 프레임까지 보관하지 않는다.
+- 준비한 메시와 SRV 참조는 동기적인 DrawScene 호출 동안만 유효하다. 다음 프레임까지 보관하지 않는다.
 - COM 멤버 순서와 Context::ClearState를 통한 종료 처리는 유지했다.
 
 ```mermaid
@@ -101,7 +105,7 @@ Object/Material 상수는 각 드로우 직전에 업로드한다. CPU 객체 �
 않았고 Masked 그림자에는 기존 알파 테스트 재질과 텍스처를 바인딩한다.
 
 BeginFrame 뒤에 장면을 수집하는 기존 호출 순서 때문에 모든 업로드를 BeginFrame으로
-이동하지 않았다. 직접 SetCamera+DrawMesh 경로에서는 변경된 View/Scene을 먼저 업로드한다.
+이동하지 않았다. 각 DrawScene이 자신의 View/Scene을 준비하고 먼저 업로드한다.
 
 ## 유지와 검증
 
@@ -112,7 +116,8 @@ BeginFrame 뒤에 장면을 수집하는 기존 호출 순서 때문에 모든 �
 - 기존 메시, 조명, Masked/Transparent, PCF/PCSS, 그림자 리소스 실패/복구와 Skybox 검증 통과.
 - 기준 PPM 이미지 9개가 리팩터링 전후 SHA-256 및 바이트 단위로 일치.
 - 한 프레임에서 빈 장면 뒤 실제 장면을 그려 상태 초기화와 두 번째 장면의 출력 일치 확인.
-- 직접 DrawMesh 전과 같은 프레임의 두 번째 드로우 전에 바뀐 카메라가 GPU 버퍼에 반영됨을 readback으로 확인.
+- 당시 즉시 제출 경로의 카메라 변경이 GPU 버퍼에 반영됨을 readback으로 확인했다.
+  현재 테스트 소스는 같은 프레임의 두 DrawScene 사이 카메라 변경을 검사하도록 수정했다.
 - 드로우/삼각형 통계와 GPU 프레임/장면/최종 출력 계측 정상 동작 확인.
 - 독립 장면 크기, DisplayTexture 출력, Overlay 콜백과 창 크기 복귀 확인.
 - D3D11 Debug Layer 경고/오류 0건. DSV/SRV 충돌과 패스 이후 상태 복원 검사 포함.
