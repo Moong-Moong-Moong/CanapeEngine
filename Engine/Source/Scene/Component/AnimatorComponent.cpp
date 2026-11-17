@@ -98,12 +98,7 @@ namespace Canape
 
 		AssetManager& assets = Application::Get().GetAssetManager();
 		m_Clip = assets.GetAnimationClipHandle(clipPath, MakeOwnerInfo(*gameObject));
-		if (const AnimationClipAsset* clip = assets.GetAnimationClip(m_Clip))
-		{
-			Bind(*clip);
-			return true;
-		}
-		return false;
+		return assets.GetAnimationClip(m_Clip) != nullptr;
 	}
 
 	void AnimatorComponent::Bind(const AnimationClipAsset& clip)

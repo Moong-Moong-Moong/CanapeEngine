@@ -80,7 +80,15 @@ void GltfImportWindow::Draw()
             {
                 for (const std::unique_ptr<AnimationClipAsset>& clip : importer.LoadAnimationClipAsset(cNglTF))
                 {
-                    const std::filesystem::path file = m_TargetDirectory / EditorUtils::FromUtf8(clip->GetName() + ".aclip");
+                    std::string fileName = clip->GetName();
+                    for (char& c : fileName)
+                    {
+                        if (c == '\\' || c == '/' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+                        {
+                            c = '_';
+                        }
+                    }
+                    const std::filesystem::path file = m_TargetDirectory / EditorUtils::FromUtf8(fileName + ".aclip");
                     if (AnimationClipSerializer::Save(*clip, EditorUtils::ToUtf8(file)))
                     {
                         if (clipPath.empty())

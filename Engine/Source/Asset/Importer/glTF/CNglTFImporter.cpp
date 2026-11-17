@@ -717,17 +717,6 @@ namespace Canape
 			return nullptr;
 
 		Value& nodes = doc["nodes"];
-		Value* meshNode = nullptr;
-		for (Value& node : nodes.GetArray())
-		{
-			if (node.HasMember("skin") && node.HasMember("mesh") && node["skin"].GetUint() == skinIndex)
-			{
-				meshNode = &node;
-				break;
-			}
-		}
-		if (!meshNode)
-			return nullptr;
 
 		std::vector<MaterialData> materialSlots;
 		LoadMaterials(cNglTF, materialSlots);
@@ -740,122 +729,192 @@ namespace Canape
 		std::vector<uint32_t> indices;
 		std::vector<SubMesh> subMeshes;
 
-		Value& mesh = doc["meshes"][(*meshNode)["mesh"].GetUint()];
-		for (Value& primitive : mesh["primitives"].GetArray())
+		for (Value& meshNode : nodes.GetArray())
 		{
-			Value& attributes = primitive["attributes"];
+			if (!meshNode.HasMember("skin") || !meshNode.HasMember("mesh") || meshNode["skin"].GetUint() != skinIndex)
+				continue;
 
-			SubMesh sm;
-			sm.startIndex = static_cast<uint32_t>(indices.size());
-			sm.baseVertex = static_cast<uint32_t>(vertices.size());
-			if (primitive.HasMember("material"))
+			Value& mesh = doc["meshes"][meshNode["mesh"].GetUint()];
+			for (Value& primitive : mesh["primitives"].GetArray())
 			{
-				sm.materialSlot = primitive["material"].GetUint();
-			}
+				Value& attributes = primitive["attributes"];
 
-			Value& aPos = accessors[attributes["POSITION"].GetUint()];
-			Value& bPos = bufferViews[aPos["bufferView"].GetUint()];
-			const uint32_t vertexCount = aPos["count"].GetUint();
-			const size_t pOffset = (bPos.HasMember("byteOffset") ? bPos["byteOffset"].GetUint() : 0u) + (aPos.HasMember("byteOffset") ? aPos["byteOffset"].GetUint() : 0u);
-
-			const uint32_t vStart = static_cast<uint32_t>(vertices.size());
-			vertices.resize(vStart + vertexCount);
-			for (uint32_t i = 0; i < vertexCount; i++)
-			{
-				Vector3 pos;
-				std::memcpy(&pos, bin + pOffset + i * sizeof(Vector3), sizeof(Vector3));
-				pos.X = -pos.X;
-				vertices[vStart + i].Position = pos;
-			}
-
-			if (attributes.HasMember("NORMAL"))
-			{
-				Value& aNormal = accessors[attributes["NORMAL"].GetUint()];
-				Value& bNormal = bufferViews[aNormal["bufferView"].GetUint()];
-				const size_t nOffset = (bNormal.HasMember("byteOffset") ? bNormal["byteOffset"].GetUint() : 0u) + (aNormal.HasMember("byteOffset") ? aNormal["byteOffset"].GetUint() : 0u);
-				for (uint32_t i = 0; i < vertexCount; i++)
+				SubMesh sm;
+				sm.startIndex = static_cast<uint32_t>(indices.size());
+				sm.baseVertex = static_cast<uint32_t>(vertices.size());
+				if (primitive.HasMember("material"))
 				{
-					Vector3 normal;
-					std::memcpy(&normal, bin + nOffset + i * sizeof(Vector3), sizeof(Vector3));
-					normal.X = -normal.X;
-					vertices[vStart + i].Normal = normal;
+					sm.materialSlot = primitive["material"].GetUint();
 				}
-			}
 
-			if (attributes.HasMember("TEXCOORD_0"))
-			{
-				Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()];
-				Value& bUv = bufferViews[aUv["bufferView"].GetUint()];
-				const size_t uvOffset = (bUv.HasMember("byteOffset") ? bUv["byteOffset"].GetUint() : 0u) + (aUv.HasMember("byteOffset") ? aUv["byteOffset"].GetUint() : 0u);
+				Value& aPos = accessors[attributes["POSITION"].GetUint()];
+				Value& bPos = bufferViews[aPos["bufferView"].GetUint()];
+				const uint32_t vertexCount = aPos["count"].GetUint();
+				const size_t pOffset = (bPos.HasMember("byteOffset") ? bPos["byteOffset"].GetUint() : 0u) + (aPos.HasMember("byteOffset") ? aPos["byteOffset"].GetUint() : 0u);
+
+				const uint32_t vStart = static_cast<uint32_t>(vertices.size());
+				vertices.resize(vStart + vertexCount);
 				for (uint32_t i = 0; i < vertexCount; i++)
 				{
-					std::memcpy(&vertices[vStart + i].UV, bin + uvOffset + i * sizeof(Vector2), sizeof(Vector2));
+					Vector3 pos;
+					std::memcpy(&pos, bin + pOffset + i * sizeof(Vector3), sizeof(Vector3));
+					pos.X = -pos.X;
+					vertices[vStart + i].Position = pos;
 				}
-			}
 
-			if (attributes.HasMember("JOINTS_0"))
-			{
-				Value& aJoint = accessors[attributes["JOINTS_0"].GetUint()];
-				Value& bJoint = bufferViews[aJoint["bufferView"].GetUint()];
-				const size_t jOffset = (bJoint.HasMember("byteOffset") ? bJoint["byteOffset"].GetUint() : 0u) + (aJoint.HasMember("byteOffset") ? aJoint["byteOffset"].GetUint() : 0u);
-				const bool isByte = aJoint["componentType"].GetUint() == 5121;
-				for (uint32_t i = 0; i < vertexCount; i++)
+				if (attributes.HasMember("NORMAL"))
 				{
-					for (uint32_t k = 0; k < 4; k++)
+					Value& aNormal = accessors[attributes["NORMAL"].GetUint()];
+					Value& bNormal = bufferViews[aNormal["bufferView"].GetUint()];
+					const size_t nOffset = (bNormal.HasMember("byteOffset") ? bNormal["byteOffset"].GetUint() : 0u) + (aNormal.HasMember("byteOffset") ? aNormal["byteOffset"].GetUint() : 0u);
+					for (uint32_t i = 0; i < vertexCount; i++)
 					{
-						if (isByte)
+						Vector3 normal;
+						std::memcpy(&normal, bin + nOffset + i * sizeof(Vector3), sizeof(Vector3));
+						normal.X = -normal.X;
+						vertices[vStart + i].Normal = normal;
+					}
+				}
+
+				if (attributes.HasMember("TEXCOORD_0"))
+				{
+					Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()];
+					Value& bUv = bufferViews[aUv["bufferView"].GetUint()];
+					const size_t uvOffset = (bUv.HasMember("byteOffset") ? bUv["byteOffset"].GetUint() : 0u) + (aUv.HasMember("byteOffset") ? aUv["byteOffset"].GetUint() : 0u);
+					for (uint32_t i = 0; i < vertexCount; i++)
+					{
+						std::memcpy(&vertices[vStart + i].UV, bin + uvOffset + i * sizeof(Vector2), sizeof(Vector2));
+					}
+				}
+
+				if (attributes.HasMember("JOINTS_0"))
+				{
+					Value& aJoint = accessors[attributes["JOINTS_0"].GetUint()];
+					Value& bJoint = bufferViews[aJoint["bufferView"].GetUint()];
+					const size_t jOffset = (bJoint.HasMember("byteOffset") ? bJoint["byteOffset"].GetUint() : 0u) + (aJoint.HasMember("byteOffset") ? aJoint["byteOffset"].GetUint() : 0u);
+					const bool isByte = aJoint["componentType"].GetUint() == 5121;
+					for (uint32_t i = 0; i < vertexCount; i++)
+					{
+						for (uint32_t k = 0; k < 4; k++)
 						{
-							vertices[vStart + i].Joints[k] = bin[jOffset + i * 4 + k];
-						}
-						else
-						{
-							uint16_t joint;
-							std::memcpy(&joint, bin + jOffset + (i * 4 + k) * sizeof(uint16_t), sizeof(uint16_t));
-							vertices[vStart + i].Joints[k] = joint;
+							if (isByte)
+							{
+								vertices[vStart + i].Joints[k] = bin[jOffset + i * 4 + k];
+							}
+							else
+							{
+								uint16_t joint;
+								std::memcpy(&joint, bin + jOffset + (i * 4 + k) * sizeof(uint16_t), sizeof(uint16_t));
+								vertices[vStart + i].Joints[k] = joint;
+							}
 						}
 					}
 				}
-			}
 
-			if (attributes.HasMember("WEIGHTS_0"))
-			{
-				Value& aWeight = accessors[attributes["WEIGHTS_0"].GetUint()];
-				Value& bWeight = bufferViews[aWeight["bufferView"].GetUint()];
-				const size_t wOffset = (bWeight.HasMember("byteOffset") ? bWeight["byteOffset"].GetUint() : 0u) + (aWeight.HasMember("byteOffset") ? aWeight["byteOffset"].GetUint() : 0u);
-				for (uint32_t i = 0; i < vertexCount; i++)
+				if (attributes.HasMember("WEIGHTS_0"))
 				{
-					std::memcpy(vertices[vStart + i].Weights, bin + wOffset + i * sizeof(float) * 4, sizeof(float) * 4);
+					Value& aWeight = accessors[attributes["WEIGHTS_0"].GetUint()];
+					Value& bWeight = bufferViews[aWeight["bufferView"].GetUint()];
+					const size_t wOffset = (bWeight.HasMember("byteOffset") ? bWeight["byteOffset"].GetUint() : 0u) + (aWeight.HasMember("byteOffset") ? aWeight["byteOffset"].GetUint() : 0u);
+					for (uint32_t i = 0; i < vertexCount; i++)
+					{
+						std::memcpy(vertices[vStart + i].Weights, bin + wOffset + i * sizeof(float) * 4, sizeof(float) * 4);
+					}
 				}
-			}
 
-			Value& aIndex = accessors[primitive["indices"].GetUint()];
-			Value& bIndex = bufferViews[aIndex["bufferView"].GetUint()];
-			const size_t iOffset = (bIndex.HasMember("byteOffset") ? bIndex["byteOffset"].GetUint() : 0u) + (aIndex.HasMember("byteOffset") ? aIndex["byteOffset"].GetUint() : 0u);
-			const uint32_t indexCount = aIndex["count"].GetUint();
-			const bool isShort = aIndex["componentType"].GetUint() == 5123;
-			const uint32_t iStart = static_cast<uint32_t>(indices.size());
-			indices.resize(iStart + indexCount);
-			for (uint32_t i = 0; i < indexCount; i++)
-			{
-				if (isShort)
+				const bool hasTangent = attributes.HasMember("TANGENT");
+				if (hasTangent)
 				{
-					uint16_t index;
-					std::memcpy(&index, bin + iOffset + i * sizeof(uint16_t), sizeof(uint16_t));
-					indices[iStart + i] = index;
+					Value& aTangent = accessors[attributes["TANGENT"].GetUint()];
+					Value& bTangent = bufferViews[aTangent["bufferView"].GetUint()];
+					const size_t tOffset = (bTangent.HasMember("byteOffset") ? bTangent["byteOffset"].GetUint() : 0u) + (aTangent.HasMember("byteOffset") ? aTangent["byteOffset"].GetUint() : 0u);
+					for (uint32_t i = 0; i < vertexCount; i++)
+					{
+						Vector4 t;
+						std::memcpy(&t, bin + tOffset + i * sizeof(Vector4), sizeof(Vector4));
+						const Vector3 tv = Vector3(-t.X, t.Y, t.Z).Normalized();
+						vertices[vStart + i].Tangent = { tv.X, tv.Y, tv.Z, -t.W };
+					}
 				}
-				else
-				{
-					std::memcpy(&indices[iStart + i], bin + iOffset + i * sizeof(uint32_t), sizeof(uint32_t));
-				}
-			}
-			for (uint32_t i = 0; i + 2 < indexCount; i += 3)
-			{
-				std::swap(indices[iStart + i + 1], indices[iStart + i + 2]);
-			}
 
-			sm.indexCount = indexCount;
-			subMeshes.push_back(sm);
+				Value& aIndex = accessors[primitive["indices"].GetUint()];
+				Value& bIndex = bufferViews[aIndex["bufferView"].GetUint()];
+				const size_t iOffset = (bIndex.HasMember("byteOffset") ? bIndex["byteOffset"].GetUint() : 0u) + (aIndex.HasMember("byteOffset") ? aIndex["byteOffset"].GetUint() : 0u);
+				const uint32_t indexCount = aIndex["count"].GetUint();
+				const bool isShort = aIndex["componentType"].GetUint() == 5123;
+				const uint32_t iStart = static_cast<uint32_t>(indices.size());
+				indices.resize(iStart + indexCount);
+				for (uint32_t i = 0; i < indexCount; i++)
+				{
+					if (isShort)
+					{
+						uint16_t index;
+						std::memcpy(&index, bin + iOffset + i * sizeof(uint16_t), sizeof(uint16_t));
+						indices[iStart + i] = index;
+					}
+					else
+					{
+						std::memcpy(&indices[iStart + i], bin + iOffset + i * sizeof(uint32_t), sizeof(uint32_t));
+					}
+				}
+				for (uint32_t i = 0; i + 2 < indexCount; i += 3)
+				{
+					std::swap(indices[iStart + i + 1], indices[iStart + i + 2]);
+				}
+
+				if (!hasTangent)
+				{
+					std::vector<Vector3> tangents(vertexCount);
+					std::vector<Vector3> bitangents(vertexCount);
+					for (uint32_t i = 0; i + 2 < indexCount; i += 3)
+					{
+						const uint32_t i0 = indices[iStart + i];
+						const uint32_t i1 = indices[iStart + i + 1];
+						const uint32_t i2 = indices[iStart + i + 2];
+						if (i0 >= vertexCount || i1 >= vertexCount || i2 >= vertexCount)
+							continue;
+
+						const SkinnedVertex& v0 = vertices[vStart + i0];
+						const SkinnedVertex& v1 = vertices[vStart + i1];
+						const SkinnedVertex& v2 = vertices[vStart + i2];
+
+						const Vector3 e1 = v1.Position - v0.Position;
+						const Vector3 e2 = v2.Position - v0.Position;
+						const float du1 = v1.UV.X - v0.UV.X, dv1 = v1.UV.Y - v0.UV.Y;
+						const float du2 = v2.UV.X - v0.UV.X, dv2 = v2.UV.Y - v0.UV.Y;
+						const float uvDet = du1 * dv2 - du2 * dv1;
+						if (std::abs(uvDet) < 1e-12f)
+							continue;
+
+						const float r = 1.0f / uvDet;
+						const Vector3 t = (e1 * dv2 - e2 * dv1) * r;
+						const Vector3 b = (e2 * du1 - e1 * du2) * r;
+						for (uint32_t local : { i0, i1, i2 })
+						{
+							tangents[local] += t;
+							bitangents[local] += b;
+						}
+					}
+
+					for (uint32_t local = 0; local < vertexCount; ++local)
+					{
+						SkinnedVertex& vertex = vertices[vStart + local];
+						const Vector3& n = vertex.Normal;
+						const Vector3& accumulated = tangents[local];
+						Vector3 t = (accumulated - n * Vector3::Dot(n, accumulated)).Normalized();
+						if (t.IsNearlyZero())
+							t = AnyPerpendicular(n);
+						const float w = Vector3::Dot(Vector3::Cross(n, t), bitangents[local]) < 0.0f ? -1.0f : 1.0f;
+						vertex.Tangent = { t.X, t.Y, t.Z, w };
+					}
+				}
+
+				sm.indexCount = indexCount;
+				subMeshes.push_back(sm);
+			}
 		}
+		if (subMeshes.empty())
+			return nullptr;
 
 		Value& skin = doc["skins"][skinIndex];
 		Value& joints = skin["joints"];
@@ -867,10 +926,36 @@ namespace Canape
 			BuildPaths(cNglTF, rootNode.GetUint(), "", nodePaths);
 		}
 
+		std::vector<int32_t> parents(nodes.Size(), -1);
+		for (uint32_t i = 0; i < nodes.Size(); i++)
+		{
+			if (!nodes[i].HasMember("children"))
+				continue;
+			for (Value& child : nodes[i]["children"].GetArray())
+			{
+				parents[child.GetUint()] = static_cast<int32_t>(i);
+			}
+		}
+
+		std::vector<bool> isJoint(nodes.Size(), false);
+		for (Value& joint : joints.GetArray())
+		{
+			isJoint[joint.GetUint()] = true;
+		}
+
+		int32_t rootJoint = joints.Size() > 0 ? static_cast<int32_t>(joints[0].GetUint()) : -1;
+		while (rootJoint >= 0 && parents[rootJoint] >= 0 && isJoint[parents[rootJoint]])
+		{
+			rootJoint = parents[rootJoint];
+		}
+		const int32_t skeletonNode = rootJoint >= 0 ? parents[rootJoint] : -1;
+		const std::string skeletonPrefix = skeletonNode >= 0 ? nodePaths[skeletonNode] + "/" : "";
+
 		std::vector<std::string> bonePaths;
 		for (Value& joint : joints.GetArray())
 		{
-			bonePaths.push_back(nodePaths[joint.GetUint()]);
+			const std::string& path = nodePaths[joint.GetUint()];
+			bonePaths.push_back(path.starts_with(skeletonPrefix) ? path.substr(skeletonPrefix.size()) : path);
 		}
 
 		std::vector<Matrix4> inverseBindMatrices(joints.Size(), Matrix4::Identity);
@@ -1027,21 +1112,35 @@ namespace Canape
 			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
 		}
 
-		Value& nodes = doc["nodes"];
-		for (uint32_t i = 0; i < nodes.Size(); i++)
+		const uint32_t skinCount = doc.HasMember("skins") ? doc["skins"].Size() : 0u;
+		for (uint32_t i = 0; i < skinCount; i++)
 		{
-			if (nodes[i].HasMember("skin") && nodes[i].HasMember("mesh"))
-			{
-				Value& mesh = doc["meshes"][nodes[i]["mesh"].GetUint()];
-				const std::string meshName = mesh.HasMember("name") ? mesh["name"].GetString()
-					: nodes[i].HasMember("name") ? nodes[i]["name"].GetString() : "Mesh_" + std::to_string(i);
-				GameObject* meshObject = scene.GetGameObject(scene.AddGameObject(meshName));
-				meshObject->GetTransform()->SetParent(top->GetTransform());
+			Value& skin = doc["skins"][i];
+			const std::string skinName = skin.HasMember("name") ? skin["name"].GetString() : "Skin_" + std::to_string(i);
 
-				SkinnedMeshRendererComponent* renderer = meshObject->AddComponent<SkinnedMeshRendererComponent>();
-				renderer->SetMesh(assetPath + "#skin" + std::to_string(nodes[i]["skin"].GetUint()));
-				renderer->SetSkeleton(top->GetTransform());
+			std::vector<TransformComponent*> jointTransforms;
+			for (Value& joint : skin["joints"].GetArray())
+			{
+				if (nodeObjects[joint.GetUint()])
+					jointTransforms.push_back(nodeObjects[joint.GetUint()]->GetTransform());
 			}
+			TransformComponent* skeletonRoot = top->GetTransform();
+			if (!jointTransforms.empty())
+			{
+				TransformComponent* rootJoint = jointTransforms[0];
+				while (rootJoint->GetParent() && std::find(jointTransforms.begin(), jointTransforms.end(), rootJoint->GetParent()) != jointTransforms.end())
+				{
+					rootJoint = rootJoint->GetParent();
+				}
+				if (rootJoint->GetParent())
+					skeletonRoot = rootJoint->GetParent();
+			}
+			GameObject* meshObject = scene.GetGameObject(scene.AddGameObject(skinName));
+			meshObject->GetTransform()->SetParent(top->GetTransform());
+
+			SkinnedMeshRendererComponent* renderer = meshObject->AddComponent<SkinnedMeshRendererComponent>();
+			renderer->SetMesh(assetPath + "#skin" + std::to_string(i));
+			renderer->SetSkeleton(skeletonRoot);
 		}
 
 		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_SkeletonModel.prefab")).generic_u8string()));
