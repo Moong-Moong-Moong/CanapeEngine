@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "Panels/GltfImportWindow.h"
 
 #include <filesystem>
 #include <string>
@@ -34,4 +35,6 @@ private:
     bool m_OpenDeleteSource = false;
     std::filesystem::path m_DeleteSource; // Without extension.
     std::string m_Message;
+
+    GltfImportWindow m_GltfImport;
 };

@@ -1,6 +1,5 @@
 #pragma once
-#include "Scene/Component/RenderableComponent.h"
-#include "Asset/AssetManager.h"
+#include "Scene/Component/MeshRendererComponent.h"
 #include "Math/Matrix4.h"
 #include <vector>
 
@@ -8,15 +7,15 @@ namespace Canape
 {
     class TransformComponent;
 
-    class SkinnedMeshRendererComponent : public RenderableComponent
+    class SkinnedMeshRendererComponent : public MeshRendererComponent
     {
-        RTTR_ENABLE(RenderableComponent)
+        RTTR_ENABLE(MeshRendererComponent)
 
     public:
         SkinnedMeshRendererComponent() = default;
 
-        void SetMesh(MeshAssetHandle mesh);              // Skinned 형식만 허용
-        const MeshAssetHandle& GetMesh() const { return m_Mesh; }
+        TransformComponent* GetSkeleton() const { return m_Skeleton; }
+        void SetSkeleton(TransformComponent* root);
 
         // 메쉬의 bonePaths를 rootBone 기준으로 해석해서 m_Bones를 채움
         void ResolveBones(TransformComponent* root);
@@ -25,8 +24,7 @@ namespace Canape
         void AddRenderItem(const AssetManager& assets, Renderer& renderer) const override;  // 지금은 빈 함수
 
     private:
-        MeshAssetHandle m_Mesh;
-        std::vector<MaterialAssetHandle> m_Materials;    // 슬롯별 머티리얼 (우선 기본 머티리얼만)
+        TransformComponent* m_Skeleton = nullptr;
         std::vector<TransformComponent*> m_Bones;        // joint j → bone Transform
         mutable std::vector<Matrix4> m_Palette;          // AddRenderItem에서 매 프레임 채움
     };

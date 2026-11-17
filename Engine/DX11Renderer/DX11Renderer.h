@@ -38,6 +38,8 @@ namespace Canape
         MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
         MeshResourceId CreateMesh(std::span<const StaticVertex> vertices, std::span<const uint32_t> indices,
             std::span<const SubMesh> submeshes);
+        MeshResourceId CreateMesh(std::span<const SkinnedVertex> vertices, std::span<const uint32_t> indices,
+            std::span<const SubMesh> submeshes);
         void DestroyMesh(MeshResourceId mesh);
         bool IsMeshValid(MeshResourceId mesh) const;
 
@@ -72,7 +74,9 @@ namespace Canape
 
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);
-        void AddRenderItem(const RenderItem& item);
+        void AddRenderItem(const MeshItem& item);
+        uint32_t AddBonePalette(std::span<const Matrix4> palette);
+        void AddSkinnedRenderItem(const SkinnedMeshItem& item);
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(const RenderSkybox& skybox);

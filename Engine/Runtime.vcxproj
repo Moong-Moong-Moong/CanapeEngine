@@ -76,6 +76,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\Asset\Animation\AnimationClipAsset.h" />
+    <ClInclude Include="Source\Asset\Animation\AnimationClipSerializer.h" />
     <ClInclude Include="Source\Asset\AssetId.h" />
     <ClInclude Include="Source\Asset\AssetHandle.h" />
     <ClInclude Include="Source\Asset\AssetManager.h" />
@@ -148,6 +149,8 @@
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Asset\Animation\AnimationClipAsset.cpp" />
+    <ClCompile Include="Source\Asset\Animation\AnimationClipSerializer.cpp" />
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp" />

@@ -22,6 +22,7 @@ namespace Canape
         // 예: "Models/Arm_Bone_Skin_Ani.gltf#0"
         bool SetClip(const std::string& clipPath);
         const std::string& GetClipPath() const { return m_ClipPath; }
+        void SetClipPath(const std::string& clipPath) { SetClip(clipPath); }
 
         void Play(bool loop = true) { m_Playing = true; m_Loop = loop; }
         void Stop() { m_Playing = false; m_Time = 0.0f; }

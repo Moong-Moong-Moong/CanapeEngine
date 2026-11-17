@@ -2,11 +2,17 @@
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
-#include <cmath>
 #include <vector>
 #include "../../Mesh/MeshAsset.h"
 #include "../../Texture/TextureAsset.h"
-#include "Asset/AssetManager.h"  
+#include "Asset/AssetManager.h"
+#include <rapidjson/filereadstream.h>
+#include "Scene/Scene.h"
+#include "Scene/GameObject/GameObject.h"
+#include "Scene/Component/TransformComponent.h"
+#include "Scene/Component/SkinnedMeshRendererComponent.h"
+#include "Scene/Component/AnimatorComponent.h"
+#include "Scene/Serialization/SceneSerializer.h"
 
 using namespace rapidjson;
 
@@ -230,6 +236,145 @@ namespace Canape
 		return std::unique_ptr<TextureAsset>();
 	}
 
+	std::vector<std::unique_ptr<AnimationClipAsset>> CNglTFImporter::LoadAnimationClipAsset(CNglTF& cNglTF)
+	{
+		Value& doc = cNglTF.m_doc;
+		if (!doc.HasMember("animations"))
+		{
+			return {};
+		}
+
+		//***** 본의 루트 기준 상대 경로를 구하기 위해 전체 노드 경로를 일괄 개산해놓는다.
+		Value& nodes = doc["nodes"];
+		std::vector<std::string> nodePaths(nodes.Size());
+		for (Value& rootNode : doc["scenes"][0u]["nodes"].GetArray())
+		{
+			uint32_t rootNodeIndex = rootNode.GetUint();
+			BuildPaths(cNglTF, rootNodeIndex, "", nodePaths);
+		}
+
+		Value& accessors = doc["accessors"];
+		Value& bufferViews = doc["bufferViews"];
+
+		Value& animations = doc["animations"];
+		std::vector<std::unique_ptr<AnimationClipAsset>> clips;
+
+		for (SizeType animIndex = 0; animIndex < animations.Size(); animIndex++)
+		{
+			Value& animation = animations[animIndex];
+			Value& channels = animation["channels"];
+			Value& samplers = animation["samplers"];
+
+			std::vector<AnimationTrack> tracks;
+			float duration = 0.0f;
+
+			for (Value& channel : channels.GetArray())
+			{
+				AnimationTrack track;
+
+				Value& target = channel["target"];
+				Value& sampler = samplers[channel["sampler"].GetUint()];
+
+				//*** 본 노드 경로
+				track.targetPath = nodePaths[target["node"].GetUint()];
+
+				//*** 트랙 프레임 정보 유형
+				std::string property = target["path"].GetString();
+				if (property == "translation") track.property = AnimationProperty::Translation;
+				else if (property == "rotation") track.property = AnimationProperty::Rotation;
+				else if (property == "scale") track.property = AnimationProperty::Scale;
+
+				//*** 트랙 보간 방법
+				std::string interpolation = sampler["interpolation"].GetString();
+				if (interpolation == "STEP") track.interpolation = AnimationInterpolation::Step;
+				else if (interpolation == "LINEAR") track.interpolation = AnimationInterpolation::Linear;
+
+				//*** 키값 (시간)
+				Value& aInput = accessors[sampler["input"].GetUint()];
+				Value& aOutput = accessors[sampler["output"].GetUint()];
+				uint32_t inputCount = aInput["count"].GetUint();
+				uint32_t outputCount = aOutput["count"].GetUint();
+				Value& bInput = bufferViews[aInput["bufferView"].GetUint()];
+				Value& bOutput = bufferViews[aOutput["bufferView"].GetUint()];
+
+				//*** 키 시간 읽기
+				uint32_t inputOffset = bInput["byteOffset"].GetUint();
+				track.times.resize(inputCount);
+				for (uint32_t i = 0; i < inputCount; i++)
+				{
+					std::memcpy(&track.times[i], cNglTF.m_bin.data() + inputOffset + (i * sizeof(float)), sizeof(float));
+				}
+
+				//*** 키 값 읽기 (메쉬와 같은 엔진 좌표계로 X축 반전)
+				uint32_t outputOffset = bOutput["byteOffset"].GetUint();
+				track.values.resize(outputCount);
+				for (uint32_t i = 0; i < outputCount; i++)
+				{
+					if (track.property == AnimationProperty::Rotation)
+					{
+						//* 회전 (x, y, z, w) → (x, -y, -z, w)
+						Vector4 rotation;
+						std::memcpy(&rotation, cNglTF.m_bin.data() + outputOffset + (i * sizeof(Vector4)), sizeof(Vector4));
+						track.values[i] = { rotation.X, -rotation.Y, -rotation.Z, rotation.W };
+					}
+					else
+					{
+						//* 위치 (x, y, z) → (-x, y, z), 스케일은 그대로
+						Vector3 value;
+						std::memcpy(&value, cNglTF.m_bin.data() + outputOffset + (i * sizeof(Vector3)), sizeof(Vector3));
+						if (track.property == AnimationProperty::Translation)
+						{
+							value.X = -value.X;
+						}
+						track.values[i] = { value.X, value.Y, value.Z, 0.0f };
+					}
+				}
+
+				//*** 클립 길이 = 모든 트랙의 마지막 키 시간 중 최댓값 (시간은 오름차순)
+				if (!track.times.empty() && track.times.back() > duration)
+				{
+					duration = track.times.back();
+				}
+
+				tracks.push_back(std::move(track));
+			}
+
+			std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
+			std::string name = animation.HasMember("name")
+				? animation["name"].GetString()
+				: fileStem + "_Anim_" + std::to_string(animIndex);
+			clips.push_back(std::make_unique<AnimationClipAsset>(name, duration, std::move(tracks)));
+		}
+
+		return clips;
+	}
+
+	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out)
+	{
+		Value& node = cNglTF.m_doc["nodes"][currentNodeIndex];
+
+		std::string name;
+		if (!node.HasMember("name"))
+		{
+			name = "Node_" + std::to_string(currentNodeIndex);
+		}
+		else
+		{
+			name = node["name"].GetString();
+		}
+
+		out[currentNodeIndex] = parentPath.empty() ? name : parentPath + "/" + name;
+
+		if (!node.HasMember("children"))
+			return;
+
+		for (Value& child : node["children"].GetArray())
+		{
+			uint32_t childIndex = child.GetUint();
+			BuildPaths(cNglTF, childIndex, out[currentNodeIndex], out);
+		}
+	}
+
 	void CNglTFImporter::LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots)
 	{
 		Value& doc = cNglTF.m_doc;
@@ -331,6 +476,7 @@ namespace Canape
 				uint32_t sourceIndex = doc["textures"][occlusionIndex]["source"].GetUint();
 				materialSlots[i].occlusionTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
 			}
+
 
 			if (material.HasMember("emissiveTexture"))
 			{
@@ -562,6 +708,343 @@ namespace Canape
 				);
 			}
 		}
+	}
+
+	std::unique_ptr<MeshAsset> CNglTFImporter::LoadSkinnedMeshAsset(CNglTF& cNglTF, uint32_t skinIndex)
+	{
+		Value& doc = cNglTF.m_doc;
+		if (!doc.HasMember("skins") || skinIndex >= doc["skins"].Size())
+			return nullptr;
+
+		Value& nodes = doc["nodes"];
+		Value* meshNode = nullptr;
+		for (Value& node : nodes.GetArray())
+		{
+			if (node.HasMember("skin") && node.HasMember("mesh") && node["skin"].GetUint() == skinIndex)
+			{
+				meshNode = &node;
+				break;
+			}
+		}
+		if (!meshNode)
+			return nullptr;
+
+		std::vector<MaterialData> materialSlots;
+		LoadMaterials(cNglTF, materialSlots);
+
+		Value& accessors = doc["accessors"];
+		Value& bufferViews = doc["bufferViews"];
+		const uint8_t* bin = cNglTF.m_bin.data();
+
+		std::vector<SkinnedVertex> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<SubMesh> subMeshes;
+
+		Value& mesh = doc["meshes"][(*meshNode)["mesh"].GetUint()];
+		for (Value& primitive : mesh["primitives"].GetArray())
+		{
+			Value& attributes = primitive["attributes"];
+
+			SubMesh sm;
+			sm.startIndex = static_cast<uint32_t>(indices.size());
+			sm.baseVertex = static_cast<uint32_t>(vertices.size());
+			if (primitive.HasMember("material"))
+			{
+				sm.materialSlot = primitive["material"].GetUint();
+			}
+
+			Value& aPos = accessors[attributes["POSITION"].GetUint()];
+			Value& bPos = bufferViews[aPos["bufferView"].GetUint()];
+			const uint32_t vertexCount = aPos["count"].GetUint();
+			const size_t pOffset = (bPos.HasMember("byteOffset") ? bPos["byteOffset"].GetUint() : 0u) + (aPos.HasMember("byteOffset") ? aPos["byteOffset"].GetUint() : 0u);
+
+			const uint32_t vStart = static_cast<uint32_t>(vertices.size());
+			vertices.resize(vStart + vertexCount);
+			for (uint32_t i = 0; i < vertexCount; i++)
+			{
+				Vector3 pos;
+				std::memcpy(&pos, bin + pOffset + i * sizeof(Vector3), sizeof(Vector3));
+				pos.X = -pos.X;
+				vertices[vStart + i].Position = pos;
+			}
+
+			if (attributes.HasMember("NORMAL"))
+			{
+				Value& aNormal = accessors[attributes["NORMAL"].GetUint()];
+				Value& bNormal = bufferViews[aNormal["bufferView"].GetUint()];
+				const size_t nOffset = (bNormal.HasMember("byteOffset") ? bNormal["byteOffset"].GetUint() : 0u) + (aNormal.HasMember("byteOffset") ? aNormal["byteOffset"].GetUint() : 0u);
+				for (uint32_t i = 0; i < vertexCount; i++)
+				{
+					Vector3 normal;
+					std::memcpy(&normal, bin + nOffset + i * sizeof(Vector3), sizeof(Vector3));
+					normal.X = -normal.X;
+					vertices[vStart + i].Normal = normal;
+				}
+			}
+
+			if (attributes.HasMember("TEXCOORD_0"))
+			{
+				Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()];
+				Value& bUv = bufferViews[aUv["bufferView"].GetUint()];
+				const size_t uvOffset = (bUv.HasMember("byteOffset") ? bUv["byteOffset"].GetUint() : 0u) + (aUv.HasMember("byteOffset") ? aUv["byteOffset"].GetUint() : 0u);
+				for (uint32_t i = 0; i < vertexCount; i++)
+				{
+					std::memcpy(&vertices[vStart + i].UV, bin + uvOffset + i * sizeof(Vector2), sizeof(Vector2));
+				}
+			}
+
+			if (attributes.HasMember("JOINTS_0"))
+			{
+				Value& aJoint = accessors[attributes["JOINTS_0"].GetUint()];
+				Value& bJoint = bufferViews[aJoint["bufferView"].GetUint()];
+				const size_t jOffset = (bJoint.HasMember("byteOffset") ? bJoint["byteOffset"].GetUint() : 0u) + (aJoint.HasMember("byteOffset") ? aJoint["byteOffset"].GetUint() : 0u);
+				const bool isByte = aJoint["componentType"].GetUint() == 5121;
+				for (uint32_t i = 0; i < vertexCount; i++)
+				{
+					for (uint32_t k = 0; k < 4; k++)
+					{
+						if (isByte)
+						{
+							vertices[vStart + i].Joints[k] = bin[jOffset + i * 4 + k];
+						}
+						else
+						{
+							uint16_t joint;
+							std::memcpy(&joint, bin + jOffset + (i * 4 + k) * sizeof(uint16_t), sizeof(uint16_t));
+							vertices[vStart + i].Joints[k] = joint;
+						}
+					}
+				}
+			}
+
+			if (attributes.HasMember("WEIGHTS_0"))
+			{
+				Value& aWeight = accessors[attributes["WEIGHTS_0"].GetUint()];
+				Value& bWeight = bufferViews[aWeight["bufferView"].GetUint()];
+				const size_t wOffset = (bWeight.HasMember("byteOffset") ? bWeight["byteOffset"].GetUint() : 0u) + (aWeight.HasMember("byteOffset") ? aWeight["byteOffset"].GetUint() : 0u);
+				for (uint32_t i = 0; i < vertexCount; i++)
+				{
+					std::memcpy(vertices[vStart + i].Weights, bin + wOffset + i * sizeof(float) * 4, sizeof(float) * 4);
+				}
+			}
+
+			Value& aIndex = accessors[primitive["indices"].GetUint()];
+			Value& bIndex = bufferViews[aIndex["bufferView"].GetUint()];
+			const size_t iOffset = (bIndex.HasMember("byteOffset") ? bIndex["byteOffset"].GetUint() : 0u) + (aIndex.HasMember("byteOffset") ? aIndex["byteOffset"].GetUint() : 0u);
+			const uint32_t indexCount = aIndex["count"].GetUint();
+			const bool isShort = aIndex["componentType"].GetUint() == 5123;
+			const uint32_t iStart = static_cast<uint32_t>(indices.size());
+			indices.resize(iStart + indexCount);
+			for (uint32_t i = 0; i < indexCount; i++)
+			{
+				if (isShort)
+				{
+					uint16_t index;
+					std::memcpy(&index, bin + iOffset + i * sizeof(uint16_t), sizeof(uint16_t));
+					indices[iStart + i] = index;
+				}
+				else
+				{
+					std::memcpy(&indices[iStart + i], bin + iOffset + i * sizeof(uint32_t), sizeof(uint32_t));
+				}
+			}
+			for (uint32_t i = 0; i + 2 < indexCount; i += 3)
+			{
+				std::swap(indices[iStart + i + 1], indices[iStart + i + 2]);
+			}
+
+			sm.indexCount = indexCount;
+			subMeshes.push_back(sm);
+		}
+
+		Value& skin = doc["skins"][skinIndex];
+		Value& joints = skin["joints"];
+
+		std::vector<std::string> nodePaths(nodes.Size());
+		const uint32_t sceneIndex = doc.HasMember("scene") ? doc["scene"].GetUint() : 0u;
+		for (Value& rootNode : doc["scenes"][sceneIndex]["nodes"].GetArray())
+		{
+			BuildPaths(cNglTF, rootNode.GetUint(), "", nodePaths);
+		}
+
+		std::vector<std::string> bonePaths;
+		for (Value& joint : joints.GetArray())
+		{
+			bonePaths.push_back(nodePaths[joint.GetUint()]);
+		}
+
+		std::vector<Matrix4> inverseBindMatrices(joints.Size(), Matrix4::Identity);
+		if (skin.HasMember("inverseBindMatrices"))
+		{
+			Value& aIbm = accessors[skin["inverseBindMatrices"].GetUint()];
+			Value& bIbm = bufferViews[aIbm["bufferView"].GetUint()];
+			const size_t mOffset = (bIbm.HasMember("byteOffset") ? bIbm["byteOffset"].GetUint() : 0u) + (aIbm.HasMember("byteOffset") ? aIbm["byteOffset"].GetUint() : 0u);
+			for (uint32_t j = 0; j < joints.Size(); j++)
+			{
+				Matrix4& ibm = inverseBindMatrices[j];
+				std::memcpy(ibm.M, bin + mOffset + j * sizeof(float) * 16, sizeof(float) * 16);
+				for (uint32_t row = 0; row < 4; row++)
+				{
+					for (uint32_t col = 0; col < 4; col++)
+					{
+						if ((row == 0) != (col == 0))
+						{
+							ibm.M[row][col] = -ibm.M[row][col];
+						}
+					}
+				}
+			}
+		}
+
+		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes),
+			std::move(inverseBindMatrices), std::move(bonePaths), std::move(materialSlots));
+	}
+
+	GameObject* CNglTFImporter::LoadSkeleton(CNglTF& cNglTF, Scene& scene, const std::string& name, std::vector<GameObject*>& nodeObjects)
+	{
+		Value& doc = cNglTF.m_doc;
+		GameObject* top = scene.GetGameObject(scene.AddGameObject(name));
+
+		Value& nodes = doc["nodes"];
+		nodeObjects.assign(nodes.Size(), nullptr);
+		for (uint32_t i = 0; i < nodes.Size(); i++)
+		{
+			Value& node = nodes[i];
+			if (node.HasMember("skin") && node.HasMember("mesh"))
+				continue;
+
+			const std::string nodeName = node.HasMember("name") ? node["name"].GetString() : "Node_" + std::to_string(i);
+			nodeObjects[i] = scene.GetGameObject(scene.AddGameObject(nodeName));
+
+			TransformComponent* transform = nodeObjects[i]->GetTransform();
+			if (node.HasMember("translation"))
+			{
+				Value& t = node["translation"];
+				transform->SetLocalPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
+			}
+			if (node.HasMember("rotation"))
+			{
+				Value& r = node["rotation"];
+				transform->SetLocalRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
+			}
+			if (node.HasMember("scale"))
+			{
+				Value& s = node["scale"];
+				transform->SetLocalScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
+			}
+		}
+
+		const uint32_t sceneIndex = doc.HasMember("scene") ? doc["scene"].GetUint() : 0u;
+		for (Value& rootNode : doc["scenes"][sceneIndex]["nodes"].GetArray())
+		{
+			if (nodeObjects[rootNode.GetUint()])
+				nodeObjects[rootNode.GetUint()]->GetTransform()->SetParent(top->GetTransform());
+		}
+		for (uint32_t i = 0; i < nodes.Size(); i++)
+		{
+			if (!nodeObjects[i] || !nodes[i].HasMember("children"))
+				continue;
+			for (Value& child : nodes[i]["children"].GetArray())
+			{
+				if (nodeObjects[child.GetUint()])
+					nodeObjects[child.GetUint()]->GetTransform()->SetParent(nodeObjects[i]->GetTransform());
+			}
+		}
+
+		top->AddComponent<AnimatorComponent>();
+		return top;
+	}
+
+	bool CNglTFImporter::ImportSkeleton(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	{
+		CNglTF cNglTF;
+		if (!ReadglTF(gltfPath, cNglTF))
+			return false;
+
+		const std::string modelName = ToUtf8(ToPath(gltfPath).stem().u8string());
+		Scene scene(modelName);
+		std::vector<GameObject*> nodeObjects;
+		GameObject* top = LoadSkeleton(cNglTF, scene, modelName, nodeObjects);
+		if (!clipPath.empty())
+		{
+			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
+		}
+
+		return SceneSerializer::SavePrefab(*top, ToUtf8((ToPath(targetDir) / (modelName + "_Skeleton.prefab")).generic_u8string()));
+	}
+
+	bool CNglTFImporter::ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	{
+		const std::filesystem::path source = ToPath(gltfPath);
+		const std::filesystem::path target = ToPath(targetDir);
+		const std::filesystem::path copiedGltf = target / source.filename();
+
+		CNglTF sourceGltf;
+		if (!ReadglTF(gltfPath, sourceGltf))
+			return false;
+
+		std::vector<std::filesystem::path> files = { source.filename() };
+		for (Value& buffer : sourceGltf.m_doc["buffers"].GetArray())
+		{
+			if (buffer.HasMember("uri"))
+				files.push_back(ToPath(buffer["uri"].GetString()));
+		}
+		if (sourceGltf.m_doc.HasMember("images"))
+		{
+			for (Value& image : sourceGltf.m_doc["images"].GetArray())
+			{
+				if (image.HasMember("uri"))
+					files.push_back(ToPath(image["uri"].GetString()));
+			}
+		}
+
+		std::error_code error;
+		std::filesystem::create_directories(target, error);
+		for (const std::filesystem::path& file : files)
+		{
+			const std::filesystem::path from = source.parent_path() / file;
+			const std::filesystem::path to = target / file;
+			if (std::filesystem::equivalent(from, to, error))
+				continue;
+			std::filesystem::create_directories(to.parent_path(), error);
+			std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, error);
+		}
+
+		const std::string copiedPath = ToUtf8(copiedGltf.generic_u8string());
+		CNglTF cNglTF;
+		if (!ReadglTF(copiedPath, cNglTF))
+			return false;
+
+		Value& doc = cNglTF.m_doc;
+		const std::string assetPath = AssetManager::ToAssetPath(copiedPath);
+		const std::string modelName = ToUtf8(source.stem().u8string());
+
+		Scene scene(modelName);
+		std::vector<GameObject*> nodeObjects;
+		GameObject* top = LoadSkeleton(cNglTF, scene, modelName, nodeObjects);
+		if (!clipPath.empty())
+		{
+			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
+		}
+
+		Value& nodes = doc["nodes"];
+		for (uint32_t i = 0; i < nodes.Size(); i++)
+		{
+			if (nodes[i].HasMember("skin") && nodes[i].HasMember("mesh"))
+			{
+				Value& mesh = doc["meshes"][nodes[i]["mesh"].GetUint()];
+				const std::string meshName = mesh.HasMember("name") ? mesh["name"].GetString()
+					: nodes[i].HasMember("name") ? nodes[i]["name"].GetString() : "Mesh_" + std::to_string(i);
+				GameObject* meshObject = scene.GetGameObject(scene.AddGameObject(meshName));
+				meshObject->GetTransform()->SetParent(top->GetTransform());
+
+				SkinnedMeshRendererComponent* renderer = meshObject->AddComponent<SkinnedMeshRendererComponent>();
+				renderer->SetMesh(assetPath + "#skin" + std::to_string(nodes[i]["skin"].GetUint()));
+				renderer->SetSkeleton(top->GetTransform());
+			}
+		}
+
+		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_SkeletonModel.prefab")).generic_u8string()));
 	}
 
 

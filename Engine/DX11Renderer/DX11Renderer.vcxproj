@@ -94,7 +94,7 @@
     <ClInclude Include="Data\MaterialDesc.h" />
     <ClInclude Include="Data\TextureData.h" />
     <ClInclude Include="Data\ShaderConstants.h" />
-    <ClInclude Include="Scene\RenderItem.h" />
+    <ClInclude Include="Scene\MeshItem.h" />
     <ClInclude Include="Scene\RenderScene.h" />
     <ClInclude Include="Resource\DX11ResourceCache.h" />
     <ClInclude Include="Resource\DX11ResourceId.h" />

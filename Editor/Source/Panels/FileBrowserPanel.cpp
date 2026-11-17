@@ -113,6 +113,8 @@ void FileBrowserPanel::Draw(EditorContext& context)
         ImGui::EndTable();
     }
     ImGui::End();
+
+    m_GltfImport.Draw();
 }
 
 void FileBrowserPanel::DrawDirectoryTree(const fs::path& directory)
@@ -258,6 +260,14 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
                     m_OpenNewSource = true;
                 }
                 ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Import"))
+        {
+            if (ImGui::MenuItem("glTF"))
+            {
+                m_GltfImport.Open(m_CurrentDirectory);
             }
             ImGui::EndMenu();
         }

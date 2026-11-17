@@ -123,7 +123,7 @@
     <ClInclude Include="Resource\DX11TextureResource.h">
       <Filter>Source\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\RenderItem.h">
+    <ClInclude Include="Scene\MeshItem.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\RenderScene.h">

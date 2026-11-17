@@ -612,7 +612,7 @@ void SpecularIblChecks(DX11Renderer& renderer)
     scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
     scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
     scene.ambientIntensity = 0.0f;
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto render = [&](float roughness, float metallic = 1.0f)
     {
         MaterialDesc desc;
@@ -744,7 +744,7 @@ void HdrChecks(DX11Renderer& renderer)
     scene.ambientColor = {4.0f, 2.0f, .5f};
     scene.ambientIntensity = 1.0f;
     scene.camera.postProcess = {false, false}; // Deliberately ignored at this development stage.
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto center = [](const Image& image) {
         const size_t offset = ((image.height / 2) * image.width + image.width / 2) * 4;
         return std::array<int, 3>{image.rgba[offset], image.rgba[offset + 1], image.rgba[offset + 2]};
@@ -834,7 +834,7 @@ void HdrChecks(DX11Renderer& renderer)
     renderer.DestroyCubemap(cubemap);
     scene.skybox = {};
     scene.camera.projection = {};
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     scene.ambientColor = {4, 2, .5f};
     renderer.SetOverlay([] {});
     expect(frame(), {4.0f / 5.0f, 2.0f / 3.0f, .5f / 1.5f});
@@ -899,7 +899,7 @@ void MaterialMapChecks(DX11Renderer& renderer)
     RenderScene scene;
     scene.ambientColor = {.8f, .4f, .2f};
     scene.ambientIntensity = 1.0f;
-    scene.items = {RenderItem{mesh}};
+    scene.items = {MeshItem{mesh}};
     auto render = [&](MaterialResourceId material, MeshResourceId drawMesh) {
         scene.items[0].material = material;
         scene.items[0].mesh = drawMesh;
@@ -1048,7 +1048,7 @@ void ShadowChecks()
         scene.camera.view = Matrix4::LookTo({-12, 15, -18}, {12, -15, 18});
         scene.camera.projection = Matrix4::Perspective(0.95f, 1, .1f, 100);
         scene.camera.cameraPosition = {-12, 15, -18};
-        scene.items = {RenderItem{ground}, RenderItem{cube}};
+        scene.items = {MeshItem{ground}, MeshItem{cube}};
         impl.ShadowSettings.enabled = false;
         auto unshadowed = Frame(renderer, scene);
         Save(unshadowed, "unshadowed");
@@ -1154,7 +1154,7 @@ void ShadowChecks()
         masked.alphaMode = AlphaMode::Masked;
         const auto maskMaterial = renderer.CreateMaterial(masked, maskTexture);
         RenderScene maskScene = scene;
-        maskScene.items[1] = RenderItem{maskMesh, 0, maskMaterial};
+        maskScene.items[1] = MeshItem{maskMesh, 0, maskMaterial};
         Frame(renderer, maskScene);
         constants = ReadShadowConstants(impl);
         depth = ReadShadowDepth(impl);

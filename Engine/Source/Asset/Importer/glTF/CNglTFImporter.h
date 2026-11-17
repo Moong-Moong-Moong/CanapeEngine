@@ -4,9 +4,8 @@
 #include <memory>
 
 #include <rapidjson/document.h>
-#include <rapidjson/filereadstream.h>
-#include "../../Mesh/MeshAsset.h"
 #include "Math/Matrix4.h"
+#include "Asset/Mesh/MeshAsset.h"
 
 namespace Canape
 {
@@ -26,6 +25,9 @@ namespace Canape
 	};
 
 	class TextureAsset;
+	class AnimationClipAsset;
+	class GameObject;
+	class Scene;
 
 	class CNglTFImporter
 	{
@@ -35,8 +37,11 @@ namespace Canape
 		bool ReadglTF(std::string filePath, CNglTF& cNglTF);
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
 		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);
-
-
+		std::vector<std::unique_ptr<AnimationClipAsset>> LoadAnimationClipAsset(CNglTF& cNglTF);
+		std::unique_ptr<MeshAsset> LoadSkinnedMeshAsset(CNglTF& cNglTF, uint32_t skinIndex);
+		GameObject* LoadSkeleton(CNglTF& cNglTF, Scene& scene, const std::string& name, std::vector<GameObject*>& nodeObjects);
+		bool ImportSkeleton(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
+		bool ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
 
 	private:
 		void LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots);
@@ -51,4 +56,5 @@ namespace Canape
 		);
 
 	};
+	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out);
 }

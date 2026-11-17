@@ -285,6 +285,9 @@
     <ClInclude Include="Source\Asset\Animation\AnimationClipAsset.h">
       <Filter>Source\Asset\Animation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Animation\AnimationClipSerializer.h">
+      <Filter>Source\Asset\Animation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scene\Component\SkinnedMeshRendererComponent.h">
       <Filter>Source\Scene\Component</Filter>
     </ClInclude>
@@ -427,6 +430,12 @@
     </ClCompile>
     <ClCompile Include="Source\Scene\Component\AnimatorComponent.cpp">
       <Filter>Source\Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Animation\AnimationClipAsset.cpp">
+      <Filter>Source\Asset\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Animation\AnimationClipSerializer.cpp">
+      <Filter>Source\Asset\Animation</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

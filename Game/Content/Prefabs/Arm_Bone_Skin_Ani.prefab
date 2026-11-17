@@ -1,0 +1,177 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 18,
+            "name": "Arm_Bone_Skin_Ani",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "AnimatorComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "clip": "Content/import test/ArmatureAction.aclip"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 21,
+            "name": "Armature",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 19
+                    }
+                }
+            ]
+        },
+        {
+            "id": 23,
+            "name": "Arm",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 22
+                    }
+                },
+                {
+                    "type": "SkinnedMeshRendererComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/import test/Arm_Bone_Skin_Ani.gltf#skin0",
+                        "skeleton": 19
+                    }
+                }
+            ]
+        },
+        {
+            "id": 26,
+            "name": "Bone0",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0,
+                            "Y": 2.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -1.0,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 5.1658017e-08
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 22
+                    }
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "Bone1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0,
+                            "Y": 1.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 27
+                    }
+                }
+            ]
+        }
+    ]
+}

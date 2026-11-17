@@ -63,16 +63,16 @@ namespace Canape
 			return key;
 		}
 
-		Vector3 ReadVector3(const std::vector<float>& values, uint32_t key)
+		Vector3 ReadVector3(const std::vector<Vector4>& values, uint32_t key)
 		{
-			const size_t i = static_cast<size_t>(key) * 3;
-			return { values[i], values[i + 1], values[i + 2] };
+			const Vector4& v = values[key];
+			return { v.X, v.Y, v.Z };
 		}
 
-		Quaternion ReadQuaternion(const std::vector<float>& values, uint32_t key)
+		Quaternion ReadQuaternion(const std::vector<Vector4>& values, uint32_t key)
 		{
-			const size_t i = static_cast<size_t>(key) * 4;
-			return { values[i], values[i + 1], values[i + 2], values[i + 3] };
+			const Vector4& v = values[key];
+			return { v.X, v.Y, v.Z, v.W };
 		}
 
 		Quaternion Slerp(const Quaternion& a, const Quaternion& b, float s)
