@@ -1,5 +1,7 @@
 #include "DX11Simulation/RenderPass.h"
 
+#include <cassert>
+
 #include "DX11Simulation/D3D.h"
 #include "DX11Simulation/Session.h"
 
@@ -36,9 +38,34 @@ namespace Canape
     RenderPass RenderPass::Opaque(Session& session)
     {
         return {
+            session,
             session.GetOrCreateRasterizerState(NoCullRasterizerDesc),
             session.GetOrCreateDepthStencilState(OpaqueDepthStencilDesc),
             session.GetOrCreateBlendState(OpaqueBlendDesc)
         };
+    }
+
+    ID3D11RasterizerState* RenderPass::GetRasterizer() const
+    {
+        auto ptr = session.Get(rasterizer);
+        assert(ptr != nullptr);
+
+        return ptr->Get();
+    }
+
+    ID3D11DepthStencilState* RenderPass::GetDepthStencil() const
+    {
+        auto ptr = session.Get(depthStencil);
+        assert(ptr != nullptr);
+
+        return ptr->Get();
+    }
+
+    ID3D11BlendState* RenderPass::GetBlend() const
+    {
+        auto ptr = session.Get(blendState);
+        assert(ptr != nullptr);
+
+        return ptr->Get();
     }
 }

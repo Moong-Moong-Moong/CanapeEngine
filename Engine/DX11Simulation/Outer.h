@@ -10,6 +10,7 @@ namespace Canape
     class Outer
     {
     private:
+        Session& session;
         BufferHandle constants;
 
     public:
@@ -17,9 +18,6 @@ namespace Canape
 
         void Upload(Session&, ConstantView);
 
-        BufferHandle GetConstants() const
-        {
-            return constants;
-        }
+        Buffer& GetConstants() const;
     };
 }

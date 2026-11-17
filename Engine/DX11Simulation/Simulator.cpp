@@ -116,16 +116,11 @@ namespace Canape
         }
     #endif
 
-        auto rasterizer = session.Get(pass.GetRasterizer())->Get();
-        auto depthStencil = session.Get(pass.GetDepthStencil())->Get();
-        auto blendState = session.Get(pass.GetBlend())->Get();
-        constexpr UINT sampleMask = D3D11_DEFAULT_SAMPLE_MASK;
-
         auto& d3dContext = context->GetRef();
         d3dContext.IASetInputLayout(nullptr);
-        d3dContext.RSSetState(rasterizer);
-        d3dContext.OMSetDepthStencilState(depthStencil, 0);
-        d3dContext.OMSetBlendState(blendState, nullptr, sampleMask);
+        d3dContext.RSSetState(pass.GetRasterizer());
+        d3dContext.OMSetDepthStencilState(pass.GetDepthStencil(), 0);
+        d3dContext.OMSetBlendState(pass.GetBlend(), nullptr, D3D11_DEFAULT_SAMPLE_MASK);
         bind(OuterSlot, outer.GetConstants());
     }
 
@@ -136,12 +131,9 @@ namespace Canape
         bind(GeometrySlot, geometry.GetConstants());
         bind(MaterialSlot, material.GetConstants());
 
-        auto vertexShader = session.Get(material.GetVertexShader())->Get();
-        auto pixelShader = session.Get(material.GetPixelShader())->Get();
-
         auto& d3dContext = context->GetRef();
-        d3dContext.VSSetShader(vertexShader, nullptr, 0);
-        d3dContext.PSSetShader(pixelShader, nullptr, 0);
+        d3dContext.VSSetShader(material.GetVertexShader(), nullptr, 0);
+        d3dContext.PSSetShader(material.GetPixelShader(), nullptr, 0);
         context->Draw(geometry.GetVertexCount(), geometry.GetInstanceCount());
     }
 
@@ -167,9 +159,8 @@ namespace Canape
     #endif
     }
 
-    void Simulator::bind(std::uint32_t slot, BufferHandle constants)
+    void Simulator::bind(std::uint32_t slot, Buffer& buffer)
     {
-        auto& buffer = *session.Get(constants);
         context->SetVertexConstant(slot, buffer);
         context->SetPixelConstant(slot, buffer);
     }

@@ -1,12 +1,15 @@
 #include "DX11Simulation/Outer.h"
 
+#include <cassert>
+
 #include "DX11Simulation/Buffer.h"
 #include "DX11Simulation/Session.h"
 
 namespace Canape
 {
     Outer::Outer(Session& session, ConstantView values)
-        : constants(session.CreateBuffer(ConstantBufferDesc(values.Size())))
+        : session(session)
+        , constants(session.CreateBuffer(ConstantBufferDesc(values.Size())))
     {
         Upload(session, values);
     }
@@ -15,5 +18,13 @@ namespace Canape
     {
         auto buffer = session.Get(constants);
         buffer->Upload(values.Data(), values.Size());
+    }
+
+    Buffer& Outer::GetConstants() const
+    {
+        auto ptr = session.Get(constants);
+        assert(ptr != nullptr);
+
+        return *ptr;
     }
 }

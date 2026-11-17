@@ -12,6 +12,8 @@ namespace Canape
     class Material
     {
     private:
+        Session& session;
+
         VertexShaderHandle vertexShader;
         PixelShaderHandle pixelShader;
 
@@ -27,19 +29,8 @@ namespace Canape
 
         void Upload(Session&, ConstantView values);
 
-        VertexShaderHandle GetVertexShader() const
-        {
-            return vertexShader;
-        }
-
-        PixelShaderHandle GetPixelShader() const
-        {
-            return pixelShader;
-        }
-
-        BufferHandle GetConstants() const
-        {
-            return constants;
-        }
+        ID3D11VertexShader* GetVertexShader() const;
+        ID3D11PixelShader* GetPixelShader() const;
+        Buffer& GetConstants() const;
     };
 }

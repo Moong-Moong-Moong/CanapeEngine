@@ -14,6 +14,7 @@ namespace Canape
     class Geometry
     {
     private:
+        Session& session;
         BufferHandle constants;
         // Per instance.
         std::uint32_t vertexCount = 0;
@@ -24,10 +25,7 @@ namespace Canape
 
         void Upload(Session&, ConstantView);
 
-        BufferHandle GetConstants() const
-        {
-            return constants;
-        }
+        Buffer& GetConstants() const;
 
         std::uint32_t GetVertexCount() const
         {

@@ -81,7 +81,7 @@ namespace Canape
         }
 
     private:
-        void bind(std::uint32_t slot, BufferHandle constants);
+        void bind(std::uint32_t slot, Buffer&);
     };
 
     class RenderPassScope {

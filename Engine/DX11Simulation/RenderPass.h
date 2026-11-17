@@ -16,34 +16,28 @@ namespace Canape
     class RenderPass
     {
     private:
+        Session& session;
         RasterizerStateHandle rasterizer;
         DepthStencilStateHandle depthStencil;
-        BlendStateHandle blend;
+        BlendStateHandle blendState;
 
     public:
         static RenderPass Opaque(Session&);
 
-        RasterizerStateHandle GetRasterizer() const
-        {
-            return rasterizer;
-        }
-
-        DepthStencilStateHandle GetDepthStencil() const
-        {
-            return depthStencil;
-        }
-
-        BlendStateHandle GetBlend() const
-        {
-            return blend;
-        }
+        ID3D11RasterizerState* GetRasterizer() const;
+        ID3D11DepthStencilState* GetDepthStencil() const;
+        ID3D11BlendState* GetBlend() const;
 
     private:
         RenderPass(
+            Session& session,
             RasterizerStateHandle rasterizer,
             DepthStencilStateHandle depthStencil,
-            BlendStateHandle blend
+            BlendStateHandle blendState
         )
-            : rasterizer(rasterizer), depthStencil(depthStencil), blend(blend) {}
+            : session(session)
+            , rasterizer(rasterizer)
+            , depthStencil(depthStencil)
+            , blendState(blendState) {}
     };
 }
