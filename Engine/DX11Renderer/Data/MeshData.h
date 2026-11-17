@@ -12,7 +12,7 @@
 namespace Canape
 {
 
-    enum class VertexFormat { Position, Static };
+    enum class VertexFormat { Position, Static, Skinned };
 
     struct StaticVertex
     {
@@ -20,6 +20,15 @@ namespace Canape
         Vector3 Normal{}; 
         Vector2 UV{};
         Vector4 Tangent{}; // r,g,b 탄젠트값, w 탄젠트 방향부호값 - UV가 미러링된 부분 고려
+    };
+
+    struct SkinnedVertex {  
+        Vector3 Position; 
+        Vector3 Normal; 
+        Vector2 UV; 
+        Vector4 Tangent;
+        uint16_t Joints[4]; // skin.joints 배열 인덱스
+        float Weights[4]; // 합 1
     };
 
     struct SubMesh
@@ -30,12 +39,22 @@ namespace Canape
         uint32_t materialSlot = 0; 
     };
 
+
     static_assert(std::is_standard_layout_v<StaticVertex>);
     static_assert(sizeof(StaticVertex) == 48);
     static_assert(offsetof(StaticVertex, Position) == 0);
     static_assert(offsetof(StaticVertex, Normal) == 12);
     static_assert(offsetof(StaticVertex, UV) == 24);
     static_assert(offsetof(StaticVertex, Tangent) == 32);
+
+    static_assert(std::is_standard_layout_v<SkinnedVertex>);
+    static_assert(sizeof(SkinnedVertex) == 72);
+    static_assert(offsetof(SkinnedVertex, Position) == 0);
+    static_assert(offsetof(SkinnedVertex, Normal) == 12);
+    static_assert(offsetof(SkinnedVertex, UV) == 24);
+    static_assert(offsetof(SkinnedVertex, Tangent) == 32);
+    static_assert(offsetof(SkinnedVertex, Joints) == 48);
+    static_assert(offsetof(SkinnedVertex, Weights) == 56);
 
     inline const char* ValidateMeshIndices(size_t vertexCount, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes)

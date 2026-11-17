@@ -4,6 +4,8 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <filesystem>
+#include <string>
 #include <vector>
 
 using namespace Canape;
@@ -105,6 +107,15 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
         {
             m_Reparent = { *static_cast<const uint64_t*>(payload->Data), gameObject.GetId(), true };
         }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUtils::kAssetPathPayload))
+        {
+            const std::string path(static_cast<const char*>(payload->Data), payload->DataSize);
+            if (std::filesystem::path(path).extension() == ".prefab")
+            {
+                m_InstantiatePrefab = path;
+                m_InstantiateParentId = gameObject.GetId();
+            }
+        }
         ImGui::EndDragDropTarget();
     }
 
@@ -114,6 +125,10 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
         {
             m_CreateRequested = true;
             m_CreateParentId = gameObject.GetId();
+        }
+        if (ImGui::MenuItem("Save as Prefab"))
+        {
+            m_SavePrefabId = gameObject.GetId();
         }
         if (ImGui::MenuItem("Delete"))
         {
@@ -151,6 +166,15 @@ void HierarchyPanel::DrawBackground(EditorContext& context)
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUtils::kGameObjectPayload))
         {
             m_Reparent = { *static_cast<const uint64_t*>(payload->Data), 0, true };
+        }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUtils::kAssetPathPayload))
+        {
+            const std::string path(static_cast<const char*>(payload->Data), payload->DataSize);
+            if (std::filesystem::path(path).extension() == ".prefab")
+            {
+                m_InstantiatePrefab = path;
+                m_InstantiateParentId = 0;
+            }
         }
         ImGui::EndDragDropTarget();
     }
@@ -190,6 +214,29 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
         context.Select(created);
         m_CreateRequested = false;
         m_CreateParentId = 0;
+    }
+
+    if (m_SavePrefabId != 0)
+    {
+        if (GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_SavePrefabId)))
+        {
+            const std::filesystem::path file = EditorUtils::GetGameDirectory() / "Content" / "Prefabs"
+                / EditorUtils::FromUtf8(target->GetName() + ".prefab");
+            SceneSerializer::SavePrefab(*target, EditorUtils::ToUtf8(file));
+        }
+        m_SavePrefabId = 0;
+    }
+
+    if (!m_InstantiatePrefab.empty())
+    {
+        GameObject* parent = m_InstantiateParentId ? scene.GetGameObject(scene.FindGameObjectById(m_InstantiateParentId)) : nullptr;
+        const std::filesystem::path file = EditorUtils::GetGameDirectory() / EditorUtils::FromUtf8(m_InstantiatePrefab);
+        if (GameObject* created = SceneSerializer::InstantiatePrefab(scene, EditorUtils::ToUtf8(file), parent ? parent->GetTransform() : nullptr))
+        {
+            context.Select(created);
+        }
+        m_InstantiatePrefab.clear();
+        m_InstantiateParentId = 0;
     }
 
     if (m_DeleteId != 0)

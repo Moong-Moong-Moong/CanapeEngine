@@ -223,12 +223,36 @@ namespace Canape
             return;
         }
 
-        RenderItem item;
+        MeshItem item;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
         item.world = world;
         m_DX11->AddRenderItem(item);
+    }
+
+    uint32_t Renderer::AddBonePalette(std::span<const Matrix4> palette)
+    {
+        return m_DX11->AddBonePalette(palette);
+    }
+
+    void Renderer::AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+        uint32_t paletteOffset, uint32_t paletteCount)
+    {
+        const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
+        if (!meshResource.IsValid())
+        {
+            return;
+        }
+
+        SkinnedMeshItem item;
+        item.mesh = meshResource;
+        item.submeshIndex = submeshIndex;
+        item.material = m_Registry->GetResourceId(material);
+        item.world = world;
+        item.paletteOffset = paletteOffset;
+        item.paletteCount = paletteCount;
+        m_DX11->AddSkinnedRenderItem(item);
     }
 
     void Renderer::AddLight(const RenderLight& light)

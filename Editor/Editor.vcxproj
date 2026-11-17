@@ -99,6 +99,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\EditorUtils.h" />
     <ClInclude Include="Source\Panels\DebugConsolePanel.h" />
     <ClInclude Include="Source\Panels\FileBrowserPanel.h" />
+    <ClInclude Include="Source\Panels\GltfImportWindow.h" />
     <ClInclude Include="Source\Panels\HierarchyPanel.h" />
     <ClInclude Include="Source\Panels\InspectorPanel.h" />
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
@@ -112,6 +113,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Panels\DebugConsolePanel.cpp" />
     <ClCompile Include="Source\Panels\FileBrowserPanel.cpp" />
+    <ClCompile Include="Source\Panels\GltfImportWindow.cpp" />
     <ClCompile Include="Source\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="Source\Panels\InspectorPanel.cpp" />
     <ClCompile Include="Source\Panels\RenderDebugMenu.cpp" />

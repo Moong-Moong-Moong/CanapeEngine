@@ -94,7 +94,7 @@
     <ClInclude Include="Data\MaterialDesc.h" />
     <ClInclude Include="Data\TextureData.h" />
     <ClInclude Include="Data\ShaderConstants.h" />
-    <ClInclude Include="Scene\RenderItem.h" />
+    <ClInclude Include="Scene\MeshItem.h" />
     <ClInclude Include="Scene\RenderScene.h" />
     <ClInclude Include="Resource\DX11ResourceCache.h" />
     <ClInclude Include="Resource\DX11ResourceId.h" />
@@ -131,12 +131,17 @@
     <None Include="Shader\Common\Lighting.hlsli" />
     <None Include="Shader\Common\Material.hlsli" />
     <None Include="Shader\Common\MeshSurface.hlsli" />
+    <None Include="Shader\Common\MeshTransform.hlsli" />
     <None Include="Shader\Common\MeshTypes.hlsli" />
+    <None Include="Shader\Common\Skinning.hlsli" />
     <None Include="Shader\Common\SkyboxEnvironment.hlsli" />
     <None Include="Shader\Debug\DepthDebug.hlsl" />
     <None Include="Shader\Debug\MeshDebug.hlsl" />
     <None Include="Shader\FinalOutput.hlsl" />
     <None Include="Shader\Mesh.hlsl" />
+    <None Include="Shader\MeshPS.hlsl" />
+    <None Include="Shader\MeshSkinnedVS.hlsl" />
+    <None Include="Shader\MeshStaticVS.hlsl" />
     <None Include="Shader\Shadow\PCSS.hlsli" />
     <None Include="Shader\Shadow\ShadowConstants.hlsli" />
     <None Include="Shader\Shadow\ShadowDepth.hlsl" />

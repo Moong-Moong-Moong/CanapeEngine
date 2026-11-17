@@ -27,6 +27,7 @@ namespace Canape
         void BindScene(ID3D11DeviceContext& context, const SceneBindings& resources);
         void BindPipeline(ID3D11DeviceContext& context, const DX11PipelineSelection& pipeline);
         void BindObject(ID3D11DeviceContext& context, ID3D11Buffer* buffer);
+        void BindSkinning(ID3D11DeviceContext& context, ID3D11Buffer* buffer);
         void BindMaterial(ID3D11DeviceContext& context, ID3D11Buffer* buffer, ID3D11ShaderResourceView* texture);
         void BindGeometry(ID3D11DeviceContext& context, const DX11MeshResource& mesh);
     }

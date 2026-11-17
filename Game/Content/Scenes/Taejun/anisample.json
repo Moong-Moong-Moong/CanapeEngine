@@ -1,0 +1,5419 @@
+{
+    "version": 1,
+    "name": "Untitled",
+    "mainCamera": 3,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.4,
+                            "Y": 3.0,
+                            "Z": -4.5
+                        },
+                        "localRotation": {
+                            "X": 0.24183339,
+                            "Y": -0.18078485,
+                            "Z": 0.045913503,
+                            "W": 0.9522213
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Directional Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": -4.0
+                        },
+                        "localRotation": {
+                            "X": 0.4082179,
+                            "Y": -0.23456971,
+                            "Z": 0.10938165,
+                            "W": 0.87542605
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 5.0,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "name": "MasterChief_v5.7_walk_scl",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -0.0,
+                            "Y": -0.9999999,
+                            "Z": 0.0,
+                            "W": -1.1920929e-07
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "AnimatorComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "clip": "Content/Models/Master/Armature_mixamo.com_Layer0.aclip"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 22,
+            "name": "Armature",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.01,
+                            "Y": 0.01,
+                            "Z": 0.01
+                        },
+                        "parent": 20
+                    }
+                }
+            ]
+        },
+        {
+            "id": 24,
+            "name": "mixamorig:Hips",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.4220848,
+                            "Y": 115.86959,
+                            "Z": -1.476514
+                        },
+                        "localRotation": {
+                            "X": -5.0531696e-08,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 23
+                    }
+                }
+            ]
+        },
+        {
+            "id": 26,
+            "name": "mixamorig:Spine",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.9802322e-08,
+                            "Y": 10.263664,
+                            "Z": -0.48427334
+                        },
+                        "localRotation": {
+                            "X": -0.023572007,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.9997221
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 25
+                    }
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "mixamorig:Spine1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.9802322e-08,
+                            "Y": 11.987588,
+                            "Z": 2.3841858e-07
+                        },
+                        "localRotation": {
+                            "X": 3.8184226e-08,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 27
+                    }
+                }
+            ]
+        },
+        {
+            "id": 30,
+            "name": "mixamorig:Spine2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.9604645e-08,
+                            "Y": 13.700088,
+                            "Z": -2.3841858e-07
+                        },
+                        "localRotation": {
+                            "X": -1.8626454e-09,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 0.9999999
+                        },
+                        "parent": 29
+                    }
+                }
+            ]
+        },
+        {
+            "id": 32,
+            "name": "mixamorig:Neck",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.9604645e-08,
+                            "Y": 15.412608,
+                            "Z": 7.1525574e-07
+                        },
+                        "localRotation": {
+                            "X": 0.023571966,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.9997221
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 0.9999998
+                        },
+                        "parent": 31
+                    }
+                }
+            ]
+        },
+        {
+            "id": 34,
+            "name": "mixamorig:Head",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 35,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.9802322e-08,
+                            "Y": 5.0573735,
+                            "Z": 1.3410362
+                        },
+                        "localRotation": {
+                            "X": 9.625536e-09,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 33
+                    }
+                }
+            ]
+        },
+        {
+            "id": 36,
+            "name": "mixamorig:HeadTop_End",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 37,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.9802322e-08,
+                            "Y": 23.94194,
+                            "Z": 6.3485975
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 35
+                    }
+                }
+            ]
+        },
+        {
+            "id": 38,
+            "name": "mixamorig:LeftShoulder",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -7.3450465,
+                            "Y": 12.429379,
+                            "Z": -0.08992243
+                        },
+                        "localRotation": {
+                            "X": 0.5814644,
+                            "Y": -0.39952382,
+                            "Z": 0.5885434,
+                            "W": 0.39483732
+                        },
+                        "localScale": {
+                            "X": 0.9999997,
+                            "Y": 0.99999994,
+                            "Z": 0.9999999
+                        },
+                        "parent": 31
+                    }
+                }
+            ]
+        },
+        {
+            "id": 40,
+            "name": "mixamorig:LeftArm",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.7881393e-07,
+                            "Y": 16.131624,
+                            "Z": 1.3262033e-06
+                        },
+                        "localRotation": {
+                            "X": 0.22873697,
+                            "Y": 0.006952905,
+                            "Z": -0.0016337484,
+                            "W": 0.97346205
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 39
+                    }
+                }
+            ]
+        },
+        {
+            "id": 42,
+            "name": "mixamorig:LeftForeArm",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 43,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.3841858e-07,
+                            "Y": 25.461586,
+                            "Z": 1.1950731e-05
+                        },
+                        "localRotation": {
+                            "X": -0.04717735,
+                            "Y": 0.21768397,
+                            "Z": -0.20648395,
+                            "W": 0.9527604
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 41
+                    }
+                }
+            ]
+        },
+        {
+            "id": 44,
+            "name": "mixamorig:LeftHand",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.1576881e-05,
+                            "Y": 26.42828,
+                            "Z": 7.1525574e-06
+                        },
+                        "localRotation": {
+                            "X": 0.06827691,
+                            "Y": -0.25408238,
+                            "Z": -0.053925756,
+                            "W": 0.96326137
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 43
+                    }
+                }
+            ]
+        },
+        {
+            "id": 46,
+            "name": "mixamorig:LeftHandThumb1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.4156523,
+                            "Y": 5.27782,
+                            "Z": 1.8709438
+                        },
+                        "localRotation": {
+                            "X": 0.13858935,
+                            "Y": -0.039637648,
+                            "Z": -0.27211308,
+                            "W": 0.95140755
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 45
+                    }
+                }
+            ]
+        },
+        {
+            "id": 48,
+            "name": "mixamorig:LeftHandThumb2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.08666229,
+                            "Y": 5.246611,
+                            "Z": 1.5258789e-05
+                        },
+                        "localRotation": {
+                            "X": 0.055895824,
+                            "Y": -1.3991715e-07,
+                            "Z": 1.9868236e-07,
+                            "W": 0.99843657
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 47
+                    }
+                }
+            ]
+        },
+        {
+            "id": 50,
+            "name": "mixamorig:LeftHandThumb3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.3760643,
+                            "Y": 4.404334,
+                            "Z": 1.0967255e-05
+                        },
+                        "localRotation": {
+                            "X": -0.049346954,
+                            "Y": 1.3427403e-07,
+                            "Z": -1.3194288e-07,
+                            "W": 0.99878174
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 49
+                    }
+                }
+            ]
+        },
+        {
+            "id": 52,
+            "name": "mixamorig:LeftHandThumb4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 53,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.46273422,
+                            "Y": 3.4451523,
+                            "Z": 2.861023e-06
+                        },
+                        "localRotation": {
+                            "X": -1.04308135e-07,
+                            "Y": -2.2351742e-08,
+                            "Z": -1.5087426e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 51
+                    }
+                }
+            ]
+        },
+        {
+            "id": 54,
+            "name": "mixamorig:LeftHandIndex1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.7705116,
+                            "Y": 15.422031,
+                            "Z": -0.033808023
+                        },
+                        "localRotation": {
+                            "X": 0.05738289,
+                            "Y": -0.001104546,
+                            "Z": -0.019224219,
+                            "W": 0.99816656
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999998,
+                            "Z": 0.99999994
+                        },
+                        "parent": 45
+                    }
+                }
+            ]
+        },
+        {
+            "id": 56,
+            "name": "mixamorig:LeftHandIndex2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.208601,
+                            "Y": 3.8651934,
+                            "Z": -1.5497208e-06
+                        },
+                        "localRotation": {
+                            "X": 0.26753134,
+                            "Y": -1.7726603e-06,
+                            "Z": -6.224609e-07,
+                            "W": 0.96354914
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 55
+                    }
+                }
+            ]
+        },
+        {
+            "id": 58,
+            "name": "mixamorig:LeftHandIndex3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.08585358,
+                            "Y": 3.5011272,
+                            "Z": 4.7683716e-06
+                        },
+                        "localRotation": {
+                            "X": 0.050047446,
+                            "Y": -2.1633794e-07,
+                            "Z": 1.6260316e-07,
+                            "W": 0.9987469
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999998,
+                            "Z": 1.0
+                        },
+                        "parent": 57
+                    }
+                }
+            ]
+        },
+        {
+            "id": 60,
+            "name": "mixamorig:LeftHandIndex4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.122737885,
+                            "Y": 3.1388593,
+                            "Z": -9.536743e-06
+                        },
+                        "localRotation": {
+                            "X": 1.396984e-09,
+                            "Y": 9.220093e-08,
+                            "Z": -1.071021e-08,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 59
+                    }
+                }
+            ]
+        },
+        {
+            "id": 62,
+            "name": "mixamorig:LeftHandMiddle1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 63,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.4523735,
+                            "Y": 15.83323,
+                            "Z": -0.4222428
+                        },
+                        "localRotation": {
+                            "X": 0.059476867,
+                            "Y": 0.0016983779,
+                            "Z": 0.02849073,
+                            "W": 0.99782157
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 45
+                    }
+                }
+            ]
+        },
+        {
+            "id": 64,
+            "name": "mixamorig:LeftHandMiddle2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 65,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.15233421,
+                            "Y": 4.661791,
+                            "Z": 3.4570694e-06
+                        },
+                        "localRotation": {
+                            "X": 0.2605784,
+                            "Y": 1.9157924e-06,
+                            "Z": 4.2444543e-07,
+                            "W": 0.96545273
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 63
+                    }
+                }
+            ]
+        },
+        {
+            "id": 66,
+            "name": "mixamorig:LeftHandMiddle3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 67,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.07102585,
+                            "Y": 3.8827777,
+                            "Z": 6.198883e-06
+                        },
+                        "localRotation": {
+                            "X": 0.029933237,
+                            "Y": -4.6270216e-06,
+                            "Z": -2.478429e-07,
+                            "W": 0.9995519
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 65
+                    }
+                }
+            ]
+        },
+        {
+            "id": 68,
+            "name": "mixamorig:LeftHandMiddle4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.081308365,
+                            "Y": 3.384275,
+                            "Z": -1.4305115e-05
+                        },
+                        "localRotation": {
+                            "X": -3.7252907e-09,
+                            "Y": -9.313227e-09,
+                            "Z": -8.847566e-09,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999998,
+                            "Z": 0.99999994
+                        },
+                        "parent": 67
+                    }
+                }
+            ]
+        },
+        {
+            "id": 70,
+            "name": "mixamorig:LeftHandRing1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 71,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.6224661,
+                            "Y": 16.273117,
+                            "Z": -0.22635975
+                        },
+                        "localRotation": {
+                            "X": 0.06449065,
+                            "Y": 0.009750378,
+                            "Z": 0.1491738,
+                            "W": 0.98665756
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 45
+                    }
+                }
+            ]
+        },
+        {
+            "id": 72,
+            "name": "mixamorig:LeftHandRing2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 73,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.043229103,
+                            "Y": 3.8903136,
+                            "Z": 1.424551e-05
+                        },
+                        "localRotation": {
+                            "X": 0.28231522,
+                            "Y": 1.1586661e-06,
+                            "Z": 4.3152667e-07,
+                            "W": 0.9593217
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0000001
+                        },
+                        "parent": 71
+                    }
+                }
+            ]
+        },
+        {
+            "id": 74,
+            "name": "mixamorig:LeftHandRing3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 75,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.021723747,
+                            "Y": 3.5203443,
+                            "Z": 3.5762787e-06
+                        },
+                        "localRotation": {
+                            "X": 0.019918492,
+                            "Y": 6.5387167e-06,
+                            "Z": 2.7712346e-07,
+                            "W": 0.99980164
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 0.9999999
+                        },
+                        "parent": 73
+                    }
+                }
+            ]
+        },
+        {
+            "id": 76,
+            "name": "mixamorig:LeftHandRing4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 77,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.021504402,
+                            "Y": 2.8034904,
+                            "Z": -7.1525574e-06
+                        },
+                        "localRotation": {
+                            "X": 1.3303943e-06,
+                            "Y": -1.3042708e-05,
+                            "Z": -2.6170167e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 75
+                    }
+                }
+            ]
+        },
+        {
+            "id": 78,
+            "name": "mixamorig:LeftHandPinky1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 79,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -4.6003532,
+                            "Y": 14.736523,
+                            "Z": -0.58576375
+                        },
+                        "localRotation": {
+                            "X": 0.22040631,
+                            "Y": 0.03749582,
+                            "Z": 0.16346039,
+                            "W": 0.96088284
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0000001
+                        },
+                        "parent": 45
+                    }
+                }
+            ]
+        },
+        {
+            "id": 80,
+            "name": "mixamorig:LeftHandPinky2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 81,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.009039879,
+                            "Y": 3.436853,
+                            "Z": 4.7683716e-06
+                        },
+                        "localRotation": {
+                            "X": 0.28462046,
+                            "Y": -6.1301876e-07,
+                            "Z": 5.479279e-07,
+                            "W": 0.9586403
+                        },
+                        "localScale": {
+                            "X": 1.0000002,
+                            "Y": 1.0000002,
+                            "Z": 0.99999994
+                        },
+                        "parent": 79
+                    }
+                }
+            ]
+        },
+        {
+            "id": 82,
+            "name": "mixamorig:LeftHandPinky3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 83,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.022698402,
+                            "Y": 2.7680607,
+                            "Z": 1.0251999e-05
+                        },
+                        "localRotation": {
+                            "X": 0.0019307447,
+                            "Y": -4.978395e-06,
+                            "Z": -1.6670705e-07,
+                            "W": 0.99999815
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0000002,
+                            "Z": 0.99999994
+                        },
+                        "parent": 81
+                    }
+                }
+            ]
+        },
+        {
+            "id": 84,
+            "name": "mixamorig:LeftHandPinky4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 85,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.031731606,
+                            "Y": 2.3429089,
+                            "Z": -6.198883e-06
+                        },
+                        "localRotation": {
+                            "X": -6.519258e-09,
+                            "Y": 2.3376197e-07,
+                            "Z": -1.9464642e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 83
+                    }
+                }
+            ]
+        },
+        {
+            "id": 86,
+            "name": "mixamorig:RightShoulder",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 87,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 7.3450465,
+                            "Y": 12.434167,
+                            "Z": -0.19136882
+                        },
+                        "localRotation": {
+                            "X": 0.57730263,
+                            "Y": 0.40234637,
+                            "Z": -0.5923759,
+                            "W": 0.39233908
+                        },
+                        "localScale": {
+                            "X": 0.9999998,
+                            "Y": 1.0,
+                            "Z": 0.9999999
+                        },
+                        "parent": 31
+                    }
+                }
+            ]
+        },
+        {
+            "id": 88,
+            "name": "mixamorig:RightArm",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 89,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.1920929e-07,
+                            "Y": 16.13162,
+                            "Z": 1.2516975e-05
+                        },
+                        "localRotation": {
+                            "X": 0.22984433,
+                            "Y": -0.034622908,
+                            "Z": 0.008182247,
+                            "W": 0.972577
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 87
+                    }
+                }
+            ]
+        },
+        {
+            "id": 90,
+            "name": "mixamorig:RightForeArm",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 91,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.1920929e-06,
+                            "Y": 25.4792,
+                            "Z": -1.2099743e-05
+                        },
+                        "localRotation": {
+                            "X": -0.079352625,
+                            "Y": -0.0148123475,
+                            "Z": 0.18289843,
+                            "W": 0.9798122
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 89
+                    }
+                }
+            ]
+        },
+        {
+            "id": 92,
+            "name": "mixamorig:RightHand",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 93,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6.67572e-06,
+                            "Y": 26.282862,
+                            "Z": -5.364418e-06
+                        },
+                        "localRotation": {
+                            "X": 0.050709948,
+                            "Y": 0.07777674,
+                            "Z": 0.07653366,
+                            "W": 0.99273455
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 0.99999994,
+                            "Z": 0.9999998
+                        },
+                        "parent": 91
+                    }
+                }
+            ]
+        },
+        {
+            "id": 94,
+            "name": "mixamorig:RightHandThumb1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 95,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3.3099928,
+                            "Y": 5.460155,
+                            "Z": 1.7849214
+                        },
+                        "localRotation": {
+                            "X": 0.13107127,
+                            "Y": 0.03582298,
+                            "Z": 0.26119044,
+                            "W": 0.955676
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 93
+                    }
+                }
+            ]
+        },
+        {
+            "id": 96,
+            "name": "mixamorig:RightHandThumb2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 97,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.058210373,
+                            "Y": 5.303565,
+                            "Z": -9.059906e-06
+                        },
+                        "localRotation": {
+                            "X": 0.07349628,
+                            "Y": -4.4451176e-07,
+                            "Z": -3.5673003e-07,
+                            "W": 0.9972955
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 95
+                    }
+                }
+            ]
+        },
+        {
+            "id": 98,
+            "name": "mixamorig:RightHandThumb3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 99,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.49536514,
+                            "Y": 4.349781,
+                            "Z": 2.3841858e-06
+                        },
+                        "localRotation": {
+                            "X": -0.012277737,
+                            "Y": 1.788274e-07,
+                            "Z": 4.0701863e-07,
+                            "W": 0.99992466
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 97
+                    }
+                }
+            ]
+        },
+        {
+            "id": 100,
+            "name": "mixamorig:RightHandThumb4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 101,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.55358505,
+                            "Y": 3.605135,
+                            "Z": 1.5258789e-05
+                        },
+                        "localRotation": {
+                            "X": -5.8673322e-08,
+                            "Y": -7.0780516e-08,
+                            "Z": 1.4901161e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 99
+                    }
+                }
+            ]
+        },
+        {
+            "id": 102,
+            "name": "mixamorig:RightHandIndex1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 103,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -4.874977,
+                            "Y": 16.23779,
+                            "Z": -0.106096596
+                        },
+                        "localRotation": {
+                            "X": 0.084426634,
+                            "Y": -0.0011848487,
+                            "Z": -0.013997757,
+                            "W": 0.9963307
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 93
+                    }
+                }
+            ]
+        },
+        {
+            "id": 104,
+            "name": "mixamorig:RightHandIndex2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 105,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.15010643,
+                            "Y": 3.5869303,
+                            "Z": -1.2874603e-05
+                        },
+                        "localRotation": {
+                            "X": 0.25430676,
+                            "Y": -1.8874447e-07,
+                            "Z": 5.999378e-07,
+                            "W": 0.9671236
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.99999994,
+                            "Z": 0.99999994
+                        },
+                        "parent": 103
+                    }
+                }
+            ]
+        },
+        {
+            "id": 106,
+            "name": "mixamorig:RightHandIndex3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 107,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.09103203,
+                            "Y": 3.4222383,
+                            "Z": 1.9073486e-06
+                        },
+                        "localRotation": {
+                            "X": -0.017590733,
+                            "Y": -3.859998e-06,
+                            "Z": -6.538896e-07,
+                            "W": 0.99984527
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 0.99999994
+                        },
+                        "parent": 105
+                    }
+                }
+            ]
+        },
+        {
+            "id": 108,
+            "name": "mixamorig:RightHandIndex4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 109,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.05908394,
+                            "Y": 2.6939154,
+                            "Z": -4.7683716e-07
+                        },
+                        "localRotation": {
+                            "X": 9.499491e-08,
+                            "Y": -1.937151e-07,
+                            "Z": -2.8964132e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 107
+                    }
+                }
+            ]
+        },
+        {
+            "id": 110,
+            "name": "mixamorig:RightHandMiddle1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 111,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.3878899,
+                            "Y": 16.808964,
+                            "Z": -0.46826205
+                        },
+                        "localRotation": {
+                            "X": 0.086929254,
+                            "Y": -0.0016784569,
+                            "Z": -0.019236859,
+                            "W": 0.99602735
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 93
+                    }
+                }
+            ]
+        },
+        {
+            "id": 112,
+            "name": "mixamorig:RightHandMiddle2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 113,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.17995834,
+                            "Y": 4.228194,
+                            "Z": 1.0609627e-05
+                        },
+                        "localRotation": {
+                            "X": 0.24168493,
+                            "Y": -1.6508135e-06,
+                            "Z": -5.8738243e-07,
+                            "W": 0.9703548
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 111
+                    }
+                }
+            ]
+        },
+        {
+            "id": 114,
+            "name": "mixamorig:RightHandMiddle3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 115,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.07555771,
+                            "Y": 3.9038534,
+                            "Z": -2.2411346e-05
+                        },
+                        "localRotation": {
+                            "X": 0.048702534,
+                            "Y": 4.0262285e-06,
+                            "Z": 2.1142829e-07,
+                            "W": 0.99881333
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 113
+                    }
+                }
+            ]
+        },
+        {
+            "id": 116,
+            "name": "mixamorig:RightHandMiddle4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 117,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.10439682,
+                            "Y": 3.2918458,
+                            "Z": -7.6293945e-06
+                        },
+                        "localRotation": {
+                            "X": 3.259629e-09,
+                            "Y": 4.1909516e-08,
+                            "Z": 7.21775e-09,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 115
+                    }
+                }
+            ]
+        },
+        {
+            "id": 118,
+            "name": "mixamorig:RightHandRing1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 119,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.6680145,
+                            "Y": 15.97742,
+                            "Z": -0.12791812
+                        },
+                        "localRotation": {
+                            "X": 0.03470835,
+                            "Y": -0.0038562273,
+                            "Z": -0.1103731,
+                            "W": 0.99327654
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.9999999
+                        },
+                        "parent": 93
+                    }
+                }
+            ]
+        },
+        {
+            "id": 120,
+            "name": "mixamorig:RightHandRing2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 121,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.045610428,
+                            "Y": 3.991891,
+                            "Z": -4.887581e-06
+                        },
+                        "localRotation": {
+                            "X": 0.2845673,
+                            "Y": -1.5276646e-06,
+                            "Z": -3.2447693e-07,
+                            "W": 0.9586561
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 0.9999999
+                        },
+                        "parent": 119
+                    }
+                }
+            ]
+        },
+        {
+            "id": 122,
+            "name": "mixamorig:RightHandRing3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 123,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.020114899,
+                            "Y": 3.5819068,
+                            "Z": 3.4332275e-05
+                        },
+                        "localRotation": {
+                            "X": 0.04011305,
+                            "Y": -1.9899753e-06,
+                            "Z": -3.1131228e-07,
+                            "W": 0.99919516
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000002,
+                            "Z": 1.0
+                        },
+                        "parent": 121
+                    }
+                }
+            ]
+        },
+        {
+            "id": 124,
+            "name": "mixamorig:RightHandRing4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 125,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.025493622,
+                            "Y": 3.1813903,
+                            "Z": 1.04904175e-05
+                        },
+                        "localRotation": {
+                            "X": 7.078052e-08,
+                            "Y": -1.0253863e-06,
+                            "Z": -2.8638172e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 0.9999999,
+                            "Z": 0.99999994
+                        },
+                        "parent": 123
+                    }
+                }
+            ]
+        },
+        {
+            "id": 126,
+            "name": "mixamorig:RightHandPinky1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 127,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.5948753,
+                            "Y": 14.948486,
+                            "Z": -0.5699979
+                        },
+                        "localRotation": {
+                            "X": 0.19469878,
+                            "Y": -0.043051124,
+                            "Z": -0.2115698,
+                            "W": 0.95680577
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 93
+                    }
+                }
+            ]
+        },
+        {
+            "id": 128,
+            "name": "mixamorig:RightHandPinky2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 129,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.12236261,
+                            "Y": 3.6669488,
+                            "Z": -2.861023e-06
+                        },
+                        "localRotation": {
+                            "X": 0.33072615,
+                            "Y": -8.63499e-09,
+                            "Z": 1.04113326e-07,
+                            "W": 0.9437268
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 127
+                    }
+                }
+            ]
+        },
+        {
+            "id": 130,
+            "name": "mixamorig:RightHandPinky3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 131,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.05209446,
+                            "Y": 2.7934728,
+                            "Z": 5.4836273e-06
+                        },
+                        "localRotation": {
+                            "X": 0.019867787,
+                            "Y": -1.6452734e-06,
+                            "Z": 7.591778e-08,
+                            "W": 0.99980265
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999999,
+                            "Z": 0.9999998
+                        },
+                        "parent": 129
+                    }
+                }
+            ]
+        },
+        {
+            "id": 132,
+            "name": "mixamorig:RightHandPinky4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 133,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.07026911,
+                            "Y": 2.335292,
+                            "Z": 1.3113022e-05
+                        },
+                        "localRotation": {
+                            "X": -4.2200548e-07,
+                            "Y": -4.9127266e-07,
+                            "Z": 8.9872614e-08,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000002,
+                            "Z": 1.0
+                        },
+                        "parent": 131
+                    }
+                }
+            ]
+        },
+        {
+            "id": 134,
+            "name": "mixamorig:LeftUpLeg",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 135,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -13.078394,
+                            "Y": -5.703041,
+                            "Z": -0.36603227
+                        },
+                        "localRotation": {
+                            "X": -0.0013739452,
+                            "Y": 0.022656035,
+                            "Z": 0.9979108,
+                            "W": 0.060489226
+                        },
+                        "localScale": {
+                            "X": 0.99999714,
+                            "Y": 0.9999998,
+                            "Z": 0.9999996
+                        },
+                        "parent": 25
+                    }
+                }
+            ]
+        },
+        {
+            "id": 136,
+            "name": "mixamorig:LeftLeg",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 137,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2873206e-06,
+                            "Y": 49.982864,
+                            "Z": 3.0115234e-07
+                        },
+                        "localRotation": {
+                            "X": -0.12565878,
+                            "Y": 6.486928e-05,
+                            "Z": -0.0005198977,
+                            "W": 0.9920734
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 0.99999994
+                        },
+                        "parent": 135
+                    }
+                }
+            ]
+        },
+        {
+            "id": 138,
+            "name": "mixamorig:LeftFoot",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 139,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -4.198402e-06,
+                            "Y": 43.203133,
+                            "Z": 1.2516975e-06
+                        },
+                        "localRotation": {
+                            "X": 0.4731257,
+                            "Y": 0.021259962,
+                            "Z": -0.01142166,
+                            "W": 0.8806643
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 137
+                    }
+                }
+            ]
+        },
+        {
+            "id": 140,
+            "name": "mixamorig:LeftToeBase",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 141,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.157424e-06,
+                            "Y": 25.137516,
+                            "Z": 4.6491623e-06
+                        },
+                        "localRotation": {
+                            "X": 0.3696421,
+                            "Y": 0.04504433,
+                            "Z": -0.01794465,
+                            "W": 0.9279083
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 139
+                    }
+                }
+            ]
+        },
+        {
+            "id": 142,
+            "name": "mixamorig:LeftToe_End",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 143,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.9020011e-06,
+                            "Y": 8.927574,
+                            "Z": -8.6426735e-07
+                        },
+                        "localRotation": {
+                            "X": 1.8626451e-08,
+                            "Y": 4.3492759e-07,
+                            "Z": -1.28056845e-08,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 141
+                    }
+                }
+            ]
+        },
+        {
+            "id": 144,
+            "name": "mixamorig:RightUpLeg",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 145,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 13.078395,
+                            "Y": -5.703041,
+                            "Z": -0.2505714
+                        },
+                        "localRotation": {
+                            "X": -0.0011373089,
+                            "Y": -0.018752445,
+                            "Z": -0.99799055,
+                            "W": 0.060514014
+                        },
+                        "localScale": {
+                            "X": 0.99998486,
+                            "Y": 0.9999999,
+                            "Z": 0.9999984
+                        },
+                        "parent": 25
+                    }
+                }
+            ]
+        },
+        {
+            "id": 146,
+            "name": "mixamorig:RightLeg",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 147,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.553155e-06,
+                            "Y": 49.966854,
+                            "Z": 5.461916e-07
+                        },
+                        "localRotation": {
+                            "X": -0.11753697,
+                            "Y": -4.297897e-05,
+                            "Z": 0.00036337142,
+                            "W": 0.99306846
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999998,
+                            "Z": 1.0
+                        },
+                        "parent": 145
+                    }
+                }
+            ]
+        },
+        {
+            "id": 148,
+            "name": "mixamorig:RightFoot",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 149,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.1026859e-06,
+                            "Y": 43.128048,
+                            "Z": 1.7881393e-07
+                        },
+                        "localRotation": {
+                            "X": 0.47311795,
+                            "Y": -0.02149368,
+                            "Z": 0.011547296,
+                            "W": 0.8806612
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 147
+                    }
+                }
+            ]
+        },
+        {
+            "id": 150,
+            "name": "mixamorig:RightToeBase",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 151,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.7881393e-07,
+                            "Y": 25.352,
+                            "Z": -4.529953e-06
+                        },
+                        "localRotation": {
+                            "X": 0.36591232,
+                            "Y": -0.044645246,
+                            "Z": 0.017577695,
+                            "W": 0.92941165
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0000001
+                        },
+                        "parent": 149
+                    }
+                }
+            ]
+        },
+        {
+            "id": 152,
+            "name": "mixamorig:RightToe_End",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 153,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.6151538e-06,
+                            "Y": 9.050757,
+                            "Z": -2.682209e-07
+                        },
+                        "localRotation": {
+                            "X": 3.282912e-08,
+                            "Y": -1.5507685e-06,
+                            "Z": 8.879578e-08,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 0.99999994
+                        },
+                        "parent": 151
+                    }
+                }
+            ]
+        },
+        {
+            "id": 154,
+            "name": "Text1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 155,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.8000001,
+                            "Y": 0.3,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.7071068,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.7071068
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 20
+                    }
+                }
+            ]
+        },
+        {
+            "id": 156,
+            "name": "Text",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 157,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.8000001,
+                            "Y": 0.6,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.7071068,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.7071068
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 20
+                    }
+                }
+            ]
+        },
+        {
+            "id": 158,
+            "name": "Armature",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 159,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 20
+                    }
+                },
+                {
+                    "type": "SkinnedMeshRendererComponent",
+                    "id": 160,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Master/MasterChief_v5.7_walk_scl.gltf#skin0",
+                        "materials": [],
+                        "skeleton": 23
+                    }
+                }
+            ]
+        },
+        {
+            "id": 161,
+            "name": "SiegeTank_v2.xxx",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 162,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.4,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -0.0,
+                            "Y": -0.9999999,
+                            "Z": 0.0,
+                            "W": -1.1920929e-07
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "AnimatorComponent",
+                    "id": 163,
+                    "properties": {
+                        "enabled": true,
+                        "clip": "Content/Models/Tank/Armature_Stand Work Start_full.aclip"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 164,
+            "name": "Text1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 165,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.9998746,
+                            "Y": 0.18928015,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.7071068,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.7071068
+                        },
+                        "localScale": {
+                            "X": 0.66624516,
+                            "Y": 0.66624516,
+                            "Z": 0.66624516
+                        },
+                        "parent": 162
+                    }
+                }
+            ]
+        },
+        {
+            "id": 166,
+            "name": "Text",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 167,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.9998746,
+                            "Y": 0.38915366,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.7071068,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 0.7071068
+                        },
+                        "localScale": {
+                            "X": 0.66624516,
+                            "Y": 0.66624516,
+                            "Z": 0.66624516
+                        },
+                        "parent": 162
+                    }
+                }
+            ]
+        },
+        {
+            "id": 168,
+            "name": "Sketchfab_model",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 169,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.026062945,
+                            "Y": 0.0,
+                            "Z": 0.08470457
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.53256947,
+                            "Z": -0.0,
+                            "W": 0.8463863
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 162
+                    }
+                }
+            ]
+        },
+        {
+            "id": 170,
+            "name": "SC2_SiegeTank",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 171,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 169
+                    }
+                }
+            ]
+        },
+        {
+            "id": 172,
+            "name": "Armature",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 173,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 171
+                    }
+                }
+            ]
+        },
+        {
+            "id": 174,
+            "name": "Mesh.001_88",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 175,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 176,
+            "name": "Mesh.002_89",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 177,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 178,
+            "name": "Mesh.005_90",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 179,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 180,
+            "name": "Mesh_87",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 181,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 182,
+            "name": "RootJoint",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 183,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3.8148246,
+                            "Y": -3.5527137e-15,
+                            "Z": -0.78304315
+                        },
+                        "localRotation": {
+                            "X": -4.3325493e-08,
+                            "Y": -7.450581e-09,
+                            "Z": 4.6287836e-16,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 184,
+            "name": "Bone.Dummy02_54",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 185,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.9598563,
+                            "Y": 0.8256591,
+                            "Z": 0.77728015
+                        },
+                        "localRotation": {
+                            "X": -0.6890406,
+                            "Y": 0.15881757,
+                            "Z": 0.15881748,
+                            "W": 0.6890406
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 186,
+            "name": "Bone.Plane02_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 187,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.09344544,
+                            "Y": -0.36299336,
+                            "Z": -0.09275584
+                        },
+                        "localRotation": {
+                            "X": -8.807533e-08,
+                            "Y": -4.5176385e-10,
+                            "Z": 0.00030158987,
+                            "W": 0.99999994
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 188,
+            "name": "Bone.Object104_0",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 189,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.105450235,
+                            "Y": -0.1733435,
+                            "Z": -0.05964315
+                        },
+                        "localRotation": {
+                            "X": 0.8644722,
+                            "Y": 0.0034594692,
+                            "Z": 0.0029034938,
+                            "W": 0.50266033
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 0.99999976
+                        },
+                        "parent": 187
+                    }
+                }
+            ]
+        },
+        {
+            "id": 190,
+            "name": "Bone.Plane03_5",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 191,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0052610785,
+                            "Y": -0.13522422,
+                            "Z": 0.034476507
+                        },
+                        "localRotation": {
+                            "X": 2.6767633e-08,
+                            "Y": -1.347404e-08,
+                            "Z": -5.125883e-06,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 192,
+            "name": "Bone._SMOKE__2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 193,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.0828362,
+                            "Y": 0.15021047,
+                            "Z": -0.21093096
+                        },
+                        "localRotation": {
+                            "X": 9.0142185e-11,
+                            "Y": 7.3563315e-09,
+                            "Z": -0.012252757,
+                            "W": 0.99992496
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 191
+                    }
+                }
+            ]
+        },
+        {
+            "id": 194,
+            "name": "Bone.Star2Part01exhaust07_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 195,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.3123195,
+                            "Y": -0.06984588,
+                            "Z": -0.5919576
+                        },
+                        "localRotation": {
+                            "X": 0.626903,
+                            "Y": -0.03881558,
+                            "Z": -0.3860559,
+                            "W": 0.6756085
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 191
+                    }
+                }
+            ]
+        },
+        {
+            "id": 196,
+            "name": "Bone._SMOKE_03_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 197,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.1198387,
+                            "Y": 0.41929826,
+                            "Z": -0.4254877
+                        },
+                        "localRotation": {
+                            "X": 0.12923762,
+                            "Y": -0.11984089,
+                            "Z": -0.66930246,
+                            "W": 0.72178257
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 191
+                    }
+                }
+            ]
+        },
+        {
+            "id": 198,
+            "name": "Bone.Dummy01_10",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 199,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.034024052,
+                            "Y": -0.7182965,
+                            "Z": -0.48118696
+                        },
+                        "localRotation": {
+                            "X": -1.7069683e-15,
+                            "Y": -4.2880544e-10,
+                            "Z": 6.7066867e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 200,
+            "name": "Bone.Line17_6",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 201,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0029984452,
+                            "Y": -0.35703555,
+                            "Z": -0.13378893
+                        },
+                        "localRotation": {
+                            "X": 2.1825395e-08,
+                            "Y": -1.613182e-11,
+                            "Z": 0.00030169403,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 199
+                    }
+                }
+            ]
+        },
+        {
+            "id": 202,
+            "name": "Bone.Line18_7",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 203,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0049345717,
+                            "Y": -0.3687647,
+                            "Z": 0.02271271
+                        },
+                        "localRotation": {
+                            "X": 0.5001508,
+                            "Y": -0.49984923,
+                            "Z": 0.5001508,
+                            "W": 0.49984914
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 199
+                    }
+                }
+            ]
+        },
+        {
+            "id": 204,
+            "name": "Bone.Cylinder01_8",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 205,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.3669865,
+                            "Y": -0.45488763,
+                            "Z": 0.029102748
+                        },
+                        "localRotation": {
+                            "X": 0.4999353,
+                            "Y": -0.5016408,
+                            "Z": 0.49835926,
+                            "W": 0.50005925
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 199
+                    }
+                }
+            ]
+        },
+        {
+            "id": 206,
+            "name": "Bone.Line14_9",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 207,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.024914345,
+                            "Y": -0.3370504,
+                            "Z": -0.048076265
+                        },
+                        "localRotation": {
+                            "X": -3.2738072e-08,
+                            "Y": -3.2604728e-11,
+                            "Z": 0.00030167928,
+                            "W": 0.99999994
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 199
+                    }
+                }
+            ]
+        },
+        {
+            "id": 208,
+            "name": "Bone.Dummy03_23",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 209,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.03127798,
+                            "Y": -0.0056996504,
+                            "Z": 0.25800657
+                        },
+                        "localRotation": {
+                            "X": 1.00510675e-07,
+                            "Y": -1.3474136e-08,
+                            "Z": -2.682209e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 210,
+            "name": "Bone.Dummy04_18",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 211,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.14145155,
+                            "Y": 0.013341999,
+                            "Z": -0.042342436
+                        },
+                        "localRotation": {
+                            "X": -6.073038e-08,
+                            "Y": 5.6038507e-14,
+                            "Z": -7.4505806e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 209
+                    }
+                }
+            ]
+        },
+        {
+            "id": 212,
+            "name": "Bone.Object09_12",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 213,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.63779086,
+                            "Y": -0.29135776,
+                            "Z": -0.01410314
+                        },
+                        "localRotation": {
+                            "X": 1.4408747e-08,
+                            "Y": 1.3053263e-08,
+                            "Z": 0.0003031843,
+                            "W": 0.99999994
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 211
+                    }
+                }
+            ]
+        },
+        {
+            "id": 214,
+            "name": "Bone.Object95_11",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 215,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.22834103,
+                            "Y": 0.16479425,
+                            "Z": 0.072507374
+                        },
+                        "localRotation": {
+                            "X": -1.984524e-15,
+                            "Y": 7.306758e-12,
+                            "Z": 0.00060616306,
+                            "W": 0.9999998
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 213
+                    }
+                }
+            ]
+        },
+        {
+            "id": 216,
+            "name": "Bone.Object10_14",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 217,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6849027,
+                            "Y": 0.25234106,
+                            "Z": -0.014103249
+                        },
+                        "localRotation": {
+                            "X": 1.4457443e-08,
+                            "Y": -8.204246e-12,
+                            "Z": 0.00030303525,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 211
+                    }
+                }
+            ]
+        },
+        {
+            "id": 218,
+            "name": "Bone.Object94_13",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 219,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.17988747,
+                            "Y": -0.16964227,
+                            "Z": 0.07250752
+                        },
+                        "localRotation": {
+                            "X": -7.3552275e-16,
+                            "Y": 1.3061495e-08,
+                            "Z": 2.681045e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 217
+                    }
+                }
+            ]
+        },
+        {
+            "id": 220,
+            "name": "Bone.default04_17",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 221,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.021625992,
+                            "Y": -0.01813584,
+                            "Z": -0.012004272
+                        },
+                        "localRotation": {
+                            "X": -0.0010818589,
+                            "Y": 0.006261293,
+                            "Z": 0.0021808124,
+                            "W": 0.9999774
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 211
+                    }
+                }
+            ]
+        },
+        {
+            "id": 222,
+            "name": "Bone.objObject21_15",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 223,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.0270638,
+                            "Y": 0.000888939,
+                            "Z": 0.029497223
+                        },
+                        "localRotation": {
+                            "X": 8.993084e-09,
+                            "Y": -1.5411388e-08,
+                            "Z": -7.1534987e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 221
+                    }
+                }
+            ]
+        },
+        {
+            "id": 224,
+            "name": "Bone.Star2Part01exhaust08_16",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 225,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.1259222,
+                            "Y": -0.3983343,
+                            "Z": -0.002459976
+                        },
+                        "localRotation": {
+                            "X": 0.51607364,
+                            "Y": -0.16830988,
+                            "Z": -0.042261474,
+                            "W": 0.8387811
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 221
+                    }
+                }
+            ]
+        },
+        {
+            "id": 226,
+            "name": "Bone.Object15_20",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 227,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.20084447,
+                            "Y": -0.23480345,
+                            "Z": -0.020062082
+                        },
+                        "localRotation": {
+                            "X": -4.7612946e-08,
+                            "Y": 1.3045252e-08,
+                            "Z": 2.3841858e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 209
+                    }
+                }
+            ]
+        },
+        {
+            "id": 228,
+            "name": "Bone._SMOKE_02_19",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 229,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.83297443,
+                            "Y": 0.47237635,
+                            "Z": -0.040588655
+                        },
+                        "localRotation": {
+                            "X": -0.0063261613,
+                            "Y": 0.52937424,
+                            "Z": -0.010136404,
+                            "W": 0.84830433
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 227
+                    }
+                }
+            ]
+        },
+        {
+            "id": 230,
+            "name": "Bone.Object16_22",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 231,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.20084435,
+                            "Y": -0.070802696,
+                            "Z": -0.020062096
+                        },
+                        "localRotation": {
+                            "X": -4.6150376e-08,
+                            "Y": -1.901257e-14,
+                            "Z": 2.3841858e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 209
+                    }
+                }
+            ]
+        },
+        {
+            "id": 232,
+            "name": "Bone._SMOKE_01_21",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 233,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.83297336,
+                            "Y": -0.1512554,
+                            "Z": -0.040588196
+                        },
+                        "localRotation": {
+                            "X": -0.006325914,
+                            "Y": 0.5293742,
+                            "Z": -0.010136722,
+                            "W": 0.84830433
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 0.9999999
+                        },
+                        "parent": 231
+                    }
+                }
+            ]
+        },
+        {
+            "id": 234,
+            "name": "Bone.Box01_26",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 235,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.8548144,
+                            "Y": -0.33292383,
+                            "Z": -0.5374507
+                        },
+                        "localRotation": {
+                            "X": 6.4243906e-08,
+                            "Y": -4.288612e-10,
+                            "Z": -1.9359868e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 236,
+            "name": "Bone.Object02_25",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 237,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.11520434,
+                            "Y": -0.22101219,
+                            "Z": 0.39125276
+                        },
+                        "localRotation": {
+                            "X": 6.3837824e-16,
+                            "Y": 3.650729e-12,
+                            "Z": 0.00030261793,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 235
+                    }
+                }
+            ]
+        },
+        {
+            "id": 238,
+            "name": "Bone.MRN_Mesh_Chest_Light_24",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 239,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.26170218,
+                            "Y": -0.22414245,
+                            "Z": 0.009137886
+                        },
+                        "localRotation": {
+                            "X": -0.2584351,
+                            "Y": 0.74099857,
+                            "Z": 0.3915049,
+                            "W": 0.48047507
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0000001
+                        },
+                        "parent": 237
+                    }
+                }
+            ]
+        },
+        {
+            "id": 240,
+            "name": "Bone.Box13_27",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 241,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.8125536,
+                            "Y": -0.33292627,
+                            "Z": -0.53745055
+                        },
+                        "localRotation": {
+                            "X": 2.4077962e-14,
+                            "Y": -1.3474116e-08,
+                            "Z": 1.7136334e-06,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 242,
+            "name": "Bone.Box11_30",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 243,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.85481334,
+                            "Y": 0.29813614,
+                            "Z": -0.5374506
+                        },
+                        "localRotation": {
+                            "X": -1.3128387e-14,
+                            "Y": -1.3474169e-08,
+                            "Z": -9.3865674e-07,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 244,
+            "name": "Bone.Object11_29",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 245,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.00268073,
+                            "Y": 0.28275448,
+                            "Z": -0.0064006965
+                        },
+                        "localRotation": {
+                            "X": -3.1259667e-08,
+                            "Y": -8.6033666e-11,
+                            "Z": 0.00030358648,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 243
+                    }
+                }
+            ]
+        },
+        {
+            "id": 246,
+            "name": "Bone.MRN_Mesh_Chest_Light01_28",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 247,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.039129015,
+                            "Y": 0.18176283,
+                            "Z": 0.29661307
+                        },
+                        "localRotation": {
+                            "X": 0.19492835,
+                            "Y": 0.7450297,
+                            "Z": -0.039092325,
+                            "W": 0.63671464
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999976,
+                            "Z": 0.9999999
+                        },
+                        "parent": 245
+                    }
+                }
+            ]
+        },
+        {
+            "id": 248,
+            "name": "Bone.Box12_31",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 249,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.81255305,
+                            "Y": 0.29813457,
+                            "Z": -0.5374505
+                        },
+                        "localRotation": {
+                            "X": -2.0053403e-14,
+                            "Y": -1.0212792e-08,
+                            "Z": -1.9221334e-06,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 250,
+            "name": "Bone.Line20_32",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 251,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.010359583,
+                            "Y": 1.0104799,
+                            "Z": -0.5292632
+                        },
+                        "localRotation": {
+                            "X": 3.0972451e-12,
+                            "Y": -1.0221354e-08,
+                            "Z": 0.00030282678,
+                            "W": 0.99999994
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 252,
+            "name": "Bone.Box14_44",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 253,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.03585628,
+                            "Y": -0.2824773,
+                            "Z": -0.62796193
+                        },
+                        "localRotation": {
+                            "X": -0.15221442,
+                            "Y": 1.7664217e-07,
+                            "Z": -2.4276235e-07,
+                            "W": 0.9883475
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 254,
+            "name": "Bone.Box04_43",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 255,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.0852607e-07,
+                            "Y": -0.2788151,
+                            "Z": 0.046294104
+                        },
+                        "localRotation": {
+                            "X": -0.034644563,
+                            "Y": 2.9970354e-07,
+                            "Z": 1.1302305e-05,
+                            "W": 0.9993997
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999998,
+                            "Z": 0.99999994
+                        },
+                        "parent": 253
+                    }
+                }
+            ]
+        },
+        {
+            "id": 256,
+            "name": "Bone.wwwwww01_34",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 257,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.008183276,
+                            "Y": 0.013639743,
+                            "Z": -0.011517427
+                        },
+                        "localRotation": {
+                            "X": -0.0006065199,
+                            "Y": 0.0023976548,
+                            "Z": 0.005385382,
+                            "W": 0.9999824
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 0.9999999
+                        },
+                        "parent": 255
+                    }
+                }
+            ]
+        },
+        {
+            "id": 258,
+            "name": "Bone.Star2Part01exhaust06_33",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 259,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.116088025,
+                            "Y": -0.13032797,
+                            "Z": 0.012531397
+                        },
+                        "localRotation": {
+                            "X": 0.6900576,
+                            "Y": -0.037698425,
+                            "Z": -0.47456422,
+                            "W": 0.54514974
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 257
+                    }
+                }
+            ]
+        },
+        {
+            "id": 260,
+            "name": "Bone.Box03_42",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 261,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0014767953,
+                            "Y": -0.31013095,
+                            "Z": -0.13697366
+                        },
+                        "localRotation": {
+                            "X": 0.91447634,
+                            "Y": -4.410061e-06,
+                            "Z": 1.8126011e-06,
+                            "W": 0.40463936
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.99999994,
+                            "Z": 0.99999976
+                        },
+                        "parent": 255
+                    }
+                }
+            ]
+        },
+        {
+            "id": 262,
+            "name": "Bone.Object05_35",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 263,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.003563633,
+                            "Y": -0.055498622,
+                            "Z": -0.050519116
+                        },
+                        "localRotation": {
+                            "X": 0.004450647,
+                            "Y": 0.01541562,
+                            "Z": 0.019864788,
+                            "W": 0.99967396
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 261
+                    }
+                }
+            ]
+        },
+        {
+            "id": 264,
+            "name": "Bone.Object04_38",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 265,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.002342309,
+                            "Y": -0.0630559,
+                            "Z": -0.11468577
+                        },
+                        "localRotation": {
+                            "X": -1.752135e-06,
+                            "Y": 1.0676363e-08,
+                            "Z": 0.004836527,
+                            "W": 0.9999883
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 261
+                    }
+                }
+            ]
+        },
+        {
+            "id": 266,
+            "name": "Bone.wwwwwww02_36",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 267,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.15457809,
+                            "Y": -0.011658791,
+                            "Z": -0.14318475
+                        },
+                        "localRotation": {
+                            "X": -0.031244228,
+                            "Y": -0.8106431,
+                            "Z": 0.035152167,
+                            "W": 0.58364886
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999976,
+                            "Z": 1.0
+                        },
+                        "parent": 265
+                    }
+                }
+            ]
+        },
+        {
+            "id": 268,
+            "name": "Bone.Object17_37",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 269,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.20054235,
+                            "Y": -0.0094338115,
+                            "Z": -0.14793046
+                        },
+                        "localRotation": {
+                            "X": 0.20164147,
+                            "Y": 0.85429597,
+                            "Z": -0.03788494,
+                            "W": 0.47758135
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999997,
+                            "Z": 1.0000001
+                        },
+                        "parent": 265
+                    }
+                }
+            ]
+        },
+        {
+            "id": 270,
+            "name": "Bone.Dummy05_41",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 271,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0026875657,
+                            "Y": -0.13375212,
+                            "Z": -0.32315376
+                        },
+                        "localRotation": {
+                            "X": 0.21701834,
+                            "Y": -1.4867169e-06,
+                            "Z": 7.0727287e-06,
+                            "W": 0.9761675
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 261
+                    }
+                }
+            ]
+        },
+        {
+            "id": 272,
+            "name": "Bone.Object18_39",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 273,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.18302757,
+                            "Y": -0.0026328096,
+                            "Z": 0.018744545
+                        },
+                        "localRotation": {
+                            "X": -0.90489304,
+                            "Y": -0.14887966,
+                            "Z": 0.087820075,
+                            "W": 0.3889615
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.99999976,
+                            "Z": 0.99999964
+                        },
+                        "parent": 271
+                    }
+                }
+            ]
+        },
+        {
+            "id": 274,
+            "name": "Bone.Object107_40",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 275,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.14773694,
+                            "Y": 0.007974502,
+                            "Z": 0.01863933
+                        },
+                        "localRotation": {
+                            "X": -0.7845481,
+                            "Y": 0.49980927,
+                            "Z": 0.1775856,
+                            "W": 0.32115158
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 0.99999976,
+                            "Z": 1.0
+                        },
+                        "parent": 271
+                    }
+                }
+            ]
+        },
+        {
+            "id": 276,
+            "name": "Bone.Box28_53",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 277,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.035856567,
+                            "Y": 0.3495692,
+                            "Z": -0.6334899
+                        },
+                        "localRotation": {
+                            "X": -0.00016492917,
+                            "Y": 0.15221505,
+                            "Z": -0.9883468,
+                            "W": 0.001070515
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999976,
+                            "Z": 0.999999
+                        },
+                        "parent": 185
+                    }
+                }
+            ]
+        },
+        {
+            "id": 278,
+            "name": "Bone.Box29_52",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 279,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.3401038e-06,
+                            "Y": -0.27881482,
+                            "Z": 0.04629374
+                        },
+                        "localRotation": {
+                            "X": -0.034645215,
+                            "Y": 3.1306712e-08,
+                            "Z": -4.0361974e-07,
+                            "W": 0.99939966
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000002,
+                            "Z": 1.0
+                        },
+                        "parent": 277
+                    }
+                }
+            ]
+        },
+        {
+            "id": 280,
+            "name": "Bone.Box30_51",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 281,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0014693525,
+                            "Y": -0.3101317,
+                            "Z": -0.13697492
+                        },
+                        "localRotation": {
+                            "X": 0.91447604,
+                            "Y": 8.092447e-07,
+                            "Z": -3.2597154e-07,
+                            "W": 0.40464005
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 279
+                    }
+                }
+            ]
+        },
+        {
+            "id": 282,
+            "name": "Bone.Dummy08_49",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 283,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0026818656,
+                            "Y": -0.13375089,
+                            "Z": -0.32315487
+                        },
+                        "localRotation": {
+                            "X": 0.21701983,
+                            "Y": 2.2696398e-07,
+                            "Z": 7.7956054e-07,
+                            "W": 0.9761672
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 281
+                    }
+                }
+            ]
+        },
+        {
+            "id": 284,
+            "name": "Bone.wwwwwwww03_45",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 285,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.14399073,
+                            "Y": 0.00040422106,
+                            "Z": 0.024333755
+                        },
+                        "localRotation": {
+                            "X": -0.91601914,
+                            "Y": 0.043675788,
+                            "Z": -0.06267031,
+                            "W": 0.3937941
+                        },
+                        "localScale": {
+                            "X": 0.9999998,
+                            "Y": 1.0000001,
+                            "Z": 1.0000002
+                        },
+                        "parent": 283
+                    }
+                }
+            ]
+        },
+        {
+            "id": 286,
+            "name": "Bone.Object99_46",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 287,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.19069487,
+                            "Y": 0.11360762,
+                            "Z": -0.01575451
+                        },
+                        "localRotation": {
+                            "X": 0.110196374,
+                            "Y": 0.8682715,
+                            "Z": 0.06587223,
+                            "W": 0.47918916
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 283
+                    }
+                }
+            ]
+        },
+        {
+            "id": 288,
+            "name": "Bone.Object100_47",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 289,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.16182743,
+                            "Y": 0.005424004,
+                            "Z": 0.024333483
+                        },
+                        "localRotation": {
+                            "X": -0.9145856,
+                            "Y": -0.067319915,
+                            "Z": 0.052675843,
+                            "W": 0.39525503
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 0.99999994
+                        },
+                        "parent": 283
+                    }
+                }
+            ]
+        },
+        {
+            "id": 290,
+            "name": "Bone.wwwwwww03_48",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 291,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.17123474,
+                            "Y": 0.1208632,
+                            "Z": -0.015796784
+                        },
+                        "localRotation": {
+                            "X": 0.003923832,
+                            "Y": -0.8116638,
+                            "Z": 0.0028238068,
+                            "W": 0.5841049
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 283
+                    }
+                }
+            ]
+        },
+        {
+            "id": 292,
+            "name": "Bone.Object98_50",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 293,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0027815292,
+                            "Y": -0.043940276,
+                            "Z": -0.051768303
+                        },
+                        "localRotation": {
+                            "X": -1.0171358e-06,
+                            "Y": -1.0124223e-08,
+                            "Z": 0.0048352466,
+                            "W": 0.9999883
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 281
+                    }
+                }
+            ]
+        },
+        {
+            "id": 294,
+            "name": "Bone.Box15_55",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 295,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.21239,
+                            "Y": 0.29611468,
+                            "Z": 0.9503402
+                        },
+                        "localRotation": {
+                            "X": -0.834164,
+                            "Y": 0.11610049,
+                            "Z": 0.19226666,
+                            "W": 0.5037108
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000002
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 296,
+            "name": "Bone.Box21_56",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 297,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.841217,
+                            "Y": 0.17179298,
+                            "Z": 1.1269801
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.116100535,
+                            "Z": 0.19226666,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 298,
+            "name": "Bone.Box22_57",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 299,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.862572,
+                            "Y": 0.2575271,
+                            "Z": 1.3192505
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.11610054,
+                            "Z": 0.19226661,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 300,
+            "name": "Bone.Box23_58",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 301,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.9405026,
+                            "Y": 0.27342653,
+                            "Z": 1.4405988
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.11610049,
+                            "Z": 0.19226663,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 302,
+            "name": "Bone.Box24_59",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 303,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.01499,
+                            "Y": 0.2815578,
+                            "Z": 1.5971814
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.116100505,
+                            "Z": 0.19226669,
+                            "W": 0.5037106
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0000002
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 304,
+            "name": "Bone.Box25_60",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 305,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.088064,
+                            "Y": 0.3329618,
+                            "Z": 1.6862962
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.11610053,
+                            "Z": 0.19226663,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 306,
+            "name": "Bone.Box26_61",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 307,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.163001,
+                            "Y": 0.32287955,
+                            "Z": 1.7392607
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.1161004,
+                            "Z": 0.19226687,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 308,
+            "name": "Bone.Box27_62",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 309,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.262039,
+                            "Y": 0.31496596,
+                            "Z": 1.7114921
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.116100535,
+                            "Z": 0.19226661,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 310,
+            "name": "Bone.Box05_63",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 311,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.3713636,
+                            "Y": 0.28459215,
+                            "Z": 1.0959291
+                        },
+                        "localRotation": {
+                            "X": -0.834164,
+                            "Y": 0.1161006,
+                            "Z": 0.19226675,
+                            "W": 0.50371075
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 312,
+            "name": "Bone.Box16_64",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 313,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.4308558,
+                            "Y": 0.2985921,
+                            "Z": 1.2665883
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.11610055,
+                            "Z": 0.19226667,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 314,
+            "name": "Bone.Box17_65",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 315,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.506753,
+                            "Y": 0.25547862,
+                            "Z": 1.4224848
+                        },
+                        "localRotation": {
+                            "X": -0.8341641,
+                            "Y": 0.11610058,
+                            "Z": 0.19226654,
+                            "W": 0.5037107
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 316,
+            "name": "Bone.Box18_66",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 317,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.5294065,
+                            "Y": 0.26600242,
+                            "Z": 1.5290858
+                        },
+                        "localRotation": {
+                            "X": -0.834164,
+                            "Y": 0.11610056,
+                            "Z": 0.19226675,
+                            "W": 0.50371075
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 318,
+            "name": "Bone.Box19_67",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 319,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.5184326,
+                            "Y": 0.2611773,
+                            "Z": 1.5932273
+                        },
+                        "localRotation": {
+                            "X": -0.834164,
+                            "Y": 0.11610056,
+                            "Z": 0.19226675,
+                            "W": 0.50371075
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 320,
+            "name": "Bone.Box31_68",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 321,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.454397,
+                            "Y": 0.27906418,
+                            "Z": 0.43039185
+                        },
+                        "localRotation": {
+                            "X": -0.49958506,
+                            "Y": 0.49862516,
+                            "Z": 0.50316143,
+                            "W": 0.49861455
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 322,
+            "name": "Bone.Box32_69",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 323,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.2954166,
+                            "Y": 0.26047492,
+                            "Z": -0.0024217598
+                        },
+                        "localRotation": {
+                            "X": -0.5585809,
+                            "Y": 0.4306694,
+                            "Z": 0.4249824,
+                            "W": 0.56736344
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 324,
+            "name": "Bone.Box33_70",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 325,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.661366,
+                            "Y": 0.31735206,
+                            "Z": -0.21338925
+                        },
+                        "localRotation": {
+                            "X": -0.26936105,
+                            "Y": 0.6569863,
+                            "Z": 0.63049483,
+                            "W": 0.3135122
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 326,
+            "name": "Bone.Box34_71",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 327,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.6136868,
+                            "Y": 0.29058647,
+                            "Z": 0.575636
+                        },
+                        "localRotation": {
+                            "X": -0.3743676,
+                            "Y": 0.599874,
+                            "Z": 0.5998739,
+                            "W": 0.37436798
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 328,
+            "name": "Bone.Box35_72",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 329,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.3945346,
+                            "Y": 0.2930646,
+                            "Z": 0.2598619
+                        },
+                        "localRotation": {
+                            "X": -0.4985051,
+                            "Y": 0.50207794,
+                            "Z": 0.4969285,
+                            "W": 0.50246656
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.99999994,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 330,
+            "name": "Bone.Box36_73",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 331,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.3183012,
+                            "Y": 0.2499509,
+                            "Z": 0.1041306
+                        },
+                        "localRotation": {
+                            "X": -0.49175268,
+                            "Y": 0.504778,
+                            "Z": 0.4989487,
+                            "W": 0.5044092
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 332,
+            "name": "Bone.Box37_74",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 333,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.562388,
+                            "Y": 0.30943847,
+                            "Z": -0.18540625
+                        },
+                        "localRotation": {
+                            "X": -0.048002366,
+                            "Y": 0.7222579,
+                            "Z": 0.6889148,
+                            "W": 0.037891764
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000001,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 334,
+            "name": "Bone.Box38_75",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 335,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.3062508,
+                            "Y": 0.25564957,
+                            "Z": -0.0665869
+                        },
+                        "localRotation": {
+                            "X": -0.67622167,
+                            "Y": 0.22510882,
+                            "Z": 0.20762572,
+                            "W": 0.67003125
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 336,
+            "name": "Bone.Box39_76",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 337,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.4009821,
+                            "Y": 0.28427768,
+                            "Z": -0.1211312
+                        },
+                        "localRotation": {
+                            "X": -0.71071535,
+                            "Y": 0.053226627,
+                            "Z": 0.037783626,
+                            "W": 0.70044494
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 338,
+            "name": "Bone.Box40_77",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 339,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.9844759,
+                            "Y": 0.16626501,
+                            "Z": 0.39819196
+                        },
+                        "localRotation": {
+                            "X": -0.56925666,
+                            "Y": 0.41946033,
+                            "Z": 0.41946033,
+                            "W": 0.5692565
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 340,
+            "name": "Bone.Box41_78",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 341,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.9627042,
+                            "Y": 0.2519989,
+                            "Z": 0.20596866
+                        },
+                        "localRotation": {
+                            "X": -0.5028406,
+                            "Y": 0.49879313,
+                            "Z": 0.4999396,
+                            "W": 0.4984147
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 0.99999994
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 342,
+            "name": "Bone.Box42_79",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 343,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.884511,
+                            "Y": 0.26789856,
+                            "Z": 0.08478944
+                        },
+                        "localRotation": {
+                            "X": -0.49699554,
+                            "Y": 0.5024574,
+                            "Z": 0.4983938,
+                            "W": 0.50213104
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 0.9999999,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 344,
+            "name": "Bone.Box43_80",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 345,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.8096848,
+                            "Y": 0.27602983,
+                            "Z": -0.071631156
+                        },
+                        "localRotation": {
+                            "X": -0.49896693,
+                            "Y": 0.5042607,
+                            "Z": 0.49166468,
+                            "W": 0.50499403
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0000002,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 346,
+            "name": "Bone.Box44_81",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 347,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.7364163,
+                            "Y": 0.32743406,
+                            "Z": -0.16058786
+                        },
+                        "localRotation": {
+                            "X": -0.40391967,
+                            "Y": 0.5815625,
+                            "Z": 0.5743618,
+                            "W": 0.4107827
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0000002,
+                            "Z": 1.0000001
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 348,
+            "name": "Bone.Star2Spot09_82",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 349,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.5175958,
+                            "Y": 3.3187203,
+                            "Z": 4.569213
+                        },
+                        "localRotation": {
+                            "X": -0.3598511,
+                            "Y": 0.032717466,
+                            "Z": 0.55955297,
+                            "W": 0.7458802
+                        },
+                        "localScale": {
+                            "X": 1.0000001,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 350,
+            "name": "Bone.Star2Spot33_83",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 351,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.474432,
+                            "Y": 4.1248207,
+                            "Z": -0.36825645
+                        },
+                        "localRotation": {
+                            "X": -0.589852,
+                            "Y": -0.5325507,
+                            "Z": -0.36420578,
+                            "W": 0.48561147
+                        },
+                        "localScale": {
+                            "X": 1.0000002,
+                            "Y": 1.0000001,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 352,
+            "name": "Bone.Star2Spot34_84",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 353,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6.914908,
+                            "Y": 1.0261948,
+                            "Z": 1.494629
+                        },
+                        "localRotation": {
+                            "X": 0.38876468,
+                            "Y": 0.5010285,
+                            "Z": 0.52827495,
+                            "W": 0.56458664
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 354,
+            "name": "Bone.Star2Part02sparks04_85",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 355,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.503599,
+                            "Y": 0.6008382,
+                            "Z": 1.0112218
+                        },
+                        "localRotation": {
+                            "X": -0.58123976,
+                            "Y": 0.03202728,
+                            "Z": -0.5084084,
+                            "W": 0.6345514
+                        },
+                        "localScale": {
+                            "X": 0.99999994,
+                            "Y": 0.9999999,
+                            "Z": 0.99999994
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 356,
+            "name": "Bone.Ref_StatusBar_86",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 357,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.4062643,
+                            "Y": 1.6112379,
+                            "Z": 0.92272294
+                        },
+                        "localRotation": {
+                            "X": -0.4999999,
+                            "Y": 0.5,
+                            "Z": 0.5,
+                            "W": 0.50000006
+                        },
+                        "localScale": {
+                            "X": 0.9999999,
+                            "Y": 0.9999998,
+                            "Z": 1.0
+                        },
+                        "parent": 183
+                    }
+                }
+            ]
+        },
+        {
+            "id": 358,
+            "name": "Armature",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 359,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 162
+                    }
+                },
+                {
+                    "type": "SkinnedMeshRendererComponent",
+                    "id": 360,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Tank/SiegeTank_v2.xxx.gltf#skin0",
+                        "materials": [],
+                        "skeleton": 173
+                    }
+                }
+            ]
+        },
+        {
+            "id": 361,
+            "name": "GameObject",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 362,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 363,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "Content/HDRI/ludwikowice_farmland_cube_Mark.dds",
+                        "brightness": 1.0,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "ambientIntensity": 0.5
+                    }
+                }
+            ]
+        }
+    ]
+}

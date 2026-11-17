@@ -38,6 +38,8 @@ namespace Canape
         MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
         MeshResourceId CreateMesh(std::span<const StaticVertex> vertices, std::span<const uint32_t> indices,
             std::span<const SubMesh> submeshes);
+        MeshResourceId CreateMesh(std::span<const SkinnedVertex> vertices, std::span<const uint32_t> indices,
+            std::span<const SubMesh> submeshes);
         void DestroyMesh(MeshResourceId mesh);
         bool IsMeshValid(MeshResourceId mesh) const;
 
@@ -60,7 +62,6 @@ namespace Canape
         bool IsCubemapValid(CubemapResourceId cubemap) const;
         void DestroyCubemap(CubemapResourceId cubemap);
 
-        void SetCamera(const float* view, const float* projection);
         // Development defaults; RenderView.postProcess is reserved for future engine integration.
         void SetPostProcessSettings(const PostProcessSettings& settings);
         PostProcessSettings GetPostProcessSettings() const;
@@ -72,7 +73,9 @@ namespace Canape
 
         // Queue for the next DrawScene(). Cleared after each draw.
         void SetRenderView(const RenderView& view);
-        void AddRenderItem(const RenderItem& item);
+        void AddRenderItem(const MeshItem& item);
+        uint32_t AddBonePalette(std::span<const Matrix4> palette);
+        void AddSkinnedRenderItem(const SkinnedMeshItem& item);
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(const RenderSkybox& skybox);
@@ -83,7 +86,6 @@ namespace Canape
         void DrawScene();
         // Consume synchronously between BeginFrame and EndFrame.
         void DrawScene(const RenderScene& scene);
-        void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex = 0, MaterialResourceId material = {});
         void EndFrame();
 
         void SetSceneSize(uint32_t width, uint32_t height);

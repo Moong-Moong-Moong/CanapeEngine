@@ -1,6 +1,7 @@
 #include "Scene/Scene.h"
 #include "Core/Time.h"
 #include "Scene/GameObject/GameObject.h"
+#include "Scene/Component/AnimatorComponent.h"
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/FogComponent.h"
 #include "Scene/Component/LightComponent.h"
@@ -140,6 +141,13 @@ namespace Canape
 		{
 			if (IsRunnable(script))
 				script->Update();
+		}
+
+		//***AnimationUpdate
+		for (AnimatorComponent* animator : m_componentRegistry.GetAnimators())
+		{
+			if (IsRunnable(animator))
+				animator->Evaluate(Time::DeltaTime());
 		}
 
 		//***LateUpdate

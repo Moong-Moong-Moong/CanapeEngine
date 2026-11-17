@@ -75,6 +75,7 @@ namespace Canape
         DepthDisplayBuffer.Reset();
 #endif
         ObjectBuffer.Reset();
+        SkinningBuffer.Reset();
         MaterialBuffer.Reset();
         ViewBuffer.Reset();
         SkyboxViewBuffer.Reset();
@@ -197,6 +198,7 @@ namespace Canape
     MeshDrawContext DX11Renderer::Impl::GetDrawContext()
     {
         MeshDrawContext result{ *Context.Get(), Pipelines, ObjectBuffer.Get(), MaterialBuffer.Get(), GetSceneBindings() };
+        result.SkinningBuffer = SkinningBuffer.Get();
 #if CANAPE_RENDER_DEBUG
         result.DebugSettings = &DebugSettings;
         result.Stats = &CurrentStats;
@@ -509,6 +511,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::SkinningConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &SkinningBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(skinning constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

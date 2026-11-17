@@ -3,8 +3,10 @@
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <limits>
+#include <utility>
 #include "CNDebug/DebugLog.h"
 
 namespace Canape::ScenePreparation
@@ -204,7 +206,7 @@ namespace Canape::ScenePreparation
         XMStoreFloat4x4(&data.Projection, projectionMatrix);
         XMStoreFloat4x4(&data.ViewProjection, viewMatrix * projectionMatrix);
 
-        // Preserve the legacy SetCamera + DrawMesh path, which has no position argument.
+        // Derive a position from the view; PrepareScene applies RenderView's explicit position.
         data.CameraPosition = {};
         XMVECTOR determinant;
         const XMMATRIX inverseView = XMMatrixInverse(&determinant, viewMatrix);
@@ -320,11 +322,17 @@ namespace Canape::ScenePreparation
     bool PrepareMeshDraw(const DX11ResourceCache& resources, MeshResourceId mesh, const float* world,
         uint32_t submeshIndex, MaterialResourceId material, PreparedMeshDraw& result, std::string& error)
     {
+        result = {};
         const auto* resource = resources.GetMesh(mesh);
-        if (!resource) return false;
+        if (!resource)
+        {
+            error = "Mesh draw received an invalid mesh resource";
+            CN_LOG_RENDERER("Draw", error);
+            return false;
+        }
         if (submeshIndex >= resource->SubMeshes.size())
         {
-            error = "DrawMesh received an invalid submeshIndex";
+            error = "Mesh draw received an invalid submeshIndex";
             CN_LOG_RENDERER("Draw", "잘못된 서브메시 인덱스: ", submeshIndex);
             return false;
         }
@@ -335,32 +343,74 @@ namespace Canape::ScenePreparation
         return true;
     }
 
+    bool PrepareSkinnedMeshDraw([[maybe_unused]] const RenderScene& scene, const DX11ResourceCache& resources,
+        const SkinnedMeshItem& item, PreparedMeshDraw& result, std::string& error)
+    {
+        result = {};
+        PreparedMeshDraw draw;
+        if (!PrepareMeshDraw(resources, item.mesh, item.world.Data(), item.submeshIndex,
+            item.material, draw, error)) return false;
+        // Engine-supplied data: check the contract in Debug, trust it in Release.
+#ifndef NDEBUG
+        const size_t offset = item.paletteOffset;
+        const size_t count = item.paletteCount;
+        const size_t total = scene.bonePalettes.size();
+        assert(draw.Mesh->Format == VertexFormat::Skinned);
+        assert(count > 0 && count <= SC::MaxSkinMatrices);
+        assert(offset <= total && count <= total - offset);
+#endif
+        // Joint-index coverage is deferred until mesh creation retains validation metadata.
+        draw.PaletteOffset = item.paletteOffset;
+        draw.PaletteCount = item.paletteCount;
+        result = std::move(draw);
+        return true;
+    }
+
     PreparedScene PrepareScene(const RenderScene& scene, const DX11ResourceCache& resources, std::string& error)
     {
+        error.clear();
         PreparedScene result;
         result.View = BuildViewConstants(scene.camera.view.Data(), scene.camera.projection.Data());
         result.View.CameraPosition = scene.camera.cameraPosition;
         result.Scene = BuildSceneConstants(scene);
-        result.Draws.reserve(scene.items.size());
-        for (const auto& item : scene.items)
+        result.BonePalettes = scene.bonePalettes;
+        result.Draws.reserve(scene.items.size() + scene.skinnedItems.size());
+        auto appendDraw = [&](PreparedMeshDraw draw, const Matrix4& world, bool castShadow)
         {
-            PreparedMeshDraw draw;
-            if (!PrepareMeshDraw(resources, item.mesh, item.world.Data(), item.submeshIndex,
-                item.material, draw, error)) continue;
             const size_t index = result.Draws.size();
             const AlphaMode alpha = draw.Material.Description.alphaMode;
-            if (item.castShadow && alpha != AlphaMode::Transparent) result.ShadowCasters.push_back(index);
+            if (castShadow && alpha != AlphaMode::Transparent) result.ShadowCasters.push_back(index);
             switch (alpha)
             {
             case AlphaMode::Masked: result.Masked.push_back(index); break;
             case AlphaMode::Transparent:
-                draw.Depth = scene.camera.view.TransformPoint(item.world.GetTranslation()).Z;
+                draw.Depth = scene.camera.view.TransformPoint(world.GetTranslation()).Z;
                 if (!std::isfinite(draw.Depth)) draw.Depth = 0.0f;
                 result.Transparent.push_back(index);
                 break;
             default: result.Opaque.push_back(index); break;
             }
-            result.Draws.push_back(draw);
+            result.Draws.push_back(std::move(draw));
+        };
+        for (const auto& item : scene.items)
+        {
+            PreparedMeshDraw draw;
+            if (!PrepareMeshDraw(resources, item.mesh, item.world.Data(), item.submeshIndex,
+                item.material, draw, error)) continue;
+            if (draw.Mesh->Format != VertexFormat::Position && draw.Mesh->Format != VertexFormat::Static)
+            {
+                error = "MeshItem requires a Position or Static mesh; use SkinnedMeshItem for skinning";
+                CN_LOG_RENDERER("Draw", error);
+                continue;
+            }
+            appendDraw(std::move(draw), item.world, item.castShadow);
+        }
+        for (const auto& item : scene.skinnedItems)
+        {
+            PreparedMeshDraw draw;
+            if (!PrepareSkinnedMeshDraw(scene, resources, item, draw, error)) continue;
+            // Skinned shadow submission is disabled until a skinned shadow VS is connected.
+            appendDraw(std::move(draw), item.world, false);
         }
         std::stable_sort(result.Transparent.begin(), result.Transparent.end(), [&](size_t a, size_t b)
         {

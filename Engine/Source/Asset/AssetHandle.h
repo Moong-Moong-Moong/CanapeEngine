@@ -67,4 +67,5 @@ namespace Canape
 	using TextureAssetHandle = AssetHandle<TextureAsset>;
 	using CubemapAssetHandle = AssetHandle<CubemapAsset>;
 	using MaterialAssetHandle = AssetHandle<MaterialAsset>;
+	using AnimationClipAssetHandle = AssetHandle<AnimationClipAsset>;
 }

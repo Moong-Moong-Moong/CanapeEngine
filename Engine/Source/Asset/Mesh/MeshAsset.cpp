@@ -20,9 +20,28 @@ namespace Canape
 		InitializeSubMeshes();
 	}
 
+	MeshAsset::MeshAsset(std::vector<SkinnedVertex> vertices, std::vector<uint32_t> indices,
+		std::vector<SubMesh> submeshes, std::vector<Matrix4> inverseBindMatrices,
+		std::vector<std::string> bonePaths, std::vector<MaterialData> materialSlots)
+		: m_Format(VertexFormat::Skinned)
+		, m_SkinnedVertices(std::move(vertices))
+		, m_InverseBindMatrices(std::move(inverseBindMatrices))
+		, m_BonePaths(std::move(bonePaths))
+		, m_Indices(std::move(indices))
+		, m_SubMeshes(std::move(submeshes))
+		, m_materialSlots(std::move(materialSlots))
+	{
+		InitializeSubMeshes();
+	}
+
+	uint32_t MeshAsset::GetVertexCount() const
+	{
+		return static_cast<uint32_t>(m_Format == VertexFormat::Skinned ? m_SkinnedVertices.size() : m_Vertices.size());
+	}
+
 	void MeshAsset::InitializeSubMeshes()
 	{
-		if (const char* error = ValidateMeshIndices(m_Vertices.size(), m_Indices, m_SubMeshes))
+		if (const char* error = ValidateMeshIndices(GetVertexCount(), m_Indices, m_SubMeshes))
 			throw std::invalid_argument(error);
 		if (m_SubMeshes.empty())
 			m_SubMeshes.push_back({ 0, static_cast<uint32_t>(m_Indices.size()), 0, 0 });

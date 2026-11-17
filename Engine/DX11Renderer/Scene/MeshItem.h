@@ -7,12 +7,22 @@
 
 namespace Canape
 {
-    struct RenderItem
+    struct MeshItem
     {
         MeshResourceId mesh{};
         uint32_t submeshIndex = 0;
         MaterialResourceId material{};
         Matrix4 world{};
         bool castShadow = true;
+    };
+
+    struct SkinnedMeshItem
+    {
+        MeshResourceId mesh{};
+        uint32_t submeshIndex = 0;
+        MaterialResourceId material{};
+        Matrix4 world{};
+        uint32_t paletteOffset = 0;
+        uint32_t paletteCount = 0;
     };
 }

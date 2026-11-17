@@ -1,9 +1,34 @@
 #include "DX11Renderer/Pipeline/DX11MeshDraw.h"
 
+#include <algorithm>
+#include <cassert>
+
 namespace Canape::MeshDraw
 {
     namespace
     {
+        void UploadAndBindSkinning(const PreparedMeshDraw& draw, MeshDrawContext& context)
+        {
+            if (draw.Mesh->Format != VertexFormat::Skinned)
+            {
+                RenderBindings::BindSkinning(context.Context, nullptr);
+                return;
+            }
+
+            assert(context.SkinningBuffer);
+            assert(draw.PaletteCount > 0 && draw.PaletteCount <= ShaderConstants::MaxSkinMatrices);
+            assert(draw.PaletteOffset <= context.BonePalettes.size()
+                && draw.PaletteCount <= context.BonePalettes.size() - draw.PaletteOffset);
+
+            // UpdateSubresource uploads the entire constant buffer. Copy into a full
+            // palette so short draws never read beyond their CPU source allocation.
+            ShaderConstants::SkinningConstants constants{};
+            std::copy_n(context.BonePalettes.begin() + draw.PaletteOffset,
+                draw.PaletteCount, constants.SkinMatrices);
+            ConstantBuffers::Upload(context.Context, context.SkinningBuffer, constants);
+            RenderBindings::BindSkinning(context.Context, context.SkinningBuffer);
+        }
+
         void UploadAndBindObject(const PreparedMeshDraw& draw, MeshDrawContext& context)
         {
             ConstantBuffers::Upload(context.Context, context.ObjectBuffer, draw.Object);
@@ -28,6 +53,7 @@ namespace Canape::MeshDraw
 
     void SubmitMain(const PreparedMeshDraw& draw, MeshDrawContext& context)
     {
+        UploadAndBindSkinning(draw, context);
         UploadAndBindObject(draw, context);
         UploadAndBindMaterial(draw, context);
         context.Context.PSSetShaderResources(4, 1, &draw.Material.ORMTexture);
@@ -50,6 +76,8 @@ namespace Canape::MeshDraw
 
     void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context)
     {
+        // Also protect direct callers while skinned shadow rendering is unavailable.
+        if (draw.Mesh->Format == VertexFormat::Skinned) return;
         const AlphaMode alpha = draw.Material.Description.alphaMode;
         RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolveShadow(draw.Mesh->Format, alpha));
         UploadAndBindObject(draw, context);

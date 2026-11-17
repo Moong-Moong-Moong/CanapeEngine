@@ -1,11 +1,9 @@
 {
     "version": 1,
-    "name": "Untitled",
-    "mainCamera": 3,
     "gameObjects": [
         {
             "id": 1,
-            "name": "Main Camera",
+            "name": "Arm_Bone_Skin_Ani",
             "active": true,
             "components": [
                 {
@@ -15,14 +13,14 @@
                         "enabled": true,
                         "localPosition": {
                             "X": 0.0,
-                            "Y": 3.0,
-                            "Z": -10.0
+                            "Y": 0.0,
+                            "Z": 0.0
                         },
                         "localRotation": {
-                            "X": 0.1305262,
+                            "X": 0.0,
                             "Y": 0.0,
                             "Z": 0.0,
-                            "W": 0.9914449
+                            "W": 1.0
                         },
                         "localScale": {
                             "X": 1.0,
@@ -33,25 +31,23 @@
                     }
                 },
                 {
-                    "type": "CameraComponent",
-                    "id": 3,
+                    "type": "AnimatorComponent",
+                    "id": 11,
                     "properties": {
                         "enabled": true,
-                        "fieldOfView": 60.0,
-                        "nearClip": 0.1,
-                        "farClip": 150.0
+                        "clip": ""
                     }
                 }
             ]
         },
         {
-            "id": 4,
-            "name": "Directional Light",
+            "id": 9,
+            "name": "Armature",
             "active": true,
             "components": [
                 {
                     "type": "TransformComponent",
-                    "id": 5,
+                    "id": 10,
                     "properties": {
                         "enabled": true,
                         "localPosition": {
@@ -60,42 +56,24 @@
                             "Z": 0.0
                         },
                         "localRotation": {
-                            "X": 0.4082179,
-                            "Y": -0.23456971,
-                            "Z": 0.10938165,
-                            "W": 0.87542605
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
                         },
                         "localScale": {
                             "X": 1.0,
                             "Y": 1.0,
                             "Z": 1.0
                         },
-                        "parent": 0
-                    }
-                },
-                {
-                    "type": "LightComponent",
-                    "id": 6,
-                    "properties": {
-                        "enabled": true,
-                        "type": "Directional",
-                        "color": {
-                            "X": 1.0,
-                            "Y": 1.0,
-                            "Z": 1.0
-                        },
-                        "intensity": 1.0,
-                        "range": 10.0,
-                        "innerAngle": 0.35,
-                        "outerAngle": 0.52,
-                        "castShadow": true
+                        "parent": 2
                     }
                 }
             ]
         },
         {
             "id": 7,
-            "name": "GameObject",
+            "name": "Arm",
             "active": true,
             "components": [
                 {
@@ -119,16 +97,69 @@
                             "Y": 1.0,
                             "Z": 1.0
                         },
-                        "parent": 0
+                        "parent": 10
                     }
-                },
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Bone0",
+            "active": true,
+            "components": [
                 {
-                    "type": "MeshRendererComponent",
-                    "id": 9,
+                    "type": "TransformComponent",
+                    "id": 6,
                     "properties": {
                         "enabled": true,
-                        "mesh": "Content/Models/CastleGuard01.gltf",
-                        "materials": []
+                        "localPosition": {
+                            "X": -0.0,
+                            "Y": 2.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -1.0,
+                            "Y": -0.0,
+                            "Z": -0.0,
+                            "W": 5.1658017e-08
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 10
+                    }
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Bone1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.0,
+                            "Y": 1.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 6
                     }
                 }
             ]

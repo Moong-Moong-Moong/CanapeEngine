@@ -3,6 +3,7 @@
 #include "EditorContext.h"
 
 #include <cstdint>
+#include <string>
 
 class HierarchyPanel
 {
@@ -24,6 +25,9 @@ private:
     void ApplyPendingActions(EditorContext& context, Canape::Scene& scene);
 
     Reparent m_Reparent;
+    uint64_t m_SavePrefabId = 0;
+    std::string m_InstantiatePrefab;
+    uint64_t m_InstantiateParentId = 0;
     uint64_t m_PressedId = 0;
     uint64_t m_DeleteId = 0;
     uint64_t m_CreateParentId = 0;
