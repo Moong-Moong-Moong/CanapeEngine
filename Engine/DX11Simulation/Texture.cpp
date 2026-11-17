@@ -55,6 +55,15 @@ namespace Canape
                 ),
                 "ID3D11Device::CreateUnorderedAccessView(texture)"
             );
+
+            if(initialData == nullptr)
+            {
+                constexpr FLOAT Zeros[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+                context.ClearUnorderedAccessViewFloat(
+                    unorderedAccessView.Get(),
+                    Zeros
+                );
+            }
         }
     }
 

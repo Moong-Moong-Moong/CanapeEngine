@@ -7,6 +7,7 @@
     <ClInclude Include="D3DFwd.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceContext.h" />
+    <ClInclude Include="Field.h" />
     <ClInclude Include="FrameStats.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="GpuTimer.h" />
@@ -28,6 +29,7 @@
     <ClCompile Include="D3D.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="DeviceContext.cpp" />
+    <ClCompile Include="Field.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GpuTimer.cpp" />
     <ClCompile Include="Material.cpp" />
