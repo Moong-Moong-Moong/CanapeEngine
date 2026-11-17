@@ -130,6 +130,9 @@ exit /b 0</Command>
     <ProjectReference Include="..\Engine\DX11Renderer\DX11Renderer.vcxproj">
       <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Engine\DX11Simulation\DX11Simulation.vcxproj">
+      <Project>{d5a3f6c2-8b14-4e7d-a9c0-2f6b1e3d7a58}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\JoltPhysics\JoltPhysics.vcxproj">
       <Project>{b6a1c3e4-5d2f-4e8a-9c71-3f0d8a2b6e15}</Project>
     </ProjectReference>
@@ -138,12 +141,19 @@ exit /b 0</Command>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EngineShader Include="$(CanapeRoot)Engine\Shader\**\*.hlsl;$(CanapeRoot)Engine\Shader\**\*.hlsli" />
+    <None Include="@(EngineShader)">
+      <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
     <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsli" />
     <None Include="@(RendererShader)">
       <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyEngineShaders" AfterTargets="Build">
+    <Copy SourceFiles="@(EngineShader)" DestinationFiles="@(EngineShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="CopyRendererShaders" AfterTargets="Build">
     <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>

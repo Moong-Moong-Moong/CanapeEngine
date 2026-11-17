@@ -21,6 +21,7 @@ namespace Canape
     class DX11Renderer;
     class GpuResourceRegistry;
     class Scene;
+    class Simulator;
 
     class Renderer final
     {
@@ -33,7 +34,7 @@ namespace Canape
 
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
 
-        void Render(Scene* scene, const AssetManager& assets);
+        void Render(Scene* scene, const AssetManager& assets, Simulator& simulator);
 
         void SetViewOverride(const RenderView& view) { m_ViewOverride = view; }
         void ClearViewOverride() { m_ViewOverride.reset(); }

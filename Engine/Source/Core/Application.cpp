@@ -8,6 +8,9 @@
 #define NOMINMAX
 #include <Windows.h>
 
+#include "DX11Simulation/Session.h"
+#include "DX11Simulation/Simulator.h"
+
 #include <stdexcept>
 
 namespace Canape
@@ -37,7 +40,6 @@ namespace Canape
         m_Renderer(std::make_unique<Renderer>()),
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
-        m_SceneManager(std::make_unique<SceneManager>(m_PhysicsRuntime.get())),
         m_Commands(std::make_unique<CommandRegistry>()),
         m_Headless(windowDesc.Headless)
     {
@@ -55,6 +57,13 @@ namespace Canape
         {
             throw std::runtime_error(m_Renderer->GetLastError());
         }
+
+        auto& device = *static_cast<ID3D11Device*>(m_Renderer->GetNativeDevice());
+        auto& context = *static_cast<ID3D11DeviceContext*>(m_Renderer->GetNativeContext());
+        m_SimulationSession = std::make_unique<Session>(device, context);
+        m_Simulator = std::make_unique<Simulator>(*m_SimulationSession, context);
+
+        m_SceneManager = std::make_unique<SceneManager>(m_PhysicsRuntime.get(), m_SimulationSession.get());
 
         if (s_Instance)
         {
@@ -107,7 +116,7 @@ namespace Canape
 
             if (!m_Headless)
             {
-                m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager);
+                m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager, *m_Simulator);
             }
 
             m_InputManager->EndFrame();

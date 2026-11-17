@@ -10,6 +10,9 @@
     <Filter Include="Common\Math">
       <UniqueIdentifier>{707909B4-7794-FED7-35AC-B9B5BF50C71F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{91F12DF7-60E7-3887-D5AB-48D568C85A95}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{7FB241F9-384C-492C-AA5E-EC84F7832C27}</UniqueIdentifier>
     </Filter>
@@ -60,6 +63,9 @@
     </Filter>
     <Filter Include="Source\Scene\Serialization">
       <UniqueIdentifier>{B705F4E3-572C-5544-997A-2F8E7D1CE0C0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Simulation">
+      <UniqueIdentifier>{1979D691-8EB2-4AD7-9544-7A951A21B6AB}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\ThirdParty">
       <UniqueIdentifier>{AD4FD8F4-B56F-AF91-E0CE-1FF63F1EEC75}</UniqueIdentifier>
@@ -270,6 +276,15 @@
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h">
       <Filter>Source\Scene\Serialization</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Simulation\SimulationScene.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\WaveSurfaces.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
@@ -404,11 +419,25 @@
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp">
       <Filter>Source\Scene\Serialization</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Simulation\SimulationScene.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\WaveSurfaces.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp">
       <Filter>Source\Asset\Importer\glTF</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\WaveSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

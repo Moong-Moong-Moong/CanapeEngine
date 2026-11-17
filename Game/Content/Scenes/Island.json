@@ -529,6 +529,62 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 38,
+            "name": "Sea",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": -0.6,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "WaveSurfaceComponent",
+                    "id": 40,
+                    "properties": {
+                        "enabled": true,
+                        "areaSize": {
+                            "X": 160.0,
+                            "Y": 160.0
+                        },
+                        "resolution": 256,
+                        "swellAmplitude": 0.15,
+                        "swellWavelength": 12.0,
+                        "swellSpeed": 2.5,
+                        "deepColor": {
+                            "X": 0.04,
+                            "Y": 0.2,
+                            "Z": 0.3
+                        },
+                        "shallowColor": {
+                            "X": 0.25,
+                            "Y": 0.55,
+                            "Z": 0.6
+                        }
+                    }
+                }
+            ]
         }
     ]
 }

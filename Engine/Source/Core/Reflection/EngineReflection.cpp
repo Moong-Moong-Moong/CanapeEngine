@@ -23,6 +23,7 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/TransformComponent.h"
+#include "Simulation/WaveSurfaceComponent.h"
 
 #define CN_KEY_VALUE(name) rttr::value(#name, Key::name)
 
@@ -226,6 +227,16 @@ namespace Canape
 				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
 				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
 				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
+
+			registration::class_<WaveSurfaceComponent>("WaveSurfaceComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("areaSize", &WaveSurfaceComponent::GetAreaSize, &WaveSurfaceComponent::SetAreaSize)
+				.property("resolution", &WaveSurfaceComponent::GetResolution, &WaveSurfaceComponent::SetResolution)
+				.property("swellAmplitude", &WaveSurfaceComponent::GetSwellAmplitude, &WaveSurfaceComponent::SetSwellAmplitude)
+				.property("swellWavelength", &WaveSurfaceComponent::GetSwellWavelength, &WaveSurfaceComponent::SetSwellWavelength)
+				.property("swellSpeed", &WaveSurfaceComponent::GetSwellSpeed, &WaveSurfaceComponent::SetSwellSpeed)
+				.property("deepColor", &WaveSurfaceComponent::GetDeepColor, &WaveSurfaceComponent::SetDeepColor)
+				.property("shallowColor", &WaveSurfaceComponent::GetShallowColor, &WaveSurfaceComponent::SetShallowColor);
 		}
 	}
 

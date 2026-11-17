@@ -7,6 +7,7 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
+#include "Simulation/WaveSurfaceComponent.h"
 
 #include <algorithm>
 #include <vector>
@@ -104,6 +105,11 @@ namespace Canape
 			{
 				m_waterVolumes.push_back(water);
 			}
+
+			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))
+			{
+				m_waveSurfaces.push_back(waveSurface);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -150,6 +156,11 @@ namespace Canape
 			if (WaterVolumeComponent* water = dynamic_cast<WaterVolumeComponent*>(component))
 			{
 				std::erase(m_waterVolumes, water);
+			}
+
+			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))
+			{
+				std::erase(m_waveSurfaces, waveSurface);
 			}
 		}
 		m_pendingRemove.clear();

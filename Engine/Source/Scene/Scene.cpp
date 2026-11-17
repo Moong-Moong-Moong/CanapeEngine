@@ -7,6 +7,7 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
+#include "Simulation/SimulationScene.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -19,11 +20,19 @@ namespace Canape
 				return PhysicsScene(*runtime, PhysicsWorldDesc{});
 			return PhysicsScene();
 		}
+
+		std::unique_ptr<SimulationScene> MakeSimulationScene(Session* session)
+		{
+			if (session == nullptr) return nullptr;
+
+            return std::make_unique<SimulationScene>(*session);
+		}
 	}
 
-	Scene::Scene(std::string name, JoltRuntime* physicsRuntime)
+	Scene::Scene(std::string name, JoltRuntime* physicsRuntime, Session* simulationSession)
 		: m_Name(std::move(name))
 		, m_Physics(MakePhysicsScene(physicsRuntime))
+		, m_Simulation(MakeSimulationScene(simulationSession))
 	{
 	}
 
@@ -72,6 +81,11 @@ namespace Canape
 	{
 		//***파괴된 스크립트의 OnDestroy 실행
 		OnDestroyScripts();
+
+		if (m_Simulation != nullptr)
+        {
+			m_Simulation->Advance(Time::DeltaTime());
+        }
 	}
 
 	void Scene::OnDestroyScripts()
@@ -185,6 +199,12 @@ namespace Canape
 				renderer.SetAmbient(skybox->GetAmbientColor(), skybox->GetAmbientIntensity());
 				break;
 			}
+		}
+
+		//***Simulation
+		if (m_Simulation != nullptr)
+		{
+			m_Simulation->Prepare(m_componentRegistry.GetWaveSurfaces());
 		}
 	}
 

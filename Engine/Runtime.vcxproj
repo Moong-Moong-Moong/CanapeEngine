@@ -143,6 +143,9 @@
     <ClInclude Include="Source\Core\Console\CommandRegistry.h" />
     <ClInclude Include="Source\Core\Console\EngineCommands.h" />
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h" />
+    <ClInclude Include="Source\Simulation\SimulationScene.h" />
+    <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h" />
+    <ClInclude Include="Source\Simulation\WaveSurfaces.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
@@ -187,14 +190,23 @@
     <ClCompile Include="Source\Core\Console\CommandRegistry.cpp" />
     <ClCompile Include="Source\Core\Console\EngineCommands.cpp" />
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp" />
+    <ClCompile Include="Source\Simulation\SimulationScene.cpp" />
+    <ClCompile Include="Source\Simulation\WaveSurfaces.cpp" />
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader\Simulation.hlsli" />
+    <None Include="Shader\WaveSurface.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="DX11Renderer\DX11Renderer.vcxproj">
       <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="DX11Simulation\DX11Simulation.vcxproj">
+      <Project>{d5a3f6c2-8b14-4e7d-a9c0-2f6b1e3d7a58}</Project>
     </ProjectReference>
     <ProjectReference Include="JoltPhysics\JoltPhysics.vcxproj">
       <Project>{b6a1c3e4-5d2f-4e8a-9c71-3f0d8a2b6e15}</Project>
