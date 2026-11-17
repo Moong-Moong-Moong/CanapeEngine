@@ -438,4 +438,5 @@ FodyWeavers.xsd
 !/Engine/DX11Renderer/Shader/Debug/*.hlsl
 
 # Model assets
-/Game/Content/Models/
+/Game/Content/Models/*
+!/Game/Content/Models/.gitkeep

@@ -84,7 +84,7 @@
                             "Y": 1.0,
                             "Z": 1.0
                         },
-                        "intensity": 1.0,
+                        "intensity": 5.0,
                         "range": 10.0,
                         "innerAngle": 0.35,
                         "outerAngle": 0.52,
@@ -5410,7 +5410,7 @@
                             "Y": 1.0,
                             "Z": 1.0
                         },
-                        "ambientIntensity": 0.1
+                        "ambientIntensity": 0.5
                     }
                 }
             ]
