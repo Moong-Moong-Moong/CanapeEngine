@@ -207,6 +207,40 @@ namespace Canape
         return GetTexture(texture) != nullptr;
     }
 
+    bool DX11ResourceCache::UpdateTextureRegion(ID3D11DeviceContext* context, TextureResourceId texture,
+        uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+        std::span<const uint8_t> pixels, std::string& error)
+    {
+        const DX11TextureResource* resource = GetTexture(texture);
+        if (!context || !resource)
+        {
+            error = "UpdateTextureRegion requires an initialized renderer and a live texture";
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
+        D3D11_TEXTURE2D_DESC desc{};
+        resource->Texture->GetDesc(&desc);
+        const uint64_t right = uint64_t(x) + width;
+        const uint64_t bottom = uint64_t(y) + height;
+        if (width == 0 || height == 0 || right > desc.Width || bottom > desc.Height)
+        {
+            error = "UpdateTextureRegion rectangle is empty or outside the texture";
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
+        if (pixels.size() != uint64_t(width) * height * 4)
+        {
+            error = "UpdateTextureRegion requires tightly packed width * height * 4 RGBA bytes";
+            CN_LOG_RENDERER("Resource", error);
+            return false;
+        }
+        const D3D11_BOX box{ x, y, 0, static_cast<UINT>(right), static_cast<UINT>(bottom), 1 };
+        context->UpdateSubresource(resource->Texture.Get(), 0, &box, pixels.data(), width * 4, 0);
+        if (desc.MipLevels > 1) context->GenerateMips(resource->ShaderResourceView.Get());
+        error.clear();
+        return true;
+    }
+
     void DX11ResourceCache::DestroyTexture(TextureResourceId texture)
     {
         // Invalidate dependent material snapshots so the Runtime can rebuild them.

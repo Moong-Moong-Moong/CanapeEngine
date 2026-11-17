@@ -170,10 +170,17 @@ namespace Canape
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();
     }
 
+    void Renderer::SetUIDrawList(const UIDrawList* list)
+    {
+        m_DX11->SetUIDrawList(list);
+    }
+
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
         if (!m_DX11->BeginFrame())
         {
+            // 빌린 UI 목록을 다음 프레임까지 들고 있지 않는다.
+            m_DX11->SetUIDrawList(nullptr);
             return;
         }
 

@@ -7,6 +7,7 @@
 #include "JoltPhysics/JoltRuntime.h"
 #include "Renderer/Renderer.h"
 #include "Scene/SceneManager.h"
+#include "UI/UISystem.h"
 
 #include <memory>
 
@@ -33,6 +34,7 @@ namespace Canape
         AssetManager& GetAssetManager() { return *m_AssetManager; }
         JoltRuntime& GetPhysicsRuntime() { return *m_PhysicsRuntime; }
         CommandRegistry& GetCommands() { return *m_Commands; }
+        UISystem& GetUISystem() { return *m_UISystem; }
 
     protected:
         virtual void OnInit() {}
@@ -51,6 +53,7 @@ namespace Canape
         std::unique_ptr<JoltRuntime> m_PhysicsRuntime;
         std::unique_ptr<SceneManager> m_SceneManager;
         std::unique_ptr<CommandRegistry> m_Commands;
+        std::unique_ptr<UISystem> m_UISystem;
 
         bool m_Running = false;
         bool m_RunSceneScripts = true;

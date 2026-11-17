@@ -341,6 +341,18 @@ namespace Canape
         return m_Impl->Resources.IsTextureValid(texture);
     }
 
+    bool DX11Renderer::UpdateTexture(TextureResourceId texture, uint32_t x, uint32_t y,
+        uint32_t width, uint32_t height, std::span<const uint8_t> pixels)
+    {
+        return m_Impl->Resources.UpdateTextureRegion(m_Impl->Context.Get(), texture,
+            x, y, width, height, pixels, m_Impl->LastError);
+    }
+
+    void DX11Renderer::SetUIDrawList(const UIDrawList* list)
+    {
+        m_Impl->PendingUI = list;
+    }
+
     void DX11Renderer::DestroyTexture(TextureResourceId texture)
     {
         if (!IsTextureValid(texture)) return;
