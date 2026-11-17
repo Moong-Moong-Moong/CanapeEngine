@@ -397,18 +397,9 @@ Image Frame(DX11Renderer &renderer, const RenderScene &scene, const std::vector<
     Require(!impl.ShadowActive, "BeginFrame clears shadow state");
     if (lights)
     {
-        renderer.SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
-        impl.SceneData.AmbientColor = scene.ambientColor;
-        impl.SceneData.AmbientIntensity = scene.ambientIntensity;
-        impl.SceneDirty = true;
-        const auto lighting = impl.ResolveLighting(*lights, true);
-        ConstantBuffers::UploadLighting(*impl.Context.Get(), impl.GetSceneBuffers(), lighting);
-        if (lighting.ShadowActive)
-            impl.RenderShadowPass(ScenePreparation::PrepareScene(scene, impl.Resources, impl.LastError));
-        impl.UploadPendingConstants();
-        impl.BindSharedConstants();
-        for (const auto &item : scene.items)
-            renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+        RenderScene submitted = scene;
+        submitted.lights = *lights;
+        renderer.DrawScene(submitted);
     }
     else
         renderer.DrawScene(scene);
@@ -460,21 +451,26 @@ void FrameContractChecks(DX11Renderer& renderer, const RenderScene& scene)
     Require(multipleStats.drawCalls == referenceStats.drawCalls
         && multipleStats.triangleCount == referenceStats.triangleCount, "pass draw statistics preserved");
 
-    Require(renderer.BeginFrame(), "direct mesh frame");
-    const auto& item = scene.items.front();
+    Require(renderer.BeginFrame(), "scene camera update frame");
+    RenderScene cameraScene = scene;
+    cameraScene.items = {scene.items.front()};
+    cameraScene.skinnedItems.clear();
+    cameraScene.bonePalettes.clear();
+    cameraScene.lights.clear();
     const Matrix4 firstView = Matrix4::LookTo({1, 2, -3}, {0, 0, 1});
-    renderer.SetCamera(firstView.Data(), scene.camera.projection.Data());
-    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+    cameraScene.camera.view = firstView;
+    cameraScene.camera.cameraPosition = {1, 2, -3};
+    renderer.DrawScene(cameraScene);
     auto camera = ReadViewConstants(impl);
     Require(std::memcmp(&camera.View, firstView.Data(), sizeof(camera.View)) == 0
         && std::memcmp(&camera.Projection, scene.camera.projection.Data(), sizeof(camera.Projection)) == 0,
-        "direct draw uploads camera constants before binding");
-    renderer.SetCamera(scene.camera.view.Data(), scene.camera.projection.Data());
-    renderer.DrawMesh(item.mesh, item.world.Data(), item.submeshIndex, item.material);
+        "scene submission uploads camera constants before binding");
+    cameraScene.camera = scene.camera;
+    renderer.DrawScene(cameraScene);
     camera = ReadViewConstants(impl);
     Require(std::memcmp(&camera.View, scene.camera.view.Data(), sizeof(camera.View)) == 0,
-        "second direct draw observes a changed camera in the same frame");
-    Require(!impl.ShadowActive, "direct frame does not inherit previous scene shadows");
+        "second scene observes a changed camera in the same frame");
+    Require(!impl.ShadowActive, "unlit scene does not inherit previous scene shadows");
     renderer.EndFrame();
 
     std::string profilerError;

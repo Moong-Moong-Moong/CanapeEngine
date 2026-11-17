@@ -56,6 +56,9 @@ namespace Canape
         ShaderConstants::ObjectConstants Object{};
         PreparedMaterial Material;
         float Depth = 0.0f;
+        // Range in PreparedScene::BonePalettes. Non-skinned draws keep both zero.
+        uint32_t PaletteOffset = 0;
+        uint32_t PaletteCount = 0;
     };
     struct PreparedSkybox
     {
@@ -67,6 +70,8 @@ namespace Canape
         ShaderConstants::ViewConstants View{};
         ShaderConstants::SceneConstants Scene{};
         std::vector<PreparedMeshDraw> Draws;
+        // Own the frame snapshot; draws retain offsets rather than vector pointers.
+        std::vector<Matrix4> BonePalettes;
         std::vector<size_t> Opaque, Masked, Transparent, ShadowCasters;
         PreparedSkybox Skybox;
     };
@@ -83,6 +88,8 @@ namespace Canape
     {
         bool PrepareMeshDraw(const DX11ResourceCache& resources, MeshResourceId mesh, const float* world,
             uint32_t submeshIndex, MaterialResourceId material, PreparedMeshDraw& result, std::string& error);
+        bool PrepareSkinnedMeshDraw(const RenderScene& scene, const DX11ResourceCache& resources,
+            const SkinnedMeshItem& item, PreparedMeshDraw& result, std::string& error);
         PreparedScene PrepareScene(const RenderScene& scene, const DX11ResourceCache& resources, std::string& error);
         PreparedSkybox PrepareSkybox(const RenderSkybox& skybox, const ShaderConstants::ViewConstants& view,
             const DX11ResourceCache& resources);

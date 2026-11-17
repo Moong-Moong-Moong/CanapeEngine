@@ -23,7 +23,7 @@ namespace Canape
         ID3D11SamplerState* Sampler = nullptr;
     };
 
-    // The two fixed vertex formats and three existing alpha modes share these objects.
+    // The three fixed vertex formats and three existing alpha modes share these objects.
     // No Device/Context ownership, resource registry, or frame execution lives here.
     class DX11PipelineState
     {
@@ -57,6 +57,7 @@ namespace Canape
 #endif
         Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> SkinnedVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> FinalOutputVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> SkyboxVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
@@ -72,6 +73,7 @@ namespace Canape
 #endif
         Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> SkinnedInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> SkyboxInputLayout;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> ShadowRasterizerState;

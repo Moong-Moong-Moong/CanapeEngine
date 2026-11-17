@@ -142,12 +142,6 @@ namespace Canape
         return m_Impl->Resources.IsMeshValid(mesh);
     }
 
-    void DX11Renderer::SetCamera(const float* view, const float* projection)
-    {
-        m_Impl->ViewData = ScenePreparation::BuildViewConstants(view, projection);
-        m_Impl->ViewDirty = true;
-    }
-
     void DX11Renderer::SetDebugSettings(const RendererDebugSettings& settings)
     {
 #if CANAPE_RENDER_DEBUG
@@ -388,11 +382,6 @@ namespace Canape
     void DX11Renderer::DrawScene(const RenderScene& scene)
     {
         m_Impl->ExecuteScene(scene);
-    }
-
-    void DX11Renderer::DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material)
-    {
-        m_Impl->DrawMesh(mesh, world, submeshIndex, material);
     }
 
     void DX11Renderer::EndFrame()

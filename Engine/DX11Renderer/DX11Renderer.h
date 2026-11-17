@@ -62,7 +62,6 @@ namespace Canape
         bool IsCubemapValid(CubemapResourceId cubemap) const;
         void DestroyCubemap(CubemapResourceId cubemap);
 
-        void SetCamera(const float* view, const float* projection);
         // Development defaults; RenderView.postProcess is reserved for future engine integration.
         void SetPostProcessSettings(const PostProcessSettings& settings);
         PostProcessSettings GetPostProcessSettings() const;
@@ -87,7 +86,6 @@ namespace Canape
         void DrawScene();
         // Consume synchronously between BeginFrame and EndFrame.
         void DrawScene(const RenderScene& scene);
-        void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex = 0, MaterialResourceId material = {});
         void EndFrame();
 
         void SetSceneSize(uint32_t width, uint32_t height);

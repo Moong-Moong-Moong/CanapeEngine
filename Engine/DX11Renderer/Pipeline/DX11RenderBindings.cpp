@@ -53,6 +53,11 @@ namespace Canape::RenderBindings
         context.VSSetConstantBuffers(0, 1, &buffer);
     }
 
+    void BindSkinning(ID3D11DeviceContext& context, ID3D11Buffer* buffer)
+    {
+        context.VSSetConstantBuffers(ShaderConstants::SkinningSlot, 1, &buffer);
+    }
+
     void BindMaterial(ID3D11DeviceContext& context, ID3D11Buffer* buffer, ID3D11ShaderResourceView* texture)
     {
         context.PSSetConstantBuffers(1, 1, &buffer);

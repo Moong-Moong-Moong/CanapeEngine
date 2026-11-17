@@ -101,6 +101,7 @@ namespace Canape
         ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
 #endif
         ComPtr<ID3D11Buffer> ObjectBuffer;
+        ComPtr<ID3D11Buffer> SkinningBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
         ComPtr<ID3D11Buffer> SkyboxViewBuffer;
@@ -142,7 +143,6 @@ namespace Canape
         bool CreatePipeline();
         bool BeginFrame();
         void ExecuteScene(const RenderScene& scene);
-        void DrawMesh(MeshResourceId mesh, const float* world, uint32_t submeshIndex, MaterialResourceId material);
         void EndFrame();
 
     private:

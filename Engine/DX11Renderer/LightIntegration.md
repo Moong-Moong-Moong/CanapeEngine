@@ -2,6 +2,10 @@
 
 Current renderer module ownership and verification: [RendererArchitecture.md](RendererArchitecture.md).
 
+Subsequent API cleanup removed individual immediate mesh submission and the separate
+camera setter. Queued and explicit RenderScene submissions remain supported. Tests
+were migrated to DrawScene; this cleanup has not been built or executed.
+
 ## Scope and changed files
 
 All changes are inside `Engine/DX11Renderer`. The public DX11Renderer interface,
@@ -32,8 +36,7 @@ constant-buffer slots are unchanged. No engine-side light collection is added.
 The existing public API delegates to its private Impl. CPU preparation, uploads,
 bindings and four pass modules are separated; Frame/DX11FrameExecutor.cpp owns the
 execution order through existing Impl member definitions. See RendererArchitecture.md.
-Position-only and Static vertices, direct DrawMesh and queued/explicit RenderScene
-submission remain supported.
+Position-only, Static and Skinned vertices use queued/explicit RenderScene submission.
 
 The renderer owns its camera DepthTexture / DepthStencilView and SceneColor
 texture directly. Camera depth uses D24/S8 (typeless with a debug SRV in Debug /
@@ -48,8 +51,7 @@ mathematical inverse-transpose; that is unrelated to upload packing.
 ## Frame / scene flow
 
 1. BeginFrame clears camera targets, uploads fresh light data, and invalidates all
-   shadow views. Legacy direct DrawMesh calls retain lighting without inheriting
-   a map from the previous frame.
+   shadow views. Each DrawScene then supplies its own camera and lighting state.
 2. DrawScene prepares camera/scene data and draw lists, then resolves scene.lights through PrepareLights/PrepareShadow.
 3. ScenePreparation::BuildLightConstants validates/packs the same lights used for MainPass. The first
    accepted Directional light (packed index 0) is the single shadow owner. Its
@@ -278,9 +280,8 @@ fixture in the standalone tests only. The same accepted Directional light drives
 both shadow and lighting. Set castShadow on the light and submit caster RenderItems
 with castShadow=true. Empty engine arrays remain valid and have no fallback lights.
 
-Only DrawScene supplies a complete caster list. Standalone DrawMesh calls do not
-collect/replay geometry into a new map; BeginFrame disables stale shadow state for
-that legacy path. At most the first accepted Directional light casts shadows. There
+DrawScene supplies the prepared caster list for all mesh submissions. Skinned shadow
+casting remains unimplemented. At most the first accepted Directional light casts shadows. There
 are no cascades, Point/Spot shadows or transparent shadow casting. Spot lighting itself
 also remains deferred. Fixed coverage can clip distant/moving content; outside pixels
 are deliberately fully visible. Bias is configurable and scale-dependent.

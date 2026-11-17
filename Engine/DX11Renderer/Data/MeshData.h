@@ -47,6 +47,15 @@ namespace Canape
     static_assert(offsetof(StaticVertex, UV) == 24);
     static_assert(offsetof(StaticVertex, Tangent) == 32);
 
+    static_assert(std::is_standard_layout_v<SkinnedVertex>);
+    static_assert(sizeof(SkinnedVertex) == 72);
+    static_assert(offsetof(SkinnedVertex, Position) == 0);
+    static_assert(offsetof(SkinnedVertex, Normal) == 12);
+    static_assert(offsetof(SkinnedVertex, UV) == 24);
+    static_assert(offsetof(SkinnedVertex, Tangent) == 32);
+    static_assert(offsetof(SkinnedVertex, Joints) == 48);
+    static_assert(offsetof(SkinnedVertex, Weights) == 56);
+
     inline const char* ValidateMeshIndices(size_t vertexCount, std::span<const uint32_t> indices,
         std::span<const SubMesh> submeshes)
     {
