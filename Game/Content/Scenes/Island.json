@@ -588,6 +588,47 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 41,
+            "name": "Sea Ripple Source",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 42,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -13.0,
+                            "Y": -0.6,
+                            "Z": 8.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "RippleSource",
+                    "id": 43,
+                    "properties": {
+                        "enabled": true,
+                        "interval": 2.0,
+                        "radius": 1.5,
+                        "strength": -6.0
+                    }
+                }
+            ]
         }
     ]
 }

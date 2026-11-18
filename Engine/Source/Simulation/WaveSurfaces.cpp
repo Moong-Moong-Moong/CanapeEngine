@@ -57,12 +57,12 @@ namespace Canape
         // Mirrors cbuffer WaveRipple in Shader/WaveRipple.hlsl.
         struct WaveRipple
         {
+            Vector2 areaOrigin;
             Vector2 cellSize;
             float speed = 0.0f;
             float damping = 0.0f;
             float strength = 0.0f;
             std::uint32_t pointsPerSide = 0;
-            float pad_[2];
         };
         static_assert(sizeof(WaveRipple) == 32);
 
@@ -116,6 +116,7 @@ namespace Canape
                 / WaveSurfaces::MaxStepSeconds;
 
             return {
+                .areaOrigin = geometry.areaOrigin,
                 .cellSize = cellSize,
                 .speed = std::clamp(surface.GetRippleSpeed(), 0.0f, maxSpeed),
                 .damping = std::max(surface.GetRippleDamping(), 0.0f),

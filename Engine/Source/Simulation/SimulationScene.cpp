@@ -11,6 +11,8 @@
 namespace
 {
     constexpr std::uint32_t MaxStepsPerFrame = 4;
+    // The kernel divides by the radius.
+    constexpr float MinDisturbanceRadius = 0.01f;
 
     // Mirrors cbuffer SimulationOuter in Shader/Simulation.hlsli.
     struct SimulationOuter
@@ -19,9 +21,10 @@ namespace
         // Of the step being computed.
         float stepDeltaTime = 0.0f;
         std::uint32_t stepNumber = 0;
-        float pad_ = 0.0f;
+        std::uint32_t disturbanceCount = 0;
+        std::array<Canape::WaveDisturbance, Canape::MaxWaveDisturbances> disturbances;
     };
-    static_assert(sizeof(SimulationOuter) == 16);
+    static_assert(sizeof(SimulationOuter) == 144);
 }
 
 namespace Canape
@@ -30,6 +33,17 @@ namespace Canape
         : session(session)
         , opaquePass(RenderPass::Opaque(session))
         , outer(session, SimulationOuter{}) {}
+
+    void SimulationScene::Disturb(const Vector3& position, float radius, float strength)
+    {
+        if(disturbanceCount == MaxWaveDisturbances) return;
+
+        disturbances[disturbanceCount++] = {
+            .center = { position.X, position.Z },
+            .radius = std::max(radius, MinDisturbanceRadius),
+            .strength = strength
+        };
+    }
 
     void SimulationScene::Simulate(Simulator& simulator, WaveSurfaces::Components surfaces, float dt)
     {
@@ -53,7 +67,11 @@ namespace Canape
         {
             values.stepDeltaTime = steppedTime / static_cast<float>(steps);
             values.stepNumber = stepNumber++;
+            values.disturbanceCount = disturbanceCount;
+            values.disturbances = disturbances;
             outer.Upload(session, values);
+            // A disturbance pushes once, so only the first step carries it.
+            disturbanceCount = 0;
 
             ComputePassScope pass(simulator, computePass, outer);
             waveSurfaces.Step(simulator);

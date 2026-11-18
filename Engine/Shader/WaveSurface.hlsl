@@ -12,16 +12,16 @@ cbuffer WaveSurfaceGeometry : register(b10)
     float SwellSpeed;
     float BaseHeight;
     uint PointsPerSide;
-    float WaveSurfaceGeometryPadding;
+    float pad_;
 };
 
 // Mirrors WaveSurfaceLook in the same file.
 cbuffer WaveSurfaceLook : register(b11)
 {
     float3 DeepColor;
-    float WaveSurfaceLookPadding0;
+    float pad0_;
     float3 ShallowColor;
-    float WaveSurfaceLookPadding1;
+    float pad1_;
 };
 
 // Ripple height and vertical velocity at each grid point.

@@ -84,6 +84,9 @@
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\RippleSource.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\PlayerController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -159,6 +162,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\RippleSource.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PlayerController.cpp">

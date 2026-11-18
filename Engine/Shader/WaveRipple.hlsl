@@ -3,12 +3,12 @@
 // Mirrors WaveRipple in Source/Simulation/WaveSurfaces.cpp.
 cbuffer WaveRipple : register(b1)
 {
+    float2 AreaOrigin;
     float2 CellSize;
     float RippleSpeed;
     float RippleDamping;
     float RippleStrength;
     uint PointsPerSide;
-    float2 WaveRipplePadding;
 };
 
 // Per second. The reflecting border keeps the mean height, so without it the random push makes the sea level drift.
@@ -35,6 +35,23 @@ float RandomPush(int2 cell)
     return float(hash >> 8) * (1.0 / 8388608.0) - 1.0;
 }
 
+// Velocity the step's disturbances give the point at xz.
+float DisturbancePush(float2 xz)
+{
+    float push = 0.0;
+    for (uint i = 0; i < WaveDisturbanceCount; ++i)
+    {
+        const WaveDisturbance disturbance = WaveDisturbances[i];
+        const float2 offset = (xz - disturbance.Center) / disturbance.Radius;
+        const float distanceSquared = dot(offset, offset);
+
+        // The middle and the rim go opposite ways, so no water is added or lost.
+        push += disturbance.Strength * (1.0 - distanceSquared) * exp(-distanceSquared);
+    }
+
+    return push;
+}
+
 // The border repeats its own height, so waves reflect there.
 float HeightAt(int2 cell)
 {
@@ -58,7 +75,8 @@ void cs_main(uint3 id : SV_DispatchThreadID)
         + (HeightAt(cell - int2(0, 1)) - 2.0 * height + HeightAt(cell + int2(0, 1))) / (CellSize.y * CellSize.y);
 
     // A random walk, so it grows with the square root of the step.
-    const float push = RippleStrength * RandomPush(cell) * sqrt(StepDeltaTime);
+    const float push = RippleStrength * RandomPush(cell) * sqrt(StepDeltaTime)
+        + DisturbancePush(AreaOrigin + float2(cell) * CellSize);
 
     // The damping is implicit: stable for any RippleDamping * StepDeltaTime.
     const float velocity = (state.y + RippleSpeed * RippleSpeed * laplacian * StepDeltaTime + push)
