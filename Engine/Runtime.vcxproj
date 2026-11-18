@@ -209,6 +209,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\Simulation.hlsli" />
+    <None Include="Shader\WaveRipple.hlsl" />
     <None Include="Shader\WaveSurface.hlsl" />
   </ItemGroup>
   <ItemGroup>

@@ -68,6 +68,7 @@ namespace Canape
         // Inside a renderer callback. The pass's render states are not restored.
         void BeginRenderPass(const RenderPass&, const Outer&);
         void Draw(const Material&, const Geometry&);
+        void Draw(const Material&, const Geometry&, const Field&);
         void EndRenderPass();
 
         // Of the frame that just ended.

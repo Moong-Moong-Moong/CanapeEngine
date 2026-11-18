@@ -24,6 +24,9 @@ cbuffer WaveSurfaceLook : register(b11)
     float WaveSurfaceLookPadding1;
 };
 
+// Ripple height and vertical velocity at each grid point.
+Texture2D<float2> Ripples : register(t8);
+
 // Relative to the main wave; Turn in radians.
 struct SwellWave
 {
@@ -84,6 +87,23 @@ float SwellHeight(float2 xz, out float2 gradient)
     return height;
 }
 
+float RippleAt(int2 gridPoint)
+{
+    const int2 last = int2(PointsPerSide, PointsPerSide) - 1;
+    return Ripples.Load(int3(clamp(gridPoint, int2(0, 0), last), 0)).x;
+}
+
+float RippleHeight(int2 gridPoint, out float2 gradient)
+{
+    const float2 cellSize = AreaExtent / float(PointsPerSide - 1u);
+    gradient = float2(
+        RippleAt(gridPoint + int2(1, 0)) - RippleAt(gridPoint - int2(1, 0)),
+        RippleAt(gridPoint + int2(0, 1)) - RippleAt(gridPoint - int2(0, 1))
+    ) / (2.0 * cellSize);
+
+    return RippleAt(gridPoint);
+}
+
 WaveSurfaceVarying vs_main(uint vertexId : SV_VertexID)
 {
     const uint cells = PointsPerSide - 1u;
@@ -92,7 +112,11 @@ WaveSurfaceVarying vs_main(uint vertexId : SV_VertexID)
     const float2 xz = AreaOrigin + float2(gridPoint) / float(cells) * AreaExtent;
 
     float2 gradient;
-    const float height = BaseHeight + SwellHeight(xz, gradient);
+    float2 rippleGradient;
+    const float height = BaseHeight
+        + SwellHeight(xz, gradient)
+        + RippleHeight(int2(gridPoint), rippleGradient);
+    gradient += rippleGradient;
 
     WaveSurfaceVarying output;
     output.WorldPosition = float3(xz.x, height, xz.y);

@@ -5,7 +5,10 @@
 cbuffer SimulationOuter : register(b9)
 {
     float SimulationTime;
-    float3 SimulationOuterPadding;
+    // Of the step being computed.
+    float StepDeltaTime;
+    uint StepNumber;
+    float SimulationOuterPadding;
 };
 
 #endif

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+
+#include "DX11Simulation/ComputePass.h"
 #include "DX11Simulation/Outer.h"
 #include "DX11Simulation/RenderPass.h"
 #include "Simulation/WaveSurfaces.h"
@@ -14,12 +17,14 @@ namespace Canape
     private:
         Session& session;
 
+        ComputePass computePass;
         RenderPass opaquePass;
         Outer outer;
         WaveSurfaces waveSurfaces;
 
         // Seconds.
         double time = 0.0;
+        std::uint32_t stepNumber = 0;
 
     public:
         explicit SimulationScene(Session&);
@@ -30,9 +35,9 @@ namespace Canape
         SimulationScene(SimulationScene&&) = delete;
         SimulationScene& operator=(SimulationScene&&) = delete;
 
-        void Advance(float dt);
-        void Prepare(WaveSurfaces::Components surfaces);
-        // Inside the renderer's after-opaque callback of the frame Prepare was called for.
+        // Advances the clock by dt and steps the GPU state with it.
+        void Simulate(Simulator&, WaveSurfaces::Components, float dt);
+        // Inside the renderer's after-opaque callback.
         void Render(Simulator&);
     };
 }

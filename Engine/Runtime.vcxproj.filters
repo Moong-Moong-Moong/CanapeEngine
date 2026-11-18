@@ -463,6 +463,9 @@
     <None Include="Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\WaveRipple.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\WaveSurface.hlsl">
       <Filter>Shader</Filter>
     </None>

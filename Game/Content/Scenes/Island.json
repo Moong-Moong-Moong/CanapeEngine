@@ -572,6 +572,9 @@
                         "swellAmplitude": 0.15,
                         "swellWavelength": 12.0,
                         "swellSpeed": 2.5,
+                        "rippleSpeed": 4.0,
+                        "rippleDamping": 0.6,
+                        "rippleStrength": 0.7,
                         "deepColor": {
                             "X": 0.04,
                             "Y": 0.2,

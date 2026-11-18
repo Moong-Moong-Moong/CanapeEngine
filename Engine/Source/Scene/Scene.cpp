@@ -82,11 +82,6 @@ namespace Canape
 	{
 		//***파괴된 스크립트의 OnDestroy 실행
 		OnDestroyScripts();
-
-		if (m_Simulation != nullptr)
-        {
-			m_Simulation->Advance(Time::DeltaTime());
-        }
 	}
 
 	void Scene::OnDestroyScripts()
@@ -208,11 +203,17 @@ namespace Canape
 				break;
 			}
 		}
+	}
 
-		//***Simulation
+	void Scene::Simulate(Simulator& simulator)
+	{
 		if (m_Simulation != nullptr)
 		{
-			m_Simulation->Prepare(m_componentRegistry.GetWaveSurfaces());
+			m_Simulation->Simulate(
+                simulator,
+                m_componentRegistry.GetWaveSurfaces(),
+                Time::DeltaTime()
+            );
 		}
 	}
 

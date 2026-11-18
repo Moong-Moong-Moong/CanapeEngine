@@ -116,7 +116,13 @@ namespace Canape
 
             if (!m_Headless)
             {
-                m_Renderer->Render(m_SceneManager->GetActiveScene(), *m_AssetManager, *m_Simulator);
+                FrameScope frame(*m_Simulator);
+                Scene* scene = m_SceneManager->GetActiveScene();
+                if (scene != nullptr)
+                {
+                    scene->Simulate(*m_Simulator);
+                }
+                m_Renderer->Render(scene, *m_AssetManager, *m_Simulator);
             }
 
             m_InputManager->EndFrame();

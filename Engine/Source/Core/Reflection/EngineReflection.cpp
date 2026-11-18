@@ -245,6 +245,9 @@ namespace Canape
 				.property("swellAmplitude", &WaveSurfaceComponent::GetSwellAmplitude, &WaveSurfaceComponent::SetSwellAmplitude)
 				.property("swellWavelength", &WaveSurfaceComponent::GetSwellWavelength, &WaveSurfaceComponent::SetSwellWavelength)
 				.property("swellSpeed", &WaveSurfaceComponent::GetSwellSpeed, &WaveSurfaceComponent::SetSwellSpeed)
+				.property("rippleSpeed", &WaveSurfaceComponent::GetRippleSpeed, &WaveSurfaceComponent::SetRippleSpeed)
+				.property("rippleDamping", &WaveSurfaceComponent::GetRippleDamping, &WaveSurfaceComponent::SetRippleDamping)
+				.property("rippleStrength", &WaveSurfaceComponent::GetRippleStrength, &WaveSurfaceComponent::SetRippleStrength)
 				.property("deepColor", &WaveSurfaceComponent::GetDeepColor, &WaveSurfaceComponent::SetDeepColor)
 				.property("shallowColor", &WaveSurfaceComponent::GetShallowColor, &WaveSurfaceComponent::SetShallowColor);
 		}

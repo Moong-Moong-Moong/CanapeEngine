@@ -21,6 +21,7 @@ namespace Canape
 	class JoltRuntime;
 	class Session;
 	class SimulationScene;
+	class Simulator;
 
 	class Scene final
 	{
@@ -71,6 +72,8 @@ namespace Canape
 		//***** Simulation
 		// Null when the scene was made without a session.
 		SimulationScene* GetSimulation() { return m_Simulation.get(); }
+		// Once a frame, after the update and before the scene is rendered.
+		void Simulate(Simulator&);
 
 	private:
 		void RunAwakeAndStart();

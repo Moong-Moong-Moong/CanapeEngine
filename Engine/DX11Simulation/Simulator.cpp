@@ -210,6 +210,12 @@ namespace Canape
         context->Draw(geometry.GetVertexCount(), geometry.GetInstanceCount());
     }
 
+    void Simulator::Draw(const Material& material, const Geometry& geometry, const Field& field)
+    {
+        context->SetVertexReadable(FieldSlot, field.GetLatest());
+        Draw(material, geometry);
+    }
+
     void Simulator::EndRenderPass()
     {
         assert(renderOpen);
@@ -223,6 +229,7 @@ namespace Canape
             context->ClearVertexConstant(slot);
             context->ClearPixelConstant(slot);
         }
+        context->ClearVertexReadable(FieldSlot);
 
     #if CANAPE_RENDER_DEBUG
         if(timer->IsRecording())

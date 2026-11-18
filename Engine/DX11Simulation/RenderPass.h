@@ -12,6 +12,8 @@ namespace Canape
     inline constexpr std::uint32_t OuterSlot = 9; // what the world decides.
     inline constexpr std::uint32_t GeometrySlot = 10; // what is drawn.
     inline constexpr std::uint32_t MaterialSlot = 11; // how it is shaded.
+    // Register of the field a draw reads in its vertex shader.
+    inline constexpr std::uint32_t FieldSlot = 8;
 
     class RenderPass
     {

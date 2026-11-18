@@ -19,6 +19,11 @@ namespace Canape
         float swellAmplitude = 0.15f;
         float swellWavelength = 12.0f;
         float swellSpeed = 2.5f;
+        // Of the ripples riding on the swell.
+        float rippleSpeed = 4.0f;
+        float rippleDamping = 0.6f;
+        // Of the random push every grid point gets.
+        float rippleStrength = 0.7f;
         // Linear RGB.
         Vector3 deepColor { 0.04f, 0.2f, 0.3f };
         Vector3 shallowColor { 0.25f, 0.55f, 0.6f };
@@ -36,6 +41,12 @@ namespace Canape
         void SetSwellWavelength(float meters) { swellWavelength = meters; }
         float GetSwellSpeed() const { return swellSpeed; }
         void SetSwellSpeed(float metersPerSecond) { swellSpeed = metersPerSecond; }
+        float GetRippleSpeed() const { return rippleSpeed; }
+        void SetRippleSpeed(float metersPerSecond) { rippleSpeed = metersPerSecond; }
+        float GetRippleDamping() const { return rippleDamping; }
+        void SetRippleDamping(float perSecond) { rippleDamping = perSecond; }
+        float GetRippleStrength() const { return rippleStrength; }
+        void SetRippleStrength(float strength) { rippleStrength = strength; }
         const Vector3& GetDeepColor() const { return deepColor; }
         void SetDeepColor(const Vector3& color) { deepColor = color; }
         const Vector3& GetShallowColor() const { return shallowColor; }
