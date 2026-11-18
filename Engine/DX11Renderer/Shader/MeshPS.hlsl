@@ -3,6 +3,7 @@
 #include "Common/MeshSurface.hlsli"
 #include "Common/Material.hlsli"
 #include "Common/Lighting.hlsli"
+#include "Common/Fog.hlsli"
 
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
@@ -28,5 +29,6 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     float3 rgb = AmbientColor * AmbientIntensity * baseColor * occlusion
         + CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness)
         + CalculateSpecularIBL(input.WorldPosition, normal, baseColor, metallic, roughness);
+    rgb = lerp(rgb, FogColor, CalculateFogWeight(input.WorldPosition));
     return float4(rgb, MaterialAlphaMode == 2 ? alpha : 1.0f);
 }

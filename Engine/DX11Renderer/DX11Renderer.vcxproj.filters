@@ -191,6 +191,9 @@
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\Fog.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="Shader\Common\FullscreenTypes.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
