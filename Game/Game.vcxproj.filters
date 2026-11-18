@@ -301,6 +301,9 @@
     <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Embers.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\Fire.hlsl">
       <Filter>Shader</Filter>
     </None>
@@ -315,6 +318,9 @@
     </None>
     <None Include="..\Engine\Shader\WaveSurface.hlsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="Content\Effects\Embers.effect">
+      <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Effects\Fire.effect">
       <Filter>Content\Effects</Filter>

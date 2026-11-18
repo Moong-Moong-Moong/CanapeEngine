@@ -35,47 +35,12 @@ cbuffer FlameLook : register(b11)
     float3 TailColor;
 };
 
-static const float TwoPi = 6.28318530718;
-static const float2 QuadCorners[6] = {
-    float2(-1.0, -1.0),
-    float2(1.0, -1.0),
-    float2(1.0, 1.0),
-    float2(-1.0, -1.0),
-    float2(1.0, 1.0),
-    float2(-1.0, 1.0)
-};
-
 struct FlameVarying
 {
     float4 Position : SV_POSITION;
     float2 Corner : TEXCOORD0;
     float3 Color : TEXCOORD1;
 };
-
-float HashToSigned(uint hash)
-{
-    return HashToUnit(hash) * 2.0 - 1.0;
-}
-
-float2 LatticeVector(int3 cell)
-{
-    const uint hash = HashUint(asuint(cell.x) * 73856093u ^ asuint(cell.y) * 19349663u ^ asuint(cell.z) * 83492791u);
-    return float2(HashToSigned(hash), HashToSigned(HashUint(hash)));
-}
-
-// Smooth noise in [-1, 1] per component.
-float2 Turbulence(float3 position)
-{
-    const float3 base = floor(position);
-    const float3 fraction = position - base;
-    const float3 weight = fraction * fraction * (3.0 - 2.0 * fraction);
-    const int3 cell = int3(base);
-    const float2 x00 = lerp(LatticeVector(cell + int3(0, 0, 0)), LatticeVector(cell + int3(1, 0, 0)), weight.x);
-    const float2 x10 = lerp(LatticeVector(cell + int3(0, 1, 0)), LatticeVector(cell + int3(1, 1, 0)), weight.x);
-    const float2 x01 = lerp(LatticeVector(cell + int3(0, 0, 1)), LatticeVector(cell + int3(1, 0, 1)), weight.x);
-    const float2 x11 = lerp(LatticeVector(cell + int3(0, 1, 1)), LatticeVector(cell + int3(1, 1, 1)), weight.x);
-    return lerp(lerp(x00, x10, weight.y), lerp(x01, x11, weight.y), weight.z);
-}
 
 Particle Born(uint slot, uint generation)
 {

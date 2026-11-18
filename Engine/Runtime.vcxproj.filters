@@ -536,6 +536,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Runtime.props" />
+    <None Include="Shader\Embers.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\Fire.hlsl">
       <Filter>Shader</Filter>
     </None>
