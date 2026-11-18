@@ -288,6 +288,9 @@
     <ClInclude Include="Source\Simulation\WaveSurfaces.h">
       <Filter>Source\Simulation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Simulation\WindComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
@@ -438,6 +441,9 @@
       <Filter>Source\Simulation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Simulation\WaveSurfaces.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\WindComponent.cpp">
       <Filter>Source\Simulation</Filter>
     </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">

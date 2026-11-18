@@ -150,6 +150,7 @@
     <ClInclude Include="Source\Simulation\SimulationScene.h" />
     <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h" />
     <ClInclude Include="Source\Simulation\WaveSurfaces.h" />
+    <ClInclude Include="Source\Simulation\WindComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Asset\Animation\AnimationClipAsset.cpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp" />
     <ClCompile Include="Source\Simulation\SimulationScene.cpp" />
     <ClCompile Include="Source\Simulation\WaveSurfaces.cpp" />
+    <ClCompile Include="Source\Simulation\WindComponent.cpp" />
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>

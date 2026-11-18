@@ -56,8 +56,8 @@ namespace Canape
         // Pushes the water around position once, in the next step.
         // Ignored once MaxWaveDisturbances are waiting.
         void Disturb(const Vector3& position, float radius, float strength);
-        // Advances the clock by dt and steps the GPU state with it.
-        void Simulate(Simulator&, WaveSurfaces::Components, float dt);
+        // windVelocity is in world XZ, meters per second.
+        void Simulate(Simulator&, WaveSurfaces::Components, const Vector2& windVelocity, float dt);
         // Inside the renderer's after-opaque callback.
         void Render(Simulator&);
     };

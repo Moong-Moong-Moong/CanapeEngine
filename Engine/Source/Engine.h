@@ -28,6 +28,7 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
+#include "Simulation/WindComponent.h"
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Texture/TextureAsset.h"

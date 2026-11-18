@@ -16,9 +16,6 @@ namespace Canape
         Vector2 areaSize { 160.0f, 160.0f };
         // Grid points per side of the drawn surface.
         std::uint32_t resolution = 256;
-        float swellAmplitude = 0.15f;
-        float swellWavelength = 12.0f;
-        float swellSpeed = 2.5f;
         // Of the ripples riding on the swell.
         float rippleSpeed = 4.0f;
         float rippleDamping = 0.6f;
@@ -35,12 +32,6 @@ namespace Canape
         void SetAreaSize(const Vector2& size) { areaSize = size; }
         std::uint32_t GetResolution() const { return resolution; }
         void SetResolution(std::uint32_t pointsPerSide) { resolution = pointsPerSide; }
-        float GetSwellAmplitude() const { return swellAmplitude; }
-        void SetSwellAmplitude(float meters) { swellAmplitude = meters; }
-        float GetSwellWavelength() const { return swellWavelength; }
-        void SetSwellWavelength(float meters) { swellWavelength = meters; }
-        float GetSwellSpeed() const { return swellSpeed; }
-        void SetSwellSpeed(float metersPerSecond) { swellSpeed = metersPerSecond; }
         float GetRippleSpeed() const { return rippleSpeed; }
         void SetRippleSpeed(float metersPerSecond) { rippleSpeed = metersPerSecond; }
         float GetRippleDamping() const { return rippleDamping; }

@@ -569,9 +569,6 @@
                             "Y": 160.0
                         },
                         "resolution": 256,
-                        "swellAmplitude": 0.15,
-                        "swellWavelength": 12.0,
-                        "swellSpeed": 2.5,
                         "rippleSpeed": 4.0,
                         "rippleDamping": 0.6,
                         "rippleStrength": 0.7,
@@ -626,6 +623,45 @@
                         "interval": 2.0,
                         "radius": 1.5,
                         "strength": -6.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 44,
+            "name": "Wind",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.258819,
+                            "Z": 0.0,
+                            "W": 0.965926
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "WindComponent",
+                    "id": 46,
+                    "properties": {
+                        "enabled": true,
+                        "speed": 4.3
                     }
                 }
             ]

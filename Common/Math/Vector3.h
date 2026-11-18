@@ -2,6 +2,7 @@
 
 #include "Math/MathUtility.h"
 #include "Math/Scalar.h"
+#include "Math/Vector2.h"
 
 #include <DirectXMath.h>
 
@@ -53,6 +54,11 @@ namespace Canape
 		{
 			return Length() > Math::Epsilon ? FromXM(DirectX::XMVector3Normalize(ToXM())) : Vector3{};
 		}
+
+        Vector2 XZ() const
+        {
+            return Vector2{X, Z};
+        }
 
 		static float Dot(const Vector3& a, const Vector3& b)
 		{

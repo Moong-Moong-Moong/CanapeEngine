@@ -6,13 +6,9 @@ cbuffer WaveSurfaceGeometry : register(b10)
 {
     float2 AreaOrigin;
     float2 AreaExtent;
-    float2 SwellDirection;
-    float SwellAmplitude;
-    float SwellWavelength;
-    float SwellSpeed;
     float BaseHeight;
     uint PointsPerSide;
-    float pad_;
+    float2 pad_;
 };
 
 // Mirrors WaveSurfaceLook in the same file.
@@ -36,6 +32,9 @@ struct SwellWave
 };
 
 static const float TwoPi = 6.28318530718;
+static const float Gravity = 9.81;
+// Of the main wave, over WindSpeed^2 / Gravity: half the height of a fully developed sea.
+static const float SwellAmplitudeFactor = 0.105;
 static const uint SwellWaveCount = 3;
 static const SwellWave SwellWaves[SwellWaveCount] = {
     { 1.0, 1.0, 0.0 },
@@ -59,8 +58,20 @@ struct WaveSurfaceVarying
     float3 WorldNormal : NORMAL;
 };
 
+float2 CellSize()
+{
+    return AreaExtent / float(PointsPerSide - 1u);
+}
+
 float SwellHeight(float2 xz, out float2 gradient)
 {
+    // Deep water: a wave as fast as the wind is this long.
+    const float mainWavelength = TwoPi * WindSpeed * WindSpeed / Gravity;
+    const float mainAmplitude = SwellAmplitudeFactor * WindSpeed * WindSpeed / Gravity;
+    const float2 cellSize = CellSize();
+    // The grid cannot carry a shorter wave.
+    const float shortestWavelength = 2.0 * max(cellSize.x, cellSize.y);
+
     float height = 0.0;
     gradient = float2(0.0, 0.0);
 
@@ -72,14 +83,16 @@ float SwellHeight(float2 xz, out float2 gradient)
         float cosTurn;
         sincos(wave.Turn, sinTurn, cosTurn);
         const float2 direction = float2(
-            SwellDirection.x * cosTurn - SwellDirection.y * sinTurn,
-            SwellDirection.x * sinTurn + SwellDirection.y * cosTurn
+            WindDirection.x * cosTurn - WindDirection.y * sinTurn,
+            WindDirection.x * sinTurn + WindDirection.y * cosTurn
         );
-        const float k = TwoPi / (SwellWavelength * wave.WavelengthScale);
+        const float wavelength = mainWavelength * wave.WavelengthScale;
+        const float k = TwoPi / max(wavelength, shortestWavelength);
 
         // Deep water: the speed scales with the square root of the wavelength.
-        const float phase = k * (dot(xz, direction) - SwellSpeed * sqrt(wave.WavelengthScale) * SimulationTime);
-        const float amplitude = SwellAmplitude * wave.AmplitudeScale;
+        const float phase = k * (dot(xz, direction) - WindSpeed * sqrt(wave.WavelengthScale) * SimulationTime);
+        // Fades out as the wave gets too short for the grid.
+        const float amplitude = mainAmplitude * wave.AmplitudeScale * saturate(wavelength / shortestWavelength - 1.0);
         height += amplitude * sin(phase);
         gradient += amplitude * k * cos(phase) * direction;
     }
@@ -95,11 +108,10 @@ float RippleAt(int2 gridPoint)
 
 float RippleHeight(int2 gridPoint, out float2 gradient)
 {
-    const float2 cellSize = AreaExtent / float(PointsPerSide - 1u);
     gradient = float2(
         RippleAt(gridPoint + int2(1, 0)) - RippleAt(gridPoint - int2(1, 0)),
         RippleAt(gridPoint + int2(0, 1)) - RippleAt(gridPoint - int2(0, 1))
-    ) / (2.0 * cellSize);
+    ) / (2.0 * CellSize());
 
     return RippleAt(gridPoint);
 }

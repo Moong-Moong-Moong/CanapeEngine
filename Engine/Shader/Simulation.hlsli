@@ -19,6 +19,11 @@ cbuffer SimulationOuter : register(b9)
     float StepDeltaTime;
     uint StepNumber;
     uint WaveDisturbanceCount;
+    // Unit in world XZ; zero when calm.
+    float2 WindDirection;
+    // Meters per second.
+    float WindSpeed;
+    float outerPad_;
     WaveDisturbance WaveDisturbances[MaxWaveDisturbances];
 };
 

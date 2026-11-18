@@ -22,9 +22,13 @@ namespace
         float stepDeltaTime = 0.0f;
         std::uint32_t stepNumber = 0;
         std::uint32_t disturbanceCount = 0;
+        // Unit in world XZ; zero when calm.
+        Canape::Vector2 windDirection;
+        float windSpeed = 0.0f;
+        float pad_;
         std::array<Canape::WaveDisturbance, Canape::MaxWaveDisturbances> disturbances;
     };
-    static_assert(sizeof(SimulationOuter) == 144);
+    static_assert(sizeof(SimulationOuter) == 160);
 }
 
 namespace Canape
@@ -45,14 +49,23 @@ namespace Canape
         };
     }
 
-    void SimulationScene::Simulate(Simulator& simulator, WaveSurfaces::Components surfaces, float dt)
+    void SimulationScene::Simulate(
+        Simulator& simulator,
+        WaveSurfaces::Components surfaces,
+        const Vector2& windVelocity,
+        float dt)
     {
         // A longer frame is not caught up with.
         constexpr float MaxSteppedTime = MaxStepsPerFrame * WaveSurfaces::MaxStepSeconds;
 
         time += dt;
+        const auto windSpeed = windVelocity.Length();
         SimulationOuter values{
-            .time = static_cast<float>(time)
+            .time = static_cast<float>(time),
+            .windDirection = windSpeed > 0.0f ?
+                windVelocity / windSpeed :
+                Vector2{},
+            .windSpeed = windSpeed
         };
         // The draws read what the last step left, or this when there is no step.
         outer.Upload(session, values);

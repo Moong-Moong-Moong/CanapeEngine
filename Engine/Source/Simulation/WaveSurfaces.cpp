@@ -22,8 +22,6 @@ namespace Canape
         constexpr auto RippleShaderPath = L"Shaders/WaveRipple.hlsl";
         constexpr std::uint32_t MinPointsPerSide = 2;
         constexpr std::uint32_t MaxPointsPerSide = 1024;
-        // The shader divides by the wavelength.
-        constexpr float MinSwellWavelength = 0.1f;
         // The kernel divides by the cell size.
         constexpr float MinRippleCellSize = 0.001f;
         // Of a ripple step: how far a wave may travel, in cells.
@@ -34,23 +32,19 @@ namespace Canape
         {
             Vector2 areaOrigin;
             Vector2 areaExtent;
-            Vector2 swellDirection;
-            float swellAmplitude = 0.0f;
-            float swellWavelength = 0.0f;
-            float swellSpeed = 0.0f;
             float baseHeight = 0.0f;
             std::uint32_t pointsPerSide = 0;
-            float padding = 0.0f;
+            Vector2 pad_;
         };
-        static_assert(sizeof(WaveSurfaceGeometry) == 48);
+        static_assert(sizeof(WaveSurfaceGeometry) == 32);
 
         // Mirrors cbuffer WaveSurfaceLook in Shader/WaveSurface.hlsl.
         struct WaveSurfaceLook
         {
             Vector3 deepColor;
-            float padding0 = 0.0f;
+            float pad0_ = 0.0f;
             Vector3 shallowColor;
-            float padding1 = 0.0f;
+            float pad1_ = 0.0f;
         };
         static_assert(sizeof(WaveSurfaceLook) == 32);
 
@@ -77,13 +71,6 @@ namespace Canape
                     center.Z - size.Y * 0.5f
                 },
                 .areaExtent = size,
-                .swellDirection = { 0.0f, 1.0f },
-                .swellAmplitude = surface.GetSwellAmplitude(),
-                .swellWavelength = std::max(
-                    surface.GetSwellWavelength(),
-                    MinSwellWavelength
-                ),
-                .swellSpeed = surface.GetSwellSpeed(),
                 .baseHeight = center.Y,
                 .pointsPerSide = std::clamp(
                     surface.GetResolution(),

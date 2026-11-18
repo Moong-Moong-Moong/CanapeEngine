@@ -26,6 +26,7 @@
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
+#include "Simulation/WindComponent.h"
 
 #define CN_KEY_VALUE(name) rttr::value(#name, Key::name)
 
@@ -242,14 +243,15 @@ namespace Canape
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("areaSize", &WaveSurfaceComponent::GetAreaSize, &WaveSurfaceComponent::SetAreaSize)
 				.property("resolution", &WaveSurfaceComponent::GetResolution, &WaveSurfaceComponent::SetResolution)
-				.property("swellAmplitude", &WaveSurfaceComponent::GetSwellAmplitude, &WaveSurfaceComponent::SetSwellAmplitude)
-				.property("swellWavelength", &WaveSurfaceComponent::GetSwellWavelength, &WaveSurfaceComponent::SetSwellWavelength)
-				.property("swellSpeed", &WaveSurfaceComponent::GetSwellSpeed, &WaveSurfaceComponent::SetSwellSpeed)
 				.property("rippleSpeed", &WaveSurfaceComponent::GetRippleSpeed, &WaveSurfaceComponent::SetRippleSpeed)
 				.property("rippleDamping", &WaveSurfaceComponent::GetRippleDamping, &WaveSurfaceComponent::SetRippleDamping)
 				.property("rippleStrength", &WaveSurfaceComponent::GetRippleStrength, &WaveSurfaceComponent::SetRippleStrength)
 				.property("deepColor", &WaveSurfaceComponent::GetDeepColor, &WaveSurfaceComponent::SetDeepColor)
 				.property("shallowColor", &WaveSurfaceComponent::GetShallowColor, &WaveSurfaceComponent::SetShallowColor);
+
+			registration::class_<WindComponent>("WindComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("speed", &WindComponent::GetSpeed, &WindComponent::SetSpeed);
 		}
 	}
 

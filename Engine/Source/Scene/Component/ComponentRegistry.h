@@ -15,6 +15,7 @@ namespace Canape
 	class HingeComponent;
 	class WaterVolumeComponent;
 	class WaveSurfaceComponent;
+	class WindComponent;
 	class AnimatorComponent;
 
 	//***** Scene 이 순회할 특정 컴포넌트 목록을 보관
@@ -43,6 +44,7 @@ namespace Canape
 		std::span<HingeComponent* const> GetHinges() const { return m_hinges; }
 		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
 		std::span<WaveSurfaceComponent* const> GetWaveSurfaces() const { return m_waveSurfaces; }
+		std::span<WindComponent* const> GetWinds() const { return m_winds; }
 		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
 
@@ -57,6 +59,7 @@ namespace Canape
 		std::vector<HingeComponent*> m_hinges;
 		std::vector<WaterVolumeComponent*> m_waterVolumes;
 		std::vector<WaveSurfaceComponent*> m_waveSurfaces;
+		std::vector<WindComponent*> m_winds;
 		std::vector<AnimatorComponent*> m_animators;
 
 		std::vector<Component*> m_pendingAdd;
