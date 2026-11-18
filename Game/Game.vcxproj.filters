@@ -16,6 +16,18 @@
     <Filter Include="Content\Texture">
       <UniqueIdentifier>{568F0B1E-69C6-71C8-9733-41AC29664C29}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{8892CCD1-7C50-92A9-3C03-FE1F7914C66D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Common">
+      <UniqueIdentifier>{7F635803-34D2-3105-D86D-08F945A44235}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Debug">
+      <UniqueIdentifier>{E01CDA53-9E07-0C33-BE39-83C566700E46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Shadow">
+      <UniqueIdentifier>{BB3BB4B1-52CC-1435-46AC-9FDE4362D9F9}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{D5F4A14A-296F-C4CD-3A23-84F6F0C3C3C1}</UniqueIdentifier>
     </Filter>
@@ -214,7 +226,72 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="@(RendererShader)" />
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Constants.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\FullscreenTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Lighting.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Material.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshSurface.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshTransform.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Skinning.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\SkyboxEnvironment.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Debug\DepthDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Debug\MeshDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshPS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshSkinnedVS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshStaticVS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\PCSS.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowConstants.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowDepth.hlsl">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowSampling.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Skybox.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Content\Game.json">
       <Filter>Content</Filter>
     </None>
