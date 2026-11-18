@@ -20,8 +20,7 @@ namespace Canape
 			return owner;
 		}
 
-		// root 기준 "A/B/C" 경로를 자식 이름으로 따라간다. 빈 경로는 root 자신.
-		TransformComponent* FindByPath(TransformComponent* root, const std::string& path)
+		TransformComponent* FindByPath(TransformComponent* root, const std::string& path) // path : Armature/mixamorig.Hips/mixamorig.Spine 
 		{
 			TransformComponent* current = root;
 			size_t begin = 0;
@@ -101,7 +100,7 @@ namespace Canape
 		return assets.GetAnimationClip(m_Clip) != nullptr;
 	}
 
-	void AnimatorComponent::Bind(const AnimationClipAsset& clip)
+	void AnimatorComponent::Bind(const AnimationClipAsset& clip) // track
 	{
 		const std::vector<AnimationTrack>& tracks = clip.GetTracks();
 		m_Targets.assign(tracks.size(), nullptr);
@@ -114,7 +113,7 @@ namespace Canape
 		}
 	}
 
-	void AnimatorComponent::Evaluate(float deltaTime)
+	void AnimatorComponent::ApplyKeyFrame(float deltaTime)
 	{
 		const AnimationClipAsset* clip = Application::Get().GetAssetManager().GetAnimationClip(m_Clip);
 		if (!clip)
@@ -128,7 +127,6 @@ namespace Canape
 			Bind(*clip);
 		}
 
-		// 1. 시간 진행
 		const float duration = clip->GetDuration();
 		if (m_Playing)
 		{

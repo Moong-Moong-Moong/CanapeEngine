@@ -11,13 +11,12 @@ namespace Canape
 
     struct AnimationTrack
     {
-        std::string targetPath;              // 모델 루트 기준 노드 경로 ("Bone0/Bone1", 루트 자신은 "")
+        std::string targetPath;              // skeleton 오브젝트의 루트 오브젝트 기준 상대 경로
         AnimationProperty property = AnimationProperty::Translation;
         AnimationInterpolation interpolation = AnimationInterpolation::Linear;
         std::vector<float> times;            // 초 단위, 오름차순
-        std::vector<Vector4> values;           // T/S: 키당 3개, R: 키당 4개 (x,y,z,w), 엔진 좌표계로 변환된 값
+        std::vector<Vector4> values;       
 
-        uint32_t GetComponentCount() const { return property == AnimationProperty::Rotation ? 4u : 3u; }
         uint32_t GetKeyCount() const { return static_cast<uint32_t>(times.size()); }
     };
 
@@ -40,7 +39,7 @@ namespace Canape
         static AnimationClipAssetId AllocateAssetId();
         const AnimationClipAssetId m_AssetId = AllocateAssetId();
         std::string m_Name;
-        float m_Duration = 0.0f;             // 모든 트랙 times의 최댓값
+        float m_Duration = 0.0f;             // 트랙중 가장 긴 time 값을 사용
         std::vector<AnimationTrack> m_Tracks;
     };
 }

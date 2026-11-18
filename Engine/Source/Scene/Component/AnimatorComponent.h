@@ -10,8 +10,6 @@ namespace Canape
 {
     class TransformComponent;
 
-    // 클립 키프레임을 샘플링해서 대상 GameObject들의 로컬 TRS를 덮어쓴다.
-    // 트랙의 targetPath는 이 컴포넌트가 붙은 GameObject(모델 루트) 기준 경로다.
     class AnimatorComponent : public Component
     {
         RTTR_ENABLE(Component)
@@ -19,7 +17,6 @@ namespace Canape
     public:
         AnimatorComponent() = default;
 
-        // 예: "Models/Arm_Bone_Skin_Ani.gltf#0"
         bool SetClip(const std::string& clipPath);
         const std::string& GetClipPath() const { return m_ClipPath; }
         void SetClipPath(const std::string& clipPath) { SetClip(clipPath); }
@@ -28,7 +25,7 @@ namespace Canape
         void Stop() { m_Playing = false; m_Time = 0.0f; }
         void SetSpeed(float speed) { m_Speed = speed; }
 
-        void Evaluate(float deltaTime);
+        void ApplyKeyFrame(float deltaTime);
 
         float GetTime() const { return m_Time; }
         bool IsPlaying() const { return m_Playing; }

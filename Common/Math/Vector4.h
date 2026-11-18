@@ -14,6 +14,9 @@ namespace Canape
 		constexpr Vector4() = default;
 		constexpr Vector4(float x, float y, float z, float w) : X(x), Y(y), Z(z), W(w) {}
 
+		constexpr Vector4 operator*(float scalar) const { return { X * scalar, Y * scalar, Z * scalar, W * scalar }; }
+		constexpr Vector4& operator*=(float scalar) { X *= scalar; Y *= scalar; Z *= scalar; W *= scalar; return *this; }
+
 		DirectX::XMVECTOR ToXM() const { return DirectX::XMVectorSet(X, Y, Z, W); }
 
 		static Vector4 FromXM(DirectX::FXMVECTOR v)
