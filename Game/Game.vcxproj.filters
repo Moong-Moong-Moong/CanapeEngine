@@ -108,10 +108,10 @@
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scripts\RippleSource.h">
+    <ClInclude Include="Source\Scripts\PlayerController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scripts\PlayerController.h">
+    <ClInclude Include="Source\Scripts\RippleSource.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\SceneChanger.h">
@@ -200,10 +200,10 @@
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scripts\RippleSource.cpp">
+    <ClCompile Include="Source\Scripts\PlayerController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scripts\PlayerController.cpp">
+    <ClCompile Include="Source\Scripts\RippleSource.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp">
@@ -296,6 +296,15 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveRipple.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveSurface.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Content\Game.json">

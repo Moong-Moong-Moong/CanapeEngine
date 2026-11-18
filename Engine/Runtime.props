@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildThisFileDirectory)DX11Renderer\DX11Renderer.props" />
+  <Import Project="$(MSBuildThisFileDirectory)DX11Simulation\DX11Simulation.props" />
   <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>windowscodecs.lib;ole32.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>

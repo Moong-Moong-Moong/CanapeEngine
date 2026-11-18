@@ -1,6 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-
 #include "Simulation/WaveSurfaces.h"
 
 #include <algorithm>
