@@ -22,7 +22,8 @@ namespace Canape
     };
     namespace MeshDraw
     {
-        void SubmitMain(const PreparedMeshDraw& draw, MeshDrawContext& context);
+        void SubmitMain(const PreparedMeshDraw& draw, MeshDrawContext& context,
+            TransparentFace face = TransparentFace::Both);
         void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context);
     }
 }
