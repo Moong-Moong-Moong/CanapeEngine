@@ -274,23 +274,40 @@ namespace Canape
             return {};
         }
 
-        constexpr DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
+        switch (format)
+        {
+        case TextureFormat::RGBA8_SRGB: dxgiFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; break;
+        case TextureFormat::RGBA8_UNORM: dxgiFormat = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+        case TextureFormat::RGBA16_FLOAT: dxgiFormat = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
+        case TextureFormat::RGBA32_FLOAT: dxgiFormat = DXGI_FORMAT_R32G32B32A32_FLOAT; break;
+        default: return {};
+        }
+        const uint32_t bytesPerPixel = CubemapBytesPerPixel(format);
+        if (uint64_t(faceSize) * faceSize * bytesPerPixel > UINT32_MAX)
+        {
+            error = "Cubemap face exceeds D3D11 subresource pitch limits";
+            CN_LOG_RENDERER("Resource", error);
+            return {};
+        }
         UINT support = 0;
         HRESULT result = device->CheckFormatSupport(dxgiFormat, &support);
         if (FAILED(result))
         {
-            error = HResultMessage("ID3D11Device::CheckFormatSupport(sRGB cubemap)", result);
+            error = HResultMessage("ID3D11Device::CheckFormatSupport(cubemap)", result);
             CN_LOG_RENDERER("Resource", error);
             return {};
         }
         if (!(support & D3D11_FORMAT_SUPPORT_TEXTURECUBE) || !(support & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE))
         {
-            error = "RGBA8 sRGB cubemap sampling is unsupported by this device";
+            error = "Cubemap format sampling is unsupported by this device";
             CN_LOG_RENDERER("Resource", error);
             return {};
         }
 
-        const bool generateMips = mipLevels == 1 && faceSize > 1 && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN);
+        const bool generateMips = mipLevels == 1 && faceSize > 1
+            && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN)
+            && (support & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = faceSize;
         desc.Height = faceSize;
@@ -312,8 +329,10 @@ namespace Canape
                 for (uint32_t mip = 0; mip < mipLevels; ++mip)
                 {
                     const uint32_t size = faceSize >> mip;
-                    subresources.push_back({ data, size * 4, 0 });
-                    data += size_t(size) * size * 4;
+                    const uint32_t rowPitch = size * bytesPerPixel;
+                    const uint32_t slicePitch = rowPitch * size;
+                    subresources.push_back({ data, rowPitch, slicePitch });
+                    data += slicePitch;
                 }
             }
         }
@@ -344,11 +363,11 @@ namespace Canape
         cubemap.MipLevels = created.MipLevels;
         if (generateMips)
         {
-            const size_t faceBytes = size_t(faceSize) * faceSize * 4;
+            const size_t faceBytes = size_t(faceSize) * faceSize * bytesPerPixel;
             for (uint32_t face = 0; face < 6; ++face)
             {
                 context->UpdateSubresource(cubemap.Texture.Get(), D3D11CalcSubresource(0, face, created.MipLevels),
-                    nullptr, pixels.data() + face * faceBytes, faceSize * 4, 0);
+                    nullptr, pixels.data() + face * faceBytes, faceSize * bytesPerPixel, 0);
             }
             context->GenerateMips(cubemap.ShaderResourceView.Get());
         }

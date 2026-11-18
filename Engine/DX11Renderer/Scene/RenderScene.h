@@ -64,7 +64,7 @@ namespace Canape
         std::vector<Matrix4> bonePalettes;
 
         Vector3 ambientColor{ 1.0f, 1.0f, 1.0f }; // Linear RGB.
-        float ambientIntensity = 0.1f;
+        float ambientIntensity = 0.0f;
         RenderFog fog{};
         RenderSkybox skybox{};
 

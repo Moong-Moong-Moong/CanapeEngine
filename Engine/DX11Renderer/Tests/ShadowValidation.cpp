@@ -9,6 +9,7 @@
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Data/ShaderConstants.h"
 #include "DX11Renderer/Scene/RenderScene.h"
+#include "Asset/Texture/CubemapImporter.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -17,6 +18,7 @@
 #include <d3d11sdklayers.h>
 #include <DirectXPackedVector.h>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -724,6 +726,110 @@ std::array<float, 4> ReadHdrCenter(Backend& impl)
     impl.Context->Unmap(staging.Get(), 0);
     return result;
 }
+void CubemapDdsChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    struct Case
+    {
+        const char* Path;
+        TextureFormat Format;
+        DXGI_FORMAT GpuFormat;
+    };
+    constexpr Case cases[]{
+        { "Game/Content/HDRI/uffizi_cross_Mark.dds", TextureFormat::RGBA8_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
+        { "Game/Content/HDRI/ludwikowice_farmland_cube_Mark.dds", TextureFormat::RGBA8_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
+        { "Game/Content/HDRI/uffizi_cross.dds", TextureFormat::RGBA16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT },
+        { "Game/Content/HDRI/ludwikowice_farmland_cube.dds", TextureFormat::RGBA32_FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT },
+    };
+    for (const Case& test : cases)
+    {
+        std::string error;
+        auto asset = CubemapImporter::LoadCubemap(std::filesystem::path(test.Path), &error);
+        Require(asset != nullptr, error.empty() ? "DDS cubemap import" : error.c_str());
+        Require(asset->GetFormat() == test.Format, "DDS pixel format preserved");
+        const uint32_t bytesPerPixel = CubemapBytesPerPixel(test.Format);
+        Require(ValidateCubemapData(asset->GetFaceSize(), asset->GetMipLevels(),
+            asset->GetFormat(), asset->GetPixels().size()) == nullptr, "DDS face/mip byte layout");
+        if (test.Format == TextureFormat::RGBA16_FLOAT || test.Format == TextureFormat::RGBA32_FLOAT)
+        {
+            bool hasHdrValue = false;
+            for (size_t offset = 0; offset < asset->GetPixels().size(); offset += bytesPerPixel)
+            {
+                float red = 0.0f;
+                if (test.Format == TextureFormat::RGBA16_FLOAT)
+                {
+                    uint16_t bits = 0;
+                    std::memcpy(&bits, asset->GetPixels().data() + offset, sizeof(bits));
+                    red = DirectX::PackedVector::XMConvertHalfToFloat(bits);
+                }
+                else
+                    std::memcpy(&red, asset->GetPixels().data() + offset, sizeof(red));
+                if (red > 1.0f) { hasHdrValue = true; break; }
+            }
+            Require(hasHdrValue, "source DDS contains HDR values over one");
+        }
+        const auto id = renderer.CreateCubemap(asset->GetFaceSize(), asset->GetMipLevels(),
+            asset->GetFormat(), asset->GetPixels());
+        Require(renderer.IsCubemapValid(id), "DDS cubemap GPU creation");
+        const auto* gpu = impl.Resources.GetCubemap(id);
+        D3D11_TEXTURE2D_DESC desc{};
+        gpu->Texture->GetDesc(&desc);
+        Require(desc.Format == test.GpuFormat && desc.ArraySize == 6
+            && desc.MipLevels >= asset->GetMipLevels(), "DDS GPU texture format and dimensions");
+        if (asset->GetMipLevels() == 1)
+        {
+            UINT support = 0;
+            Require(SUCCEEDED(impl.Device->CheckFormatSupport(test.GpuFormat, &support)),
+                "DDS GPU mip format query");
+            const bool autogen = asset->GetFaceSize() > 1
+                && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN)
+                && (support & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
+            uint32_t expectedMips = 1;
+            if (autogen)
+                for (uint32_t size = asset->GetFaceSize(); size > 1; size >>= 1) ++expectedMips;
+            Require(desc.MipLevels == expectedMips, "DDS supported mip generation or safe single level");
+        }
+        D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+        gpu->ShaderResourceView->GetDesc(&srv);
+        Require(srv.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE && srv.Format == test.GpuFormat,
+            "DDS GPU cube SRV");
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        ComPtr<ID3D11Texture2D> staging;
+        Require(SUCCEEDED(impl.Device->CreateTexture2D(&desc, nullptr, &staging)), "DDS staging texture");
+        impl.Context->CopyResource(staging.Get(), gpu->Texture.Get());
+        size_t sourceOffset = 0;
+        for (uint32_t face = 0; face < 6; ++face)
+            for (uint32_t mip = 0; mip < asset->GetMipLevels(); ++mip)
+            {
+                const uint32_t size = asset->GetFaceSize() >> mip;
+                const size_t rowPitch = size_t(size) * bytesPerPixel;
+                const UINT subresource = D3D11CalcSubresource(mip, face, desc.MipLevels);
+                D3D11_MAPPED_SUBRESOURCE mapped{};
+                Require(SUCCEEDED(impl.Context->Map(staging.Get(), subresource, D3D11_MAP_READ, 0, &mapped)),
+                    "DDS mapped face/mip");
+                Require(mapped.RowPitch >= rowPitch, "DDS GPU row pitch");
+                for (uint32_t row = 0; row < size; ++row)
+                    Require(std::memcmp(static_cast<const uint8_t*>(mapped.pData) + size_t(row) * mapped.RowPitch,
+                        asset->GetPixels().data() + sourceOffset + size_t(row) * rowPitch, rowPitch) == 0,
+                        "DDS GPU face/mip data and HDR values preserved");
+                impl.Context->Unmap(staging.Get(), subresource);
+                sourceOffset += rowPitch * size;
+            }
+        Require(sourceOffset == asset->GetPixels().size(), "DDS consumed every face/mip byte");
+        RenderScene scene;
+        scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
+        scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
+        scene.skybox.cubemap = id;
+        Frame(renderer, scene);
+        const auto hdr = ReadHdrCenter(impl);
+        Require(std::isfinite(hdr[0]) && hdr[0] > 0.0f, "DDS skybox renders in linear SceneColor");
+        renderer.DestroyCubemap(id);
+    }
+    std::cout << "DDS cubemaps: 8-bit, FP16, FP32 import, GPU face/mip data and skybox PASS\n";
+}
 void HdrChecks(DX11Renderer& renderer)
 {
     auto& impl = *renderer.m_Impl;
@@ -1104,6 +1210,7 @@ void ShadowChecks()
         {
             SkyboxChecks(renderer);
             HdrChecks(renderer);
+            CubemapDdsChecks(renderer);
             SpecularIblChecks(renderer);
             MaterialMapChecks(renderer);
         }
