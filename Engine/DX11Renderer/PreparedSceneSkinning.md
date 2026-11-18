@@ -24,7 +24,8 @@
   실패한 준비 함수의 출력은 비워 재사용 시 이전 팔레트가 남지 않도록 한다.
 - alpha 분류/Depth 계산은 공유한다. Transparent는 양쪽 입력을 추가한 뒤
   전체를 stable sort한다. Depth는 기존처럼 카메라 공간의 오브젝트 원점 기준이다.
-- Skinned draw도 Opaque/Masked이면 ShadowCasters에 추가한다. Transparent는 제외한다.
+- Skinned draw도 `castShadow`가 true이고 Opaque/Masked이면 ShadowCasters에 추가한다.
+  Transparent는 제외한다. `SkinnedMeshItem::castShadow`의 기본값은 true이다.
 
 ## Main/Shadow 제출과 다음 작업
 

@@ -409,7 +409,7 @@ namespace Canape::ScenePreparation
         {
             PreparedMeshDraw draw;
             if (!PrepareSkinnedMeshDraw(scene, resources, item, draw, error)) continue;
-            appendDraw(std::move(draw), item.world, true);
+            appendDraw(std::move(draw), item.world, item.castShadow);
         }
         std::stable_sort(result.Transparent.begin(), result.Transparent.end(), [&](size_t a, size_t b)
         {
