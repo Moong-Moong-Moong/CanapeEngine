@@ -44,6 +44,10 @@ namespace Canape
             uint32_t Resolution = 0;
         };
 
+        SC::ViewConstants ViewData{};
+        SC::SceneConstants SceneData{};
+        bool ViewDirty = true;
+        bool SceneDirty = true;
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
@@ -66,10 +70,6 @@ namespace Canape
         uint64_t MinGpuFrameId = 0;
 #endif
 
-        SC::ViewConstants ViewData{};
-        SC::SceneConstants SceneData{};
-        bool ViewDirty = true;
-        bool SceneDirty = true;
         RenderScene QueuedScene;
         DirectionalShadowSettings ShadowSettings{};
         PostProcessSettings postProcessSettings_{};
