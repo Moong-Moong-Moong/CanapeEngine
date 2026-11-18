@@ -35,6 +35,10 @@ namespace Canape
             std::span<const uint8_t> pixels, std::string& error);
         const DX11TextureResource* GetTexture(TextureResourceId texture) const;
         bool IsTextureValid(TextureResourceId texture) const;
+        // Overwrites a mip-0 rectangle with tightly packed RGBA8 bytes and regenerates mips.
+        bool UpdateTextureRegion(ID3D11DeviceContext* context, TextureResourceId texture,
+            uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+            std::span<const uint8_t> pixels, std::string& error);
         // Also invalidates materials referencing the texture; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);
 

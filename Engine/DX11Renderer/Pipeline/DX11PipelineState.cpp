@@ -1,9 +1,9 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Pipeline/DX11PipelineState.h"
 #include "CNDebug/DebugLog.h"
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
+#include "DX11Renderer/Data/UIDrawList.h"
 
+#include <cstddef>
 #include <iterator>
 #include <cmath>
 #include <sstream>
@@ -364,7 +364,81 @@ namespace Canape
         // Shadows are optional: a failed shadow shader must not disable the main renderer.
         std::string shadowError;
         if (!InitializeShadows(device, shadowError)) CN_LOG_RENDERER("Shadow", shadowError);
+        // UI is optional for the same reason; the UI pass is skipped while unavailable.
+        std::string uiError;
+        if (!InitializeUI(device, uiError)) CN_LOG_RENDERER("UI", uiError);
         return true;
+    }
+
+    bool DX11PipelineState::InitializeUI(ID3D11Device* device, std::string& error)
+    {
+        DX11PipelineState pending;
+        ComPtr<ID3DBlob> bytecode;
+        if (!CompileShaderFile(L"Shaders/UI.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.UIVertexShader);
+        if (FAILED(result)) { error = HResultMessage("CreateVertexShader(UI)", result); return false; }
+        const D3D11_INPUT_ELEMENT_DESC elements[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(UIVertex, Position)),
+              D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(UIVertex, UV)),
+              D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, static_cast<UINT>(offsetof(UIVertex, Color)),
+              D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+        result = device->CreateInputLayout(elements, static_cast<UINT>(std::size(elements)),
+            bytecode->GetBufferPointer(), bytecode->GetBufferSize(), &pending.UIInputLayout);
+        if (FAILED(result)) { error = HResultMessage("CreateInputLayout(UI)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/UI.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.UIPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(UI)", result); return false; }
+
+        D3D11_RASTERIZER_DESC rasterizerDesc{};
+        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+        rasterizerDesc.CullMode = D3D11_CULL_NONE;
+        rasterizerDesc.DepthClipEnable = TRUE;
+        rasterizerDesc.ScissorEnable = TRUE;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.UIRasterizerState);
+        if (FAILED(result)) { error = HResultMessage("CreateRasterizerState(UI)", result); return false; }
+
+        D3D11_BLEND_DESC blendDesc{};
+        auto& blend = blendDesc.RenderTarget[0];
+        blend.BlendEnable = TRUE;
+        blend.SrcBlend = blend.SrcBlendAlpha = D3D11_BLEND_ONE;
+        blend.DestBlend = blend.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        blend.BlendOp = blend.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        blend.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        result = device->CreateBlendState(&blendDesc, &pending.UIBlendState);
+        if (FAILED(result)) { error = HResultMessage("CreateBlendState(UI)", result); return false; }
+
+        D3D11_SAMPLER_DESC samplerDesc{};
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.MaxAnisotropy = 1;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        result = device->CreateSamplerState(&samplerDesc, &pending.UISampler);
+        if (FAILED(result)) { error = HResultMessage("CreateSamplerState(UI)", result); return false; }
+
+        UIVertexShader = std::move(pending.UIVertexShader);
+        UIPixelShader = std::move(pending.UIPixelShader);
+        UIInputLayout = std::move(pending.UIInputLayout);
+        UIRasterizerState = std::move(pending.UIRasterizerState);
+        UIBlendState = std::move(pending.UIBlendState);
+        UISampler = std::move(pending.UISampler);
+        error.clear();
+        return true;
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveUI() const
+    {
+        return {
+            UIVertexShader.Get(), UIPixelShader.Get(), UIInputLayout.Get(),
+            UIRasterizerState.Get(), UIBlendState.Get(), FinalOutputDepthState.Get(), UISampler.Get()
+        };
     }
 
     bool DX11PipelineState::InitializeShadows(ID3D11Device* device, std::string& error)
@@ -372,26 +446,38 @@ namespace Canape
         DX11PipelineState pending;
         ComPtr<ID3DBlob> bytecode;
         const D3D_SHADER_MACRO staticDefines[] = { { "STATIC_VERTEX", "1" }, { nullptr, nullptr } };
-        auto createVertex = [&](bool isStatic) -> bool
+        const D3D_SHADER_MACRO skinnedDefines[] = { { "SKINNED_VERTEX", "1" }, { nullptr, nullptr } };
+        auto createVertex = [&](VertexFormat format) -> bool
         {
+            const bool isStatic = format == VertexFormat::Static;
+            const bool isSkinned = format == VertexFormat::Skinned;
             if (!CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "VSShadow", "vs_5_0",
-                isStatic ? staticDefines : nullptr, kShaderCompileFlags, bytecode, error)) return false;
-            auto& shader = isStatic ? pending.StaticShadowVertexShader : pending.ShadowVertexShader;
+                isSkinned ? skinnedDefines : (isStatic ? staticDefines : nullptr),
+                kShaderCompileFlags, bytecode, error)) return false;
+            auto& shader = isSkinned ? pending.SkinnedShadowVertexShader
+                : (isStatic ? pending.StaticShadowVertexShader : pending.ShadowVertexShader);
             HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
                 nullptr, &shader);
             if (FAILED(result)) { error = HResultMessage("CreateVertexShader(shadow)", result); return false; }
             const D3D11_INPUT_ELEMENT_DESC elements[] = {
                 { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV)),
-                  D3D11_INPUT_PER_VERTEX_DATA, 0 }
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+                  static_cast<UINT>(isSkinned ? offsetof(SkinnedVertex, UV) : offsetof(StaticVertex, UV)),
+                  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "BLENDINDICES", 0, DXGI_FORMAT_R16G16B16A16_UINT, 0,
+                  static_cast<UINT>(offsetof(SkinnedVertex, Joints)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+                  static_cast<UINT>(offsetof(SkinnedVertex, Weights)), D3D11_INPUT_PER_VERTEX_DATA, 0 }
             };
-            auto& layout = isStatic ? pending.StaticShadowInputLayout : pending.ShadowInputLayout;
-            result = device->CreateInputLayout(elements, isStatic ? 2u : 1u,
+            auto& layout = isSkinned ? pending.SkinnedShadowInputLayout
+                : (isStatic ? pending.StaticShadowInputLayout : pending.ShadowInputLayout);
+            result = device->CreateInputLayout(elements, isSkinned ? 4u : (isStatic ? 2u : 1u),
                 bytecode->GetBufferPointer(), bytecode->GetBufferSize(), &layout);
             if (FAILED(result)) { error = HResultMessage("CreateInputLayout(shadow)", result); return false; }
             return true;
         };
-        if (!createVertex(false) || !createVertex(true)
+        if (!createVertex(VertexFormat::Position) || !createVertex(VertexFormat::Static)
+            || !createVertex(VertexFormat::Skinned)
             || !CompileShaderFile(L"Shaders/Shadow/ShadowDepth.hlsl", "PSShadowMasked", "ps_5_0", nullptr,
                 kShaderCompileFlags, bytecode, error)) return false;
         HRESULT result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
@@ -414,9 +500,11 @@ namespace Canape
         if (!SetShadowRasterizer(device, ShadowCullMode::Back, DefaultShadowSlopeBias, error)) return false;
         ShadowVertexShader = std::move(pending.ShadowVertexShader);
         StaticShadowVertexShader = std::move(pending.StaticShadowVertexShader);
+        SkinnedShadowVertexShader = std::move(pending.SkinnedShadowVertexShader);
         MaskedShadowPixelShader = std::move(pending.MaskedShadowPixelShader);
         ShadowInputLayout = std::move(pending.ShadowInputLayout);
         StaticShadowInputLayout = std::move(pending.StaticShadowInputLayout);
+        SkinnedShadowInputLayout = std::move(pending.SkinnedShadowInputLayout);
         return true;
     }
 
@@ -453,10 +541,11 @@ namespace Canape
     DX11PipelineSelection DX11PipelineState::ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const
     {
         const bool isStatic = vertexFormat == VertexFormat::Static;
+        const bool isSkinned = vertexFormat == VertexFormat::Skinned;
         return {
-            isStatic ? StaticShadowVertexShader.Get() : ShadowVertexShader.Get(),
+            isSkinned ? SkinnedShadowVertexShader.Get() : (isStatic ? StaticShadowVertexShader.Get() : ShadowVertexShader.Get()),
             alphaMode == AlphaMode::Masked ? MaskedShadowPixelShader.Get() : nullptr,
-            isStatic ? StaticShadowInputLayout.Get() : ShadowInputLayout.Get(),
+            isSkinned ? SkinnedShadowInputLayout.Get() : (isStatic ? StaticShadowInputLayout.Get() : ShadowInputLayout.Get()),
             ShadowRasterizerState.Get(), OpaqueBlendState.Get(), OpaqueDepthState.Get(), LinearSampler.Get()
         };
     }

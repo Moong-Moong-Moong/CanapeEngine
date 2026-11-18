@@ -23,6 +23,8 @@
         "_DEBUG",
         "UNICODE",
         "_UNICODE",
+        "WIN32_LEAN_AND_MEAN",
+        "NOMINMAX",
         "CANAPE_RENDER_DEBUG=1",
         "CANAPE_GAME_CONTENT_DIR=\"\"",
         "CANAPE_GAME_DIR=\"\"",

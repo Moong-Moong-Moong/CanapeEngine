@@ -1,14 +1,9 @@
 #pragma once
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 
 #include "DX11Renderer/DX11Renderer.h"
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include "DX11Renderer/Pipeline/DX11MeshDraw.h"
+#include "DX11Renderer/Pass/DX11UIPass.h"
 #if CANAPE_RENDER_DEBUG
 #include "DX11Renderer/Pipeline/GPUProfiler.h"
 #endif
@@ -43,6 +38,10 @@ namespace Canape
             uint32_t Resolution = 0;
         };
 
+        SC::ViewConstants ViewData{};
+        SC::SceneConstants SceneData{};
+        bool ViewDirty = true;
+        bool SceneDirty = true;
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
@@ -53,6 +52,7 @@ namespace Canape
         std::function<void()> Overlay;
         std::function<void()> AfterOpaqueCallback;
         std::function<void()> AfterTransparentCallback;
+        const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;
         std::string LastError;
@@ -66,10 +66,6 @@ namespace Canape
         uint64_t MinGpuFrameId = 0;
 #endif
 
-        SC::ViewConstants ViewData{};
-        SC::SceneConstants SceneData{};
-        bool ViewDirty = true;
-        bool SceneDirty = true;
         RenderScene QueuedScene;
         DirectionalShadowSettings ShadowSettings{};
         PostProcessSettings postProcessSettings_{};
@@ -95,6 +91,8 @@ namespace Canape
         ComPtr<ID3D11ShaderResourceView> SceneColorShaderResourceView;
         ComPtr<ID3D11Texture2D> DisplayTexture;
         ComPtr<ID3D11RenderTargetView> DisplayRenderTargetView;
+        // UNORM view of DisplayTexture: the UI pass blends sRGB-encoded values here.
+        ComPtr<ID3D11RenderTargetView> DisplayUIRenderTargetView;
         ComPtr<ID3D11ShaderResourceView> DisplayShaderResourceView;
         ComPtr<ID3D11ShaderResourceView> RetiredDisplayShaderResourceView;
         ComPtr<ID3D11Texture2D> DepthTexture;
@@ -110,6 +108,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
         ComPtr<ID3D11Buffer> PostProcessBuffer;
+        DX11UIBuffers UIBuffers;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;
 #endif
@@ -136,6 +135,7 @@ namespace Canape
         void SetPostProcessSettings(const PostProcessSettings& settings);
         void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
+        void ExecuteUIPass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void RenderOverlay();
         bool CreateTargets(uint32_t width, uint32_t height);
         bool CreateBackBufferTargets(uint32_t width, uint32_t height);

@@ -49,7 +49,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -79,6 +79,7 @@
     <ClInclude Include="DX11Renderer.h" />
     <ClInclude Include="Internal\DX11RendererImpl.h" />
     <ClInclude Include="Pass\DX11FinalOutputPass.h" />
+    <ClInclude Include="Pass\DX11UIPass.h" />
     <ClInclude Include="Pass\DX11SkyboxPass.h" />
     <ClInclude Include="Pass\DX11MainPass.h" />
     <ClInclude Include="Pass\DX11ShadowPass.h" />
@@ -93,6 +94,7 @@
     <ClInclude Include="Data\ShadowFilterSettings.h" />
     <ClInclude Include="Data\MaterialDesc.h" />
     <ClInclude Include="Data\TextureData.h" />
+    <ClInclude Include="Data\UIDrawList.h" />
     <ClInclude Include="Data\ShaderConstants.h" />
     <ClInclude Include="Scene\MeshItem.h" />
     <ClInclude Include="Scene\RenderScene.h" />
@@ -111,6 +113,7 @@
     <ClCompile Include="Frame\DX11FrameExecutor.cpp" />
     <ClCompile Include="Internal\DX11RendererImpl.cpp" />
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp" />
+    <ClCompile Include="Pass\DX11UIPass.cpp" />
     <ClCompile Include="Pass\DX11SkyboxPass.cpp" />
     <ClCompile Include="Pass\DX11MainPass.cpp" />
     <ClCompile Include="Pass\DX11ShadowPass.cpp" />
@@ -126,6 +129,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="DX11Renderer.props" />
     <None Include="Shader\Common\Constants.hlsli" />
     <None Include="Shader\Common\FullscreenTypes.hlsli" />
     <None Include="Shader\Common\Lighting.hlsli" />
@@ -147,6 +151,7 @@
     <None Include="Shader\Shadow\ShadowDepth.hlsl" />
     <None Include="Shader\Shadow\ShadowSampling.hlsli" />
     <None Include="Shader\Skybox.hlsl" />
+    <None Include="Shader\UI.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

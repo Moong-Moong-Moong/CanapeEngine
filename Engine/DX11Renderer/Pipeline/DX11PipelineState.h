@@ -42,15 +42,27 @@ namespace Canape
         bool SetShadowRasterizer(ID3D11Device* device, ShadowCullMode cullMode, float slopeBias, std::string& error);
         // Sampler is for PS s2; the skybox pass binds it separately from the generic s0 path.
         DX11PipelineSelection ResolveSkybox() const;
-        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
+        // Scissor-enabled, depth-off, premultiplied-alpha pipeline for UIVertex geometry.
+        DX11PipelineSelection ResolveUI() const;
+        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
+        bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler; }
 
     private:
         bool InitializeShadows(ID3D11Device* device, std::string& error);
+        bool InitializeUI(ID3D11Device* device, std::string& error);
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> UIVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> UIPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> UIInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> UIRasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11BlendState> UIBlendState;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> UISampler;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticShadowVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> SkinnedShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> MaskedShadowPixelShader;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> ShadowInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticShadowInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> SkinnedShadowInputLayout;
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11PixelShader> ShadowVisibilityPixelShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PcssFilterRadiusPixelShader;

@@ -6,6 +6,7 @@
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
 #include "DX11Renderer/Data/TextureData.h"
+#include "DX11Renderer/Data/UIDrawList.h"
 #include "DX11Renderer/Resource/DX11ResourceId.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 
@@ -55,6 +56,9 @@ namespace Canape
 
         TextureResourceId CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels);
         bool IsTextureValid(TextureResourceId texture) const;
+        // Overwrites a rectangle of mip 0 (tightly packed RGBA8) and regenerates mips, e.g. a glyph atlas.
+        bool UpdateTexture(TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+            std::span<const uint8_t> pixels);
         // Explicit texture removal also invalidates materials referencing it; CPU assets can re-create them.
         void DestroyTexture(TextureResourceId texture);
 
@@ -86,6 +90,9 @@ namespace Canape
         void DrawScene();
         // Consume synchronously between BeginFrame and EndFrame.
         void DrawScene(const RenderScene& scene);
+        // Screen-space UI drawn by the next EndFrame after final output, before the overlay.
+        // The list is borrowed: keep it alive until EndFrame returns. Cleared by EndFrame.
+        void SetUIDrawList(const UIDrawList* list);
         void EndFrame();
 
         void SetSceneSize(uint32_t width, uint32_t height);

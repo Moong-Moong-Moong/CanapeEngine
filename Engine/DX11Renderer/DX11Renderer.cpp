@@ -1,5 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Internal/DX11RendererImpl.h"
 #include "CNDebug/DebugLog.h"
 
@@ -7,9 +5,6 @@
 #include <array>
 #include <cmath>
 #include <utility>
-
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
 
 namespace Canape
 {
@@ -193,8 +188,9 @@ namespace Canape
     {
 #if CANAPE_RENDER_DEBUG
         return m_Impl->DebugSettings;
-#endif
+#else
         return {};
+#endif
     }
 
     RendererDebugStats DX11Renderer::GetDebugStats() const
@@ -339,6 +335,18 @@ namespace Canape
     bool DX11Renderer::IsTextureValid(TextureResourceId texture) const
     {
         return m_Impl->Resources.IsTextureValid(texture);
+    }
+
+    bool DX11Renderer::UpdateTexture(TextureResourceId texture, uint32_t x, uint32_t y,
+        uint32_t width, uint32_t height, std::span<const uint8_t> pixels)
+    {
+        return m_Impl->Resources.UpdateTextureRegion(m_Impl->Context.Get(), texture,
+            x, y, width, height, pixels, m_Impl->LastError);
+    }
+
+    void DX11Renderer::SetUIDrawList(const UIDrawList* list)
+    {
+        m_Impl->PendingUI = list;
     }
 
     void DX11Renderer::DestroyTexture(TextureResourceId texture)

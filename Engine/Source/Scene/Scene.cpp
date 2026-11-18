@@ -157,7 +157,7 @@ namespace Canape
 		for (AnimatorComponent* animator : m_componentRegistry.GetAnimators())
 		{
 			if (IsRunnable(animator))
-				animator->Evaluate(Time::DeltaTime());
+				animator->ApplyKeyFrame(Time::DeltaTime());
 		}
 
 		//***LateUpdate

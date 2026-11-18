@@ -17,6 +17,7 @@ namespace Canape
 	class WaveSurfaceComponent;
 	class WindComponent;
 	class AnimatorComponent;
+	class UICanvasComponent;
 
 	//***** Scene 이 순회할 특정 컴포넌트 목록을 보관
 	class ComponentRegistry final
@@ -46,6 +47,7 @@ namespace Canape
 		std::span<WaveSurfaceComponent* const> GetWaveSurfaces() const { return m_waveSurfaces; }
 		std::span<WindComponent* const> GetWinds() const { return m_winds; }
 		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
+		std::span<UICanvasComponent* const> GetUICanvases() const { return m_uiCanvases; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
 
 
@@ -61,6 +63,7 @@ namespace Canape
 		std::vector<WaveSurfaceComponent*> m_waveSurfaces;
 		std::vector<WindComponent*> m_winds;
 		std::vector<AnimatorComponent*> m_animators;
+		std::vector<UICanvasComponent*> m_uiCanvases;
 
 		std::vector<Component*> m_pendingAdd;
 		std::vector<Component*> m_pendingRemove;

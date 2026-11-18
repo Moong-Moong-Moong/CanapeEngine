@@ -34,7 +34,7 @@ void TestImportGlTF()
 void TestLoadMeshAsset()
 {
 	const char* gltfPath = "Data/glTF/CastleGuard01.gltf";
-	const char* binPath = "Data/glTF/CastleGuard01.bin";
+	// const char* binPath = "Data/glTF/CastleGuard01.bin";
 
 	CNglTF gltf{};
 	CNglTFImporter importer;

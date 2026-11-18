@@ -9,6 +9,13 @@ $msbuildNamespace = 'http://schemas.microsoft.com/developer/msbuild/2003'
 $itemTypes = @('ClInclude', 'ClCompile', 'None', 'FxCompile', 'Text', 'ResourceCompile', 'Image', 'Natvis', 'CustomBuild')
 $md5 = [System.Security.Cryptography.MD5]::Create()
 
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+$msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+if (-not $msbuild)
+{
+	throw 'MSBuild from a Visual Studio installation is required.'
+}
+
 function Get-StableGuid([string]$seed)
 {
 	$bytes = $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($seed))
@@ -26,16 +33,23 @@ function Get-FilterPath([string]$include)
 	return Split-Path $normalized -Parent
 }
 
+function Get-ProjectRelativePath([string]$path, [string]$projectDirectory)
+{
+	if (-not [System.IO.Path]::IsPathRooted($path))
+	{
+		return $path
+	}
+	$relative = ([uri]$projectDirectory).MakeRelativeUri([uri]$path).ToString()
+	return [uri]::UnescapeDataString($relative) -replace '/', '\'
+}
+
 foreach ($project in $Projects)
 {
 	$projectPath = (Resolve-Path $project).Path
 	$projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
-	[xml]$xml = Get-Content $projectPath -Raw
+	$projectDirectory = (Split-Path $projectPath -Parent) + '\'
 
-	$namespaceManager = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
-	$namespaceManager.AddNamespace('m', $msbuildNamespace)
-
-	# Keep filters already assigned to existing items; only new items get a folder-based filter.
+	# Keep filters already assigned to existing items; only new items get a filter chosen here.
 	$existingFilters = @{}
 	# Keep the identifiers of filters that already exist so unrelated filters do not change.
 	$existingIdentifiers = @{}
@@ -59,14 +73,36 @@ foreach ($project in $Projects)
 		}
 	}
 
+	# A new item joins the filter of an existing item in its folder, so files added to a hand-picked filter stay there.
+	$folderFilters = @{}
+	foreach ($key in ($existingFilters.Keys | Sort-Object))
+	{
+		$folder = Split-Path $key.Split('|', 2)[1] -Parent
+		if (-not $folderFilters.ContainsKey($folder))
+		{
+			$folderFilters[$folder] = $existingFilters[$key]
+		}
+	}
+
+	# Evaluated items, so item lists and wildcards become the files Solution Explorer shows.
+	$evaluation = & $msbuild $projectPath -nologo "-getItem:$($itemTypes -join ',')" -p:Configuration=Debug -p:Platform=x64
+	if ($LASTEXITCODE -ne 0)
+	{
+		throw "MSBuild could not evaluate ${projectPath}: $evaluation"
+	}
+	$evaluated = ($evaluation -join "`n") | ConvertFrom-Json
+
 	$items = New-Object System.Collections.Generic.List[object]
 	foreach ($type in $itemTypes)
 	{
-		foreach ($node in $xml.SelectNodes("//m:ItemGroup/m:$type", $namespaceManager))
+		foreach ($item in $evaluated.Items.$type)
 		{
-			$include = $node.GetAttribute('Include')
+			$include = Get-ProjectRelativePath $item.Identity $projectDirectory
 			$key = "$type|$include"
-			$filter = if ($existingFilters.ContainsKey($key)) { $existingFilters[$key] } else { Get-FilterPath $include }
+			$folder = Split-Path $include -Parent
+			$filter = if ($existingFilters.ContainsKey($key)) { $existingFilters[$key] }
+				elseif ($folderFilters.ContainsKey($folder)) { $folderFilters[$folder] }
+				else { Get-FilterPath $include }
 			$items.Add([pscustomobject]@{ Type = $type; Include = $include; Filter = $filter })
 		}
 	}
@@ -101,11 +137,13 @@ foreach ($project in $Projects)
 
 	foreach ($type in $itemTypes)
 	{
-		$typed = $items | Where-Object { $_.Type -eq $type } | Sort-Object Include
-		if (-not $typed)
+		$typed = [System.Collections.Generic.List[object]]@($items | Where-Object { $_.Type -eq $type })
+		if ($typed.Count -eq 0)
 		{
 			continue
 		}
+		# Ordinal, like the filter set: culture sorting differs between Windows PowerShell and pwsh.
+		$typed.Sort({ param($left, $right) [System.StringComparer]::OrdinalIgnoreCase.Compare($left.Include, $right.Include) })
 
 		[void]$builder.AppendLine('  <ItemGroup>')
 		foreach ($item in $typed)

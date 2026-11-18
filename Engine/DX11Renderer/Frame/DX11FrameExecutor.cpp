@@ -29,6 +29,7 @@ namespace Canape
     void DX11Renderer::Impl::RenderShadowPass(const PreparedScene& scene)
     {
         auto draw = GetDrawContext();
+        draw.BonePalettes = std::span<const Matrix4>{ scene.BonePalettes };
         ShadowPass::Execute(scene, draw, { ShadowMap.DepthView.Get(), ShadowMap.Resolution }, GetMainTargets());
     }
 
@@ -235,16 +236,21 @@ namespace Canape
             FinalOutputScope scope(ProfilerAvailable, Profiler, Context.Get());
 #endif
 
+            // UI goes after final output into a UNORM view of the same target, so the editor
+            // viewport shows it too. The overlay (editor ImGui) still draws last.
             if (Overlay)
             {
                 ExecutePostProcessing(DisplayRenderTargetView.Get(), Width, Height);
+                ExecuteUIPass(DisplayUIRenderTargetView.Get(), Width, Height);
                 RenderOverlay();
             }
             else
             {
                 ExecutePostProcessing(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+                ExecuteUIPass(OverlayRenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
             }
         }
+        PendingUI = nullptr;
 
         FrameActive = false;
         recordDebugStat();

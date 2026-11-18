@@ -1,5 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include <algorithm>
 #include <array>
@@ -409,8 +407,7 @@ namespace Canape::ScenePreparation
         {
             PreparedMeshDraw draw;
             if (!PrepareSkinnedMeshDraw(scene, resources, item, draw, error)) continue;
-            // Skinned shadow submission is disabled until a skinned shadow VS is connected.
-            appendDraw(std::move(draw), item.world, false);
+            appendDraw(std::move(draw), item.world, item.castShadow);
         }
         std::stable_sort(result.Transparent.begin(), result.Transparent.end(), [&](size_t a, size_t b)
         {

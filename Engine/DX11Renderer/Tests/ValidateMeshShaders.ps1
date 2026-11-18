@@ -38,6 +38,8 @@ fxc /nologo /WX /Zpr /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hl
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /D SKINNED_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
+if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSShadowMasked /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%
 for %%S in (FinalOutput Skybox) do (
@@ -48,7 +50,7 @@ for %%S in (FinalOutput Skybox) do (
 )
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSCameraDepth /Fo NUL Shaders\Debug\DepthDebug.hlsl
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++23preview /EHsc /MD /Z7 /utf-8 /I"$repoRoot/Common" /I"$repoRoot/Engine" "$repoRoot/Engine/DX11Renderer/Tests/MeshShaderValidation.cpp" "$repoRoot/Engine/DX11Renderer/Pipeline/DX11ShaderCompiler.cpp" /FeMeshShaderValidation.exe /link d3d11.lib d3dcompiler.lib dxguid.lib
+cl /nologo /std:c++23preview /EHsc /MD /Z7 /utf-8 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /I"$repoRoot/Common" /I"$repoRoot/Engine" "$repoRoot/Engine/DX11Renderer/Tests/MeshShaderValidation.cpp" "$repoRoot/Engine/DX11Renderer/Pipeline/DX11ShaderCompiler.cpp" /FeMeshShaderValidation.exe /link d3d11.lib d3dcompiler.lib dxguid.lib
 if errorlevel 1 exit /b %errorlevel%
 MeshShaderValidation.exe
 exit /b %errorlevel%

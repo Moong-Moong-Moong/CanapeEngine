@@ -46,6 +46,9 @@
     <Filter Include="Source\Input">
       <UniqueIdentifier>{D23E979E-2CFA-6BF4-4B69-B979A184A45B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\UI">
+      <UniqueIdentifier>{6A3F1C2E-8B47-4D19-9E52-3C7A0B8D41F6}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Physics">
       <UniqueIdentifier>{3E7B5A12-8C4D-4F6A-9B21-6D0E8F1A7C35}</UniqueIdentifier>
     </Filter>
@@ -194,6 +197,30 @@
     </ClInclude>
     <ClInclude Include="Source\Input\InputManager.h">
       <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIButton.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UICanvasComponent.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIElement.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIImage.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIPainter.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIPointerRouter.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UISystem.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UITypes.h">
+      <Filter>Source\UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\BoxColliderComponent.h">
       <Filter>Source\Physics</Filter>
@@ -374,6 +401,27 @@
     <ClCompile Include="Source\Input\InputManager.cpp">
       <Filter>Source\Input</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\UIButton.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UICanvasComponent.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIElement.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIImage.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIPainter.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIPointerRouter.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UISystem.cpp">
+      <Filter>Source\UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Physics\HingeComponent.cpp">
       <Filter>Source\Physics</Filter>
     </ClCompile>
@@ -466,6 +514,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Runtime.props" />
     <None Include="Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>

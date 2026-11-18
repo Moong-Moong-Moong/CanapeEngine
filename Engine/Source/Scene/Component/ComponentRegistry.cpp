@@ -10,6 +10,7 @@
 #include "Scene/Component/AnimatorComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
 #include "Simulation/WindComponent.h"
+#include "UI/UICanvasComponent.h"
 
 #include <algorithm>
 #include <vector>
@@ -122,6 +123,11 @@ namespace Canape
 			{
 				m_animators.push_back(animator);
 			}
+
+			if (UICanvasComponent* canvas = dynamic_cast<UICanvasComponent*>(component))
+			{
+				m_uiCanvases.push_back(canvas);
+			}
 		}
 		m_pendingAdd.clear();
 
@@ -183,6 +189,11 @@ namespace Canape
 			if (AnimatorComponent* animatorComponent = dynamic_cast<AnimatorComponent*>(component))
 			{
 				std::erase(m_animators, animatorComponent);
+			}
+
+			if (UICanvasComponent* canvas = dynamic_cast<UICanvasComponent*>(component))
+			{
+				std::erase(m_uiCanvases, canvas);
 			}
 		}
 		m_pendingRemove.clear();

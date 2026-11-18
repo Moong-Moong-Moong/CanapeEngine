@@ -32,3 +32,7 @@
 #include "Asset/Mesh/MeshAsset.h"
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Texture/TextureAsset.h"
+#include "UI/UIButton.h"
+#include "UI/UICanvasComponent.h"
+#include "UI/UIElement.h"
+#include "UI/UIImage.h"

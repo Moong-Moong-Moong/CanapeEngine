@@ -61,6 +61,9 @@ namespace Canape
 		//*** 컴포넌트가 실행될 수 있는가?
 		static bool IsRunnable(const Component* component);
 
+		//*** 등록된 UI 캔버스(실행 가능 여부는 IsRunnable로 확인)
+		std::span<UICanvasComponent* const> GetUICanvases() const { return m_componentRegistry.GetUICanvases(); }
+
 		//***** Camera
 		CameraComponent* GetMainCamera() ;
 		void SetMainCamera(CameraComponent* camera);

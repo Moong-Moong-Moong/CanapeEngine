@@ -1,5 +1,4 @@
 // Standalone tests linked against the real renderer. Not a runtime project item.
-#define NOMINMAX
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include "DX11Renderer/Pipeline/DX11MeshDraw.h"
 #include "CNDebug/DebugLog.h"
@@ -92,7 +91,13 @@ void QueueAndOwnershipChecks(Fixture& fixture)
     Require(prepared.Opaque == std::vector<size_t>{0, 4}, "shared opaque queue");
     Require(prepared.Masked == std::vector<size_t>{1, 5}, "shared masked queue");
     Require(prepared.Transparent == std::vector<size_t>{2, 6, 3, 7}, "global stable transparent sorting");
-    Require(prepared.ShadowCasters == std::vector<size_t>{0, 1}, "only eligible static/position shadow casters");
+    Require(prepared.ShadowCasters == std::vector<size_t>{0, 1, 4, 5},
+        "opaque/masked static and skinned casters; transparent excluded");
+    scene.skinnedItems[0].castShadow = false;
+    scene.skinnedItems[1].castShadow = false;
+    const auto withoutSkinnedShadows = ScenePreparation::PrepareScene(scene, fixture.Resources, fixture.Error);
+    Require(withoutSkinnedShadows.ShadowCasters == std::vector<size_t>{0, 1},
+        "skinned opaque/masked castShadow false excluded while static casters remain");
     for (size_t i = 0; i < 4; ++i)
         Require(prepared.Draws[i].PaletteOffset == 0 && prepared.Draws[i].PaletteCount == 0,
             "non-skinned draws have no palette");
@@ -118,23 +123,6 @@ void QueueAndOwnershipChecks(Fixture& fixture)
         "prepared palette snapshot survives source edits and reset");
     std::cout << "PASS: shared alpha queues, global stable sorting, submeshes/instances, palette ownership\n";
 
-    // Uninitialized pipelines and null object/material buffers intentionally ensure
-    // the shadow skinning guard runs before any uploads, binding, stats or draws.
-    DX11PipelineState pipelines;
-    MeshDrawContext context{ *fixture.Context.Get(), pipelines, nullptr, nullptr, {} };
-    RendererDebugStats stats{};
-    stats.drawCalls = 7;
-    stats.triangleCount = 11;
-    RendererDebugSettings settings{};
-    context.Stats = &stats;
-    context.DebugSettings = &settings;
-    for (const auto& draw : prepared.Draws)
-    {
-        if (draw.Mesh->Format != VertexFormat::Skinned) continue;
-        MeshDraw::SubmitShadow(draw, context);
-    }
-    Require(stats.drawCalls == 7 && stats.triangleCount == 11, "Skinned shadow submissions do no work");
-    std::cout << "PASS: Skinned shadow submission guard precedes GPU access\n";
 }
 
 void RangeAndFailureChecks(Fixture& fixture)

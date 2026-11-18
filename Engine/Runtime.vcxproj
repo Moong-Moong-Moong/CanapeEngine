@@ -50,7 +50,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(ProjectDir)Source;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -101,6 +101,14 @@
     <ClInclude Include="Source\Core\Time.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
+    <ClInclude Include="Source\UI\UIButton.h" />
+    <ClInclude Include="Source\UI\UICanvasComponent.h" />
+    <ClInclude Include="Source\UI\UIElement.h" />
+    <ClInclude Include="Source\UI\UIImage.h" />
+    <ClInclude Include="Source\UI\UIPainter.h" />
+    <ClInclude Include="Source\UI\UIPointerRouter.h" />
+    <ClInclude Include="Source\UI\UISystem.h" />
+    <ClInclude Include="Source\UI\UITypes.h" />
     <ClInclude Include="Source\FSM\FsmCondition.h" />
     <ClInclude Include="Source\FSM\FsmData.h" />
     <ClInclude Include="Source\FSM\FsmState.h" />
@@ -174,6 +182,13 @@
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\UI\UIButton.cpp" />
+    <ClCompile Include="Source\UI\UICanvasComponent.cpp" />
+    <ClCompile Include="Source\UI\UIElement.cpp" />
+    <ClCompile Include="Source\UI\UIImage.cpp" />
+    <ClCompile Include="Source\UI\UIPainter.cpp" />
+    <ClCompile Include="Source\UI\UIPointerRouter.cpp" />
+    <ClCompile Include="Source\UI\UISystem.cpp" />
     <ClCompile Include="Source\FSM\FsmReflection.cpp" />
     <ClCompile Include="Source\FSM\FsmState.cpp" />
     <ClCompile Include="Source\FSM\StateMachine.cpp" />
@@ -210,6 +225,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Runtime.props" />
     <None Include="Shader\Simulation.hlsli" />
     <None Include="Shader\WaveRipple.hlsl" />
     <None Include="Shader\WaveSurface.hlsl" />

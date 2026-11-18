@@ -41,6 +41,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(CanapeRoot)Engine\Runtime.props" />
   </ImportGroup>
   <PropertyGroup>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
@@ -52,7 +53,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -103,6 +104,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\PlayerController.h" />
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
+    <ClInclude Include="Source\Scripts\UIDemoHud.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h" />
     <ClInclude Include="Source\Scripts\RippleSource.h" />
@@ -125,6 +127,9 @@ exit /b 0</Command>
     <ClInclude Include="Source\FsmSample\FsmSampleIdle.h" />
     <ClInclude Include="Source\FsmSample\FsmSampleWalk.h" />
     <ClInclude Include="Source\FsmSample\FsmSampleRun.h" />
+    <ClInclude Include="Source\MoveSample\IdleState.h" />
+    <ClInclude Include="Source\MoveSample\MoveState.h" />
+    <ClInclude Include="Source\MoveSample\MoveAnimationController.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -132,6 +137,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\PlayerController.cpp" />
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
+    <ClCompile Include="Source\Scripts\UIDemoHud.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp" />
     <ClCompile Include="Source\Scripts\RippleSource.cpp" />
@@ -153,6 +159,9 @@ exit /b 0</Command>
     <ClCompile Include="Source\FsmSample\FsmSampleIdle.cpp" />
     <ClCompile Include="Source\FsmSample\FsmSampleWalk.cpp" />
     <ClCompile Include="Source\FsmSample\FsmSampleRun.cpp" />
+    <ClCompile Include="Source\MoveSample\IdleState.cpp" />
+    <ClCompile Include="Source\MoveSample\MoveState.cpp" />
+    <ClCompile Include="Source\MoveSample\MoveAnimationController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Materials\M_CampfireLog.mat" />

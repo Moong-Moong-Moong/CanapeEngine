@@ -8,16 +8,12 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <Windows.h>
 #include <commdlg.h>
 #include <d3d11.h>
 
 #include <filesystem>
 #include <system_error>
-
-#pragma comment(lib, "comdlg32.lib")
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -140,7 +136,7 @@ void EditorApp::OnUpdate(float deltaTime)
     DrawDockSpace();
 
     m_Hierarchy.Draw(m_Context, scene);
-    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(GetRenderer(), deltaTime, m_Playing);
+    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(GetRenderer(), GetUISystem(), deltaTime, m_Playing);
     m_Inspector.Draw(m_Context, scene);
     m_FileBrowser.Draw(m_Context);
     m_DebugConsole.Draw(GetCommands());

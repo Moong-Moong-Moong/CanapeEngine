@@ -1,5 +1,4 @@
 // Standalone HLSL validation. No renderer pipeline or vertex-format changes.
-#define NOMINMAX
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"
 #include "CNDebug/DebugLog.h"
 #include <d3d11.h>
