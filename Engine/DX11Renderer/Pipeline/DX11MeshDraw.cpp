@@ -76,8 +76,7 @@ namespace Canape::MeshDraw
 
     void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context)
     {
-        // Also protect direct callers while skinned shadow rendering is unavailable.
-        if (draw.Mesh->Format == VertexFormat::Skinned) return;
+        UploadAndBindSkinning(draw, context);
         const AlphaMode alpha = draw.Material.Description.alphaMode;
         RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolveShadow(draw.Mesh->Format, alpha));
         UploadAndBindObject(draw, context);

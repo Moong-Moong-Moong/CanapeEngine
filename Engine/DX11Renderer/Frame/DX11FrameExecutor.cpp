@@ -29,6 +29,7 @@ namespace Canape
     void DX11Renderer::Impl::RenderShadowPass(const PreparedScene& scene)
     {
         auto draw = GetDrawContext();
+        draw.BonePalettes = std::span<const Matrix4>{ scene.BonePalettes };
         ShadowPass::Execute(scene, draw, { ShadowMap.DepthView.Get(), ShadowMap.Resolution }, GetMainTargets());
     }
 

@@ -38,6 +38,8 @@ fxc /nologo /WX /Zpr /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hl
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /D STATIC_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /D SKINNED_VERTEX=1 /T vs_5_0 /E VSShadow /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
+if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSShadowMasked /Fo NUL Shaders\Shadow\ShadowDepth.hlsl
 if errorlevel 1 exit /b %errorlevel%
 for %%S in (FinalOutput Skybox) do (
