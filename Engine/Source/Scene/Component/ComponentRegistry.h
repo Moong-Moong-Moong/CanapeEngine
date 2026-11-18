@@ -16,6 +16,7 @@ namespace Canape
 	class WaterVolumeComponent;
 	class WaveSurfaceComponent;
 	class WindComponent;
+	class ParticleEffectComponent;
 	class AnimatorComponent;
 	class UICanvasComponent;
 
@@ -46,6 +47,7 @@ namespace Canape
 		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
 		std::span<WaveSurfaceComponent* const> GetWaveSurfaces() const { return m_waveSurfaces; }
 		std::span<WindComponent* const> GetWinds() const { return m_winds; }
+		std::span<ParticleEffectComponent* const> GetParticleEffects() const { return m_particleEffects; }
 		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
 		std::span<UICanvasComponent* const> GetUICanvases() const { return m_uiCanvases; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
@@ -62,6 +64,7 @@ namespace Canape
 		std::vector<WaterVolumeComponent*> m_waterVolumes;
 		std::vector<WaveSurfaceComponent*> m_waveSurfaces;
 		std::vector<WindComponent*> m_winds;
+		std::vector<ParticleEffectComponent*> m_particleEffects;
 		std::vector<AnimatorComponent*> m_animators;
 		std::vector<UICanvasComponent*> m_uiCanvases;
 

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <type_traits>
 
@@ -38,8 +41,8 @@ namespace Canape
         StatePool<D3D11_DEPTH_STENCIL_DESC, DepthStencilStateRef> depthStencilStates;
         StatePool<D3D11_BLEND_DESC, BlendStateRef> blendStates;
 
-        FlyweightPool<ShaderDesc, VertexShaderRef> vertexShaders;
-        FlyweightPool<ShaderDesc, PixelShaderRef> pixelShaders;
+        FlyweightPool<ShaderDesc, VertexShader> vertexShaders;
+        FlyweightPool<ShaderDesc, PixelShader> pixelShaders;
         FlyweightPool<ShaderDesc, ComputeShader> computeShaders;
 
     public:
@@ -67,6 +70,20 @@ namespace Canape
             };
             return CreateBuffer(
                 ConstantBufferDesc(values.Size()),
+                &initialData,
+                name
+            );
+        }
+        // Starts with bytes, which are as long as the buffer.
+        [[nodiscard]] BufferHandle CreateConstantBuffer(
+            std::span<const std::byte> bytes,
+            std::string_view name = {})
+        {
+            const D3D11_SUBRESOURCE_DATA initialData{
+                .pSysMem = bytes.data()
+            };
+            return CreateBuffer(
+                ConstantBufferDesc(static_cast<std::uint32_t>(bytes.size())),
                 &initialData,
                 name
             );
@@ -104,8 +121,8 @@ namespace Canape
             else if constexpr(std::is_same_v<T, RasterizerStateRef>) return rasterizerStates;
             else if constexpr(std::is_same_v<T, DepthStencilStateRef>) return depthStencilStates;
             else if constexpr(std::is_same_v<T, BlendStateRef>) return blendStates;
-            else if constexpr(std::is_same_v<T, VertexShaderRef>) return vertexShaders;
-            else if constexpr(std::is_same_v<T, PixelShaderRef>) return pixelShaders;
+            else if constexpr(std::is_same_v<T, VertexShader>) return vertexShaders;
+            else if constexpr(std::is_same_v<T, PixelShader>) return pixelShaders;
             else if constexpr(std::is_same_v<T, ComputeShader>) return computeShaders;
             else static_assert(!sizeof(T), "the session keeps no such resource");
         }

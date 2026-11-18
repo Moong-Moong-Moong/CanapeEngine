@@ -33,6 +33,25 @@ namespace Canape
                 .RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
             } }
         };
+
+        constexpr D3D11_DEPTH_STENCIL_DESC ReadOnlyDepthStencilDesc {
+            .DepthEnable = TRUE,
+            .DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO,
+            .DepthFunc = D3D11_COMPARISON_LESS
+        };
+
+        constexpr D3D11_BLEND_DESC AdditiveBlendDesc {
+            .RenderTarget = { {
+                .BlendEnable = TRUE,
+                .SrcBlend = D3D11_BLEND_ONE,
+                .DestBlend = D3D11_BLEND_ONE,
+                .BlendOp = D3D11_BLEND_OP_ADD,
+                .SrcBlendAlpha = D3D11_BLEND_ZERO,
+                .DestBlendAlpha = D3D11_BLEND_ONE,
+                .BlendOpAlpha = D3D11_BLEND_OP_ADD,
+                .RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
+            } }
+        };
     }
 
     RenderPass RenderPass::Opaque(Session& session)
@@ -42,6 +61,16 @@ namespace Canape
             session.GetOrCreateRasterizerState(NoCullRasterizerDesc),
             session.GetOrCreateDepthStencilState(OpaqueDepthStencilDesc),
             session.GetOrCreateBlendState(OpaqueBlendDesc)
+        };
+    }
+
+    RenderPass RenderPass::Additive(Session& session)
+    {
+        return {
+            session,
+            session.GetOrCreateRasterizerState(NoCullRasterizerDesc),
+            session.GetOrCreateDepthStencilState(ReadOnlyDepthStencilDesc),
+            session.GetOrCreateBlendState(AdditiveBlendDesc)
         };
     }
 

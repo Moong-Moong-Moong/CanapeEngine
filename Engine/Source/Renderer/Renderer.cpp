@@ -229,13 +229,20 @@ namespace Canape
                 m_DX11->SetAfterOpaqueCallback(
                     [simulation, &simulator]
                     {
-                        simulation->Render(simulator);
+                        simulation->RenderAfterOpaque(simulator);
+                    }
+                );
+                m_DX11->SetAfterTransparentCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterTransparent(simulator);
                     }
                 );
             }
         }
         m_DX11->DrawScene();
         m_DX11->SetAfterOpaqueCallback(nullptr);
+        m_DX11->SetAfterTransparentCallback(nullptr);
         m_DX11->EndFrame();
     }
 

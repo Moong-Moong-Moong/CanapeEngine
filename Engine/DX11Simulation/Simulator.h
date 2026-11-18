@@ -18,6 +18,7 @@ namespace Canape
     class Kernel;
     class Material;
     class Outer;
+    class Particles;
     class RenderPass;
 
     // Runs the simulation on the renderer's D3D11 context
@@ -63,12 +64,15 @@ namespace Canape
 
         void BeginComputePass(const ComputePass&, const Outer&);
         void Dispatch(const Kernel&, Field&);
+        void Dispatch(const Kernel&, Particles&);
         void EndComputePass();
 
         // Inside a renderer callback. The pass's render states are not restored.
         void BeginRenderPass(const RenderPass&, const Outer&);
         void Draw(const Material&, const Geometry&);
         void Draw(const Material&, const Geometry&, const Field&);
+        // One quad per particle: the vertex shader places its six vertices.
+        void Draw(const Material&, const Particles&);
         void EndRenderPass();
 
         // Of the frame that just ended.

@@ -665,6 +665,45 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 47,
+            "name": "Campfire Fire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 48,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.4,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/Fire.effect"
+                    }
+                }
+            ]
         }
     ]
 }

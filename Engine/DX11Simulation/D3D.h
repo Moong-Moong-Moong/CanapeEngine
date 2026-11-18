@@ -39,4 +39,6 @@ namespace Canape
         static bool operator()(const D3D11_DEPTH_STENCIL_DESC&, const D3D11_DEPTH_STENCIL_DESC&) noexcept;
         static bool operator()(const D3D11_BLEND_DESC&, const D3D11_BLEND_DESC&) noexcept;
     };
+
+    void SetDebugName(ID3D11DeviceChild&, std::string_view);
 }

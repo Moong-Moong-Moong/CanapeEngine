@@ -8,6 +8,7 @@
 #include "DX11Simulation/RenderPass.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
+#include "Simulation/ParticleEffects.h"
 #include "Simulation/WaveSurfaces.h"
 
 namespace Canape
@@ -34,8 +35,10 @@ namespace Canape
 
         ComputePass computePass;
         RenderPass opaquePass;
+        RenderPass additivePass;
         Outer outer;
         WaveSurfaces waveSurfaces;
+        ParticleEffects particleEffects;
 
         // Seconds.
         double time = 0.0;
@@ -57,8 +60,15 @@ namespace Canape
         // Ignored once MaxWaveDisturbances are waiting.
         void Disturb(const Vector3& position, float radius, float strength);
         // windVelocity is in world XZ, meters per second.
-        void Simulate(Simulator&, WaveSurfaces::Components, const Vector2& windVelocity, float dt);
-        // Inside the renderer's after-opaque callback.
-        void Render(Simulator&);
+        void Simulate(
+            Simulator&,
+            WaveSurfaces::Components,
+            ParticleEffects::Components,
+            const Vector2& windVelocity,
+            float dt
+        );
+
+        void RenderAfterOpaque(Simulator&);
+        void RenderAfterTransparent(Simulator&);
     };
 }

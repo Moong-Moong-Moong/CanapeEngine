@@ -1,12 +1,29 @@
 #include "DX11Simulation/Material.h"
 
 #include <cassert>
+#include <stdexcept>
 
 #include "DX11Simulation/Buffer.h"
+#include "DX11Simulation/RenderPass.h"
 #include "DX11Simulation/Session.h"
 
 namespace Canape
 {
+    namespace
+    {
+        // Both stages read the same block, so either's declaration stands for it.
+        const ConstantLayout& constantLayoutOf(
+            const VertexShader& vertexShader,
+            const PixelShader& pixelShader
+        )
+        {
+            if(const auto* layout = vertexShader.FindConstantLayout(MaterialSlot)) return *layout;
+            if(const auto* layout = pixelShader.FindConstantLayout(MaterialSlot)) return *layout;
+
+            throw std::invalid_argument("the material's shaders declare no constant block");
+        }
+    }
+
     Material::Material(
         Session& session,
         const ShaderDesc& vertexShader,
@@ -17,6 +34,27 @@ namespace Canape
         , vertexShader(session.GetOrCreateVertexShader(vertexShader))
         , pixelShader(session.GetOrCreatePixelShader(pixelShader))
         , constants(session.CreateConstantBuffer(values)) {}
+
+    Material::Material(
+        Session& session,
+        const ShaderDesc& vertexShader,
+        const ShaderDesc& pixelShader,
+        NamedConstants values
+    )
+        : session(session)
+        , vertexShader(session.GetOrCreateVertexShader(vertexShader))
+        , pixelShader(session.GetOrCreatePixelShader(pixelShader))
+        , constants(
+            session.CreateConstantBuffer(
+                packConstants(
+                    constantLayoutOf(
+                        *session.Get(this->vertexShader),
+                        *session.Get(this->pixelShader)
+                    ),
+                    values
+                )
+            )
+        ) {}
 
     void Material::Upload(ConstantView values)
     {

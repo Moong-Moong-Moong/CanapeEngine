@@ -35,17 +35,7 @@ namespace Canape
             ),
             "ID3D11Device::CreateSamplerState"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            sampler->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*sampler.Get(), name);
 
         return sampler;
     }
@@ -62,17 +52,7 @@ namespace Canape
             ),
             "ID3D11Device::CreateRasterizerState"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            rasterizer->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*rasterizer.Get(), name);
 
         return rasterizer;
     }
@@ -89,17 +69,7 @@ namespace Canape
             ),
             "ID3D11Device::CreateDepthStencilState"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            depthStencil->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*depthStencil.Get(), name);
 
         return depthStencil;
     }
@@ -116,33 +86,23 @@ namespace Canape
             ),
             "ID3D11Device::CreateBlendState"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            blendState->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*blendState.Get(), name);
 
         return blendState;
     }
 
-    VertexShaderRef Device::CreateVertexShader(
+    VertexShader Device::CreateVertexShader(
         const ShaderDesc& desc,
         std::string_view name)
     {
-        return CompileVertexShader(*getDevice(), desc, name);
+        return VertexShader(*getDevice(), desc, name);
     }
 
-    PixelShaderRef Device::CreatePixelShader(
+    PixelShader Device::CreatePixelShader(
         const ShaderDesc& desc,
         std::string_view name)
     {
-        return CompilePixelShader(*getDevice(), desc, name);
+        return PixelShader(*getDevice(), desc, name);
     }
 
     ComputeShader Device::CreateComputeShader(

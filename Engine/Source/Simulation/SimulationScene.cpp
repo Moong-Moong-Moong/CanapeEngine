@@ -33,6 +33,7 @@ namespace Canape
     SimulationScene::SimulationScene(Session& session)
         : session(session)
         , opaquePass(RenderPass::Opaque(session))
+        , additivePass(RenderPass::Additive(session))
         , outer(session, SimulationOuter{}) {}
 
     void SimulationScene::Disturb(const Vector3& position, float radius, float strength)
@@ -49,6 +50,7 @@ namespace Canape
     void SimulationScene::Simulate(
         Simulator& simulator,
         WaveSurfaces::Components surfaces,
+        ParticleEffects::Components effects,
         const Vector2& windVelocity,
         float dt)
     {
@@ -67,6 +69,7 @@ namespace Canape
         // The draws read what the last step left, or this when there is no step.
         outer.Upload(values);
         waveSurfaces.Update(session, surfaces);
+        particleEffects.Update(session, effects);
 
         const auto steppedTime = std::clamp(dt, 0.0f, MaxSteppedTime);
         // Equal steps, each as long as the ripples allow at most.
@@ -85,12 +88,19 @@ namespace Canape
 
             ComputePassScope pass(simulator, computePass, outer);
             waveSurfaces.Step(simulator);
+            particleEffects.Step(simulator);
         }
     }
 
-    void SimulationScene::Render(Simulator& simulator)
+    void SimulationScene::RenderAfterOpaque(Simulator& simulator)
     {
         RenderPassScope pass(simulator, opaquePass, outer);
         waveSurfaces.Draw(simulator);
+    }
+
+    void SimulationScene::RenderAfterTransparent(Simulator& simulator)
+    {
+        RenderPassScope pass(simulator, additivePass, outer);
+        particleEffects.Draw(simulator);
     }
 }

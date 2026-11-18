@@ -164,6 +164,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\MoveSample\MoveAnimationController.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Content\Effects\Fire.effect" />
     <None Include="Content\Materials\M_CampfireLog.mat" />
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />

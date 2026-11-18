@@ -78,6 +78,7 @@
     <ClInclude Include="Source\Asset\Animation\AnimationClipAsset.h" />
     <ClInclude Include="Source\Asset\Animation\AnimationClipSerializer.h" />
     <ClInclude Include="Source\Asset\AssetId.h" />
+    <ClInclude Include="Source\Asset\Effect\ParticleEffectAsset.h" />
     <ClInclude Include="Source\Asset\AssetHandle.h" />
     <ClInclude Include="Source\Asset\AssetManager.h" />
     <ClInclude Include="Source\Asset\AssetTracker.h" />
@@ -155,6 +156,8 @@
     <ClInclude Include="Source\Core\Console\CommandRegistry.h" />
     <ClInclude Include="Source\Core\Console\EngineCommands.h" />
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h" />
+    <ClInclude Include="Source\Simulation\ParticleEffectComponent.h" />
+    <ClInclude Include="Source\Simulation\ParticleEffects.h" />
     <ClInclude Include="Source\Simulation\SimulationScene.h" />
     <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h" />
     <ClInclude Include="Source\Simulation\WaveSurfaces.h" />
@@ -164,6 +167,7 @@
     <ClCompile Include="Source\Asset\Animation\AnimationClipAsset.cpp" />
     <ClCompile Include="Source\Asset\Animation\AnimationClipSerializer.cpp" />
     <ClCompile Include="Source\Asset\AssetManager.cpp" />
+    <ClCompile Include="Source\Asset\Effect\ParticleEffectAsset.cpp" />
     <ClCompile Include="Source\Asset\AssetTracker.cpp" />
     <ClCompile Include="Source\Asset\Importer\glTF\CNglTFImporter.cpp" />
     <ClCompile Include="Source\Asset\Material\MaterialAsset.cpp" />
@@ -216,6 +220,8 @@
     <ClCompile Include="Source\Core\Console\CommandRegistry.cpp" />
     <ClCompile Include="Source\Core\Console\EngineCommands.cpp" />
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp" />
+    <ClCompile Include="Source\Simulation\ParticleEffectComponent.cpp" />
+    <ClCompile Include="Source\Simulation\ParticleEffects.cpp" />
     <ClCompile Include="Source\Simulation\SimulationScene.cpp" />
     <ClCompile Include="Source\Simulation\WaveSurfaces.cpp" />
     <ClCompile Include="Source\Simulation\WindComponent.cpp" />
@@ -226,6 +232,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Runtime.props" />
+    <None Include="Shader\Fire.hlsl" />
+    <None Include="Shader\ParticleEffect.hlsli" />
     <None Include="Shader\Simulation.hlsli" />
     <None Include="Shader\WaveRipple.hlsl" />
     <None Include="Shader\WaveSurface.hlsl" />

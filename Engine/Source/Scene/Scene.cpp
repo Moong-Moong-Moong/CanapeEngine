@@ -223,6 +223,7 @@ namespace Canape
 			m_Simulation->Simulate(
                 simulator,
                 m_componentRegistry.GetWaveSurfaces(),
+                m_componentRegistry.GetParticleEffects(),
                 windVelocity,
                 Time::DeltaTime()
             );

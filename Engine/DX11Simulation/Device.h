@@ -60,11 +60,11 @@ namespace Canape
         );
 
         // path is relative to the executable unless absolute.
-        VertexShaderRef CreateVertexShader(
+        VertexShader CreateVertexShader(
             const ShaderDesc&,
             std::string_view name = {}
         );
-        PixelShaderRef CreatePixelShader(
+        PixelShader CreatePixelShader(
             const ShaderDesc&,
             std::string_view name = {}
         );

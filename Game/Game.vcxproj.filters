@@ -4,6 +4,9 @@
     <Filter Include="Content">
       <UniqueIdentifier>{47790819-4050-550B-B6F5-7009048EF9D7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Content\Effects">
+      <UniqueIdentifier>{3b8e1c64-5f0a-4d27-9c1e-7a2f6d0b8e15}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Content\Materials">
       <UniqueIdentifier>{0739A6A8-8217-8EFA-5121-3C911B01D3D3}</UniqueIdentifier>
     </Filter>
@@ -298,6 +301,12 @@
     <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Fire.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\ParticleEffect.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -306,6 +315,9 @@
     </None>
     <None Include="..\Engine\Shader\WaveSurface.hlsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="Content\Effects\Fire.effect">
+      <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Game.json">
       <Filter>Content</Filter>

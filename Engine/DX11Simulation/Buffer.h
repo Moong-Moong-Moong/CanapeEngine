@@ -44,6 +44,7 @@ namespace Canape
         WriteViewRef unorderedAccessView;
 
     public:
+        // Starts zeroed when it has the UAV and no initial data.
         Buffer(
             ID3D11Device&,
             ID3D11DeviceContext&,

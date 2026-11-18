@@ -245,4 +245,20 @@ namespace Canape
     {
         return fieldsOf(a) == fieldsOf(b);
     }
+
+    void SetDebugName(
+        [[maybe_unused]] ID3D11DeviceChild& child,
+        [[maybe_unused]] std::string_view name)
+    {
+    #if CANAPE_RENDER_DEBUG
+        if(!name.empty())
+        {
+            child.SetPrivateData(
+                WKPDID_D3DDebugObjectName,
+                static_cast<UINT>(name.length()),
+                name.data()
+            );
+        }
+    #endif
+    }
 }

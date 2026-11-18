@@ -2,6 +2,7 @@
 
 #include "DX11Simulation/ConstantView.h"
 #include "DX11Simulation/Handles.h"
+#include "DX11Simulation/NamedConstants.h"
 #include "DX11Simulation/ShaderDesc.h"
 
 namespace Canape
@@ -25,6 +26,13 @@ namespace Canape
             const ShaderDesc& vertexShader,
             const ShaderDesc& pixelShader,
             ConstantView values
+        );
+        // Fills the constant block the shaders declare
+        Material(
+            Session&,
+            const ShaderDesc& vertexShader,
+            const ShaderDesc& pixelShader,
+            NamedConstants values
         );
 
         void Upload(ConstantView values);

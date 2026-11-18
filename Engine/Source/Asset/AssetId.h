@@ -10,6 +10,7 @@ namespace Canape
     class TextureAsset;
     class CubemapAsset;
     class AnimationClipAsset;
+    class ParticleEffectAsset;
 
     template <typename Tag>
     struct AssetId
@@ -37,6 +38,7 @@ namespace Canape
     using TextureAssetId = AssetId<TextureAsset>;
     using CubemapAssetId = AssetId<CubemapAsset>;
     using AnimationClipAssetId = AssetId<AnimationClipAsset>;
+    using ParticleEffectAssetId = AssetId<ParticleEffectAsset>;
 
     template <typename T>
     struct AssetIdHash

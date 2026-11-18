@@ -26,6 +26,7 @@
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
+#include "Simulation/ParticleEffectComponent.h"
 #include "Simulation/WindComponent.h"
 
 #define CN_KEY_VALUE(name) rttr::value(#name, Key::name)
@@ -252,6 +253,10 @@ namespace Canape
 			registration::class_<WindComponent>("WindComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("speed", &WindComponent::GetSpeed, &WindComponent::SetSpeed);
+
+			registration::class_<ParticleEffectComponent>("ParticleEffectComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("effect", &ParticleEffectComponent::GetEffectPath, &ParticleEffectComponent::SetEffectPath);
 		}
 	}
 

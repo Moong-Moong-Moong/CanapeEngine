@@ -22,17 +22,7 @@ namespace Canape
             ),
             "ID3D11Device::CreateBuffer"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            buffer->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*buffer.Get(), name);
 
         const bool structured = (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED) != 0;
         const auto elementCount = structured ?
@@ -73,6 +63,15 @@ namespace Canape
                 ),
                 "ID3D11Device::CreateUnorderedAccessView(buffer)"
             );
+
+            if(initialData == nullptr)
+            {
+                constexpr UINT Zeros[4] = {0, 0, 0, 0};
+                context.ClearUnorderedAccessViewUint(
+                    unorderedAccessView.Get(),
+                    Zeros
+                );
+            }
         }
     }
 

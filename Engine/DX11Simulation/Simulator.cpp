@@ -11,6 +11,7 @@
 #include "DX11Simulation/Kernel.h"
 #include "DX11Simulation/Material.h"
 #include "DX11Simulation/Outer.h"
+#include "DX11Simulation/Particles.h"
 #include "DX11Simulation/RenderPass.h"
 #include "DX11Simulation/Shader.h"
 
@@ -154,6 +155,22 @@ namespace Canape
         field.Advance();
     }
 
+    void Simulator::Dispatch(const Kernel& kernel, Particles& particles)
+    {
+        assert(computeOpen);
+
+        const auto& shader = kernel.GetShader();
+
+        context->SetComputeConstant(KernelSlot, kernel.GetConstants());
+        context->SetComputeShader(shader);
+        context->SetComputeWritable(ComputeParticlesSlot, particles.GetBuffer());
+        context->Dispatch(
+            ceilDiv(particles.GetDesc().count, shader.GetThreadGroupSize()[0]),
+            1
+        );
+        context->ClearComputeWritable(ComputeParticlesSlot);
+    }
+
     void Simulator::EndComputePass()
     {
         assert(computeOpen);
@@ -214,6 +231,21 @@ namespace Canape
     {
         context->SetVertexReadable(FieldSlot, field.GetLatest());
         Draw(material, geometry);
+    }
+
+    void Simulator::Draw(const Material& material, const Particles& particles)
+    {
+        assert(renderOpen);
+
+        constexpr std::uint32_t VerticesPerParticle = 6;
+
+        bind(MaterialSlot, material.GetConstants());
+        context->SetVertexReadable(ParticlesSlot, particles.GetBuffer());
+
+        auto& d3dContext = context->GetRef();
+        d3dContext.VSSetShader(material.GetVertexShader(), nullptr, 0);
+        d3dContext.PSSetShader(material.GetPixelShader(), nullptr, 0);
+        context->Draw(VerticesPerParticle, particles.GetDesc().count);
     }
 
     void Simulator::EndRenderPass()

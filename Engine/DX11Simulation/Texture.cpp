@@ -22,17 +22,7 @@ namespace Canape
             ),
             "ID3D11Device::CreateTexture2D"
         );
-
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            texture->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        SetDebugName(*texture.Get(), name);
 
         if(desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
         {

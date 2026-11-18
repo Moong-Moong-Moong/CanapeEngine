@@ -155,40 +155,92 @@ namespace
 
         return bytecode;
     }
+
+    using ReflectionRef = Canape::RefPtr<ID3D11ShaderReflection>;
+
+    ReflectionRef reflect(ID3DBlob& bytecode)
+    {
+        ReflectionRef reflection;
+        ThrowIfFailed(
+            D3DReflect(
+                bytecode.GetBufferPointer(),
+                bytecode.GetBufferSize(),
+                IID_PPV_ARGS(&reflection)
+            ),
+            "D3DReflect"
+        );
+
+        return reflection;
+    }
 }
 
 namespace Canape
 {
     namespace
     {
-        ThreadGroupSize reflectThreadGroupSize(ID3DBlob& bytecode)
+        ThreadGroupSize threadGroupSizeOf(ID3D11ShaderReflection& reflection)
         {
-            RefPtr<ID3D11ShaderReflection> reflection;
-            ThrowIfFailed(
-                D3DReflect(
-                    bytecode.GetBufferPointer(),
-                    bytecode.GetBufferSize(),
-                    IID_PPV_ARGS(&reflection)
-                ),
-                "D3DReflect"
-            );
             UINT x = 0;
             UINT y = 0;
             UINT z = 0;
-            reflection->GetThreadGroupSize(&x, &y, &z);
+            reflection.GetThreadGroupSize(&x, &y, &z);
 
             return { x, y, z };
         }
+
+        ConstantLayouts constantLayoutsOf(ID3D11ShaderReflection& reflection)
+        {
+            D3D11_SHADER_DESC shaderDesc{};
+            ThrowIfFailed(
+                reflection.GetDesc(&shaderDesc),
+                "ID3D11ShaderReflection::GetDesc"
+            );
+
+            ConstantLayouts layouts;
+            for(UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
+            {
+                auto* block = reflection.GetConstantBufferByIndex(i);
+                D3D11_SHADER_BUFFER_DESC blockDesc{};
+                ThrowIfFailed(
+                    block->GetDesc(&blockDesc),
+                    "ID3D11ShaderReflectionConstantBuffer::GetDesc"
+                );
+                // A structured buffer is listed here too.
+                if(blockDesc.Type != D3D_CT_CBUFFER) continue;
+
+                D3D11_SHADER_INPUT_BIND_DESC binding{};
+                ThrowIfFailed(
+                    reflection.GetResourceBindingDescByName(blockDesc.Name, &binding),
+                    "ID3D11ShaderReflection::GetResourceBindingDescByName"
+                );
+
+                ConstantLayout layout{ .size = blockDesc.Size };
+                for(UINT j = 0; j < blockDesc.Variables; ++j)
+                {
+                    D3D11_SHADER_VARIABLE_DESC variable{};
+                    ThrowIfFailed(
+                        block->GetVariableByIndex(j)->GetDesc(&variable),
+                        "ID3D11ShaderReflectionVariable::GetDesc"
+                    );
+                    layout.fields.push_back({
+                        .name = variable.Name,
+                        .offset = variable.StartOffset,
+                        .size = variable.Size
+                    });
+                }
+                layouts.emplace(binding.BindPoint, std::move(layout));
+            }
+
+            return layouts;
+        }
     }
 
-    VertexShaderRef CompileVertexShader(
+    VertexShader::VertexShader(
         ID3D11Device& device,
         const ShaderDesc& desc,
         std::string_view name)
     {
         const auto bytecode = CompileShader(desc, "vs_5_0");
-
-        VertexShaderRef shader;
         ThrowIfFailed(
             device.CreateVertexShader(
                 bytecode->GetBufferPointer(),
@@ -198,29 +250,17 @@ namespace Canape
             ),
             "ID3D11Device::CreateVertexShader"
         );
+        SetDebugName(*shader.Get(), name);
 
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            shader->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
-
-        return shader;
+        constantLayouts = constantLayoutsOf(*reflect(*bytecode.Get()).Get());
     }
 
-    PixelShaderRef CompilePixelShader(
+    PixelShader::PixelShader(
         ID3D11Device& device,
         const ShaderDesc& desc,
         std::string_view name)
     {
         const auto bytecode = CompileShader(desc, "ps_5_0");
-
-        PixelShaderRef shader;
         ThrowIfFailed(
             device.CreatePixelShader(
                 bytecode->GetBufferPointer(),
@@ -230,19 +270,9 @@ namespace Canape
             ),
             "ID3D11Device::CreatePixelShader"
         );
+        SetDebugName(*shader.Get(), name);
 
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            shader->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
-
-        return shader;
+        constantLayouts = constantLayoutsOf(*reflect(*bytecode.Get()).Get());
     }
 
     ComputeShader::ComputeShader(
@@ -260,17 +290,10 @@ namespace Canape
             ),
             "ID3D11Device::CreateComputeShader"
         );
-        threadGroupSize = reflectThreadGroupSize(*bytecode.Get());
+        SetDebugName(*shader.Get(), name);
 
-    #if CANAPE_RENDER_DEBUG
-        if(!name.empty())
-        {
-            shader->SetPrivateData(
-                WKPDID_D3DDebugObjectName,
-                static_cast<UINT>(name.length()),
-                name.data()
-            );
-        }
-    #endif
+        const auto reflection = reflect(*bytecode.Get());
+        threadGroupSize = threadGroupSizeOf(*reflection.Get());
+        constantLayouts = constantLayoutsOf(*reflection.Get());
     }
 }

@@ -85,6 +85,9 @@
     <Filter Include="Source\Asset\Animation">
       <UniqueIdentifier>{e19d5515-1434-4dbb-932e-3ef4bc346904}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Asset\Effect">
+      <UniqueIdentifier>{7c0f6b52-9a3e-4d1b-8f5a-2e6d4c1b9a70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\CNDebug\DebugLog.h">
@@ -318,6 +321,15 @@
     <ClInclude Include="Source\Simulation\WindComponent.h">
       <Filter>Source\Simulation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Simulation\ParticleEffectComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\ParticleEffects.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Effect\ParticleEffectAsset.h">
+      <Filter>Source\Asset\Effect</Filter>
+    </ClInclude>
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
@@ -494,6 +506,15 @@
     <ClCompile Include="Source\Simulation\WindComponent.cpp">
       <Filter>Source\Simulation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Simulation\ParticleEffectComponent.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\ParticleEffects.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Effect\ParticleEffectAsset.cpp">
+      <Filter>Source\Asset\Effect</Filter>
+    </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClCompile>
@@ -515,6 +536,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Runtime.props" />
+    <None Include="Shader\Fire.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\ParticleEffect.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>
