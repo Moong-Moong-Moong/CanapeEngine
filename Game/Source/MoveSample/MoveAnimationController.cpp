@@ -26,11 +26,18 @@ void MoveAnimationController::Update()
     //***** 캐릭터 이동
     InputManager& input = Application::Get().GetInputManager();
 
+    float lastX = 0.0f;
+    float lastZ = 0.0f;
+
     Vector3 move = Vector3::Zero;
-    if (input.IsKeyDown(Key::Up)) move.Z += 1.0f;
-    if (input.IsKeyDown(Key::Down)) move.Z -= 1.0f;
-    if (input.IsKeyDown(Key::Left)) move.X -= 1.0f;
-    if (input.IsKeyDown(Key::Right)) move.X += 1.0f;
+    if (input.IsKeyDown(Key::Up)) lastZ = 1.0f;
+    if (input.IsKeyDown(Key::Down)) lastZ = -1.0f;
+    if (input.IsKeyDown(Key::Right)) lastX = 1.0f;
+    if (input.IsKeyDown(Key::Left)) lastX = -1.0f;
+
+    move.X = lastX;
+    move.Z = lastZ;
+
     Vector3 moveAmount = move * m_moveSpeed * Time::DeltaTime();
 
     TransformComponent* transform = GetTransform();
