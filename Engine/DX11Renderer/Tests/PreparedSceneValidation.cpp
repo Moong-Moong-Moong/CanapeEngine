@@ -1,5 +1,4 @@
 // Standalone tests linked against the real renderer. Not a runtime project item.
-#define NOMINMAX
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include "DX11Renderer/Pipeline/DX11MeshDraw.h"
 #include "CNDebug/DebugLog.h"

@@ -1,10 +1,4 @@
 #pragma once
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 
 #include "DX11Renderer/DX11Renderer.h"
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"

@@ -2,9 +2,6 @@
 
 #include <DirectXMath.h>
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 #include <Windows.h>
 #include <shellapi.h>
 #include <TlHelp32.h>

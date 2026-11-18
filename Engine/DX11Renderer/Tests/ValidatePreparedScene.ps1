@@ -18,13 +18,13 @@ if errorlevel 1 exit /b %errorlevel%
 set _CL_=/Z7
 "$msbuild" Engine\DX11Renderer\DX11Renderer.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++23preview /EHsc /MDd /Z7 /D_DEBUG /DCANAPE_RENDER_DEBUG=1 /utf-8 /ICommon /IEngine Engine\DX11Renderer\Tests\PreparedSceneValidation.cpp Binaries\x64\Debug\DX11Renderer\DX11Renderer.lib /FoIntermediate\PreparedSceneValidation\Debug.obj /FeIntermediate\PreparedSceneValidation\Debug.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
+cl /nologo /std:c++23preview /EHsc /MDd /Z7 /D_DEBUG /DCANAPE_RENDER_DEBUG=1 /utf-8 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /ICommon /IEngine Engine\DX11Renderer\Tests\PreparedSceneValidation.cpp Binaries\x64\Debug\DX11Renderer\DX11Renderer.lib /FoIntermediate\PreparedSceneValidation\Debug.obj /FeIntermediate\PreparedSceneValidation\Debug.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
 if errorlevel 1 exit /b %errorlevel%
 Intermediate\PreparedSceneValidation\Debug.exe
 if errorlevel 1 exit /b %errorlevel%
 "$msbuild" Engine\DX11Renderer\DX11Renderer.vcxproj /p:Configuration=Shipping /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++23preview /EHsc /MD /Z7 /DNDEBUG /DCANAPE_RENDER_DEBUG=0 /utf-8 /ICommon /IEngine Engine\DX11Renderer\Tests\PreparedSceneValidation.cpp Binaries\x64\Shipping\DX11Renderer\DX11Renderer.lib /FoIntermediate\PreparedSceneValidation\Shipping.obj /FeIntermediate\PreparedSceneValidation\Shipping.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
+cl /nologo /std:c++23preview /EHsc /MD /Z7 /DNDEBUG /DCANAPE_RENDER_DEBUG=0 /utf-8 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /ICommon /IEngine Engine\DX11Renderer\Tests\PreparedSceneValidation.cpp Binaries\x64\Shipping\DX11Renderer\DX11Renderer.lib /FoIntermediate\PreparedSceneValidation\Shipping.obj /FeIntermediate\PreparedSceneValidation\Shipping.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
 if errorlevel 1 exit /b %errorlevel%
 Intermediate\PreparedSceneValidation\Shipping.exe
 exit /b %errorlevel%

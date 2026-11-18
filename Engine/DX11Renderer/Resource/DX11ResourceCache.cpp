@@ -1,5 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Resource/DX11ResourceCache.h"
 #include "CNDebug/DebugLog.h"
 
