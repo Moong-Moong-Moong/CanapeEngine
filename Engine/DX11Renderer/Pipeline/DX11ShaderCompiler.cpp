@@ -10,8 +10,6 @@
 #include <string_view>
 #include <vector>
 
-#pragma comment(lib, "d3dcompiler.lib")
-
 namespace Canape
 {
     namespace

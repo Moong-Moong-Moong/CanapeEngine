@@ -187,6 +187,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="DX11Renderer.props" />
     <None Include="Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>

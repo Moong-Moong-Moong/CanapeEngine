@@ -7,9 +7,6 @@
 #include <sstream>
 #include <vector>
 
-#pragma comment(lib, "windowscodecs.lib")
-#pragma comment(lib, "ole32.lib")
-
 namespace Canape
 {
 	namespace

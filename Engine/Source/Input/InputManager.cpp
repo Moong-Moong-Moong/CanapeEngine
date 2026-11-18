@@ -4,8 +4,6 @@
 #include <windowsx.h>
 #include <Xinput.h>
 
-#pragma comment(lib, "xinput.lib")
-
 namespace Canape
 {
 	namespace

@@ -12,8 +12,6 @@
 #include <system_error>
 #include <vector>
 
-#pragma comment(lib, "shell32.lib")
-
 namespace
 {
     constexpr char kGameConfigFile[] = "Game.json";
