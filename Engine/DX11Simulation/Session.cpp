@@ -6,23 +6,6 @@
 
 namespace Canape
 {
-    namespace
-    {
-        template<typename Handles, typename Key, typename Create>
-        auto getOrCreate(Handles& handles, const Key& key, Create&& create)
-        {
-            if(const auto kept = handles.find(key); kept != handles.end())
-            {
-                return kept->second;
-            }
-
-            const auto handle = create();
-            handles.emplace(key, handle);
-
-            return handle;
-        }
-    }
-
     Session::~Session() = default;
 
     Session::Session(ID3D11Device& device, ID3D11DeviceContext& context)
@@ -48,64 +31,57 @@ namespace Canape
 
     SamplerStateHandle Session::GetOrCreateSamplerState(const D3D11_SAMPLER_DESC& desc)
     {
-        return getOrCreate(
-            samplerStateHandles,
+        return samplerStates.GetOrCreate(
             desc,
-            [&] { return samplerStates.Add(device->CreateSamplerState(desc)); }
+            [&] { return device->CreateSamplerState(desc); }
         );
     }
 
     RasterizerStateHandle Session::GetOrCreateRasterizerState(const D3D11_RASTERIZER_DESC& desc)
     {
-        return getOrCreate(
-            rasterizerStateHandles,
+        return rasterizerStates.GetOrCreate(
             desc,
-            [&] { return rasterizerStates.Add(device->CreateRasterizerState(desc)); }
+            [&] { return device->CreateRasterizerState(desc); }
         );
     }
 
     DepthStencilStateHandle Session::GetOrCreateDepthStencilState(const D3D11_DEPTH_STENCIL_DESC& desc)
     {
-        return getOrCreate(
-            depthStencilStateHandles,
+        return depthStencilStates.GetOrCreate(
             desc,
-            [&] { return depthStencilStates.Add(device->CreateDepthStencilState(desc)); }
+            [&] { return device->CreateDepthStencilState(desc); }
         );
     }
 
     BlendStateHandle Session::GetOrCreateBlendState(const D3D11_BLEND_DESC& desc)
     {
-        return getOrCreate(
-            blendStateHandles,
+        return blendStates.GetOrCreate(
             desc,
-            [&] { return blendStates.Add(device->CreateBlendState(desc)); }
+            [&] { return device->CreateBlendState(desc); }
         );
     }
 
     VertexShaderHandle Session::GetOrCreateVertexShader(const ShaderDesc& desc)
     {
-        return getOrCreate(
-            vertexShaderHandles,
+        return vertexShaders.GetOrCreate(
             desc,
-            [&] { return vertexShaders.Add(device->CreateVertexShader(desc)); }
+            [&] { return device->CreateVertexShader(desc); }
         );
     }
 
     PixelShaderHandle Session::GetOrCreatePixelShader(const ShaderDesc& desc)
     {
-        return getOrCreate(
-            pixelShaderHandles,
+        return pixelShaders.GetOrCreate(
             desc,
-            [&] { return pixelShaders.Add(device->CreatePixelShader(desc)); }
+            [&] { return device->CreatePixelShader(desc); }
         );
     }
 
     ComputeShaderHandle Session::GetOrCreateComputeShader(const ShaderDesc& desc)
     {
-        return getOrCreate(
-            computeShaderHandles,
+        return computeShaders.GetOrCreate(
             desc,
-            [&] { return computeShaders.Add(device->CreateComputeShader(desc)); }
+            [&] { return device->CreateComputeShader(desc); }
         );
     }
 }

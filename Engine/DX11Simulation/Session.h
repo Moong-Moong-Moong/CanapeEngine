@@ -3,11 +3,11 @@
 #include <memory>
 #include <string_view>
 #include <type_traits>
-#include <unordered_map>
 
 #include "DX11Simulation/Buffer.h"
 #include "DX11Simulation/ConstantView.h"
 #include "DX11Simulation/D3D.h"
+#include "DX11Simulation/FlyweightPool.h"
 #include "DX11Simulation/Handles.h"
 #include "DX11Simulation/Shader.h"
 #include "DX11Simulation/ShaderDesc.h"
@@ -24,30 +24,23 @@ namespace Canape
     class Session
     {
     private:
-        template<typename Desc, typename Handle>
-        using HandlesByDesc = std::unordered_map<Desc, Handle, DescHash, DescEqual>;
+        template<typename Desc, typename T>
+        using StatePool = FlyweightPool<Desc, T, DescHash, DescEqual>;
 
     private:
         std::unique_ptr<Device> device;
 
         SlotMap<Buffer> buffers;
         SlotMap<Texture> textures;
-        SlotMap<SamplerStateRef> samplerStates;
-        HandlesByDesc<D3D11_SAMPLER_DESC, SamplerStateHandle> samplerStateHandles;
+        StatePool<D3D11_SAMPLER_DESC, SamplerStateRef> samplerStates;
 
-        SlotMap<RasterizerStateRef> rasterizerStates;
-        HandlesByDesc<D3D11_RASTERIZER_DESC, RasterizerStateHandle> rasterizerStateHandles;
-        SlotMap<DepthStencilStateRef> depthStencilStates;
-        HandlesByDesc<D3D11_DEPTH_STENCIL_DESC, DepthStencilStateHandle> depthStencilStateHandles;
-        SlotMap<BlendStateRef> blendStates;
-        HandlesByDesc<D3D11_BLEND_DESC, BlendStateHandle> blendStateHandles;
+        StatePool<D3D11_RASTERIZER_DESC, RasterizerStateRef> rasterizerStates;
+        StatePool<D3D11_DEPTH_STENCIL_DESC, DepthStencilStateRef> depthStencilStates;
+        StatePool<D3D11_BLEND_DESC, BlendStateRef> blendStates;
 
-        SlotMap<VertexShaderRef> vertexShaders;
-        std::unordered_map<ShaderDesc, VertexShaderHandle> vertexShaderHandles;
-        SlotMap<PixelShaderRef> pixelShaders;
-        std::unordered_map<ShaderDesc, PixelShaderHandle> pixelShaderHandles;
-        SlotMap<ComputeShader> computeShaders;
-        std::unordered_map<ShaderDesc, ComputeShaderHandle> computeShaderHandles;
+        FlyweightPool<ShaderDesc, VertexShaderRef> vertexShaders;
+        FlyweightPool<ShaderDesc, PixelShaderRef> pixelShaders;
+        FlyweightPool<ShaderDesc, ComputeShader> computeShaders;
 
     public:
         Session(ID3D11Device&, ID3D11DeviceContext&);
@@ -103,7 +96,7 @@ namespace Canape
 
     private:
         template<typename T>
-        SlotMap<T>& slotsOf()
+        auto& slotsOf()
         {
             if constexpr(std::is_same_v<T, Buffer>) return buffers;
             else if constexpr(std::is_same_v<T, Texture>) return textures;

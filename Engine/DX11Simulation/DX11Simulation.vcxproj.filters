@@ -9,6 +9,7 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceContext.h" />
     <ClInclude Include="Field.h" />
+    <ClInclude Include="FlyweightPool.h" />
     <ClInclude Include="FrameStats.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="GpuTimer.h" />
