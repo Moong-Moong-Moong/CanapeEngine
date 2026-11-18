@@ -193,8 +193,9 @@ namespace Canape
     {
 #if CANAPE_RENDER_DEBUG
         return m_Impl->DebugSettings;
-#endif
+#else
         return {};
+#endif
     }
 
     RendererDebugStats DX11Renderer::GetDebugStats() const
