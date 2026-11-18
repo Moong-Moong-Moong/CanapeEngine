@@ -9,7 +9,6 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Simulation/SimulationScene.h"
-#include "Simulation/WindComponent.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -206,29 +205,17 @@ namespace Canape
 		}
 	}
 
-	void Scene::Simulate(Simulator& simulator)
-	{
-		if (m_Simulation != nullptr)
-		{
-			Vector2 windVelocity;
-			for (WindComponent* wind : m_componentRegistry.GetWinds())
-			{
-				if (IsRunnable(wind))
-				{
-					windVelocity = wind->GetVelocity();
-					break;
-				}
-			}
-
-			m_Simulation->Simulate(
+    void Scene::Simulate(Simulator& simulator)
+    {
+        if (m_Simulation != nullptr)
+        {
+            m_Simulation->Simulate(
                 simulator,
-                m_componentRegistry.GetWaveSurfaces(),
-                m_componentRegistry.GetParticleEffects(),
-                windVelocity,
+                m_componentRegistry,
                 Time::DeltaTime()
             );
-		}
-	}
+        }
+    }
 
 	void Scene::RegisterComponent(Component* component)
 	{

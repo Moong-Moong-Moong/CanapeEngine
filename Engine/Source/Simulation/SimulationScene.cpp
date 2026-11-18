@@ -4,6 +4,9 @@
 #include <cmath>
 
 #include "DX11Simulation/Simulator.h"
+#include "Scene/Component/ComponentRegistry.h"
+#include "Scene/Scene.h"
+#include "Simulation/WindComponent.h"
 
 namespace
 {
@@ -30,6 +33,21 @@ namespace
 
 namespace Canape
 {
+    namespace
+    {
+        Vector2 findWindVelocity(const ComponentRegistry& registry)
+        {
+            for(auto* wind : registry.GetWinds())
+            {
+                if(Scene::IsRunnable(wind))
+                {
+                    return wind->GetVelocity();
+                }
+            }
+            return Vector2::Zero;
+        }
+    }
+
     SimulationScene::SimulationScene(Session& session)
         : session(session)
         , opaquePass(RenderPass::Opaque(session))
@@ -49,15 +67,14 @@ namespace Canape
 
     void SimulationScene::Simulate(
         Simulator& simulator,
-        WaveSurfaces::Components surfaces,
-        ParticleEffects::Components effects,
-        const Vector2& windVelocity,
+        const ComponentRegistry& registry,
         float dt)
     {
         // A longer frame is not caught up with.
         constexpr float MaxSteppedTime = MaxStepsPerFrame * WaveSurfaces::MaxStepSeconds;
 
         time += dt;
+        const auto windVelocity = findWindVelocity(registry);
         const auto windSpeed = windVelocity.Length();
         SimulationOuter values{
             .time = static_cast<float>(time),
@@ -68,8 +85,8 @@ namespace Canape
         };
         // The draws read what the last step left, or this when there is no step.
         outer.Upload(values);
-        waveSurfaces.Update(session, surfaces);
-        particleEffects.Update(session, effects);
+        waveSurfaces.Update(session, registry.GetWaveSurfaces());
+        particleEffects.Update(session, registry.GetParticleEffects());
 
         const auto steppedTime = std::clamp(dt, 0.0f, MaxSteppedTime);
         // Equal steps, each as long as the ripples allow at most.

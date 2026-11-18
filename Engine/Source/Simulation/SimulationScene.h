@@ -13,6 +13,7 @@
 
 namespace Canape
 {
+    class ComponentRegistry;
     class Session;
     class Simulator;
 
@@ -59,14 +60,7 @@ namespace Canape
         // Pushes the water around position once, in the next step.
         // Ignored once MaxWaveDisturbances are waiting.
         void Disturb(const Vector3& position, float radius, float strength);
-        // windVelocity is in world XZ, meters per second.
-        void Simulate(
-            Simulator&,
-            WaveSurfaces::Components,
-            ParticleEffects::Components,
-            const Vector2& windVelocity,
-            float dt
-        );
+        void Simulate(Simulator&, const ComponentRegistry&, float dt);
 
         void RenderAfterOpaque(Simulator&);
         void RenderAfterTransparent(Simulator&);
