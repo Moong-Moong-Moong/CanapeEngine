@@ -9,6 +9,7 @@
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Data/ShaderConstants.h"
 #include "DX11Renderer/Scene/RenderScene.h"
+#include "Asset/Texture/CubemapImporter.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -17,6 +18,7 @@
 #include <d3d11sdklayers.h>
 #include <DirectXPackedVector.h>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -626,7 +628,8 @@ void SpecularIblChecks(DX11Renderer& renderer)
         return int(image.rgba[offset + channel]);
     };
 
-    // A supplied DDS mip chain must remain intact and map roughness 0/.5/1 to mips 0/1/2.
+    // The original DDS mip chain remains intact; mesh IBL now samples a separately
+    // GGX-prefiltered cubemap, so these source mips are no longer direct output mips.
     std::vector<uint8_t> supplied;
     for (unsigned face = 0; face < 6; ++face)
         for (unsigned mip = 0; mip < 3; ++mip)
@@ -651,12 +654,10 @@ void SpecularIblChecks(DX11Renderer& renderer)
     const auto red = render(0.0f);
     const auto green = render(0.5f);
     const auto blue = render(1.0f);
-    Require(center(red, 0) > 240 && center(red, 1) < 5 && center(red, 2) < 5,
-        "roughness zero samples sharp supplied mip");
-    Require(center(green, 1) > 240 && center(green, 0) < 5 && center(green, 2) < 5,
-        "roughness half samples middle supplied mip");
-    Require(center(blue, 2) > 240 && center(blue, 0) < 5 && center(blue, 1) < 5,
-        "roughness one samples last supplied mip");
+    Require(center(red, 0) > 200 && center(red, 1) < 10 && center(red, 2) < 10,
+        "roughness zero samples sharp source direction through the prefilter");
+    Require(center(green, 1) > 0 || center(blue, 2) > 0,
+        "rougher prefilter accesses the supplied environment distribution");
     renderer.DestroyCubemap(existing);
 
     // A single-level source generates its ordinary mip chain once at resource creation.
@@ -683,11 +684,12 @@ void SpecularIblChecks(DX11Renderer& renderer)
     const auto blurred = render(1.0f);
     std::cout << "Specular IBL center red at roughness 0/.5/1: "
         << center(sharp, 0) << '/' << center(medium, 0) << '/' << center(blurred, 0) << '\n';
-    Require(center(sharp, 0) > center(medium, 0) + 10
-        && center(medium, 0) > center(blurred, 0) + 10,
-        "generated mips progressively soften the reflection");
-    Require(center(render(0.0f, 0.0f), 0) < center(sharp, 0) / 3,
-        "dielectric F0 reduces specular IBL relative to metal");
+    Require(center(sharp, 0) > center(blurred, 0) + 10,
+        "GGX prefilter softens the reflection");
+    // A nonmetal now receives diffuse irradiance as well; its total pixel value
+    // is not a direct measurement of the dielectric specular F0.
+    Require(center(render(0.0f, 0.0f), 0) > 0,
+        "nonmetal receives IBL lighting");
     scene.skybox.brightness = 0.25f;
     Require(center(render(0.0f), 0) < center(sharp, 0),
         "specular IBL follows skybox brightness");
@@ -700,7 +702,7 @@ void SpecularIblChecks(DX11Renderer& renderer)
     scene.skybox = {};
     Require(center(render(0.0f), 0) == 0, "missing skybox contributes no specular IBL");
     renderer.DestroyMesh(mesh);
-    std::cout << "Specular IBL: supplied mips reused, missing mips generated, roughness 0/.5/1 PASS\n";
+    std::cout << "Specular IBL: source mip handling and GGX prefilter shading PASS\n";
 }
 // Read raw linear SceneColor rather than the legacy display-byte test adapter.
 std::array<float, 4> ReadHdrCenter(Backend& impl)
@@ -723,6 +725,110 @@ std::array<float, 4> ReadHdrCenter(Backend& impl)
         result[i] = DirectX::PackedVector::XMConvertHalfToFloat(pixel[i]);
     impl.Context->Unmap(staging.Get(), 0);
     return result;
+}
+void CubemapDdsChecks(DX11Renderer& renderer)
+{
+    auto& impl = *renderer.m_Impl;
+    struct Case
+    {
+        const char* Path;
+        TextureFormat Format;
+        DXGI_FORMAT GpuFormat;
+    };
+    constexpr Case cases[]{
+        { "Game/Content/HDRI/uffizi_cross_Mark.dds", TextureFormat::RGBA8_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
+        { "Game/Content/HDRI/ludwikowice_farmland_cube_Mark.dds", TextureFormat::RGBA8_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
+        { "Game/Content/HDRI/uffizi_cross.dds", TextureFormat::RGBA16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT },
+        { "Game/Content/HDRI/ludwikowice_farmland_cube.dds", TextureFormat::RGBA32_FLOAT, DXGI_FORMAT_R32G32B32A32_FLOAT },
+    };
+    for (const Case& test : cases)
+    {
+        std::string error;
+        auto asset = CubemapImporter::LoadCubemap(std::filesystem::path(test.Path), &error);
+        Require(asset != nullptr, error.empty() ? "DDS cubemap import" : error.c_str());
+        Require(asset->GetFormat() == test.Format, "DDS pixel format preserved");
+        const uint32_t bytesPerPixel = CubemapBytesPerPixel(test.Format);
+        Require(ValidateCubemapData(asset->GetFaceSize(), asset->GetMipLevels(),
+            asset->GetFormat(), asset->GetPixels().size()) == nullptr, "DDS face/mip byte layout");
+        if (test.Format == TextureFormat::RGBA16_FLOAT || test.Format == TextureFormat::RGBA32_FLOAT)
+        {
+            bool hasHdrValue = false;
+            for (size_t offset = 0; offset < asset->GetPixels().size(); offset += bytesPerPixel)
+            {
+                float red = 0.0f;
+                if (test.Format == TextureFormat::RGBA16_FLOAT)
+                {
+                    uint16_t bits = 0;
+                    std::memcpy(&bits, asset->GetPixels().data() + offset, sizeof(bits));
+                    red = DirectX::PackedVector::XMConvertHalfToFloat(bits);
+                }
+                else
+                    std::memcpy(&red, asset->GetPixels().data() + offset, sizeof(red));
+                if (red > 1.0f) { hasHdrValue = true; break; }
+            }
+            Require(hasHdrValue, "source DDS contains HDR values over one");
+        }
+        const auto id = renderer.CreateCubemap(asset->GetFaceSize(), asset->GetMipLevels(),
+            asset->GetFormat(), asset->GetPixels());
+        Require(renderer.IsCubemapValid(id), "DDS cubemap GPU creation");
+        const auto* gpu = impl.Resources.GetCubemap(id);
+        D3D11_TEXTURE2D_DESC desc{};
+        gpu->Texture->GetDesc(&desc);
+        Require(desc.Format == test.GpuFormat && desc.ArraySize == 6
+            && desc.MipLevels >= asset->GetMipLevels(), "DDS GPU texture format and dimensions");
+        if (asset->GetMipLevels() == 1)
+        {
+            UINT support = 0;
+            Require(SUCCEEDED(impl.Device->CheckFormatSupport(test.GpuFormat, &support)),
+                "DDS GPU mip format query");
+            const bool autogen = asset->GetFaceSize() > 1
+                && (support & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN)
+                && (support & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
+            uint32_t expectedMips = 1;
+            if (autogen)
+                for (uint32_t size = asset->GetFaceSize(); size > 1; size >>= 1) ++expectedMips;
+            Require(desc.MipLevels == expectedMips, "DDS supported mip generation or safe single level");
+        }
+        D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+        gpu->ShaderResourceView->GetDesc(&srv);
+        Require(srv.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE && srv.Format == test.GpuFormat,
+            "DDS GPU cube SRV");
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        ComPtr<ID3D11Texture2D> staging;
+        Require(SUCCEEDED(impl.Device->CreateTexture2D(&desc, nullptr, &staging)), "DDS staging texture");
+        impl.Context->CopyResource(staging.Get(), gpu->Texture.Get());
+        size_t sourceOffset = 0;
+        for (uint32_t face = 0; face < 6; ++face)
+            for (uint32_t mip = 0; mip < asset->GetMipLevels(); ++mip)
+            {
+                const uint32_t size = asset->GetFaceSize() >> mip;
+                const size_t rowPitch = size_t(size) * bytesPerPixel;
+                const UINT subresource = D3D11CalcSubresource(mip, face, desc.MipLevels);
+                D3D11_MAPPED_SUBRESOURCE mapped{};
+                Require(SUCCEEDED(impl.Context->Map(staging.Get(), subresource, D3D11_MAP_READ, 0, &mapped)),
+                    "DDS mapped face/mip");
+                Require(mapped.RowPitch >= rowPitch, "DDS GPU row pitch");
+                for (uint32_t row = 0; row < size; ++row)
+                    Require(std::memcmp(static_cast<const uint8_t*>(mapped.pData) + size_t(row) * mapped.RowPitch,
+                        asset->GetPixels().data() + sourceOffset + size_t(row) * rowPitch, rowPitch) == 0,
+                        "DDS GPU face/mip data and HDR values preserved");
+                impl.Context->Unmap(staging.Get(), subresource);
+                sourceOffset += rowPitch * size;
+            }
+        Require(sourceOffset == asset->GetPixels().size(), "DDS consumed every face/mip byte");
+        RenderScene scene;
+        scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
+        scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
+        scene.skybox.cubemap = id;
+        Frame(renderer, scene);
+        const auto hdr = ReadHdrCenter(impl);
+        Require(std::isfinite(hdr[0]) && hdr[0] > 0.0f, "DDS skybox renders in linear SceneColor");
+        renderer.DestroyCubemap(id);
+    }
+    std::cout << "DDS cubemaps: 8-bit, FP16, FP32 import, GPU face/mip data and skybox PASS\n";
 }
 void HdrChecks(DX11Renderer& renderer)
 {
@@ -1081,6 +1187,13 @@ void ShadowChecks()
         // Keep the WARP readback allocation bounded and use the test scene's depth range.
         impl.ShadowSettings.resolution = 4096;
         impl.ShadowSettings.farPlane = 200.0f;
+        // Keep the existing WARP scene regression focused on rendering, not bake quality.
+        impl.IBLSettings.IrradianceSamples = 8;
+        impl.IBLSettings.PrefilterSamples = 16;
+        impl.IBLSettings.PrefilterFaceSize = 16;
+        impl.IBLSettings.PrefilterMipLevels = 5;
+        impl.IBLSettings.BRDFSamples = 16;
+        impl.IBLSettings.BRDFSize = 32;
         impl.Window = window;
         DXGI_SWAP_CHAIN_DESC swap{};
         swap.BufferDesc.Width = swap.BufferDesc.Height = 256;
@@ -1104,6 +1217,7 @@ void ShadowChecks()
         {
             SkyboxChecks(renderer);
             HdrChecks(renderer);
+            CubemapDdsChecks(renderer);
             SpecularIblChecks(renderer);
             MaterialMapChecks(renderer);
         }

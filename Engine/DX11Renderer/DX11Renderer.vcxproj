@@ -79,6 +79,7 @@
     <ClInclude Include="DX11Renderer.h" />
     <ClInclude Include="Internal\DX11RendererImpl.h" />
     <ClInclude Include="Pass\DX11FinalOutputPass.h" />
+    <ClInclude Include="Pass\DX11IBLBaker.h" />
     <ClInclude Include="Pass\DX11UIPass.h" />
     <ClInclude Include="Pass\DX11SkyboxPass.h" />
     <ClInclude Include="Pass\DX11MainPass.h" />
@@ -113,6 +114,7 @@
     <ClCompile Include="Frame\DX11FrameExecutor.cpp" />
     <ClCompile Include="Internal\DX11RendererImpl.cpp" />
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp" />
+    <ClCompile Include="Pass\DX11IBLBaker.cpp" />
     <ClCompile Include="Pass\DX11UIPass.cpp" />
     <ClCompile Include="Pass\DX11SkyboxPass.cpp" />
     <ClCompile Include="Pass\DX11MainPass.cpp" />
@@ -133,6 +135,7 @@
     <None Include="Shader\Common\Constants.hlsli" />
     <None Include="Shader\Common\Fog.hlsli" />
     <None Include="Shader\Common\FullscreenTypes.hlsli" />
+    <None Include="Shader\Common\IBLSampling.hlsli" />
     <None Include="Shader\Common\Lighting.hlsli" />
     <None Include="Shader\Common\Material.hlsli" />
     <None Include="Shader\Common\MeshSurface.hlsli" />
@@ -143,6 +146,9 @@
     <None Include="Shader\Debug\DepthDebug.hlsl" />
     <None Include="Shader\Debug\MeshDebug.hlsl" />
     <None Include="Shader\FinalOutput.hlsl" />
+    <None Include="Shader\IBLBRDFIntegration.hlsl" />
+    <None Include="Shader\IBLIrradiance.hlsl" />
+    <None Include="Shader\IBLPrefilter.hlsl" />
     <None Include="Shader\Mesh.hlsl" />
     <None Include="Shader\MeshPS.hlsl" />
     <None Include="Shader\MeshSkinnedVS.hlsl" />

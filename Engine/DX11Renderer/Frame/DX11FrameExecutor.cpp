@@ -4,9 +4,87 @@
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
 #include "CNDebug/DebugLog.h"
+#include <utility>
 
 namespace Canape
 {
+    void DX11Renderer::Impl::ClearEnvironmentIBL()
+    {
+        if (Context)
+        {
+            ID3D11ShaderResourceView* unbound[3]{};
+            Context->PSSetShaderResources(6, 3, unbound);
+        }
+        EnvironmentIBL = {};
+    }
+
+    void DX11Renderer::Impl::InvalidateIBL(CubemapResourceId cubemap)
+    {
+        if (EnvironmentIBL.SourceId == cubemap) ClearEnvironmentIBL();
+        if (FailedIBLSourceId == cubemap)
+        {
+            FailedIBLSourceId = {};
+            FailedIBLSourceView = nullptr;
+        }
+    }
+
+    void DX11Renderer::Impl::EnsureSceneIBL(CubemapResourceId cubemap,
+        ID3D11ShaderResourceView* source)
+    {
+        if (!cubemap.IsValid() || !source)
+        {
+            ClearEnvironmentIBL();
+            FailedIBLSourceId = {};
+            FailedIBLSourceView = nullptr;
+            return;
+        }
+        if (EnvironmentIBL.SourceId == cubemap && EnvironmentIBL.SourceView == source
+            && EnvironmentIBL.Irradiance.ShaderResourceView
+            && EnvironmentIBL.Prefiltered.ShaderResourceView && BRDFLUT.ShaderResourceView)
+            return;
+        ClearEnvironmentIBL(); // Single-environment cache; never expose the previous HDRI.
+        if (FailedIBLSourceId == cubemap && FailedIBLSourceView == source) return;
+        if (!IBLBakerAttempted)
+        {
+            IBLBakerAttempted = true;
+            std::string error;
+            IBLBakerReady = IBLBaker.Initialize(Device.Get(), Pipelines.ResolveFinalOutput(false).VS, error);
+            if (!IBLBakerReady)
+            {
+                LastError = "IBL baker initialization: " + error;
+                CN_LOG_RENDERER("IBL", LastError);
+                return;
+            }
+        }
+        if (!IBLBakerReady) return;
+
+        EnvironmentIBLResources pending;
+        pending.SourceId = cubemap;
+        pending.SourceView = source;
+        DX11BRDFLUT pendingBRDF;
+        std::string error;
+        const bool baked = IBLBaker.BakeIrradiance(Context.Get(), source, pending.Irradiance,
+                error, IBLSettings.IrradianceSamples)
+            && IBLBaker.BakePrefilteredEnvironment(Context.Get(), source, pending.Prefiltered,
+                error, IBLSettings.PrefilterSamples, IBLSettings.PrefilterFaceSize,
+                IBLSettings.PrefilterMipLevels)
+            && (BRDFLUT.ShaderResourceView || IBLBaker.BakeBRDFLUT(Context.Get(), pendingBRDF,
+                error, IBLSettings.BRDFSamples, IBLSettings.BRDFSize));
+        if (!baked)
+        {
+            FailedIBLSourceId = cubemap;
+            FailedIBLSourceView = source;
+            LastError = "IBL bake: " + error;
+            CN_LOG_RENDERER("IBL", LastError);
+            return;
+        }
+        pending.PrefilterMipCount = IBLSettings.PrefilterMipLevels;
+        EnvironmentIBL = std::move(pending);
+        if (pendingBRDF.ShaderResourceView) BRDFLUT = std::move(pendingBRDF);
+        FailedIBLSourceId = {};
+        FailedIBLSourceView = nullptr;
+    }
+
     // The executor is a module of existing Impl members, not another state owner.
     PreparedLighting DX11Renderer::Impl::ResolveLighting(std::span<const RenderLight> lights, bool allowShadow)
     {
@@ -203,6 +281,7 @@ namespace Canape
 #endif
 
             const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
+            EnsureSceneIBL(scene.skybox.cubemap, prepared.Skybox.Texture);
             ViewData = prepared.View;
             SceneData = prepared.Scene;
             ViewDirty = SceneDirty = true;
@@ -212,6 +291,10 @@ namespace Canape
             if (lighting.ShadowActive) RenderShadowPass(prepared);
             BindSharedConstants();
             ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), prepared.Skybox.Constants);
+            const auto iblBindings = GetSceneBindings();
+            const SC::IBLConstants iblConstants{
+                iblBindings.IBLAvailable ? 1u : 0u, iblBindings.PrefilterMipCount };
+            ConstantBuffers::Upload(*Context.Get(), IBLBuffer.Get(), iblConstants);
             auto draw = GetDrawContext();
             draw.BonePalettes = std::span<const Matrix4>{ prepared.BonePalettes };
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;

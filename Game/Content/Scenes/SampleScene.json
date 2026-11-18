@@ -438,7 +438,7 @@
                     "id": 32,
                     "properties": {
                         "enabled": true,
-                        "cubemap": "Content/HDRI/uffizi_cross_Mark.dds",
+                        "cubemap": "Content/HDRI/galileo_cross.dds",
                         "brightness": 1.0,
                         "rotation": 0.0,
                         "ambientColor": {

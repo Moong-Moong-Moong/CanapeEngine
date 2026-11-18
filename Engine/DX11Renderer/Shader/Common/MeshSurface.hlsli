@@ -13,25 +13,26 @@ float3 GetWorldNormal(VertexOutput input)
 }
 
 // Shared by final shading and WorldNormal debug so both display the same surface.
-float3 GetShadingNormal(VertexOutput input)
+float3 GetShadingNormal(VertexOutput input, bool isFrontFace)
 {
     float3 normal = GetWorldNormal(input);
-    if (HasNormalTexture == 0) return normal;
-
-    float3 tangent = input.Tangent.xyz - normal * dot(normal, input.Tangent.xyz);
-    float tangentLengthSquared = dot(tangent, tangent);
-    if (tangentLengthSquared > 1e-12f)
+    if (HasNormalTexture != 0)
     {
-        tangent *= rsqrt(tangentLengthSquared);
-        float handedness = input.Tangent.w < 0.0f ? -1.0f : 1.0f;
-        float3 bitangent = cross(normal, tangent) * handedness;
-        float3 tangentNormal = NormalTexture.Sample(LinearSampler, input.UV).xyz * 2.0f - 1.0f;
-        float3 mappedNormal = mul(tangentNormal, float3x3(tangent, bitangent, normal));
-        float mappedLengthSquared = dot(mappedNormal, mappedNormal);
-        if (mappedLengthSquared > 1e-12f)
-            normal = mappedNormal * rsqrt(mappedLengthSquared);
+        float3 tangent = input.Tangent.xyz - normal * dot(normal, input.Tangent.xyz);
+        float tangentLengthSquared = dot(tangent, tangent);
+        if (tangentLengthSquared > 1e-12f)
+        {
+            tangent *= rsqrt(tangentLengthSquared);
+            float handedness = input.Tangent.w < 0.0f ? -1.0f : 1.0f;
+            float3 bitangent = cross(normal, tangent) * handedness;
+            float3 tangentNormal = NormalTexture.Sample(LinearSampler, input.UV).xyz * 2.0f - 1.0f;
+            float3 mappedNormal = mul(tangentNormal, float3x3(tangent, bitangent, normal));
+            float mappedLengthSquared = dot(mappedNormal, mappedNormal);
+            if (mappedLengthSquared > 1e-12f)
+                normal = mappedNormal * rsqrt(mappedLengthSquared);
+        }
     }
-    return normal;
+    return normal * (isFrontFace ? 1.0f : -1.0f);
 }
 
 #endif

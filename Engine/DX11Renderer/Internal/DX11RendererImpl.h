@@ -4,6 +4,7 @@
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
 #include "DX11Renderer/Pipeline/DX11MeshDraw.h"
 #include "DX11Renderer/Pass/DX11UIPass.h"
+#include "DX11Renderer/Pass/DX11IBLBaker.h"
 #if CANAPE_RENDER_DEBUG
 #include "DX11Renderer/Pipeline/GPUProfiler.h"
 #endif
@@ -79,6 +80,29 @@ namespace Canape
         ComPtr<ID3D11Buffer> SkyboxIndexBuffer;
         static constexpr UINT SkyboxIndexCount = 6;
         DX11PipelineState Pipelines;
+        struct IBLBakeSettings
+        {
+            uint32_t IrradianceSamples = 512;
+            uint32_t PrefilterSamples = 256;
+            uint32_t PrefilterFaceSize = DX11IBLBaker::PrefilterFaceSize;
+            uint32_t PrefilterMipLevels = DX11IBLBaker::PrefilterMipLevels;
+            uint32_t BRDFSamples = 256;
+            uint32_t BRDFSize = DX11IBLBaker::BRDFLUTSize;
+        } IBLSettings;
+        struct EnvironmentIBLResources
+        {
+            CubemapResourceId SourceId{};
+            ID3D11ShaderResourceView* SourceView = nullptr; // Borrowed from Resources.
+            DX11IrradianceCubemap Irradiance;
+            DX11PrefilteredCubemap Prefiltered;
+            uint32_t PrefilterMipCount = 0;
+        } EnvironmentIBL;
+        DX11IBLBaker IBLBaker;
+        DX11BRDFLUT BRDFLUT;
+        bool IBLBakerAttempted = false;
+        bool IBLBakerReady = false;
+        CubemapResourceId FailedIBLSourceId{};
+        ID3D11ShaderResourceView* FailedIBLSourceView = nullptr;
         ShadowMapResources ShadowMap;
         ComPtr<ID3D11SamplerState> FallbackShadowSampler;
         ComPtr<IDXGISwapChain> SwapChain;
@@ -103,6 +127,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
         ComPtr<ID3D11Buffer> SkyboxViewBuffer;
+        ComPtr<ID3D11Buffer> IBLBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
         ComPtr<ID3D11Buffer> PostProcessBuffer;
@@ -125,6 +150,9 @@ namespace Canape
         void BindMainTargets();
         MainTargets GetMainTargets() const;
         SceneBindings GetSceneBindings() const;
+        void ClearEnvironmentIBL();
+        void EnsureSceneIBL(CubemapResourceId cubemap, ID3D11ShaderResourceView* source);
+        void InvalidateIBL(CubemapResourceId cubemap);
         MeshDrawContext GetDrawContext();
         void RenderShadowPass(const PreparedScene& scene);
         void BindSharedConstants();

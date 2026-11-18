@@ -63,6 +63,12 @@ float3 FresnelSchlick(float hDotV, float3 f0)
     return f0 + (1.0f - f0) * pow(1.0f - hDotV, 5.0f);
 }
 
+// Rough surfaces retain some grazing reflectance in the diffuse energy split.
+float3 FresnelSchlickRoughness(float nDotV, float3 f0, float roughness)
+{
+    return f0 + (max(1.0f - roughness, f0) - f0) * pow(1.0f - nDotV, 5.0f);
+}
+
 float3 EvaluateCookTorranceBRDF(float3 baseColor, float metallic, float roughness,
     float3 normal, float3 viewDirection, float3 lightDirection)
 {
@@ -142,6 +148,40 @@ float3 CalculateSpecularIBL(float3 worldPosition, float3 normal, float3 baseColo
     float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor, saturate(metallic));
     float3 fresnel = FresnelSchlick(saturate(dot(normal, viewDirection)), f0);
     return radiance * fresnel;
+}
+
+TextureCube IrradianceMap : register(t6);
+TextureCube PrefilterMap : register(t7);
+Texture2D BRDFLUT : register(t8);
+SamplerState BRDFSampler : register(s3);
+
+cbuffer IBLBuffer : register(b10)
+{
+    uint IBLAvailable;
+    uint PrefilterMipCount;
+    uint2 IBLPadding;
+};
+
+float3 CalculateDiffuseIBL(float3 normal, float3 baseColor, float metallic,
+    float roughness, float nDotV, float3 f0)
+{
+    float3 fresnel = FresnelSchlickRoughness(nDotV, f0, roughness);
+    float3 kD = (1.0f - fresnel) * (1.0f - metallic);
+    float3 direction = RotateIntoSkybox(normal);
+    // BakeIrradiance stores E(N)/PI, so there is no additional PI factor here.
+    return kD * baseColor * IrradianceMap.SampleLevel(SkyboxSampler, direction, 0.0f).rgb;
+}
+
+float3 CalculateSplitSumSpecularIBL(float3 normal, float3 viewDirection,
+    float roughness, float nDotV, float3 f0)
+{
+    float3 reflection = reflect(-viewDirection, normal);
+    float3 direction = RotateIntoSkybox(reflection);
+    float lod = roughness * float(max(PrefilterMipCount, 1u) - 1u);
+    float3 radiance = PrefilterMap.SampleLevel(SkyboxSampler, direction, lod).rgb;
+    float2 ab = BRDFLUT.SampleLevel(BRDFSampler, float2(nDotV, roughness), 0.0f).rg;
+    // The LUT already contains Geometry and Schlick Fresnel's two coefficients.
+    return radiance * (f0 * ab.x + ab.y);
 }
 
 #endif

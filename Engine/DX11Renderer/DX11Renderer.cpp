@@ -373,6 +373,9 @@ namespace Canape
 
     void DX11Renderer::DestroyCubemap(CubemapResourceId cubemap)
     {
+        m_Impl->InvalidateIBL(cubemap);
+        ID3D11ShaderResourceView* unbound = nullptr;
+        if (m_Impl->Context) m_Impl->Context->PSSetShaderResources(2, 1, &unbound);
         m_Impl->Resources.DestroyCubemap(cubemap);
     }
 

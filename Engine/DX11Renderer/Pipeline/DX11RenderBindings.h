@@ -20,6 +20,13 @@ namespace Canape
         ID3D11ShaderResourceView* EnvironmentView = nullptr;
         ID3D11SamplerState* EnvironmentSampler = nullptr;
         ID3D11Buffer* SkyboxConstants = nullptr;
+        ID3D11ShaderResourceView* IrradianceView = nullptr; // PS t6 (future PBR use).
+        ID3D11ShaderResourceView* PrefilteredView = nullptr; // PS t7.
+        ID3D11ShaderResourceView* BRDFView = nullptr; // PS t8.
+        uint32_t PrefilterMipCount = 0;
+        bool IBLAvailable = false;
+        ID3D11Buffer* IBLBuffer = nullptr; // PS b10.
+        ID3D11SamplerState* BRDFSampler = nullptr; // PS s3 (linear clamp).
     };
     namespace RenderBindings
     {
