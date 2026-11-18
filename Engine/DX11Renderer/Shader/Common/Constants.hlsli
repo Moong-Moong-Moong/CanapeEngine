@@ -70,8 +70,7 @@ cbuffer LightBuffer : register(b3)
     LocalLightGpu LocalLights[MAX_LOCAL_LIGHTS];
 };
 
-// Ambient is used by mesh shading; fog data remains available for future shading.
-// Layout matches the 48-byte CPU SceneConstants.
+// Ambient and fog for mesh shading. Layout matches the 64-byte CPU SceneConstants.
 cbuffer SceneBuffer : register(b4)
 {
     float3 AmbientColor;
@@ -82,6 +81,9 @@ cbuffer SceneBuffer : register(b4)
     float FogEndDistance;
     uint FogMode;
     float ScenePadding;
+    float FogBaseHeight;
+    float FogHeightFalloff;
+    float2 ScenePadding2;
 };
 
 #endif

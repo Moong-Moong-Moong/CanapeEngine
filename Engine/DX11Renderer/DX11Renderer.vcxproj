@@ -131,6 +131,7 @@
   <ItemGroup>
     <None Include="DX11Renderer.props" />
     <None Include="Shader\Common\Constants.hlsli" />
+    <None Include="Shader\Common\Fog.hlsli" />
     <None Include="Shader\Common\FullscreenTypes.hlsli" />
     <None Include="Shader\Common\Lighting.hlsli" />
     <None Include="Shader\Common\Material.hlsli" />

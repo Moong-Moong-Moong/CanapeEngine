@@ -191,14 +191,19 @@ namespace Canape::ShaderConstants
         float FogEndDistance = 100.0f;
         uint32_t FogMode = static_cast<uint32_t>(Canape::FogMode::Disabled);
         float Padding = 0.0f;
+        float FogBaseHeight = 0.0f;
+        float FogHeightFalloff = 0.1f;
+        float Padding2[2]{};
     };
-    static_assert(sizeof(SceneConstants) == 48);
+    static_assert(sizeof(SceneConstants) == 64);
     static_assert(offsetof(SceneConstants, AmbientIntensity) == 12);
     static_assert(offsetof(SceneConstants, FogColor) == 16);
     static_assert(offsetof(SceneConstants, FogDensity) == 28);
     static_assert(offsetof(SceneConstants, FogStartDistance) == 32);
     static_assert(offsetof(SceneConstants, FogEndDistance) == 36);
     static_assert(offsetof(SceneConstants, FogMode) == 40);
+    static_assert(offsetof(SceneConstants, FogBaseHeight) == 48);
+    static_assert(offsetof(SceneConstants, FogHeightFalloff) == 52);
 
     struct MaterialConstants
     {

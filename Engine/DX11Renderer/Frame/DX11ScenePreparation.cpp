@@ -224,6 +224,8 @@ namespace Canape::ScenePreparation
         data.FogStartDistance = scene.fog.startDistance;
         data.FogEndDistance = scene.fog.endDistance;
         data.FogMode = static_cast<uint32_t>(scene.fog.mode);
+        data.FogBaseHeight = scene.fog.baseHeight;
+        data.FogHeightFalloff = scene.fog.heightFalloff;
         return data;
     }
 
