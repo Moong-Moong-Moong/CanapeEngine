@@ -12,9 +12,9 @@
             "Z": 0.96,
             "W": 1.0
         },
-        "roughness": 0.87,
-        "metallic": 0.45,
-        "alphaMode": "Transparent",
-        "alphaCutoff": 0.75
+        "roughness": -0.28,
+        "metallic": -0.25,
+        "alphaMode": "Opaque",
+        "alphaCutoff": 0.0
     }
 }

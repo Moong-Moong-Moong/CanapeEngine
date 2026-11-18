@@ -38,11 +38,7 @@ float4 PSPrefilter(FullscreenVertexOutput input) : SV_TARGET
         float term = nDotH * nDotH * (alphaSquared - 1.0f) + 1.0f;
         float distribution = alphaSquared / max(IBL_PI * term * term, 1e-7f);
         float pdf = max(distribution * nDotH / (4.0f * vDotH), 1e-6f);
-        float sampleSolidAngle = 1.0f / (float(SampleCount) * pdf);
-        float texelSolidAngle = 4.0f * IBL_PI / (6.0f * SourceResolution * SourceResolution);
-        float sourceLod = SourceMipCount > 1
-            ? clamp(0.5f * log2(sampleSolidAngle / texelSolidAngle), 0.0f, float(SourceMipCount - 1))
-            : 0.0f;
+        float sourceLod = IBLSourceMipFromPdf(pdf, SampleCount, SourceResolution, SourceMipCount);
         radiance += EnvironmentMap.SampleLevel(EnvironmentSampler, l, sourceLod).rgb * nDotL;
         totalWeight += nDotL;
     }

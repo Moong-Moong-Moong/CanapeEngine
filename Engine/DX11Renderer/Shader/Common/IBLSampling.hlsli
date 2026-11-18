@@ -30,6 +30,16 @@ float2 IBLHammersley(uint i, uint count)
     return float2(float(i) / float(count), IBLRadicalInverse(i));
 }
 
+float IBLSourceMipFromPdf(float pdf, uint sampleCount, float sourceResolution, uint sourceMipCount)
+{
+    // Callers clamp their PDF above zero; one exposed mip must always sample LOD 0.
+    if (sourceMipCount <= 1) return 0.0f;
+    float sampleSolidAngle = 1.0f / (float(sampleCount) * pdf);
+    float texelSolidAngle = 4.0f * IBL_PI / (6.0f * sourceResolution * sourceResolution);
+    return clamp(0.5f * log2(sampleSolidAngle / texelSolidAngle),
+        0.0f, float(sourceMipCount - 1));
+}
+
 void IBLTangentBasis(float3 n, out float3 tangent, out float3 bitangent)
 {
     float3 helper = abs(n.z) < 0.999f ? float3(0.0f, 0.0f, 1.0f) : float3(1.0f, 0.0f, 0.0f);

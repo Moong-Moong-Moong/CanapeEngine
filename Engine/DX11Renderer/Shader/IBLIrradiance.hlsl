@@ -8,7 +8,10 @@ cbuffer IrradianceFace : register(b0)
 {
     uint FaceIndex;
     uint SampleCount;
-    uint2 Padding;
+    float UnusedRoughness;
+    float SourceResolution;
+    uint SourceMipCount;
+    uint3 Padding;
 };
 
 float3 CosineHemisphere(float2 xi)
@@ -29,7 +32,10 @@ float4 PSIrradiance(FullscreenVertexOutput input) : SV_TARGET
     {
         float3 h = CosineHemisphere(IBLHammersley(i, SampleCount));
         float3 l = tangent * h.x + bitangent * h.y + n * h.z;
-        sum += EnvironmentMap.SampleLevel(EnvironmentSampler, l, 0.0f).rgb;
+        // Cosine PDF selects the source filter footprint; E/PI still averages radiance.
+        float pdf = max(saturate(dot(n, l)) / IBL_PI, 1e-6f);
+        float sourceLod = IBLSourceMipFromPdf(pdf, SampleCount, SourceResolution, SourceMipCount);
+        sum += EnvironmentMap.SampleLevel(EnvironmentSampler, l, sourceLod).rgb;
     }
     // PDF = NdotL / PI. For E/PI, the Monte Carlo weight (NdotL / PI) / PDF is 1.
     return float4(sum / float(SampleCount), 1.0f);

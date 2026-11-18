@@ -82,7 +82,7 @@ namespace Canape
         DX11PipelineState Pipelines;
         struct IBLBakeSettings
         {
-            uint32_t IrradianceSamples = 256;
+            uint32_t IrradianceSamples = 512;
             uint32_t PrefilterSamples = 256;
             uint32_t PrefilterFaceSize = DX11IBLBaker::PrefilterFaceSize;
             uint32_t PrefilterMipLevels = DX11IBLBaker::PrefilterMipLevels;

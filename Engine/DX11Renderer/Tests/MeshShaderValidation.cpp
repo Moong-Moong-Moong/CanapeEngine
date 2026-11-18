@@ -12,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace Canape::Debug
 {
@@ -64,6 +65,8 @@ void CheckInterface(ID3DBlob* vs, ID3DBlob* ps)
     {
         D3D11_SIGNATURE_PARAMETER_DESC input{};
         Check(pixel->GetInputParameterDesc(i, &input));
+        // The rasterizer supplies SV_IsFrontFace directly to the pixel shader.
+        if (input.SystemValueType == D3D_NAME_IS_FRONT_FACE) continue;
         bool found = false;
         for (UINT j = 0; j < vd.OutputParameters; ++j)
         {
@@ -259,6 +262,139 @@ int main()
         run("Zero weights preserve local surface", vertex, true, XMMatrixIdentity());
         vertex.Weights[0] = -1; vertex.Weights[1] = 2;
         run("Negative weight clamped before normalization", vertex, true, secondBone);
+
+        // Exercise the actual World Normal pixel shader on both rasterized face orientations.
+        auto normalCode = Compile(L"Shaders/Debug/MeshDebug.hlsl", "PSDebugWorldNormal", "ps_5_0");
+        CheckInterface(staticCode.Get(), normalCode.Get());
+        CheckInterface(skinnedCode.Get(), normalCode.Get());
+        ComPtr<ID3D11PixelShader> normalPS;
+        Check(device->CreatePixelShader(normalCode->GetBufferPointer(), normalCode->GetBufferSize(),
+            nullptr, &normalPS));
+        context->GSSetShader(nullptr, nullptr, 0);
+        context->PSSetShader(normalPS.Get(), nullptr, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        XMFLOAT4X4 identity;
+        XMStoreFloat4x4(&identity, XMMatrixIdentity());
+        XMFLOAT4X4 identityObject[2]{ identity, identity };
+        context->UpdateSubresource(objectBuffer.Get(), 0, nullptr, identityObject, 0, 0);
+        XMStoreFloat4x4(&view.ViewProjection, XMMatrixIdentity());
+        context->UpdateSubresource(viewBuffer.Get(), 0, nullptr, &view, 0, 0);
+        for (auto& matrix : palette) matrix = identity;
+        context->UpdateSubresource(paletteBuffer.Get(), 0, nullptr, palette.data(), 0, 0);
+
+        struct MaterialConstants
+        {
+            XMFLOAT4 BaseColor{ 1, 1, 1, 1 };
+            uint32_t AlphaMode = 0;
+            float AlphaCutoff = 0.5f;
+            uint32_t HasBaseColorTexture = 0;
+            uint32_t HasNormalTexture = 0;
+            float Metallic = 0;
+            float Roughness = 1;
+            uint32_t HasORMTexture = 0;
+            uint32_t HasOcclusionTexture = 0;
+        } material;
+        static_assert(sizeof(MaterialConstants) == 48);
+        auto materialBuffer = makeBuffer(sizeof(material), D3D11_BIND_CONSTANT_BUFFER, &material);
+        context->PSSetConstantBuffers(1, 1, materialBuffer.GetAddressOf());
+
+        D3D11_TEXTURE2D_DESC textureDesc{};
+        textureDesc.Width = textureDesc.Height = textureDesc.MipLevels = textureDesc.ArraySize = 1;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        textureDesc.SampleDesc.Count = 1;
+        textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        const XMFLOAT4 tangentNormal{ 0.7f, 0.3f, 0.9f, 1.0f };
+        D3D11_SUBRESOURCE_DATA normalData{ &tangentNormal, sizeof(tangentNormal), 0 };
+        ComPtr<ID3D11Texture2D> normalTexture;
+        Check(device->CreateTexture2D(&textureDesc, &normalData, &normalTexture));
+        ComPtr<ID3D11ShaderResourceView> normalView;
+        Check(device->CreateShaderResourceView(normalTexture.Get(), nullptr, &normalView));
+        context->PSSetShaderResources(3, 1, normalView.GetAddressOf());
+        D3D11_SAMPLER_DESC samplerDesc{};
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        ComPtr<ID3D11SamplerState> sampler;
+        Check(device->CreateSamplerState(&samplerDesc, &sampler));
+        context->PSSetSamplers(0, 1, sampler.GetAddressOf());
+
+        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        ComPtr<ID3D11Texture2D> target;
+        Check(device->CreateTexture2D(&textureDesc, nullptr, &target));
+        ComPtr<ID3D11RenderTargetView> targetView;
+        Check(device->CreateRenderTargetView(target.Get(), nullptr, &targetView));
+        textureDesc.BindFlags = 0;
+        textureDesc.Usage = D3D11_USAGE_STAGING;
+        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ComPtr<ID3D11Texture2D> readback;
+        Check(device->CreateTexture2D(&textureDesc, nullptr, &readback));
+        context->OMSetRenderTargets(1, targetView.GetAddressOf(), nullptr);
+        D3D11_VIEWPORT viewport{ 0, 0, 1, 1, 0, 1 };
+        context->RSSetViewports(1, &viewport);
+        D3D11_RASTERIZER_DESC rasterizerDesc{};
+        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+        rasterizerDesc.CullMode = D3D11_CULL_NONE;
+        rasterizerDesc.DepthClipEnable = TRUE;
+        ComPtr<ID3D11RasterizerState> rasterizer;
+        Check(device->CreateRasterizerState(&rasterizerDesc, &rasterizer));
+        context->RSSetState(rasterizer.Get());
+
+        auto drawNormal = [&](bool skinned, bool mapped, bool reversed)
+        {
+            Vertex triangle[3]{};
+            triangle[0].Position = { -1, -1, 0.5f };
+            triangle[1].Position = { -1, 3, 0.5f };
+            triangle[2].Position = { 3, -1, 0.5f };
+            for (auto& corner : triangle)
+            {
+                corner.Normal = { 0, 0, 1 };
+                corner.Tangent = { 1, 0, 0, -1 };
+                corner.Weights[0] = 1;
+            }
+            if (reversed) std::swap(triangle[1], triangle[2]);
+            auto triangleBuffer = makeBuffer(sizeof(triangle), D3D11_BIND_VERTEX_BUFFER, triangle);
+            UINT triangleStride = sizeof(Vertex), triangleOffset = 0;
+            context->IASetVertexBuffers(0, 1, triangleBuffer.GetAddressOf(), &triangleStride, &triangleOffset);
+            context->IASetInputLayout(skinned ? skinnedLayout.Get() : staticLayout.Get());
+            context->VSSetShader(skinned ? skinnedVS.Get() : staticVS.Get(), nullptr, 0);
+            material.HasNormalTexture = mapped ? 1u : 0u;
+            context->UpdateSubresource(materialBuffer.Get(), 0, nullptr, &material, 0, 0);
+            const float clear[4]{ 2, 2, 2, 2 };
+            context->ClearRenderTargetView(targetView.Get(), clear);
+            context->Draw(3, 0);
+            context->CopyResource(readback.Get(), target.Get());
+            D3D11_MAPPED_SUBRESOURCE pixels{};
+            Check(context->Map(readback.Get(), 0, D3D11_MAP_READ, 0, &pixels));
+            XMFLOAT4 color;
+            std::memcpy(&color, pixels.pData, sizeof(color));
+            context->Unmap(readback.Get(), 0);
+            return color;
+        };
+        for (bool skinned : { false, true })
+        {
+            for (bool mapped : { false, true })
+            {
+                const XMFLOAT4 first = drawNormal(skinned, mapped, false);
+                const XMFLOAT4 back = drawNormal(skinned, mapped, true);
+                Require(std::abs(first.x + back.x - 1.0f) < 0.01f
+                    && std::abs(first.y + back.y - 1.0f) < 0.01f
+                    && std::abs(first.z + back.z - 1.0f) < 0.01f,
+                    "World Normal front/back directions did not invert");
+                Require(std::abs(first.z - back.z) > 0.5f,
+                    "World Normal draw did not distinguish front and back faces");
+                const XMFLOAT4& front = first.z > back.z ? first : back;
+                if (mapped)
+                    Require(front.x > 0.65f && front.y > 0.65f && front.z > 0.85f,
+                        "Normal mapping or mirrored tangent handedness was lost");
+                else
+                    Require(std::abs(front.x - 0.5f) < 0.01f
+                        && std::abs(front.y - 0.5f) < 0.01f
+                        && std::abs(front.z - 1.0f) < 0.01f,
+                        "Unmapped front-face normal changed");
+            }
+        }
+        std::cout << "PASS: World Normal front/back, with/without normal map, static/skinned\n";
         std::cout << "PASS: common VS/PS signatures; b9 size and row-major palette; actual runtime include handler\n";
     }
     catch (const std::exception& error)

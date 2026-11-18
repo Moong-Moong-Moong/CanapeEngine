@@ -5,9 +5,9 @@
 #include "Common/Lighting.hlsli"
 #include "Common/Fog.hlsli"
 
-float4 PSMain(VertexOutput input) : SV_TARGET
+float4 PSMain(VertexOutput input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
 {
-    float3 normal = GetShadingNormal(input);
+    float3 normal = GetShadingNormal(input, isFrontFace);
     // sRGB sampling decodes RGB; the FP16 SceneColor target preserves linear HDR output.
     float4 textureColor = BaseColorTexture.Sample(LinearSampler, input.UV);
     float alpha = BaseColor.a * textureColor.a;
@@ -42,6 +42,12 @@ float4 PSMain(VertexOutput input) : SV_TARGET
             safeRoughness, nDotV, f0);
         // The baked maps contain unscaled HDR radiance. Apply scene brightness once.
         ambient = (diffuseIBL + specularIBL) * Brightness;
+        
+        // Diffuse IBL만 보기
+        //return float4(diffuseIBL * Brightness, 1.0f);
+
+        // Specular IBL만 보기
+        //return float4(specularIBL * Brightness, 1.0f);
     }
     else
     {

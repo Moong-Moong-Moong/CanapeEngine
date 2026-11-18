@@ -231,7 +231,7 @@ namespace Canape
         std::string& error, uint32_t sampleCount) const
     {
         error.clear();
-        if (!Device || !IrradiancePS || !context || !environment || sampleCount == 0 || sampleCount > 4096)
+        if (!Device || !IrradiancePS || !context || !environment || sampleCount == 0 || sampleCount > 8192)
         {
             error = "IBL baker is uninitialized or received invalid input/sample count";
             return false;
@@ -245,6 +245,12 @@ namespace Canape
         }
         ComPtr<ID3D11Resource> inputResource;
         environment->GetResource(&inputResource);
+        ComPtr<ID3D11Texture2D> inputTexture;
+        if (FAILED(inputResource.As(&inputTexture)))
+        {
+            error = "Irradiance input must reference a Texture2D cubemap";
+            return false;
+        }
         ComPtr<ID3D11Device> inputDevice;
         inputResource->GetDevice(&inputDevice);
         if (inputDevice.Get() != Device.Get())
@@ -259,6 +265,25 @@ namespace Canape
             error = "Irradiance context belongs to a different D3D11 device";
             return false;
         }
+        D3D11_TEXTURE2D_DESC inputDesc{};
+        inputTexture->GetDesc(&inputDesc);
+        const uint32_t firstMip = inputView.TextureCube.MostDetailedMip;
+        if (firstMip >= inputDesc.MipLevels)
+        {
+            error = "Irradiance input SRV has no readable mip";
+            return false;
+        }
+        const uint32_t remainingMips = inputDesc.MipLevels - firstMip;
+        const uint32_t sourceMipCount = inputView.TextureCube.MipLevels == UINT(-1)
+            ? remainingMips : (inputView.TextureCube.MipLevels < remainingMips
+                ? inputView.TextureCube.MipLevels : remainingMips);
+        if (sourceMipCount == 0)
+        {
+            error = "Irradiance input SRV has no readable mip";
+            return false;
+        }
+        const float sourceResolution = static_cast<float>(
+            (inputDesc.Width >> firstMip) > 0 ? (inputDesc.Width >> firstMip) : 1);
         UINT support = 0;
         HRESULT result = Device->CheckFormatSupport(DXGI_FORMAT_R16G16B16A16_FLOAT, &support);
         if (FAILED(result) || !(support & D3D11_FORMAT_SUPPORT_TEXTURECUBE)
@@ -309,7 +334,7 @@ namespace Canape
         {
             ID3D11RenderTargetView* target = faceViews[face].Get();
             context->OMSetRenderTargets(1, &target, nullptr);
-            const FaceConstants data{face, sampleCount};
+            const FaceConstants data{face, sampleCount, 0.0f, sourceResolution, sourceMipCount};
             context->UpdateSubresource(FaceBuffer.Get(), 0, nullptr, &data, 0, 0);
             context->Draw(3, 0);
         }
