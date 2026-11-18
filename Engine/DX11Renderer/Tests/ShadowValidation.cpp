@@ -2,7 +2,6 @@
 // The private-access include is confined to this test translation unit. It permits
 // GPU readback/failure injection without adding an engine-facing testing interface.
 // Link the actual renderer library; do not include its implementation CPP.
-#define NOMINMAX
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"

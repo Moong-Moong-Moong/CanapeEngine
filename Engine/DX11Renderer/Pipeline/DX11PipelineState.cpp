@@ -1,5 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Pipeline/DX11PipelineState.h"
 #include "CNDebug/DebugLog.h"
 #include "DX11Renderer/Pipeline/DX11ShaderCompiler.h"

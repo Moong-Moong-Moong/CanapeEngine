@@ -486,4 +486,7 @@
       <Filter>Source\Asset\Animation</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Runtime.props" />
+  </ItemGroup>
 </Project>

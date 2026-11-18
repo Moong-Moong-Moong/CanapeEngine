@@ -51,9 +51,9 @@ namespace Canape
     };
     struct PreparedMeshDraw
     {
+        ShaderConstants::ObjectConstants Object{};
         const DX11MeshResource* Mesh = nullptr;
         uint32_t SubmeshIndex = 0;
-        ShaderConstants::ObjectConstants Object{};
         PreparedMaterial Material;
         float Depth = 0.0f;
         // Range in PreparedScene::BonePalettes. Non-skinned draws keep both zero.
@@ -62,8 +62,8 @@ namespace Canape
     };
     struct PreparedSkybox
     {
-        ID3D11ShaderResourceView* Texture = nullptr;
         ShaderConstants::SkyboxViewConstants Constants{};
+        ID3D11ShaderResourceView* Texture = nullptr;
     };
     struct PreparedScene
     {
@@ -77,12 +77,12 @@ namespace Canape
     };
     struct PreparedFinalOutput
     {
-        DX11PipelineSelection Pipeline;
-        ID3D11ShaderResourceView* Texture = nullptr;
-        bool DisplayDepth = false;
 #if CANAPE_RENDER_DEBUG
         ShaderConstants::DepthDisplayConstants DepthDisplay{};
 #endif
+        DX11PipelineSelection Pipeline;
+        ID3D11ShaderResourceView* Texture = nullptr;
+        bool DisplayDepth = false;
     };
     namespace ScenePreparation
     {

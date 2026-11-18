@@ -41,6 +41,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(CanapeRoot)Engine\Runtime.props" />
   </ImportGroup>
   <PropertyGroup>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
@@ -53,7 +54,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);CANAPE_GAME_DIR="$(CanapeGameDir.Replace('\','/'))";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;CANAPE_RENDER_DEBUG=$(CanapeRenderDebug);CANAPE_GAME_DIR="$(CanapeGameDir.Replace('\','/'))";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(CanapeRoot)Common;$(CanapeRoot)Engine;$(CanapeRoot)Engine\Source;$(CanapeGameDir)Source;$(ProjectDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

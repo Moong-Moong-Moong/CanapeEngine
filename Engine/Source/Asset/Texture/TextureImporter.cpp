@@ -1,16 +1,11 @@
 #include "Asset/Texture/TextureImporter.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <Windows.h>
 #include <wincodec.h>
 #include <wrl/client.h>
 
 #include <sstream>
 #include <vector>
-
-#pragma comment(lib, "windowscodecs.lib")
-#pragma comment(lib, "ole32.lib")
 
 namespace Canape
 {

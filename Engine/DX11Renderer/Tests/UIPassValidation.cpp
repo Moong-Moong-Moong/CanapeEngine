@@ -1,6 +1,5 @@
 // Standalone UI pass integration test (WARP + D3D11 debug layer); not part of DX11Renderer.vcxproj.
 // Same private-access pattern as ShadowValidation: confined to this translation unit, links the real library.
-#define NOMINMAX
 #include "DX11Renderer/Data/TextureData.h"
 #include "DX11Renderer/Data/UIDrawList.h"
 #include <array>

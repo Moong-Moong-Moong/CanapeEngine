@@ -1,8 +1,38 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{C2D1D807-DF26-A012-AED7-D685072A4E55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Common">
+      <UniqueIdentifier>{D73D9606-FBD5-5A79-29BE-BDF18FA9E739}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Debug">
+      <UniqueIdentifier>{AC189C75-D0FA-EFA2-0DE7-C821302D4584}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Shadow">
+      <UniqueIdentifier>{CF84D9EE-1425-6BAB-BDED-23004BB44453}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{4CA9375C-C26D-71BE-4305-AC17F1B6E524}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts">
+      <UniqueIdentifier>{8F99EBE2-06B6-147C-ECB1-0C0587437511}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts\FsmSample">
+      <UniqueIdentifier>{D03CE09B-7E41-EAD1-1211-6BA7E30A0A05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts\MoveSample">
+      <UniqueIdentifier>{A86D34C8-5CC9-EF1C-5DA2-57A080384D25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts\Puzzle">
+      <UniqueIdentifier>{315C2345-B566-CC23-D138-CEF62BCD1D26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts\Scripts">
+      <UniqueIdentifier>{66984C0B-070C-C800-2E30-50B15A9D679C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameScripts\State">
+      <UniqueIdentifier>{03A1139C-9642-5985-4B60-1B0F454509FE}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Panels">
       <UniqueIdentifier>{8ED2EFE8-15A5-2EB6-0837-4C91DC6CE8A5}</UniqueIdentifier>
@@ -44,7 +74,87 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="@(GameScriptSource)" />
+    <ClCompile Include="..\Game\Source\FsmSample\FsmSampleIdle.cpp">
+      <Filter>Source\GameScripts\FsmSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\FsmSample\FsmSampleMover.cpp">
+      <Filter>Source\GameScripts\FsmSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\FsmSample\FsmSampleRun.cpp">
+      <Filter>Source\GameScripts\FsmSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\FsmSample\FsmSampleWalk.cpp">
+      <Filter>Source\GameScripts\FsmSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\MoveSample\IdleState.cpp">
+      <Filter>Source\GameScripts\MoveSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\MoveSample\MoveAnimationController.cpp">
+      <Filter>Source\GameScripts\MoveSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\MoveSample\MoveState.cpp">
+      <Filter>Source\GameScripts\MoveSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\GoalCup.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\GoalZone.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\HingeRelease.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\PoseTrack.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\PuzzleDirector.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\PuzzleGoal.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Puzzle\PuzzleLane.cpp">
+      <Filter>Source\GameScripts\Puzzle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\CameraController.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\FlyCamera.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\GarbageCollector.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\PhysicsStatsLog.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\PlayerController.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\SceneChanger.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\UIDemoHud.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\Grounded.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\haha.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\hello.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\hi.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\hoho.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Source\State\test.cpp">
+      <Filter>Source\GameScripts\State</Filter>
+    </ClCompile>
     <ClCompile Include="Source\EditorApp.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -83,6 +193,71 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="@(RendererShader)" />
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Constants.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\FullscreenTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Lighting.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Material.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshSurface.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshTransform.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\MeshTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Skinning.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\SkyboxEnvironment.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Debug\DepthDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Debug\MeshDebug.hlsl">
+      <Filter>Shader\Debug</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Mesh.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshPS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshSkinnedVS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\MeshStaticVS.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\PCSS.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowConstants.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowDepth.hlsl">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Shadow\ShadowSampling.hlsli">
+      <Filter>Shader\Shadow</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Skybox.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

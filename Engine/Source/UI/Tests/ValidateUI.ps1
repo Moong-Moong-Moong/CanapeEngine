@@ -32,7 +32,7 @@ Intermediate\UIValidation\UICoreValidation.exe
 if errorlevel 1 exit /b %errorlevel%
 "$msbuild" Engine\DX11Renderer\DX11Renderer.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal /nologo
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++23preview /EHsc /MDd /Z7 /D_DEBUG /DCANAPE_RENDER_DEBUG=1 /utf-8 /ICommon /IEngine Engine\DX11Renderer\Tests\UIPassValidation.cpp Binaries\x64\Debug\DX11Renderer\DX11Renderer.lib /FoIntermediate\UIValidation\UIPassValidation.obj /FeIntermediate\UIValidation\UIPassValidation.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
+cl /nologo /std:c++23preview /EHsc /MDd /Z7 /D_DEBUG /DCANAPE_RENDER_DEBUG=1 /utf-8 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /ICommon /IEngine Engine\DX11Renderer\Tests\UIPassValidation.cpp Binaries\x64\Debug\DX11Renderer\DX11Renderer.lib /FoIntermediate\UIValidation\UIPassValidation.obj /FeIntermediate\UIValidation\UIPassValidation.exe /link user32.lib d3d11.lib dxgi.lib d3dcompiler.lib
 if errorlevel 1 exit /b %errorlevel%
 Intermediate\UIValidation\UIPassValidation.exe
 exit /b %errorlevel%

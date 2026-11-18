@@ -1,5 +1,3 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include "DX11Renderer/Internal/DX11RendererImpl.h"
 #include "CNDebug/DebugLog.h"
 
@@ -7,9 +5,6 @@
 #include <array>
 #include <cmath>
 #include <utility>
-
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
 
 namespace Canape
 {
@@ -193,8 +188,9 @@ namespace Canape
     {
 #if CANAPE_RENDER_DEBUG
         return m_Impl->DebugSettings;
-#endif
+#else
         return {};
+#endif
     }
 
     RendererDebugStats DX11Renderer::GetDebugStats() const

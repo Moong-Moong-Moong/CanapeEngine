@@ -44,7 +44,7 @@ namespace Canape
 
 	void GameObjectManager::FlushPending()
 	{
-		//*** »èÁ¦ ¿¹Á¤ ¿ÀºêÁ§Æ® »èÁ¦
+		//*** ì‚­ì œ ì˜ˆì • ì˜¤ë¸Œì íŠ¸ ì‚­ì œ
 		for (Handle<GameObject> handle : m_pendingRemove)
 		{
 			m_gameObjects.Remove(handle);

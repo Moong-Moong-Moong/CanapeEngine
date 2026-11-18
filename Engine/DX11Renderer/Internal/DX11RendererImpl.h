@@ -1,10 +1,4 @@
 #pragma once
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 
 #include "DX11Renderer/DX11Renderer.h"
 #include "DX11Renderer/Frame/DX11ScenePreparation.h"
@@ -44,6 +38,10 @@ namespace Canape
             uint32_t Resolution = 0;
         };
 
+        SC::ViewConstants ViewData{};
+        SC::SceneConstants SceneData{};
+        bool ViewDirty = true;
+        bool SceneDirty = true;
         HWND Window = nullptr;
         uint32_t Width = 0;
         uint32_t Height = 0;
@@ -66,10 +64,6 @@ namespace Canape
         uint64_t MinGpuFrameId = 0;
 #endif
 
-        SC::ViewConstants ViewData{};
-        SC::SceneConstants SceneData{};
-        bool ViewDirty = true;
-        bool SceneDirty = true;
         RenderScene QueuedScene;
         DirectionalShadowSettings ShadowSettings{};
         PostProcessSettings postProcessSettings_{};
