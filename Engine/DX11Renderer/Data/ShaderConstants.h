@@ -61,6 +61,17 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(SkyboxViewConstants, RotationSin) == 136);
     static_assert(offsetof(SkyboxViewConstants, MipCount) == 140);
 
+    // MeshPS b10. SceneBindings is the source of availability and prefilter mip count.
+    inline constexpr uint32_t IBLSlot = 10;
+    struct alignas(16) IBLConstants
+    {
+        uint32_t Available = 0;
+        uint32_t PrefilterMipCount = 0;
+        uint32_t Padding[2]{};
+    };
+    static_assert(sizeof(IBLConstants) == 16);
+    static_assert(offsetof(IBLConstants, PrefilterMipCount) == 4);
+
     // Initial fixed capacities. Keep these in sync with Common/Constants.hlsli
     // and Shadow/ShadowConstants.hlsli.
     inline constexpr uint32_t MaxDirectionalLights = 4;

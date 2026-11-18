@@ -54,6 +54,12 @@ namespace Canape
         MinGpuFrameId = 0;
 #endif
         Resources.Clear();
+        EnvironmentIBL = {};
+        BRDFLUT = {};
+        IBLBaker = DX11IBLBaker{};
+        IBLBakerAttempted = IBLBakerReady = false;
+        FailedIBLSourceId = {};
+        FailedIBLSourceView = nullptr;
         Pipelines = DX11PipelineState{};
         ShadowMap = {};
         SkyboxVertexBuffer.Reset();
@@ -80,6 +86,7 @@ namespace Canape
         MaterialBuffer.Reset();
         ViewBuffer.Reset();
         SkyboxViewBuffer.Reset();
+        IBLBuffer.Reset();
         SceneBuffer.Reset();
         LightBuffer.Reset();
         PostProcessBuffer.Reset();
@@ -105,6 +112,7 @@ namespace Canape
         postProcessSettings_ = {};
         ShadowActive = false;
         AttemptedShadowResolution = UINT32_MAX;
+        IBLSettings = {};
     }
 
     bool DX11Renderer::Impl::EnsureShadowResources()
@@ -194,8 +202,20 @@ namespace Canape
     {
         ID3D11SamplerState* sampler = ShadowSettings.pcf ? ShadowMap.PcfSampler.Get() : ShadowMap.PointSampler.Get();
         if (!sampler) sampler = FallbackShadowSampler.Get();
-        return { GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr, sampler,
-            nullptr, Pipelines.ResolveSkybox().Sampler, nullptr };
+        SceneBindings bindings{ GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr,
+            sampler, nullptr, Pipelines.ResolveSkybox().Sampler, nullptr };
+        bindings.IBLBuffer = IBLBuffer.Get();
+        bindings.BRDFSampler = Pipelines.ResolveSkybox().Sampler;
+        if (EnvironmentIBL.SourceId.IsValid() && EnvironmentIBL.Irradiance.ShaderResourceView
+            && EnvironmentIBL.Prefiltered.ShaderResourceView && BRDFLUT.ShaderResourceView)
+        {
+            bindings.IrradianceView = EnvironmentIBL.Irradiance.ShaderResourceView.Get();
+            bindings.PrefilteredView = EnvironmentIBL.Prefiltered.ShaderResourceView.Get();
+            bindings.BRDFView = BRDFLUT.ShaderResourceView.Get();
+            bindings.PrefilterMipCount = EnvironmentIBL.PrefilterMipCount;
+            bindings.IBLAvailable = true;
+        }
+        return bindings;
     }
 
     MeshDrawContext DX11Renderer::Impl::GetDrawContext()
@@ -578,6 +598,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(skybox view constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::IBLConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &IBLBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(IBL constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }
