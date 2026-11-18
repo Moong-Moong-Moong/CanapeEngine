@@ -49,7 +49,7 @@ namespace Canape
 
         void Remove(Handle handle)
         {
-            if(Get(handle) == nullptr) return;
+            if(Find(handle) == nullptr) return;
 
             auto& slot = slots[handle.index];
             slot.value.reset();
@@ -60,9 +60,8 @@ namespace Canape
             freeIndices.push_back(handle.index);
         }
 
-        // nullptr for a handle that names nothing or something removed.
         template<typename Self>
-        auto* Get(this Self& self, Handle handle)
+        auto* Find(this Self& self, Handle handle)
         {
             auto* slot = handle.index < self.slots.size() ? &self.slots[handle.index] : nullptr;
             const bool named = slot != nullptr && slot->value && slot->generation == handle.generation;

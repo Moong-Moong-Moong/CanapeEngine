@@ -98,7 +98,7 @@ namespace Canape
         template<typename T>
         T* Get(SlotHandle<T> handle)
         {
-            return slotsOf<T>().Get(handle);
+            return slotsOf<T>().Find(handle);
         }
 
     private:
