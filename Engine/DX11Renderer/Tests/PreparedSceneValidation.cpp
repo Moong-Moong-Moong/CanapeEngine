@@ -94,6 +94,11 @@ void QueueAndOwnershipChecks(Fixture& fixture)
     Require(prepared.Transparent == std::vector<size_t>{2, 6, 3, 7}, "global stable transparent sorting");
     Require(prepared.ShadowCasters == std::vector<size_t>{0, 1, 4, 5},
         "opaque/masked static and skinned casters; transparent excluded");
+    scene.skinnedItems[0].castShadow = false;
+    scene.skinnedItems[1].castShadow = false;
+    const auto withoutSkinnedShadows = ScenePreparation::PrepareScene(scene, fixture.Resources, fixture.Error);
+    Require(withoutSkinnedShadows.ShadowCasters == std::vector<size_t>{0, 1},
+        "skinned opaque/masked castShadow false excluded while static casters remain");
     for (size_t i = 0; i < 4; ++i)
         Require(prepared.Draws[i].PaletteOffset == 0 && prepared.Draws[i].PaletteCount == 0,
             "non-skinned draws have no palette");

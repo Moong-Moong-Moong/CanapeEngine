@@ -24,5 +24,6 @@ namespace Canape
         Matrix4 world{};
         uint32_t paletteOffset = 0;
         uint32_t paletteCount = 0;
+        bool castShadow = true;
     };
 }
