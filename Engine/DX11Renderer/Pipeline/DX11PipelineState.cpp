@@ -348,7 +348,26 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+        // Transparent surfaces do not write depth. Split the two sides so a
+        // closed mesh is blended back-to-front regardless of index order.
+        rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.TransparentBackRasterizerState);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateRasterizerState(transparent back)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
+        rasterizerDesc.CullMode = D3D11_CULL_BACK;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.TransparentFrontRasterizerState);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreateRasterizerState(transparent front)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 #if CANAPE_RENDER_DEBUG
+        rasterizerDesc.CullMode = D3D11_CULL_NONE;
         rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
         result = device->CreateRasterizerState(&rasterizerDesc, &pending.WireframeRasterizerState);
         if (FAILED(result))
@@ -551,7 +570,7 @@ namespace Canape
     }
 
     DX11PipelineSelection DX11PipelineState::Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
-        DebugViewMode debugView, bool wireframe) const
+        DebugViewMode debugView, bool wireframe, TransparentFace face) const
     {
         ID3D11VertexShader* vertexShader = nullptr;
         ID3D11InputLayout* inputLayout = nullptr;
@@ -584,15 +603,20 @@ namespace Canape
         (void)debugView;
         (void)wireframe;
 #endif
+        ID3D11RasterizerState* rasterizer = RasterizerState.Get();
+        if (transparent)
+        {
+            if (face == TransparentFace::Back) rasterizer = TransparentBackRasterizerState.Get();
+            else if (face == TransparentFace::Front) rasterizer = TransparentFrontRasterizerState.Get();
+        }
+#if CANAPE_RENDER_DEBUG
+        if (wireframe) rasterizer = WireframeRasterizerState.Get();
+#endif
         return {
             vertexShader,
             pixelShader,
             inputLayout,
-#if CANAPE_RENDER_DEBUG
-            wireframe ? WireframeRasterizerState.Get() : RasterizerState.Get(),
-#else
-            RasterizerState.Get(),
-#endif
+            rasterizer,
             transparent ? TransparentBlendState.Get() : OpaqueBlendState.Get(),
             transparent ? TransparentDepthState.Get() : OpaqueDepthState.Get(),
             LinearSampler.Get()
