@@ -16,7 +16,7 @@ namespace Canape
     public:
         Outer(Session&, ConstantView);
 
-        void Upload(Session&, ConstantView);
+        void Upload(ConstantView);
 
         Buffer& GetConstants() const;
     };

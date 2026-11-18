@@ -11,7 +11,7 @@ namespace Canape
         : session(session)
         , constants(session.CreateConstantBuffer(values)) {}
 
-    void Outer::Upload(Session& session, ConstantView values)
+    void Outer::Upload(ConstantView values)
     {
         auto buffer = session.Get(constants);
         buffer->Upload(values.Data(), values.Size());

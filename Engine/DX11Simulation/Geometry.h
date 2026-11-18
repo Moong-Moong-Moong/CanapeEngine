@@ -23,7 +23,7 @@ namespace Canape
     public:
         Geometry(Session&, ConstantView, std::uint32_t vertexCount);
 
-        void Upload(Session&, ConstantView);
+        void Upload(ConstantView);
 
         Buffer& GetConstants() const;
 

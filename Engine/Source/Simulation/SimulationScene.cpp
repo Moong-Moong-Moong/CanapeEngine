@@ -68,7 +68,7 @@ namespace Canape
             .windSpeed = windSpeed
         };
         // The draws read what the last step left, or this when there is no step.
-        outer.Upload(session, values);
+        outer.Upload(values);
         waveSurfaces.Update(session, surfaces);
 
         const auto steppedTime = std::clamp(dt, 0.0f, MaxSteppedTime);
@@ -82,7 +82,7 @@ namespace Canape
             values.stepNumber = stepNumber++;
             values.disturbanceCount = disturbanceCount;
             values.disturbances = disturbances;
-            outer.Upload(session, values);
+            outer.Upload(values);
             // A disturbance pushes once, so only the first step carries it.
             disturbanceCount = 0;
 

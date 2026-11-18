@@ -165,8 +165,8 @@ namespace Canape
             }
 
             auto& surface = kept.mapped();
-            surface.geometry.Upload(session, geometry);
-            surface.material.Upload(session, look);
+            surface.geometry.Upload(geometry);
+            surface.material.Upload(look);
             surface.rippleKernel.Upload(ripple);
             updated.insert(std::move(kept));
         }

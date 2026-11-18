@@ -27,7 +27,7 @@ namespace Canape
             ConstantView values
         );
 
-        void Upload(Session&, ConstantView values);
+        void Upload(ConstantView values);
 
         ID3D11VertexShader* GetVertexShader() const;
         ID3D11PixelShader* GetPixelShader() const;

@@ -12,7 +12,7 @@ namespace Canape
         , constants(session.CreateConstantBuffer(values))
         , vertexCount(vertexCount) {}
 
-    void Geometry::Upload(Session& session, ConstantView values)
+    void Geometry::Upload(ConstantView values)
     {
         auto buffer = session.Get(constants);
         buffer->Upload(values.Data(), values.Size());

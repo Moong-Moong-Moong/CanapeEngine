@@ -18,7 +18,7 @@ namespace Canape
         , pixelShader(session.GetOrCreatePixelShader(pixelShader))
         , constants(session.CreateConstantBuffer(values)) {}
 
-    void Material::Upload(Session& session, ConstantView values)
+    void Material::Upload(ConstantView values)
     {
         auto buffer = session.Get(constants);
         buffer->Upload(values.Data(), values.Size());
