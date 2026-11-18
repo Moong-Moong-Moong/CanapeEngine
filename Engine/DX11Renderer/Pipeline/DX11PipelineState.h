@@ -44,7 +44,7 @@ namespace Canape
         DX11PipelineSelection ResolveSkybox() const;
         // Scissor-enabled, depth-off, premultiplied-alpha pipeline for UIVertex geometry.
         DX11PipelineSelection ResolveUI() const;
-        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
+        bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
         bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler; }
 
     private:
@@ -58,9 +58,11 @@ namespace Canape
         Microsoft::WRL::ComPtr<ID3D11SamplerState> UISampler;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticShadowVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> SkinnedShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> MaskedShadowPixelShader;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> ShadowInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticShadowInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> SkinnedShadowInputLayout;
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11PixelShader> ShadowVisibilityPixelShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> PcssFilterRadiusPixelShader;

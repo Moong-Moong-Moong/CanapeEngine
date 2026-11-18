@@ -905,7 +905,7 @@ void MaterialMapChecks(DX11Renderer& renderer)
         renderer.EndFrame();
         return pixel;
     };
-    auto near = [](const std::array<float, 4>& actual, const std::array<float, 3>& expected,
+    auto nearColor = [](const std::array<float, 4>& actual, const std::array<float, 3>& expected,
         const char* message) {
         for (size_t channel = 0; channel < 3; ++channel)
             Require(std::abs(actual[channel] - expected[channel]) < .01f, message);
@@ -914,10 +914,10 @@ void MaterialMapChecks(DX11Renderer& renderer)
     debug.enabled = true;
     debug.viewMode = DebugViewMode::WorldNormal;
     renderer.SetDebugSettings(debug);
-    near(render(mappedX, mesh), {1, .5f, .5f}, "WorldNormal uses first material normal");
-    near(render(mappedY, mesh), {.5f, 0, .5f}, "WorldNormal uses second material normal");
-    near(render(plain, mesh), {.5f, .5f, 0}, "no-map draw keeps mesh normal");
-    near(render(mappedX, noTangentMesh), {.5f, .5f, 0}, "invalid tangent keeps mesh normal");
+    nearColor(render(mappedX, mesh), {1, .5f, .5f}, "WorldNormal uses first material normal");
+    nearColor(render(mappedY, mesh), {.5f, 0, .5f}, "WorldNormal uses second material normal");
+    nearColor(render(plain, mesh), {.5f, .5f, 0}, "no-map draw keeps mesh normal");
+    nearColor(render(mappedX, noTangentMesh), {.5f, .5f, 0}, "invalid tangent keeps mesh normal");
     render(combined, mesh);
     render(plain, mesh);
     for (UINT slot = 3; slot <= 5; ++slot)
@@ -927,11 +927,11 @@ void MaterialMapChecks(DX11Renderer& renderer)
         Require(!view.Get(), "no-map draw clears previous material SRVs");
     }
     renderer.SetDebugSettings({});
-    near(render(mr, mesh), {.8f, .4f, .2f}, "MR red channel does not occlude ambient");
+    nearColor(render(mr, mesh), {.8f, .4f, .2f}, "MR red channel does not occlude ambient");
     constexpr float aoValue = 64.0f / 255.0f;
-    near(render(occluded, mesh), {.8f * aoValue, .4f * aoValue, .2f * aoValue},
+    nearColor(render(occluded, mesh), {.8f * aoValue, .4f * aoValue, .2f * aoValue},
         "AO red channel scales ambient in linear space");
-    near(render(plain, mesh), {.8f, .4f, .2f}, "missing AO restores ambient");
+    nearColor(render(plain, mesh), {.8f, .4f, .2f}, "missing AO restores ambient");
 
     scene.ambientIntensity = 0.0f;
     RenderLight light;
@@ -941,13 +941,13 @@ void MaterialMapChecks(DX11Renderer& renderer)
     scene.lights = {light};
     const auto direct = render(plain, mesh);
     Require(direct[0] > .01f, "material map direct-light reference is nonzero");
-    near(render(occluded, mesh), {direct[0], direct[1], direct[2]}, "AO leaves direct light unchanged");
+    nearColor(render(occluded, mesh), {direct[0], direct[1], direct[2]}, "AO leaves direct light unchanged");
     MaterialDesc reference = desc;
     reference.roughness *= 128.0f / 255.0f;
     reference.metallic *= 64.0f / 255.0f;
     const auto factored = renderer.CreateMaterial(reference);
     const auto expected = render(factored, mesh);
-    near(render(mr, mesh), {expected[0], expected[1], expected[2]}, "MR multiplies material factors");
+    nearColor(render(mr, mesh), {expected[0], expected[1], expected[2]}, "MR multiplies material factors");
 
     render(combined, mesh);
     renderer.DestroyTexture(normalX);
@@ -968,6 +968,101 @@ void MaterialMapChecks(DX11Renderer& renderer)
     renderer.DestroyMesh(mesh);
     renderer.DestroyMesh(noTangentMesh);
     std::cout << "Material maps: normals, absent maps, AO, MR factors, resource invalidation PASS\n";
+}
+
+void SkinnedShadowChecks(DX11Renderer& renderer, const RenderScene& baseScene)
+{
+    auto& impl = *renderer.m_Impl;
+    const uint32_t originalResolution = impl.ShadowSettings.resolution;
+    impl.ShadowSettings.resolution = 1024;
+    RenderScene scene = baseScene;
+    scene.items.resize(1); // Keep the static receiver alongside the skinned casters.
+    const std::array<StaticVertex, 4> vertices{{
+        {{-.8f, 2, -.8f}, {0, 1, 0}, {0, 0}},
+        {{.8f, 2, -.8f}, {0, 1, 0}, {1, 0}},
+        {{.8f, 2, .8f}, {0, 1, 0}, {1, 1}},
+        {{-.8f, 2, .8f}, {0, 1, 0}, {0, 1}} }};
+    const std::array<uint32_t, 6> indices{0, 2, 1, 0, 3, 2};
+    std::array<SkinnedVertex, 4> skinned{};
+    for (size_t i = 0; i < vertices.size(); ++i)
+    {
+        skinned[i].Position = vertices[i].Position;
+        skinned[i].Normal = vertices[i].Normal;
+        skinned[i].UV = vertices[i].UV;
+        skinned[i].Tangent = {1, 0, 0, 1};
+        skinned[i].Joints[0] = 37;
+        skinned[i].Joints[1] = 255;
+        skinned[i].Joints[2] = skinned[i].Joints[3] = 65535;
+        skinned[i].Weights[0] = 1;
+        skinned[i].Weights[1] = 3; // The shared skinning function must normalize these.
+    }
+    const auto mesh = renderer.CreateMesh(skinned, indices, {});
+    Require(renderer.IsMeshValid(mesh), "skinned shadow mesh");
+    const Matrix4 world = Matrix4::Translation({1, 0, 0});
+    scene.bonePalettes.resize(512, Matrix4::Identity);
+    scene.skinnedItems = {{mesh, 0, {}, world, 0, 256}};
+    auto renderDepth = [&](const RenderScene& input)
+    {
+        Frame(renderer, input);
+        Require(impl.ShadowActive, "skinned scene shadow active");
+        return ReadShadowDepth(impl);
+    };
+    const auto identityDepth = renderDepth(scene);
+    Require(*std::min_element(identityDepth.begin(), identityDepth.end()) < 1.0f, "shadow depth written");
+    scene.bonePalettes[37] = Matrix4::Translation({2, 0, 0});
+    scene.bonePalettes[255] = Matrix4::Translation({0, 2, 0});
+    const auto posedDepth = renderDepth(scene);
+    Require(posedDepth != identityDepth, "bone animation changes shadow depth");
+
+    // CPU-posed Static vertices are an independent reference for the depth pass.
+    auto referenceMesh = [&](Vector3 offset)
+    {
+        auto posed = vertices;
+        for (auto& vertex : posed) vertex.Position += offset;
+        const auto result = renderer.CreateMesh(posed, indices, {});
+        Require(renderer.IsMeshValid(result), "CPU-posed reference mesh");
+        return result;
+    };
+    RenderScene reference = scene;
+    reference.skinnedItems.clear();
+    reference.items.push_back({referenceMesh({.5f, 1.5f, 0}), 0, {}, world});
+    auto compare = [&](const std::vector<float>& actual, const std::vector<float>& expected)
+    {
+        Require(actual.size() == expected.size(), "shadow depth dimensions");
+        for (size_t i = 0; i < actual.size(); ++i)
+            Require(std::abs(actual[i] - expected[i]) < 1e-5f, "skinned depth matches CPU-posed static depth");
+    };
+    compare(posedDepth, renderDepth(reference));
+
+    // Same GPU mesh, separate palette ranges and world transforms in one shadow pass.
+    scene.bonePalettes[256 + 37] = scene.bonePalettes[256 + 255] = Matrix4::Translation({-3, 0, 0});
+    scene.skinnedItems.push_back({mesh, 0, {}, Matrix4::Identity, 256, 256});
+    reference.items.push_back({referenceMesh({-3, 0, 0})});
+    compare(renderDepth(scene), renderDepth(reference));
+
+    const std::array<uint8_t, 8> texels{255, 255, 255, 0, 255, 255, 255, 255};
+    const auto texture = renderer.CreateTexture(2, 1, TextureFormat::RGBA8_SRGB, texels);
+    MaterialDesc material;
+    material.alphaMode = AlphaMode::Masked;
+    const auto masked = renderer.CreateMaterial(material, texture);
+    scene.skinnedItems[0].material = masked;
+    reference.items[1].material = masked;
+    const auto maskedDepth = renderDepth(scene);
+    compare(maskedDepth, renderDepth(reference));
+    scene.skinnedItems[0].material = {};
+    Require(maskedDepth != renderDepth(scene), "skinned UVs preserve alpha-masked shadow holes");
+
+    material.alphaMode = AlphaMode::Transparent;
+    scene.skinnedItems[0].material = renderer.CreateMaterial(material, texture);
+    reference.items.erase(reference.items.begin() + 1);
+    compare(renderDepth(scene), renderDepth(reference));
+    // Ending with a static-only scene must clear a previously bound skinning palette.
+    renderDepth(reference);
+    ComPtr<ID3D11Buffer> boundPalette;
+    impl.Context->VSGetConstantBuffers(9, 1, &boundPalette);
+    Require(!boundPalette, "static draws clear VS b9 after skinned draws");
+    impl.ShadowSettings.resolution = originalResolution;
+    std::cout << "PASS: skinned shadows track pose/World, normalized weights, palette ranges, alpha mask and transparent exclusion\n";
 }
 
 void ShadowChecks()
@@ -1005,10 +1100,14 @@ void ShadowChecks()
         Require(SUCCEEDED(impl.Device.As(&queue)), "debug info queue");
         Require(impl.CreateTargets(256, 256) && impl.CreatePipeline() && impl.CreateSkyboxQuad(), "targets and pipeline");
         impl.Initialized = true;
-        SkyboxChecks(renderer);
-        HdrChecks(renderer);
-        SpecularIblChecks(renderer);
-        MaterialMapChecks(renderer);
+        const bool skinnedOnly = std::getenv("CANAPE_SKINNED_SHADOW_ONLY") != nullptr;
+        if (!skinnedOnly)
+        {
+            SkyboxChecks(renderer);
+            HdrChecks(renderer);
+            SpecularIblChecks(renderer);
+            MaterialMapChecks(renderer);
+        }
         CheckMessages(queue.Get());
         queue->ClearStoredMessages();
         if (!impl.Pipelines.ShadowsAvailable())
@@ -1045,6 +1144,10 @@ void ShadowChecks()
         scene.camera.projection = Matrix4::Perspective(0.95f, 1, .1f, 100);
         scene.camera.cameraPosition = {-12, 15, -18};
         scene.items = {MeshItem{ground}, MeshItem{cube}};
+        SkinnedShadowChecks(renderer, scene);
+        CheckMessages(queue.Get());
+        if (!skinnedOnly)
+        {
         impl.ShadowSettings.enabled = false;
         auto unshadowed = Frame(renderer, scene);
         Save(unshadowed, "unshadowed");
@@ -1466,6 +1569,7 @@ void ShadowChecks()
         CheckMessages(queue.Get());
         std::cout << "Shadow GPU integration: geometry, light view, receiver, alpha mask, transparent exclusion, "
                      "flags, fallback, recreation, debug modes PASS\n";
+        }
     }
     DestroyWindow(window);
     UnregisterClassW(wc.lpszClassName, instance);
