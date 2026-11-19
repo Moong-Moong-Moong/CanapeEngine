@@ -10,7 +10,7 @@ RTTR_REGISTRATION
 
 void MoveState::Initialize()
 {
-    Handle<GameObject> handle = GetOwnerObject()->GetScene()->FindGameObjectByName("MasterChief_v5.7_walk_scl");
+    Handle<GameObject> handle = GetOwnerObject()->GetScene()->FindGameObjectHandleByName("MasterChief_v5.7_walk_scl");
     m_animator = GetOwnerObject()->GetScene()->GetGameObject(handle)->GetComponent<AnimatorComponent>();
 }
 

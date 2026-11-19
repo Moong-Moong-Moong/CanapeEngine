@@ -298,7 +298,7 @@ namespace
             Canape::Scene& scene = Active();
             for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop", "SwingCut", "LeverCatapult", "BuoyPop" })
             {
-                Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
+                Canape::GameObject* root = scene.FindGameObjectByName(name);
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
                 if(lane)
                 {
@@ -573,7 +573,7 @@ namespace
         Canape::Scene& scene = h.Active();
         for(const Expected& e : expected)
         {
-            Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(e.lane));
+            Canape::GameObject* root = scene.FindGameObjectByName(e.lane);
             const PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
             const auto* cup = lane ? dynamic_cast<const GoalCup*>(h.Goal(*lane)) : nullptr;
             const std::optional<GoalRegion> region = cup ? cup->GetRegion() : std::nullopt;
@@ -2245,10 +2245,10 @@ namespace
     {
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for BuoyPop");
         Canape::Scene& scene = h.Active();
-        Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName("BuoyPop"));
+        Canape::GameObject* root = scene.FindGameObjectByName("BuoyPop");
         PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
         auto* zone = lane ? dynamic_cast<GoalZone*>(h.Goal(*lane)) : nullptr;
-        Canape::GameObject* waterObject = scene.GetGameObject(scene.FindGameObjectByName("water"));
+        Canape::GameObject* waterObject = scene.FindGameObjectByName("water");
         Check(lane && zone && waterObject && waterObject->GetComponent<Canape::WaterVolumeComponent>(), "BuoyPop has its lane, zone and water");
         if(!lane || !zone || !waterObject)
         {
@@ -2266,7 +2266,7 @@ namespace
 
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for rotated water");
         Canape::Scene& rotatedScene = h.Active();
-        Canape::GameObject* rotatedWater = rotatedScene.GetGameObject(rotatedScene.FindGameObjectByName("water"));
+        Canape::GameObject* rotatedWater = rotatedScene.FindGameObjectByName("water");
         Check(rotatedWater != nullptr, "the rotated-water scene has its water");
         if(!rotatedWater)
         {
@@ -2284,7 +2284,7 @@ namespace
         Check(type.get_property("toggleKey").is_valid() && !type.get_property("logging").is_valid(), "PhysicsStatsLog registers its key and no run state");
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the stats log");
         Canape::Scene& scene = h.Active();
-        const Canape::GameObject* object = scene.GetGameObject(scene.FindGameObjectByName("Physics Stats"));
+        const Canape::GameObject* object = scene.FindGameObjectByName("Physics Stats");
         const auto* log = object ? object->GetComponent<PhysicsStatsLog>() : nullptr;
         Check(log != nullptr, "the playground has a stats log object");
         if(!log)
@@ -2336,7 +2336,7 @@ namespace
     HingeLanes FindHingeLanes(Harness& h)
     {
         Canape::Scene& scene = h.Active();
-        const auto object = [&](const char* name) { return scene.GetGameObject(scene.FindGameObjectByName(name)); };
+        const auto object = [&](const char* name) { return scene.FindGameObjectByName(name); };
         HingeLanes lanes;
         if(Canape::GameObject* root = object("SwingCut"))
         {

@@ -45,10 +45,15 @@ namespace Canape
 		//***** GameObject
 		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");
 		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr);
-		void RemoveGameObject(const Handle<GameObject> handle);
-		GameObject* GetGameObject(const Handle<GameObject> handle);
-		Handle<GameObject> FindGameObjectByName(const std::string& name);
+		Handle<GameObject> FindGameObjectHandleByName(const std::string& name);
+		GameObject* FindGameObjectByName(const std::string& name);
 		Handle<GameObject> FindGameObjectById(uint64_t id);
+
+		GameObject* GetGameObject(const Handle<GameObject> handle);
+
+		void RemoveGameObject(const Handle<GameObject> handle);
+		void RemoveGameObject(GameObject* gameObject);
+
 		std::vector<GameObject*> GetAllGameObjects();
 
 		uint64_t GenerateId() { return ++m_LastId; }

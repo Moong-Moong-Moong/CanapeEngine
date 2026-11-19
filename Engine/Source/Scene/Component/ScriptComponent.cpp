@@ -31,9 +31,9 @@ namespace Canape
 
 	void ScriptComponent::Destroy(GameObject* gameObject) const
 	{
-		if (gameObject)
+		if (Scene* scene = GetOwnerScene())
 		{
-			Destroy(gameObject->GetHandle());
+			scene->RemoveGameObject(gameObject);
 		}
 	}
 
@@ -43,14 +43,15 @@ namespace Canape
 		return scene ? scene->GetGameObject(handle) : nullptr;
 	}
 
-	Handle<GameObject> ScriptComponent::FindGameObjectHandle(const std::string& name) const
+	Handle<GameObject> ScriptComponent::FindGameObjectHandleByName(const std::string& name) const
 	{
 		Scene* scene = GetOwnerScene();
-		return scene ? scene->FindGameObjectByName(name) : Handle<GameObject>{};
+		return scene ? scene->FindGameObjectHandleByName(name) : Handle<GameObject>{};
 	}
 
-	GameObject* ScriptComponent::FindGameObject(const std::string& name) const
+	GameObject* ScriptComponent::FindGameObjectByName(const std::string& name) const
 	{
-		return GetGameObject(FindGameObjectHandle(name));
+		Scene* scene = GetOwnerScene();
+		return scene ? scene->FindGameObjectByName(name) : nullptr;
 	}
 }

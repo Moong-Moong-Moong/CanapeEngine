@@ -238,16 +238,29 @@ namespace Canape
 	void Scene::RemoveGameObject(const Handle<GameObject> handle)
 	{
 		m_gameObjects.RemoveGameObject(handle);
-	}	
+	}
+
+	void Scene::RemoveGameObject(GameObject* gameObject)
+	{
+		if (gameObject && gameObject->GetScene() == this)
+		{
+			m_gameObjects.RemoveGameObject(gameObject->GetHandle());
+		}
+	}
 
 	GameObject* Scene::GetGameObject(const Handle<GameObject> handle)
 	{
 		return m_gameObjects.GetGameObject(handle);
 	}
 
-	Handle<GameObject> Scene::FindGameObjectByName(const std::string& name)
+	Handle<GameObject> Scene::FindGameObjectHandleByName(const std::string& name)
 	{
 		return m_gameObjects.FindGameObjectByName(name);
+	}
+
+	GameObject* Scene::FindGameObjectByName(const std::string& name)
+	{
+		return m_gameObjects.GetGameObject(m_gameObjects.FindGameObjectByName(name));
 	}
 
 	Handle<GameObject> Scene::FindGameObjectById(uint64_t id)

@@ -32,8 +32,8 @@ namespace Canape
 		Handle<GameObject> CreateGameObject(const std::string& name = "GameObject") const;
 		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr) const;
 		GameObject* GetGameObject(const Handle<GameObject>& handle) const;
-		Handle<GameObject> FindGameObjectHandle(const std::string& name) const;
-		GameObject* FindGameObject(const std::string& name) const;
+		Handle<GameObject> FindGameObjectHandleByName(const std::string& name) const;
+		GameObject* FindGameObjectByName(const std::string& name) const;
 		void Destroy(const Handle<GameObject>& handle) const;
 		void Destroy(GameObject* gameObject) const;
 
