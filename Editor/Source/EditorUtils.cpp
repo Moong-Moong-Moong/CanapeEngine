@@ -1,12 +1,17 @@
 #include "EditorUtils.h"
+#include "CNDebug/DebugLog.h"
 
 #include <DirectXMath.h>
 
 #include <Windows.h>
+#include <objbase.h>
+#include <oleauto.h>
 #include <shellapi.h>
 #include <TlHelp32.h>
+#include <wrl/client.h>
 
 #include <cmath>
+#include <cwctype>
 
 using namespace Canape;
 
@@ -121,6 +126,182 @@ namespace
         CloseHandle(snapshot);
         return found;
     }
+
+    HRESULT InvokeDispatch(IDispatch* target, const wchar_t* name, WORD flags, VARIANT* result, VARIANT* args = nullptr, UINT argCount = 0)
+    {
+        DISPID id = 0;
+        LPOLESTR member = const_cast<LPOLESTR>(name);
+        HRESULT hr = target->GetIDsOfNames(IID_NULL, &member, 1, LOCALE_USER_DEFAULT, &id);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        DISPPARAMS params{ args, nullptr, argCount, 0 };
+        return target->Invoke(id, IID_NULL, LOCALE_USER_DEFAULT, flags, &params, result, nullptr, nullptr);
+    }
+
+    Microsoft::WRL::ComPtr<IDispatch> GetDispatchProperty(IDispatch* target, const wchar_t* name)
+    {
+        VARIANT result;
+        VariantInit(&result);
+        Microsoft::WRL::ComPtr<IDispatch> property;
+        if (SUCCEEDED(InvokeDispatch(target, name, DISPATCH_PROPERTYGET, &result)) && result.vt == VT_DISPATCH)
+        {
+            property = result.pdispVal;
+        }
+        VariantClear(&result);
+        return property;
+    }
+
+    std::wstring GetStringProperty(IDispatch* target, const wchar_t* name)
+    {
+        VARIANT result;
+        VariantInit(&result);
+        std::wstring text;
+        if (SUCCEEDED(InvokeDispatch(target, name, DISPATCH_PROPERTYGET, &result)) && result.vt == VT_BSTR && result.bstrVal)
+        {
+            text.assign(result.bstrVal, SysStringLen(result.bstrVal));
+        }
+        VariantClear(&result);
+        return text;
+    }
+
+    std::wstring NormalizePathKey(const std::filesystem::path& path)
+    {
+        std::wstring key = path.lexically_normal().wstring();
+        for (wchar_t& c : key)
+        {
+            c = c == L'/' ? L'\\' : static_cast<wchar_t>(std::towlower(c));
+        }
+        return key;
+    }
+
+    Microsoft::WRL::ComPtr<IDispatch> FindVisualStudioWithSolution(const std::filesystem::path& solution)
+    {
+        Microsoft::WRL::ComPtr<IRunningObjectTable> table;
+        Microsoft::WRL::ComPtr<IEnumMoniker> monikers;
+        Microsoft::WRL::ComPtr<IBindCtx> bindContext;
+        if (FAILED(GetRunningObjectTable(0, &table)) || FAILED(table->EnumRunning(&monikers))
+            || FAILED(CreateBindCtx(0, &bindContext)))
+        {
+            return nullptr;
+        }
+
+        const std::wstring solutionKey = NormalizePathKey(solution);
+        Microsoft::WRL::ComPtr<IMoniker> moniker;
+        while (monikers->Next(1, moniker.ReleaseAndGetAddressOf(), nullptr) == S_OK)
+        {
+            LPOLESTR displayName = nullptr;
+            if (FAILED(moniker->GetDisplayName(bindContext.Get(), nullptr, &displayName)))
+            {
+                continue;
+            }
+            const bool isVisualStudio = std::wstring_view(displayName).starts_with(L"!VisualStudio.DTE.");
+            CoTaskMemFree(displayName);
+            if (!isVisualStudio)
+            {
+                continue;
+            }
+
+            Microsoft::WRL::ComPtr<IUnknown> object;
+            Microsoft::WRL::ComPtr<IDispatch> dte;
+            if (FAILED(table->GetObject(moniker.Get(), &object)) || FAILED(object.As(&dte)))
+            {
+                continue;
+            }
+
+            const Microsoft::WRL::ComPtr<IDispatch> openSolution = GetDispatchProperty(dte.Get(), L"Solution");
+            if (openSolution && NormalizePathKey(GetStringProperty(openSolution.Get(), L"FullName")) == solutionKey)
+            {
+                return dte;
+            }
+        }
+        return nullptr;
+    }
+
+    bool OpenFileWithDte(IDispatch* dte, const std::filesystem::path& file)
+    {
+        const Microsoft::WRL::ComPtr<IDispatch> itemOperations = GetDispatchProperty(dte, L"ItemOperations");
+        if (!itemOperations)
+        {
+            return false;
+        }
+
+        VARIANT argument;
+        VariantInit(&argument);
+        argument.vt = VT_BSTR;
+        argument.bstrVal = SysAllocString(file.c_str());
+        VARIANT result;
+        VariantInit(&result);
+        const HRESULT hr = InvokeDispatch(itemOperations.Get(), L"OpenFile", DISPATCH_METHOD, &result, &argument, 1);
+        VariantClear(&result);
+        VariantClear(&argument);
+        if (FAILED(hr))
+        {
+            return false;
+        }
+
+        if (const Microsoft::WRL::ComPtr<IDispatch> mainWindow = GetDispatchProperty(dte, L"MainWindow"))
+        {
+            VARIANT handle;
+            VariantInit(&handle);
+            if (SUCCEEDED(InvokeDispatch(mainWindow.Get(), L"HWnd", DISPATCH_PROPERTYGET, &handle))
+                && SUCCEEDED(VariantChangeType(&handle, &handle, 0, VT_I8)))
+            {
+                HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(handle.llVal));
+                if (IsIconic(hwnd))
+                {
+                    ShowWindow(hwnd, SW_RESTORE);
+                }
+                SetForegroundWindow(hwnd);
+            }
+            VariantClear(&handle);
+        }
+        return true;
+    }
+
+    HWND FindSolutionWindow(const std::wstring& solutionName)
+    {
+        struct Search
+        {
+            std::wstring prefix;
+            HWND found = nullptr;
+        } search{ solutionName + L" - ", nullptr };
+
+        EnumWindows([](HWND hwnd, LPARAM parameter) -> BOOL
+        {
+            auto* state = reinterpret_cast<Search*>(parameter);
+            if (!IsWindowVisible(hwnd) || GetWindow(hwnd, GW_OWNER))
+            {
+                return TRUE;
+            }
+            wchar_t title[512] = {};
+            GetWindowTextW(hwnd, title, static_cast<int>(std::size(title)));
+            const std::wstring_view text(title);
+            if (text.starts_with(state->prefix) && text.find(L"Microsoft Visual Studio") != std::wstring_view::npos)
+            {
+                state->found = hwnd;
+                return FALSE;
+            }
+            return TRUE;
+        }, reinterpret_cast<LPARAM>(&search));
+        return search.found;
+    }
+
+    bool OpenInSolutionInstance(const std::filesystem::path& solution, const std::filesystem::path& file)
+    {
+        const HRESULT init = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        bool opened = false;
+        if (const Microsoft::WRL::ComPtr<IDispatch> dte = FindVisualStudioWithSolution(solution))
+        {
+            opened = OpenFileWithDte(dte.Get(), file);
+        }
+        if (SUCCEEDED(init))
+        {
+            CoUninitialize();
+        }
+        return opened;
+    }
 }
 
 namespace EditorUtils
@@ -229,13 +410,33 @@ namespace EditorUtils
 
     void OpenInVisualStudio(const std::filesystem::path& file)
     {
+        const std::filesystem::path solution = (GetGameDirectory() / ".." / "Canape.slnx").lexically_normal();
+        std::error_code error;
+        const std::filesystem::path absoluteFile = std::filesystem::absolute(file, error).lexically_normal();
+        if (IsProcessRunning(L"devenv.exe"))
+        {
+            if (OpenInSolutionInstance(solution, absoluteFile))
+            {
+                return;
+            }
+            if (HWND window = FindSolutionWindow(solution.stem().wstring()))
+            {
+                CN_LOG_GAME("Editor", "Could not open the file in the running Visual Studio. "
+                    "If it runs as administrator, run the editor at the same privilege level: ", ToUtf8(absoluteFile));
+                if (IsIconic(window))
+                {
+                    ShowWindow(window, SW_RESTORE);
+                }
+                SetForegroundWindow(window);
+                return;
+            }
+        }
+
         const std::wstring& devenv = FindVisualStudio();
         if (!devenv.empty())
         {
-            const std::filesystem::path solution = (GetGameDirectory() / ".." / "Canape.slnx").lexically_normal();
-            const std::wstring command = IsProcessRunning(L"devenv.exe")
-                ? Quote(devenv) + L" /Edit " + Quote(file.wstring())
-                : Quote(devenv) + L" " + Quote(solution.wstring()) + L" /Command " + Quote(L"File.OpenFile " + file.wstring());
+            const std::wstring command = Quote(devenv) + L" " + Quote(solution.wstring())
+                + L" /Command " + Quote(L"File.OpenFile " + absoluteFile.wstring());
             DWORD exitCode = 0;
             if (RunProcess(command, 0, exitCode, nullptr))
             {
