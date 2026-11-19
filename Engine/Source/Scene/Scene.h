@@ -30,6 +30,7 @@ namespace Canape
 		Scene& operator=(const Scene&) = delete;
 
 		const std::string& GetName() const { return m_Name; }
+		void SetName(std::string name) { m_Name = std::move(name); }
 
 		void BeginUpdate();
 		void Update();

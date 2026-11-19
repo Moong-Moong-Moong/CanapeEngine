@@ -2,6 +2,7 @@
 #include "EditorUtils.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
 #include <algorithm>
@@ -83,6 +84,56 @@ namespace
         return true;
     }
 
+    bool IsScriptSourcePath(const std::filesystem::path& path)
+    {
+        const std::filesystem::path extension = path.extension();
+        return extension == ".h" || extension == ".cpp";
+    }
+
+    Component* AddComponentOfType(Scene& scene, GameObject& gameObject, const rttr::type& type)
+    {
+        rttr::variant created = type.create();
+        bool ok = false;
+        Component* component = created.is_valid() ? created.convert<Component*>(&ok) : nullptr;
+        if (!ok || !component)
+        {
+            if (created.is_valid())
+            {
+                type.destroy(created);
+            }
+            return nullptr;
+        }
+
+        gameObject.AddComponent(std::unique_ptr<Component>(component));
+        if (auto* camera = dynamic_cast<CameraComponent*>(component); camera && !scene.GetMainCamera())
+        {
+            scene.SetMainCamera(camera);
+        }
+        return component;
+    }
+
+    bool DrawBuiltinMeshPicker(rttr::variant& value)
+    {
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        if (!ImGui::BeginCombo("##BuiltinMesh", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft))
+        {
+            return false;
+        }
+
+        const std::string current = value.get_value<std::string>();
+        bool changed = false;
+        for (const std::string& path : AssetManager::GetBuiltinMeshPaths())
+        {
+            if (ImGui::Selectable(path.c_str(), path == current))
+            {
+                value = path;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+        return changed;
+    }
+
     void BeginPropertyRow(const char* name)
     {
         ImGui::TableNextRow();
@@ -128,6 +179,7 @@ void InspectorPanel::Draw(EditorContext& context, Scene* scene)
 
     ImGui::Spacing();
     DrawAddComponent(*scene, *gameObject);
+    AcceptScriptDrop(*scene, *gameObject);
     ImGui::PopID();
 
     if (removeRequest)
@@ -195,8 +247,19 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
             BeginPropertyRow(name.c_str());
             ImGui::BeginDisabled(readOnly);
 
+            const bool meshPicker = meshRenderer && name == "mesh" && !readOnly;
+            if (meshPicker)
+            {
+                ImGui::SetNextItemWidth(-(ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x));
+            }
+
             rttr::variant value = property.get_value(instance);
-            if (DrawValue(&scene, value, std::to_string(component.GetId()) + "." + name) && !readOnly)
+            bool changed = DrawValue(&scene, value, std::to_string(component.GetId()) + "." + name);
+            if (meshPicker && DrawBuiltinMeshPicker(value))
+            {
+                changed = true;
+            }
+            if (changed && !readOnly)
             {
                 property.set_value(instance, value);
             }
@@ -248,7 +311,8 @@ void InspectorPanel::DrawAddComponent(Scene& scene, GameObject& gameObject)
     std::vector<rttr::type> types;
     for (const rttr::type& type : rttr::type::get<Component>().get_derived_classes())
     {
-        if (type != rttr::type::get<TransformComponent>() && type.get_constructor().is_valid())
+        if (type != rttr::type::get<TransformComponent>() && !type.is_derived_from<ScriptComponent>()
+            && type.get_constructor().is_valid())
         {
             types.push_back(type);
         }
@@ -260,30 +324,60 @@ void InspectorPanel::DrawAddComponent(Scene& scene, GameObject& gameObject)
 
     for (const rttr::type& type : types)
     {
-        if (!ImGui::MenuItem(type.get_name().data()))
+        if (ImGui::MenuItem(type.get_name().data()))
         {
-            continue;
-        }
-
-        rttr::variant created = type.create();
-        bool ok = false;
-        Component* component = created.is_valid() ? created.convert<Component*>(&ok) : nullptr;
-        if (!ok || !component)
-        {
-            if (created.is_valid())
-            {
-                type.destroy(created);
-            }
-            continue;
-        }
-
-        gameObject.AddComponent(std::unique_ptr<Component>(component));
-        if (auto* camera = dynamic_cast<CameraComponent*>(component); camera && !scene.GetMainCamera())
-        {
-            scene.SetMainCamera(camera);
+            AddComponentOfType(scene, gameObject, type);
         }
     }
     ImGui::EndPopup();
+}
+
+void InspectorPanel::AcceptScriptDrop(Scene& scene, GameObject& gameObject)
+{
+    if (m_ScriptDropObjectId == gameObject.GetId() && !m_ScriptDropMessage.empty())
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.3f, 1.0f));
+        ImGui::TextWrapped("%s", m_ScriptDropMessage.c_str());
+        ImGui::PopStyleColor();
+    }
+
+    const ImGuiPayload* dragging = ImGui::GetDragDropPayload();
+    if (!dragging || !dragging->IsDataType(EditorUtils::kAssetPathPayload))
+    {
+        return;
+    }
+    const std::filesystem::path draggedPath = EditorUtils::FromUtf8(
+        std::string(static_cast<const char*>(dragging->Data), static_cast<size_t>(dragging->DataSize)));
+    if (!IsScriptSourcePath(draggedPath))
+    {
+        return;
+    }
+
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (!ImGui::BeginDragDropTargetCustom(window->InnerRect, window->GetID("##ScriptDrop")))
+    {
+        return;
+    }
+
+    if (ImGui::AcceptDragDropPayload(EditorUtils::kAssetPathPayload))
+    {
+        const std::string className = EditorUtils::ToUtf8(draggedPath.stem());
+        const rttr::type type = rttr::type::get_by_name(className);
+        m_ScriptDropObjectId = gameObject.GetId();
+        if (!type.is_valid() || !type.is_derived_from<ScriptComponent>())
+        {
+            m_ScriptDropMessage = className + " is not a compiled ScriptComponent. Rebuild the editor if it was just created.";
+        }
+        else if (!AddComponentOfType(scene, gameObject, type))
+        {
+            m_ScriptDropMessage = "Failed to create " + className + ".";
+        }
+        else
+        {
+            m_ScriptDropMessage.clear();
+        }
+    }
+    ImGui::EndDragDropTarget();
 }
 
 void InspectorPanel::DrawAsset(Scene* scene, const std::filesystem::path& file)

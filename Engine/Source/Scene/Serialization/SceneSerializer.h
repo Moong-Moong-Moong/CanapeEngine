@@ -14,6 +14,7 @@ namespace Canape
 	{
 	public:
 		static bool Save(Scene& scene, const std::string& path);
+		static std::string SaveToString(Scene& scene);
 		static std::unique_ptr<Scene> Load(const std::string& path, JoltRuntime* physicsRuntime = nullptr);
 
 		static bool SavePrefab(GameObject& root, const std::string& path);
