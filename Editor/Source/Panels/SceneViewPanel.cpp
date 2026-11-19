@@ -123,7 +123,7 @@ void SceneViewPanel::FrameMainCamera(Scene* scene)
 
     const TransformComponent* transform = camera->GetTransform();
     const Vector3 forward = transform->GetForward().Normalized();
-    m_Position = transform->GetPosition();
+    m_Position = transform->GetWorldPosition();
     m_Yaw = Math::ToDegrees(std::atan2(forward.X, forward.Z));
     m_Pitch = Math::ToDegrees(std::asin(std::clamp(-forward.Y, -1.0f, 1.0f)));
     m_FieldOfView = camera->GetFieldOfView();

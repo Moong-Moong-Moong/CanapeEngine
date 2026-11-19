@@ -17,16 +17,16 @@ namespace Canape
 	public:
 		~TransformComponent() override;
 
-		const Vector3& GetLocalPosition() const { return m_LocalPosition; }
-		const Quaternion& GetLocalRotation() const { return m_LocalRotation; }
-		const Vector3& GetLocalScale() const { return m_LocalScale; }
+		const Vector3& GetPosition() const { return m_Position; }
+		const Quaternion& GetRotation() const { return m_Rotation; }
+		const Vector3& GetScale() const { return m_Scale; }
 
-		void SetLocalPosition(const Vector3& position) { m_LocalPosition = position; }
-		void SetLocalRotation(const Quaternion& rotation) { m_LocalRotation = rotation; }
-		void SetLocalScale(const Vector3& scale) { m_LocalScale = scale; }
+		void SetPosition(const Vector3& position) { m_Position = position; }
+		void SetRotation(const Quaternion& rotation) { m_Rotation = rotation; }
+		void SetScale(const Vector3& scale) { m_Scale = scale; }
 
-		Vector3 GetPosition() const;
-		Quaternion GetRotation() const;
+		Vector3 GetWorldPosition() const;
+		Quaternion GetWorldRotation() const;
 		// The product of every local scale up the chain; rotation between the scales is ignored.
 		Vector3 GetLossyScale() const;
 
@@ -53,9 +53,9 @@ namespace Canape
 
 		TransformComponent() = default;
 
-		Vector3 m_LocalPosition = Vector3::Zero;
-		Quaternion m_LocalRotation = Quaternion::Identity;
-		Vector3 m_LocalScale = Vector3::One;
+		Vector3 m_Position = Vector3::Zero;
+		Quaternion m_Rotation = Quaternion::Identity;
+		Vector3 m_Scale = Vector3::One;
 
 		TransformComponent* m_Parent = nullptr;
 		std::vector<TransformComponent*> m_Children;

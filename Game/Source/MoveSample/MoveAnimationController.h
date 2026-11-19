@@ -14,8 +14,14 @@ protected:
     void Start() override;
     void FixedUpdate() override;
     void Update() override;
+    void LateUpdate() override;
+
+public:
+    void SetMoveSpeed(float speed);
 
 private:
+    void TurnTowards(const Vector3& direction);
+
     AnimatorComponent* m_animator = nullptr;
     StateMachine* m_stateMachine = nullptr;
 

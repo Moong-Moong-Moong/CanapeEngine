@@ -399,9 +399,9 @@ namespace EditorUtils
         DirectX::XMVECTOR translation;
         if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, local.ToXM()))
         {
-            child->SetLocalPosition(Vector3::FromXM(translation));
-            child->SetLocalRotation(Quaternion::FromXM(rotation).Normalized());
-            child->SetLocalScale(Vector3::FromXM(scale));
+            child->SetPosition(Vector3::FromXM(translation));
+            child->SetRotation(Quaternion::FromXM(rotation).Normalized());
+            child->SetScale(Vector3::FromXM(scale));
         }
 
         child->SetParent(parent);

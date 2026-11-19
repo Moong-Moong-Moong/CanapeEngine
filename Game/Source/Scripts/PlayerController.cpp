@@ -33,13 +33,13 @@ void PlayerController::Update()
     const float deltaTime = Canape::Time::DeltaTime();
 
     Canape::TransformComponent* transform = GetTransform();
-    transform->SetLocalPosition(transform->GetLocalPosition() + direction * (m_MoveSpeed * deltaTime));
+    transform->SetPosition(transform->GetPosition() + direction * (m_MoveSpeed * deltaTime));
 
     if (!horizontalDirection.IsNearlyZero())
     {
         const Canape::Quaternion targetRotation = Canape::Quaternion::LookRotation(horizontalDirection.Normalized());
         const float maxRadians = Canape::Math::ToRadians(m_TurnSpeedDegrees) * deltaTime;
-        transform->SetLocalRotation(Canape::Quaternion::RotateTowards(transform->GetLocalRotation(), targetRotation, maxRadians));
+        transform->SetRotation(Canape::Quaternion::RotateTowards(transform->GetRotation(), targetRotation, maxRadians));
     }
 }
 

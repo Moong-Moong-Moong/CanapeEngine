@@ -1,6 +1,9 @@
 ﻿#include "MoveSample/MoveState.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/AnimatorComponent.h"
+#include "input/InputManager.h"
+#include "Core/Application.h"
+#include "MoveSample/MoveAnimationController.h"
 
 RTTR_REGISTRATION
 {
@@ -10,21 +13,29 @@ RTTR_REGISTRATION
 
 void MoveState::Initialize()
 {
-    Handle<GameObject> handle = GetOwnerObject()->GetScene()->FindGameObjectHandleByName("MasterChief_v5.7_walk_scl");
-    m_animator = GetOwnerObject()->GetScene()->GetGameObject(handle)->GetComponent<AnimatorComponent>();
+    m_animator = GetScene()->FindGameObjectByName("Knight")->GetComponent<AnimatorComponent>();
+    m_player = GetOwnerObject()->GetComponent<MoveAnimationController>();
 }
 
 void MoveState::Enter()
 {
-    if (m_animator)
-    {
-        m_animator->SetClip("Content/Models/Master/Armature_mixamo.com_Layer0.aclip");
-        m_animator->Play(true);
-    }
+    if (!m_animator) return;
+    m_animator->Play();
 }
 
 void MoveState::Update([[maybe_unused]] float deltaTime)
 {
+    if (!m_animator) return;
+    if (Application::Get().GetInputManager().IsKeyDown(Key::Shift))
+    {
+        m_player->SetMoveSpeed(6.0f);
+        m_animator->SetClip("Content/Models/Knight/run.aclip");
+    }
+    else
+    {
+        m_player->SetMoveSpeed(3.0f);
+        m_animator->SetClip("Content/Models/Knight/walk.aclip");
+    }
 }
 
 void MoveState::Exit()

@@ -18,14 +18,14 @@ namespace Canape
 		}
 	}
 
-	Vector3 TransformComponent::GetPosition() const
+	Vector3 TransformComponent::GetWorldPosition() const
 	{
-		return m_Parent ? m_Parent->GetLocalToWorldMatrix().TransformPoint(m_LocalPosition) : m_LocalPosition;
+		return m_Parent ? m_Parent->GetLocalToWorldMatrix().TransformPoint(m_Position) : m_Position;
 	}
 
-	Quaternion TransformComponent::GetRotation() const
+	Quaternion TransformComponent::GetWorldRotation() const
 	{
-		return m_Parent ? (m_Parent->GetRotation() * m_LocalRotation).Normalized() : m_LocalRotation;
+		return m_Parent ? (m_Parent->GetWorldRotation() * m_Rotation).Normalized() : m_Rotation;
 	}
 
 	Vector3 TransformComponent::GetLossyScale() const
@@ -34,39 +34,39 @@ namespace Canape
             m_Parent->GetLossyScale() :
             Vector3::One;
 
-        return parentScale * m_LocalScale;
+        return parentScale * m_Scale;
 	}
 
 	Vector3 TransformComponent::GetRight() const
 	{
-		return GetRotation().GetRight();
+		return GetWorldRotation().GetRight();
 	}
 
 	Vector3 TransformComponent::GetUp() const
 	{
-		return GetRotation().GetUp();
+		return GetWorldRotation().GetUp();
 	}
 
 	Vector3 TransformComponent::GetForward() const
 	{
-		return GetRotation().GetForward();
+		return GetWorldRotation().GetForward();
 	}
 
 	void TransformComponent::LookAt(const Vector3& target, const Vector3& up)
 	{
-		const Vector3 direction = target - GetPosition();
+		const Vector3 direction = target - GetWorldPosition();
 		if (direction.IsNearlyZero())
 		{
 			return;
 		}
 
 		const Quaternion worldRotation = Quaternion::LookRotation(direction, up);
-		m_LocalRotation = m_Parent ? (m_Parent->GetRotation().Inverse() * worldRotation).Normalized() : worldRotation;
+		m_Rotation = m_Parent ? (m_Parent->GetWorldRotation().Inverse() * worldRotation).Normalized() : worldRotation;
 	}
 
 	Matrix4 TransformComponent::GetLocalMatrix() const
 	{
-		return Matrix4::TRS(m_LocalPosition, m_LocalRotation, m_LocalScale);
+		return Matrix4::TRS(m_Position, m_Rotation, m_Scale);
 	}
 
 	Matrix4 TransformComponent::GetLocalToWorldMatrix() const

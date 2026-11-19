@@ -58,8 +58,8 @@ void FlyCamera::Update()
     }
 
     const TransformComponent& transform = *GetTransform();
-    auto position = transform.GetLocalPosition();
-    const auto look = toYawPitch(transform.GetLocalRotation());
+    auto position = transform.GetPosition();
+    const auto look = toYawPitch(transform.GetRotation());
     auto yaw = look.Yaw;
     auto pitch = look.Pitch;
 
@@ -115,8 +115,8 @@ void FlyCamera::ApplyPose(const Canape::Vector3& position, float yaw, float pitc
 
     auto& transform = *GetTransform();
 
-    transform.SetLocalPosition(position);
-    transform.SetLocalRotation(
+    transform.SetPosition(position);
+    transform.SetRotation(
         Rotator(pitch, yaw, 0.0f).ToQuaternion()
     );
 }

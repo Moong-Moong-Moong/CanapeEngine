@@ -58,19 +58,19 @@ void HingeRelease::detachRiders(const Canape::RigidBodyComponent& arm)
     for(RigidBodyComponent* rider : riders)
     {
         TransformComponent& transform = *rider->GetTransform();
-        const Vector3 position = transform.GetPosition();
-        const Quaternion rotation = transform.GetRotation();
+        const Vector3 position = transform.GetWorldPosition();
+        const Quaternion rotation = transform.GetWorldRotation();
         const Vector3 velocity = arm.GetVelocityAt(position);
         transform.SetParent(parent);
         if(parent)
         {
-            transform.SetLocalPosition(parent->GetWorldToLocalMatrix().TransformPoint(position));
-            transform.SetLocalRotation((parent->GetRotation().Inverse() * rotation).Normalized());
+            transform.SetPosition(parent->GetWorldToLocalMatrix().TransformPoint(position));
+            transform.SetRotation((parent->GetWorldRotation().Inverse() * rotation).Normalized());
         }
         else
         {
-            transform.SetLocalPosition(position);
-            transform.SetLocalRotation(rotation);
+            transform.SetPosition(position);
+            transform.SetRotation(rotation);
         }
         rider->SetEnabled(true);
         if(rider->GetMass() > 0.0f)

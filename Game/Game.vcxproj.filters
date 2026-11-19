@@ -105,6 +105,12 @@
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\MoveSample\PlayerCamera.h">
+      <Filter>Source\MoveSample</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MoveSample\AttackState.h">
+      <Filter>Source\MoveSample</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -194,6 +200,12 @@
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="Source\MoveSample\PlayerCamera.cpp">
+      <Filter>Source\MoveSample</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MoveSample\AttackState.cpp">
+      <Filter>Source\MoveSample</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
@@ -229,7 +241,13 @@
     <None Include="..\Engine\DX11Renderer\Shader\Common\Constants.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\Fog.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="..\Engine\DX11Renderer\Shader\Common\FullscreenTypes.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\Common\IBLSampling.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
     <None Include="..\Engine\DX11Renderer\Shader\Common\Lighting.hlsli">
@@ -260,6 +278,15 @@
       <Filter>Shader\Debug</Filter>
     </None>
     <None Include="..\Engine\DX11Renderer\Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\IBLBRDFIntegration.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\IBLIrradiance.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\DX11Renderer\Shader\IBLPrefilter.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\DX11Renderer\Shader\Mesh.hlsl">

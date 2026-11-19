@@ -228,7 +228,7 @@ namespace Canape
             RenderView view;
             view.view = camera->GetViewMatrix();
             view.projection = camera->GetProjectionMatrix(aspectRatio);
-            view.cameraPosition = camera->GetTransform()->GetPosition();
+            view.cameraPosition = camera->GetTransform()->GetWorldPosition();
             m_DX11->SetRenderView(view);
 
             scene->BuildRenderScene(assets, *this);
