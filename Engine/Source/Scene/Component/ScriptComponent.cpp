@@ -15,10 +15,10 @@ namespace Canape
 		return scene ? scene->AddGameObject(name) : Handle<GameObject>{};
 	}
 
-	Handle<GameObject> ScriptComponent::CreateGameObject(const std::string& prefabPath, TransformComponent* parent) const
+	Handle<GameObject> ScriptComponent::Instantiate(const std::string& prefabPath, TransformComponent* parent) const
 	{
 		Scene* scene = GetOwnerScene();
-		return scene ? scene->AddGameObject(prefabPath, parent) : Handle<GameObject>{};
+		return scene ? scene->Instantiate(prefabPath, parent) : Handle<GameObject>{};
 	}
 
 	void ScriptComponent::Destroy(const Handle<GameObject>& handle) const

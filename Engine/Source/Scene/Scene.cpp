@@ -228,7 +228,7 @@ namespace Canape
 		return handle;
 	}
 
-	Handle<GameObject> Scene::AddGameObject(const std::string& prefabPath, TransformComponent* parent)
+	Handle<GameObject> Scene::Instantiate(const std::string& prefabPath, TransformComponent* parent)
 	{
 		const std::u8string file = AssetManager::GetAssetFile(prefabPath).u8string();
 		GameObject* root = SceneSerializer::InstantiatePrefab(*this, std::string(file.begin(), file.end()), parent);

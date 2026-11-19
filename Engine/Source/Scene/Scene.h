@@ -44,7 +44,7 @@ namespace Canape
 
 		//***** GameObject
 		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");
-		Handle<GameObject> AddGameObject(const std::string& prefabPath, TransformComponent* parent);
+		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr);
 		void RemoveGameObject(const Handle<GameObject> handle);
 		GameObject* GetGameObject(const Handle<GameObject> handle);
 		Handle<GameObject> FindGameObjectByName(const std::string& name);

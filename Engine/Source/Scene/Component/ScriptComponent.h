@@ -30,7 +30,7 @@ namespace Canape
 		void SetStarted(bool started) { m_Started = started; }
 
 		Handle<GameObject> CreateGameObject(const std::string& name = "GameObject") const;
-		Handle<GameObject> CreateGameObject(const std::string& prefabPath, TransformComponent* parent) const;
+		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr) const;
 		GameObject* GetGameObject(const Handle<GameObject>& handle) const;
 		Handle<GameObject> FindGameObjectHandle(const std::string& name) const;
 		GameObject* FindGameObject(const std::string& name) const;
