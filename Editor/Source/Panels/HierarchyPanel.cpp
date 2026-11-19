@@ -37,7 +37,11 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
         return;
     }
 
-    ImGui::TextDisabled("%s", scene->GetName().c_str());
+    const std::string& scenePath = context.GetScenePath();
+    const std::string sceneName = scenePath.empty()
+        ? scene->GetName()
+        : EditorUtils::ToUtf8(std::filesystem::path(scenePath).stem());
+    ImGui::TextUnformatted(sceneName.c_str());
     ImGui::Separator();
 
     for (GameObject* gameObject : scene->GetAllGameObjects())

@@ -405,9 +405,20 @@ void EditorApp::SaveSceneAs()
     }
 
     const std::string path = ShowSceneFileDialog(GetWindow().GetNativeHandle(), true, m_Context.GetScenePath());
-    if (!path.empty() && GetSceneManager().SaveSceneToFile(*scene, path))
+    if (path.empty())
+    {
+        return;
+    }
+
+    const std::string previousName = scene->GetName();
+    scene->SetName(std::filesystem::path(path).stem().string());
+    if (GetSceneManager().SaveSceneToFile(*scene, path))
     {
         m_Context.SetScenePath(path);
+    }
+    else
+    {
+        scene->SetName(previousName);
     }
 }
 
