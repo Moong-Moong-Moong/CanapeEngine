@@ -112,6 +112,28 @@ namespace
         return component;
     }
 
+    bool DrawBuiltinMeshPicker(rttr::variant& value)
+    {
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        if (!ImGui::BeginCombo("##BuiltinMesh", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft))
+        {
+            return false;
+        }
+
+        const std::string current = value.get_value<std::string>();
+        bool changed = false;
+        for (const std::string& path : AssetManager::GetBuiltinMeshPaths())
+        {
+            if (ImGui::Selectable(path.c_str(), path == current))
+            {
+                value = path;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+        return changed;
+    }
+
     void BeginPropertyRow(const char* name)
     {
         ImGui::TableNextRow();
@@ -225,8 +247,19 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
             BeginPropertyRow(name.c_str());
             ImGui::BeginDisabled(readOnly);
 
+            const bool meshPicker = meshRenderer && name == "mesh" && !readOnly;
+            if (meshPicker)
+            {
+                ImGui::SetNextItemWidth(-(ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x));
+            }
+
             rttr::variant value = property.get_value(instance);
-            if (DrawValue(&scene, value, std::to_string(component.GetId()) + "." + name) && !readOnly)
+            bool changed = DrawValue(&scene, value, std::to_string(component.GetId()) + "." + name);
+            if (meshPicker && DrawBuiltinMeshPicker(value))
+            {
+                changed = true;
+            }
+            if (changed && !readOnly)
             {
                 property.set_value(instance, value);
             }

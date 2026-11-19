@@ -42,7 +42,6 @@ namespace Canape
 			return std::string(text.begin(), text.end());
 		}
 
-		// TODO: [Editor] Offer the built-in meshes in the mesh picker.
 		// Reserved paths are matched case-insensitively; keys are lowercase with '/' separators.
 		constexpr std::string_view BuiltinMeshPrefix = "builtin/";
 
@@ -289,6 +288,17 @@ namespace Canape
 			CN_LOG_RUNTIME("Asset", "에셋 경로가 실행 폴더 밖에 있어 절대 경로로 유지됨 : ", assetPath);
 		}
 		return assetPath;
+	}
+
+	std::vector<std::string> AssetManager::GetBuiltinMeshPaths()
+	{
+		std::vector<std::string> paths;
+		paths.reserve(std::size(BuiltinMeshes));
+		for (const BuiltinMeshEntry& entry : BuiltinMeshes)
+		{
+			paths.emplace_back(entry.assetPath);
+		}
+		return paths;
 	}
 
 	// Mesh
