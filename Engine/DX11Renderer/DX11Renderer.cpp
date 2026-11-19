@@ -76,6 +76,8 @@ namespace Canape
             return fail();
         }
 
+        m_Impl->InitializeSceneSampleDesc();
+
         if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()
             || !m_Impl->CreateSkyboxQuad()) return fail();
 #if CANAPE_RENDER_DEBUG

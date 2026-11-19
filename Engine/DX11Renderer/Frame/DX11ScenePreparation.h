@@ -95,7 +95,8 @@ namespace Canape
             const DX11ResourceCache& resources);
         PreparedFinalOutput PrepareFinalOutput(const DX11PipelineState& pipelines,
             ID3D11ShaderResourceView* sceneColor, ID3D11ShaderResourceView* depth,
-            ID3D11ShaderResourceView* shadow, bool shadowActive, const RendererDebugSettings* debug);
+            ID3D11ShaderResourceView* shadow, bool shadowActive, const RendererDebugSettings* debug,
+            UINT cameraDepthSampleCount);
         ShaderConstants::ViewConstants BuildViewConstants(const float* view, const float* projection);
         ShaderConstants::SceneConstants BuildSceneConstants(const RenderScene& scene);
         ShaderConstants::ObjectConstants BuildObjectConstants(const float* world);

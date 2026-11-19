@@ -141,8 +141,9 @@ namespace Canape
         debug = &DebugSettings;
         stats = &CurrentStats;
 #endif
+        // This is the SampleDesc applied to camera depth, including resource-creation fallback.
         const auto output = ScenePreparation::PrepareFinalOutput(Pipelines, SceneColorShaderResourceView.Get(),
-            depth, ShadowMap.ShaderView.Get(), ShadowActive, debug);
+            depth, ShadowMap.ShaderView.Get(), ShadowActive, debug, SelectedSceneSampleDesc.Count);
 #if CANAPE_RENDER_DEBUG
         if (output.DisplayDepth) ConstantBuffers::Upload(*Context.Get(), depthDisplay, output.DepthDisplay);
 #endif
@@ -152,7 +153,7 @@ namespace Canape
         postProcess.PostProcessingEnabled = postProcessSettings_.enabled ? 1u : 0u;
         postProcess.ToneMappingEnabled = postProcessSettings_.toneMappingEnabled ? 1u : 0u;
 #if CANAPE_RENDER_DEBUG
-        postProcess.DebugViewEnabled = DebugSettings.enabled && DebugSettings.viewMode != DebugViewMode::Final ? 1u : 0u;
+        postProcess.DebugViewEnabled = debug->enabled && debug->viewMode != DebugViewMode::Final ? 1u : 0u;
 #endif
         ConstantBuffers::Upload(*Context.Get(), PostProcessBuffer.Get(), postProcess);
         FinalOutputPass::Execute(output, *Context.Get(), target, width, height,
@@ -200,7 +201,10 @@ namespace Canape
         BeginFrameProfiling(context);
 #endif
 
-        // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
+        // Clear any previous final-output/depth read before writing the scene targets.
+        ID3D11ShaderResourceView* unbound = nullptr;
+        context->PSSetShaderResources(0, 1, &unbound);
+        // Linear RGB and alpha are stored directly in the FP16 scene rendering target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
         context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -316,6 +320,8 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
             FinalOutputScope scope(ProfilerAvailable, Profiler, Context.Get());
 #endif
+
+            ResolveSceneColor();
 
             // UI goes after final output into a UNORM view of the same target, so the editor
             // viewport shows it too. The overlay (editor ImGui) still draws last.
