@@ -235,8 +235,10 @@
     <None Include="Shader\Embers.hlsl" />
     <None Include="Shader\Fire.hlsl" />
     <None Include="Shader\Grass.hlsl" />
+    <None Include="Shader\Leaves.hlsl" />
     <None Include="Shader\ParticleEffect.hlsli" />
     <None Include="Shader\Simulation.hlsli" />
+    <None Include="Shader\Swell.hlsli" />
     <None Include="Shader\WaveRipple.hlsl" />
     <None Include="Shader\WaveSurface.hlsl" />
   </ItemGroup>

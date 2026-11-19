@@ -443,6 +443,14 @@
                             "Content/Materials/M_TreeCrown.mat"
                         ]
                     }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/IslandLeaves.effect"
+                    }
                 }
             ]
         },
@@ -526,6 +534,14 @@
                         "materials": [
                             "Content/Materials/M_TreeCrown.mat"
                         ]
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/IslandLeaves.effect"
                     }
                 }
             ]

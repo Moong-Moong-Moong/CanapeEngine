@@ -1,6 +1,9 @@
 #ifndef CANAPE_SIMULATION_HLSLI
 #define CANAPE_SIMULATION_HLSLI
 
+static const float TwoPi = 6.28318530718;
+// Meters per second squared.
+static const float Gravity = 9.81;
 static const uint MaxWaveDisturbances = 8;
 
 // Mirrors WaveDisturbance in Source/Simulation/SimulationScene.h.

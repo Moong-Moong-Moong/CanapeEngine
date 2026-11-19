@@ -1,6 +1,8 @@
 #ifndef CANAPE_PARTICLE_EFFECT_HLSLI
 #define CANAPE_PARTICLE_EFFECT_HLSLI
 
+#include "Simulation.hlsli"
+
 // As ParticleStride in Source/Simulation/ParticleEffects.cpp says.
 struct Particle
 {
@@ -75,7 +77,6 @@ float2 Turbulence(float3 position)
     return lerp(lerp(x00, x10, weight.y), lerp(x01, x11, weight.y), weight.z);
 }
 
-static const float TwoPi = 6.28318530718;
 // A sprite's two triangles, as corners of [-1, 1]^2.
 static const float2 QuadCorners[6] = {
     float2(-1.0, -1.0),

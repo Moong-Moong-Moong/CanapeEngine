@@ -271,10 +271,16 @@
     <None Include="..\Engine\Shader\Grass.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Leaves.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Swell.hlsli">
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\Shader\WaveRipple.hlsl">

@@ -545,10 +545,16 @@
     <None Include="Shader\Grass.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\Leaves.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Swell.hlsli">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\WaveRipple.hlsl">

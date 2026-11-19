@@ -22,18 +22,20 @@ namespace Canape
 {
     namespace
     {
-        using EmitterPosition = std::array<float, 3>;
+        using EmitterVector = std::array<float, 3>;
 
         // sizeof(Particle) in Shader/ParticleEffect.hlsli.
         constexpr std::uint32_t ParticleStride = 64;
 
-        // What the engine provides, then the effect's parameters. Both arguments must outlive the result.
+        // What the engine provides, then the effect's parameters. All arguments must outlive the result.
         std::vector<NamedConstant> constantsOf(
             const ParticleEffectAsset& effect,
-            const EmitterPosition& emitterPosition)
+            const EmitterVector& emitterPosition,
+            const EmitterVector& emitterScale)
         {
             std::vector<NamedConstant> constants{
-                { "EmitterPosition", emitterPosition }
+                { "EmitterPosition", emitterPosition },
+                { "EmitterScale", emitterScale }
             };
             for(const auto& parameter : effect.GetParameters())
             {
@@ -75,9 +77,12 @@ namespace Canape
             const auto* effect = assets.GetParticleEffect(component->GetEffect());
             if(effect == nullptr) continue;
 
-            const auto position = component->GetTransform()->GetPosition();
-            const EmitterPosition emitterPosition{ position.X, position.Y, position.Z };
-            const auto constants = constantsOf(*effect, emitterPosition);
+            const auto* transform = component->GetTransform();
+            const auto position = transform->GetPosition();
+            const auto scale = transform->GetLossyScale();
+            const EmitterVector emitterPosition{ position.X, position.Y, position.Z };
+            const EmitterVector emitterScale{ scale.X, scale.Y, scale.Z };
+            const auto constants = constantsOf(*effect, emitterPosition, emitterScale);
 
             auto kept = emitters.extract(component);
             const bool reusable = !kept.empty() && kept.mapped().effect == effect->GetAssetId();

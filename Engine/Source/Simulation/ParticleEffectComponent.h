@@ -7,7 +7,7 @@
 
 namespace Canape
 {
-    // Emits at the Transform position; its rotation and scale are ignored.
+    // Gives the effect the Transform as Emitter transform.
     class ParticleEffectComponent final: public Component
     {
         RTTR_ENABLE(Component)
