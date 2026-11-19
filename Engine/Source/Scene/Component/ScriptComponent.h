@@ -30,8 +30,12 @@ namespace Canape
 		void SetStarted(bool started) { m_Started = started; }
 
 		Handle<GameObject> CreateGameObject(const std::string& name = "GameObject") const;
+		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr) const;
 		GameObject* GetGameObject(const Handle<GameObject>& handle) const;
+		Handle<GameObject> FindGameObjectHandleByName(const std::string& name) const;
+		GameObject* FindGameObjectByName(const std::string& name) const;
 		void Destroy(const Handle<GameObject>& handle) const;
+		void Destroy(GameObject* gameObject) const;
 
 	protected:
 		ScriptComponent() = default;
@@ -45,6 +49,8 @@ namespace Canape
 
 	private:
 		friend class Scene;
+
+		Scene* GetOwnerScene() const;
 
 		bool m_Awoken = false;
 		bool m_Started = false;

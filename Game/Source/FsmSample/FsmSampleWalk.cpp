@@ -28,7 +28,7 @@ void FsmSampleWalk::Update(float deltaTime)
     }
 
     const float direction = GetStateMachine()->GetFloat("MoveInput");
-    m_Transform->SetLocalPosition(m_Transform->GetLocalPosition() + Canape::Vector3::Right * (direction * m_Mover->GetWalkSpeed() * deltaTime));
+    m_Transform->SetPosition(m_Transform->GetPosition() + Canape::Vector3::Right * (direction * m_Mover->GetWalkSpeed() * deltaTime));
 }
 
 void FsmSampleWalk::Exit()

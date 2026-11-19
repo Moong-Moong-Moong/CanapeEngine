@@ -83,7 +83,7 @@ namespace Canape
             bool uniformAncestors = true;
             for(const auto* node = transform.GetParent(); node; node = node->GetParent())
             {
-                uniformAncestors = uniformAncestors && IsUniform(node->GetLocalScale());
+                uniformAncestors = uniformAncestors && IsUniform(node->GetScale());
             }
 
             return WorldScale {
@@ -171,8 +171,8 @@ namespace Canape
             auto shape = makeColliderShape(collider, scale.lossy);
             if(transform != &frame.transform)
             {
-                shape.part.localPose.position = frame.inverseRotation.Rotate(transform->GetPosition() - frame.position);
-                shape.part.localPose.rotation = (frame.inverseRotation * transform->GetRotation()).Normalized();
+                shape.part.localPose.position = frame.inverseRotation.Rotate(transform->GetWorldPosition() - frame.position);
+                shape.part.localPose.rotation = (frame.inverseRotation * transform->GetWorldRotation()).Normalized();
             }
 
             return MeasuredCollider {
@@ -237,8 +237,8 @@ namespace Canape
 
         const BodyFrame frame {
             .transform = *bodyTransform,
-            .position = bodyTransform->GetPosition(),
-            .inverseRotation = bodyTransform->GetRotation().Normalized().Inverse()
+            .position = bodyTransform->GetWorldPosition(),
+            .inverseRotation = bodyTransform->GetWorldRotation().Normalized().Inverse()
         };
         bool invalidExtent = false;
         bool invalidFriction = false;

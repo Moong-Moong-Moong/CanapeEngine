@@ -6,8 +6,8 @@ namespace Canape
 	Matrix4 CameraComponent::GetViewMatrix() const
 	{
 		const TransformComponent* transform = GetTransform();
-		const Quaternion rotation = transform->GetRotation();
-		return Matrix4::LookTo(transform->GetPosition(), rotation.GetForward(), rotation.GetUp());
+		const Quaternion rotation = transform->GetWorldRotation();
+		return Matrix4::LookTo(transform->GetWorldPosition(), rotation.GetForward(), rotation.GetUp());
 	}
 
 	Matrix4 CameraComponent::GetProjectionMatrix(float aspectRatio) const

@@ -22,7 +22,7 @@ namespace Canape
 		light.type = m_Type;
 		light.color = m_Color;
 		light.intensity = m_Intensity;
-		light.position = transform->GetPosition();
+		light.position = transform->GetWorldPosition();
 		light.direction = transform->GetForward();
 		light.range = m_Range;
 		light.innerAngleRadians = m_InnerAngleRadians;

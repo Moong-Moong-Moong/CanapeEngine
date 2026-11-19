@@ -4,6 +4,8 @@
 
 using namespace Canape;
 
+class MoveAnimationController;
+
 class MoveState final : public Canape::FsmState
 {
     RTTR_ENABLE(Canape::FsmState)
@@ -17,4 +19,5 @@ public:
 
 private:
     AnimatorComponent* m_animator = nullptr;
+    MoveAnimationController* m_player = nullptr;
 };

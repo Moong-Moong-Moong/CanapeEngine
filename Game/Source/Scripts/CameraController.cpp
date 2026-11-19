@@ -39,9 +39,9 @@ void CameraController::LateUpdate()
     }
 
     const Canape::Quaternion rotation = Canape::Rotator(m_Pitch, m_Yaw, 0.0f).ToQuaternion();
-    const Canape::Vector3 pivot = target->GetTransform()->GetPosition() + Canape::Vector3::Up * m_PivotHeight;
+    const Canape::Vector3 pivot = target->GetTransform()->GetWorldPosition() + Canape::Vector3::Up * m_PivotHeight;
 
     Canape::TransformComponent* transform = GetTransform();
-    transform->SetLocalPosition(pivot - rotation.GetForward() * m_Distance);
-    transform->SetLocalRotation(rotation);
+    transform->SetPosition(pivot - rotation.GetForward() * m_Distance);
+    transform->SetRotation(rotation);
 }

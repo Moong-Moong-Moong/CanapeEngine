@@ -52,8 +52,8 @@ void PoseTrack::Start()
 {
     const auto& transform = *GetTransform();
     startPose = Canape::PhysicsPose{
-        .position = transform.GetLocalPosition(),
-        .rotation = transform.GetLocalRotation()
+        .position = transform.GetPosition(),
+        .rotation = transform.GetRotation()
     };
 }
 
@@ -70,7 +70,7 @@ Canape::PhysicsPose PoseTrack::WorldPoseAt(PuzzleMode mode, std::uint32_t tick) 
 
     return Canape::PhysicsPose{
         .position = parent->GetLocalToWorldMatrix().TransformPoint(local.position),
-        .rotation = parent->GetRotation() * local.rotation
+        .rotation = parent->GetWorldRotation() * local.rotation
     };
 }
 
