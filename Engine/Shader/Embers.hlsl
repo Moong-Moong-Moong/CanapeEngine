@@ -69,7 +69,7 @@ Particle Born(uint slot, uint generation)
     const float spread = LaunchSpread * HashToUnit(HashParticle(slot, generation, 3u));
     const float lift = LaunchSpeed * (0.6 + 0.8 * HashToUnit(HashParticle(slot, generation, 4u)));
 
-    Particle particle;
+    Particle particle = (Particle)0;
     particle.Position = EmitterPosition + float3(cos(angle), 0.0, sin(angle)) * distance;
     particle.Age = 0.0;
     particle.Velocity = float3(cos(launchAngle) * spread, lift, sin(launchAngle) * spread);

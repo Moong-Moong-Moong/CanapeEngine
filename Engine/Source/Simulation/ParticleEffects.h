@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <span>
 #include <unordered_map>
 
 #include "Asset/AssetId.h"
+#include "Asset/Effect/ParticleEffectAsset.h"
 #include "DX11Simulation/Kernel.h"
 #include "DX11Simulation/Material.h"
 #include "DX11Simulation/Particles.h"
@@ -24,6 +26,8 @@ namespace Canape
         {
             // What the rest was made from.
             ParticleEffectAssetId effect;
+            ParticleEffectPass pass;
+            std::uint32_t verticesPerParticle;
             Particles particles;
             Kernel kernel;
             Material material;
@@ -40,7 +44,7 @@ namespace Canape
         void Update(Session&, Components);
         // Inside the simulator's open compute pass.
         void Step(Simulator&);
-        // Inside the simulator's open additive pass.
-        void Draw(Simulator&) const;
+        // Inside the simulator's open render pass of the same kind.
+        void Draw(Simulator&, ParticleEffectPass) const;
     };
 }

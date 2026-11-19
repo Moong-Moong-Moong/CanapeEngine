@@ -163,12 +163,17 @@ namespace Canape
 
         context->SetComputeConstant(KernelSlot, kernel.GetConstants());
         context->SetComputeShader(shader);
+        if(const auto* map = kernel.GetMap())
+        {
+            context->SetComputeReadable(ComputeMapSlot, *map);
+        }
         context->SetComputeWritable(ComputeParticlesSlot, particles.GetBuffer());
         context->Dispatch(
             ceilDiv(particles.GetDesc().count, shader.GetThreadGroupSize()[0]),
             1
         );
         context->ClearComputeWritable(ComputeParticlesSlot);
+        context->ClearComputeReadable(ComputeMapSlot);
     }
 
     void Simulator::EndComputePass()
@@ -233,11 +238,10 @@ namespace Canape
         Draw(material, geometry);
     }
 
-    void Simulator::Draw(const Material& material, const Particles& particles)
+    void Simulator::Draw(const Material& material, const Particles& particles, std::uint32_t verticesPerParticle)
     {
         assert(renderOpen);
-
-        constexpr std::uint32_t VerticesPerParticle = 6;
+        assert(verticesPerParticle % 3 == 0);
 
         bind(MaterialSlot, material.GetConstants());
         context->SetVertexReadable(ParticlesSlot, particles.GetBuffer());
@@ -245,7 +249,7 @@ namespace Canape
         auto& d3dContext = context->GetRef();
         d3dContext.VSSetShader(material.GetVertexShader(), nullptr, 0);
         d3dContext.PSSetShader(material.GetPixelShader(), nullptr, 0);
-        context->Draw(VerticesPerParticle, particles.GetDesc().count);
+        context->Draw(verticesPerParticle, particles.GetDesc().count);
     }
 
     void Simulator::EndRenderPass()

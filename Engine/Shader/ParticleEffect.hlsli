@@ -1,7 +1,7 @@
 #ifndef CANAPE_PARTICLE_EFFECT_HLSLI
 #define CANAPE_PARTICLE_EFFECT_HLSLI
 
-// 48 bytes, as ParticleStride in Source/Simulation/ParticleEffects.cpp says.
+// As ParticleStride in Source/Simulation/ParticleEffects.cpp says.
 struct Particle
 {
     float3 Position;
@@ -16,12 +16,16 @@ struct Particle
     float Size;
     // Uniform in [0, 1), drawn at birth.
     float2 Variation;
+    // What the effect keeps beyond the fields above, as its shader says.
+    float4 Custom;
 };
 
 // What a draw reads, one instance per particle.
 StructuredBuffer<Particle> Particles : register(t8);
 // What a kernel rewrites in place. All zero before the first step.
 RWStructuredBuffer<Particle> ParticleSlots : register(u0);
+// What a kernel reads when its effect has a map.
+Texture2D<float4> EffectMap : register(t1);
 
 uint HashUint(uint x)
 {

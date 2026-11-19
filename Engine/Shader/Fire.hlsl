@@ -48,7 +48,7 @@ Particle Born(uint slot, uint generation)
     // The square root spreads the births evenly over the disc.
     const float distance = Radius * sqrt(HashToUnit(HashParticle(slot, generation, 1u)));
 
-    Particle particle;
+    Particle particle = (Particle)0;
     particle.Position = EmitterPosition + float3(cos(angle), 0.0, sin(angle)) * distance;
     particle.Life = lerp(LifeRange.x, LifeRange.y, HashToUnit(HashParticle(slot, generation, 2u)));
     particle.Velocity = float3(0.0, LaunchSpeed * (0.7 + 0.6 * HashToUnit(HashParticle(slot, generation, 3u))), 0.0);

@@ -113,11 +113,12 @@ namespace Canape
     {
         RenderPassScope pass(simulator, opaquePass, outer);
         waveSurfaces.Draw(simulator);
+        particleEffects.Draw(simulator, ParticleEffectPass::Opaque);
     }
 
     void SimulationScene::RenderAfterTransparent(Simulator& simulator)
     {
         RenderPassScope pass(simulator, additivePass, outer);
-        particleEffects.Draw(simulator);
+        particleEffects.Draw(simulator, ParticleEffectPass::Additive);
     }
 }

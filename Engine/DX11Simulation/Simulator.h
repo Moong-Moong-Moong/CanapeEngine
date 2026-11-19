@@ -71,8 +71,8 @@ namespace Canape
         void BeginRenderPass(const RenderPass&, const Outer&);
         void Draw(const Material&, const Geometry&);
         void Draw(const Material&, const Geometry&, const Field&);
-        // One quad per particle: the vertex shader places its six vertices.
-        void Draw(const Material&, const Particles&);
+        // One instance per particle: the vertex shader places its triangles' vertices.
+        void Draw(const Material&, const Particles&, std::uint32_t verticesPerParticle);
         void EndRenderPass();
 
         // Of the frame that just ended.

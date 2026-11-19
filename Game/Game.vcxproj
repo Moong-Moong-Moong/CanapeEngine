@@ -166,6 +166,8 @@ exit /b 0</Command>
   <ItemGroup>
     <None Include="Content\Effects\Embers.effect" />
     <None Include="Content\Effects\Fire.effect" />
+    <None Include="Content\Effects\IslandGrass.effect" />
+    <None Include="Content\Effects\IslandGrass.png" />
     <None Include="Content\Materials\M_CampfireLog.mat" />
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />

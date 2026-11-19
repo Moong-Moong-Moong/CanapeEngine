@@ -542,6 +542,9 @@
     <None Include="Shader\Fire.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\Grass.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>

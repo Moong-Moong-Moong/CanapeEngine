@@ -5,6 +5,7 @@
 
 #include "DX11Simulation/Buffer.h"
 #include "DX11Simulation/ComputePass.h"
+#include "DX11Simulation/D3D.h"
 #include "DX11Simulation/Session.h"
 
 namespace Canape
@@ -21,6 +22,30 @@ namespace Canape
 
             return *layout;
         }
+
+        TextureHandle createMap(Session& session, const MapTexels& map)
+        {
+            constexpr std::uint32_t BytesPerTexel = 4;
+
+            const UINT memPitch = BytesPerTexel * map.width;
+            assert(map.texels.size() == memPitch * map.height);
+
+            const D3D11_TEXTURE2D_DESC textureDesc{
+                .Width = map.width,
+                .Height = map.height,
+                .MipLevels = 1,
+                .ArraySize = 1,
+                .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+                .SampleDesc = { .Count = 1 },
+                .Usage = D3D11_USAGE_IMMUTABLE,
+                .BindFlags = D3D11_BIND_SHADER_RESOURCE
+            };
+            const D3D11_SUBRESOURCE_DATA initialData{
+                .pSysMem = map.texels.data(),
+                .SysMemPitch = memPitch
+            };
+            return session.CreateTexture(textureDesc, &initialData);
+        }
     }
 
     Kernel::Kernel(
@@ -35,7 +60,8 @@ namespace Canape
     Kernel::Kernel(
         Session& session,
         const ShaderDesc& shader,
-        NamedConstants values
+        NamedConstants values,
+        std::optional<MapTexels> map
     )
         : session(session)
         , shader(session.GetOrCreateComputeShader(shader))
@@ -43,6 +69,10 @@ namespace Canape
             session.CreateConstantBuffer(
                 packConstants(constantLayoutOf(GetShader()), values)
             )
+        )
+        , map(map.has_value() ?
+            createMap(session, *map) :
+            TextureHandle{}
         ) {}
 
     void Kernel::Upload(ConstantView values)
@@ -72,5 +102,10 @@ namespace Canape
         assert(ptr != nullptr);
 
         return *ptr;
+    }
+
+    Texture* Kernel::GetMap() const
+    {
+        return session.Get(map);
     }
 }

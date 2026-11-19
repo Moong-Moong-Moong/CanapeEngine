@@ -1,5 +1,7 @@
 {
     "shader": "Shaders/Fire.hlsl",
+    "pass": "additive",
+    "vertices": 6,
     "count": 512,
     "parameters": {
         "Radius": 0.25,

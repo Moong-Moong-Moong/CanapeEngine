@@ -1,5 +1,7 @@
 {
     "shader": "Shaders/Embers.hlsl",
+    "pass": "additive",
+    "vertices": 6,
     "count": 128,
     "parameters": {
         "Radius": 0.3,
