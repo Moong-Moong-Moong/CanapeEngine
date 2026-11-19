@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <cwctype>
+#include <thread>
 
 using namespace Canape;
 
@@ -219,6 +220,54 @@ namespace
         return nullptr;
     }
 
+    HRESULT InvokeWithString(IDispatch* target, const wchar_t* method, const std::wstring& text, VARIANT* result)
+    {
+        VARIANT argument;
+        VariantInit(&argument);
+        argument.vt = VT_BSTR;
+        argument.bstrVal = SysAllocString(text.c_str());
+        const HRESULT hr = InvokeDispatch(target, method, DISPATCH_METHOD, result, &argument, 1);
+        VariantClear(&argument);
+        return hr;
+    }
+
+    bool IsFileInLoadedProject(IDispatch* dte, const std::filesystem::path& file)
+    {
+        const Microsoft::WRL::ComPtr<IDispatch> solution = GetDispatchProperty(dte, L"Solution");
+        if (!solution)
+        {
+            return false;
+        }
+        VARIANT result;
+        VariantInit(&result);
+        const bool found = SUCCEEDED(InvokeWithString(solution.Get(), L"FindProjectItem", file.wstring(), &result))
+            && result.vt == VT_DISPATCH && result.pdispVal;
+        VariantClear(&result);
+        return found;
+    }
+
+    void ActivateMainWindow(IDispatch* dte)
+    {
+        const Microsoft::WRL::ComPtr<IDispatch> mainWindow = GetDispatchProperty(dte, L"MainWindow");
+        if (!mainWindow)
+        {
+            return;
+        }
+        VARIANT handle;
+        VariantInit(&handle);
+        if (SUCCEEDED(InvokeDispatch(mainWindow.Get(), L"HWnd", DISPATCH_PROPERTYGET, &handle))
+            && SUCCEEDED(VariantChangeType(&handle, &handle, 0, VT_I8)))
+        {
+            HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(handle.llVal));
+            if (IsIconic(hwnd))
+            {
+                ShowWindow(hwnd, SW_RESTORE);
+            }
+            SetForegroundWindow(hwnd);
+        }
+        VariantClear(&handle);
+    }
+
     bool OpenFileWithDte(IDispatch* dte, const std::filesystem::path& file)
     {
         const Microsoft::WRL::ComPtr<IDispatch> itemOperations = GetDispatchProperty(dte, L"ItemOperations");
@@ -227,36 +276,20 @@ namespace
             return false;
         }
 
-        VARIANT argument;
-        VariantInit(&argument);
-        argument.vt = VT_BSTR;
-        argument.bstrVal = SysAllocString(file.c_str());
         VARIANT result;
         VariantInit(&result);
-        const HRESULT hr = InvokeDispatch(itemOperations.Get(), L"OpenFile", DISPATCH_METHOD, &result, &argument, 1);
+        const HRESULT hr = InvokeWithString(itemOperations.Get(), L"OpenFile", file.wstring(), &result);
         VariantClear(&result);
-        VariantClear(&argument);
         if (FAILED(hr))
         {
             return false;
         }
 
-        if (const Microsoft::WRL::ComPtr<IDispatch> mainWindow = GetDispatchProperty(dte, L"MainWindow"))
-        {
-            VARIANT handle;
-            VariantInit(&handle);
-            if (SUCCEEDED(InvokeDispatch(mainWindow.Get(), L"HWnd", DISPATCH_PROPERTYGET, &handle))
-                && SUCCEEDED(VariantChangeType(&handle, &handle, 0, VT_I8)))
-            {
-                HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(handle.llVal));
-                if (IsIconic(hwnd))
-                {
-                    ShowWindow(hwnd, SW_RESTORE);
-                }
-                SetForegroundWindow(hwnd);
-            }
-            VariantClear(&handle);
-        }
+        VariantInit(&result);
+        InvokeWithString(dte, L"ExecuteCommand", L"SolutionExplorer.SyncWithActiveDocument", &result);
+        VariantClear(&result);
+
+        ActivateMainWindow(dte);
         return true;
     }
 
@@ -286,6 +319,27 @@ namespace
             return TRUE;
         }, reinterpret_cast<LPARAM>(&search));
         return search.found;
+    }
+
+    void OpenWhenSolutionLoads(const std::filesystem::path& solution, const std::filesystem::path& file)
+    {
+        std::thread([solution, file]
+        {
+            const HRESULT init = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+            for (int attempt = 0; attempt < 180; ++attempt)
+            {
+                Sleep(1000);
+                const Microsoft::WRL::ComPtr<IDispatch> dte = FindVisualStudioWithSolution(solution);
+                if (dte && IsFileInLoadedProject(dte.Get(), file) && OpenFileWithDte(dte.Get(), file))
+                {
+                    break;
+                }
+            }
+            if (SUCCEEDED(init))
+            {
+                CoUninitialize();
+            }
+        }).detach();
     }
 
     bool OpenInSolutionInstance(const std::filesystem::path& solution, const std::filesystem::path& file)
@@ -435,11 +489,10 @@ namespace EditorUtils
         const std::wstring& devenv = FindVisualStudio();
         if (!devenv.empty())
         {
-            const std::wstring command = Quote(devenv) + L" " + Quote(solution.wstring())
-                + L" /Command " + Quote(L"File.OpenFile " + absoluteFile.wstring());
             DWORD exitCode = 0;
-            if (RunProcess(command, 0, exitCode, nullptr))
+            if (RunProcess(Quote(devenv) + L" " + Quote(solution.wstring()), 0, exitCode, nullptr))
             {
+                OpenWhenSolutionLoads(solution, absoluteFile);
                 return;
             }
         }
