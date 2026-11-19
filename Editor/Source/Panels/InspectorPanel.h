@@ -31,6 +31,7 @@ private:
     Canape::MaterialData* GetMaterialData(const std::string& assetPath, bool reload);
     void SaveMaterialData(const std::string& assetPath, const Canape::MaterialData& material);
     void DrawAddComponent(Canape::Scene& scene, Canape::GameObject& gameObject);
+    void AcceptScriptDrop(Canape::Scene& scene, Canape::GameObject& gameObject);
 
     bool DrawValue(Canape::Scene* scene, rttr::variant& value, const std::string& cacheKey);
     bool DrawGameObjectReference(Canape::Scene* scene, rttr::variant& value);
@@ -44,6 +45,9 @@ private:
     std::string m_ActiveTextBuffer;
     std::unordered_map<std::string, EulerCache> m_EulerCache;
     StateMachineInspector m_StateMachineInspector;
+
+    uint64_t m_ScriptDropObjectId = 0;
+    std::string m_ScriptDropMessage;
 
     std::filesystem::path m_MaterialFile;
     std::unordered_map<std::string, Canape::MaterialData> m_MaterialCache;
