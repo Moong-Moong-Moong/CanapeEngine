@@ -103,7 +103,7 @@ void EditorApp::OnInit()
 void EditorApp::OnUpdate(float deltaTime)
 {
     const std::string pendingScene = m_Context.TakePendingOpenScene();
-    if (!pendingScene.empty())
+    if (!pendingScene.empty() && ConfirmDiscardChanges())
     {
         OpenScene(pendingScene);
     }
@@ -220,8 +220,12 @@ void EditorApp::InitImGui()
     ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(renderer.GetNativeDevice()),
         static_cast<ID3D11DeviceContext*>(renderer.GetNativeContext()));
 
-    GetWindow().SetNativeMessageHandler([](void* hwnd, uint32_t message, uint64_t wParam, int64_t lParam)
+    GetWindow().SetNativeMessageHandler([this](void* hwnd, uint32_t message, uint64_t wParam, int64_t lParam)
     {
+        if (message == WM_CLOSE && !ConfirmDiscardChanges())
+        {
+            return true;
+        }
         return ImGui_ImplWin32_WndProcHandler(static_cast<HWND>(hwnd), message,
             static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)) != 0;
     });
@@ -249,13 +253,13 @@ void EditorApp::DrawMainMenu()
 
     if (ImGui::BeginMenu("File"))
     {
-        if (ImGui::MenuItem("New Scene", "Ctrl+N", false, !m_Playing)) NewScene();
+        if (ImGui::MenuItem("New Scene", "Ctrl+N", false, !m_Playing) && ConfirmDiscardChanges()) NewScene();
         if (ImGui::MenuItem("Open Scene...", "Ctrl+O", false, !m_Playing)) OpenSceneDialog();
         ImGui::Separator();
         if (ImGui::MenuItem("Save Scene", "Ctrl+S", false, !m_Playing)) SaveScene();
         if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S", false, !m_Playing)) SaveSceneAs();
         ImGui::Separator();
-        if (ImGui::MenuItem("Exit")) Quit();
+        if (ImGui::MenuItem("Exit") && ConfirmDiscardChanges()) Quit();
         ImGui::EndMenu();
     }
 
@@ -322,7 +326,7 @@ void EditorApp::HandleShortcuts()
     {
         return;
     }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) NewScene();
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal) && ConfirmDiscardChanges()) NewScene();
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal)) OpenSceneDialog();
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) SaveScene();
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) SaveSceneAs();
@@ -352,10 +356,16 @@ void EditorApp::NewScene()
 
     ReplaceActiveScene(scene);
     m_Context.SetScenePath({});
+    MarkSceneSaved();
 }
 
 void EditorApp::OpenSceneDialog()
 {
+    if (!ConfirmDiscardChanges())
+    {
+        return;
+    }
+
     const std::string path = ShowSceneFileDialog(GetWindow().GetNativeHandle(), false, m_Context.GetScenePath());
     if (!path.empty())
     {
@@ -380,46 +390,109 @@ void EditorApp::OpenScene(const std::string& path)
     }
     m_Context.ClearSelection();
     m_Context.SetScenePath(path);
+    MarkSceneSaved();
 }
 
-void EditorApp::SaveScene()
+bool EditorApp::SaveScene()
 {
     if (m_Context.GetScenePath().empty())
     {
-        SaveSceneAs();
-        return;
+        return SaveSceneAs();
     }
 
-    if (Scene* scene = GetSceneManager().GetActiveScene())
+    Scene* scene = GetSceneManager().GetActiveScene();
+    if (!scene || !GetSceneManager().SaveSceneToFile(*scene, m_Context.GetScenePath()))
     {
-        GetSceneManager().SaveSceneToFile(*scene, m_Context.GetScenePath());
+        return false;
     }
+    MarkSceneSaved();
+    return true;
 }
 
-void EditorApp::SaveSceneAs()
+bool EditorApp::SaveSceneAs()
 {
     Scene* scene = GetSceneManager().GetActiveScene();
     if (!scene)
     {
-        return;
+        return false;
     }
 
     const std::string path = ShowSceneFileDialog(GetWindow().GetNativeHandle(), true, m_Context.GetScenePath());
     if (path.empty())
     {
-        return;
+        return false;
     }
 
     const std::string previousName = scene->GetName();
     scene->SetName(std::filesystem::path(path).stem().string());
-    if (GetSceneManager().SaveSceneToFile(*scene, path))
-    {
-        m_Context.SetScenePath(path);
-    }
-    else
+    if (!GetSceneManager().SaveSceneToFile(*scene, path))
     {
         scene->SetName(previousName);
+        return false;
     }
+    m_Context.SetScenePath(path);
+    MarkSceneSaved();
+    return true;
+}
+
+void EditorApp::MarkSceneSaved()
+{
+    Scene* scene = GetSceneManager().GetActiveScene();
+    m_SavedSnapshot = scene ? SceneSerializer::SaveToString(*scene) : std::string();
+}
+
+bool EditorApp::HasUnsavedChanges()
+{
+    if (m_Playing)
+    {
+        return m_PlaySnapshot != m_SavedSnapshot;
+    }
+    Scene* scene = GetSceneManager().GetActiveScene();
+    return scene && SceneSerializer::SaveToString(*scene) != m_SavedSnapshot;
+}
+
+bool EditorApp::SavePlaySnapshot()
+{
+    std::string path = m_Context.GetScenePath();
+    if (path.empty())
+    {
+        path = ShowSceneFileDialog(GetWindow().GetNativeHandle(), true, path);
+        if (path.empty())
+        {
+            return false;
+        }
+    }
+
+    std::error_code error;
+    std::filesystem::copy_file(m_PlaySnapshotPath, path, std::filesystem::copy_options::overwrite_existing, error);
+    if (error)
+    {
+        CN_LOG_GAME("Editor", "Failed to save scene: ", path);
+        return false;
+    }
+    m_Context.SetScenePath(path);
+    m_SavedSnapshot = m_PlaySnapshot;
+    return true;
+}
+
+bool EditorApp::ConfirmDiscardChanges()
+{
+    if (!HasUnsavedChanges())
+    {
+        return true;
+    }
+
+    const std::string& scenePath = m_Context.GetScenePath();
+    const std::wstring sceneName = scenePath.empty() ? L"Untitled" : std::filesystem::path(scenePath).stem().wstring();
+    const std::wstring message = L"Do you want to save the changes to " + sceneName + L"?";
+    const int answer = MessageBoxW(static_cast<HWND>(GetWindow().GetNativeHandle()), message.c_str(),
+        L"Canape Editor", MB_YESNOCANCEL | MB_ICONWARNING);
+
+    if (answer == IDYES)
+    {
+        return m_Playing ? SavePlaySnapshot() : SaveScene();
+    }
+    return answer == IDNO;
 }
 
 void EditorApp::StartPlay()
@@ -437,6 +510,7 @@ void EditorApp::StartPlay()
         CN_LOG_GAME("Editor", "Failed to start play: could not save scene snapshot");
         return;
     }
+    m_PlaySnapshot = SceneSerializer::SaveToString(*scene);
 
     const GameObject* selected = m_Context.GetSelected(scene);
     m_RestoreSelectionId = selected ? selected->GetId() : 0;
@@ -453,6 +527,7 @@ void EditorApp::StopPlay()
 
     SetRunSceneScripts(false);
     m_Playing = false;
+    const bool wasSaved = m_PlaySnapshot == m_SavedSnapshot;
 
     SceneManager& sceneManager = GetSceneManager();
     for (const std::unique_ptr<Scene>& scene : sceneManager.GetScenes())
@@ -463,6 +538,10 @@ void EditorApp::StopPlay()
     if (sceneManager.LoadSceneFromFile(m_PlaySnapshotPath))
     {
         m_RestoringFromPlay = true;
+        if (wasSaved)
+        {
+            MarkSceneSaved();
+        }
     }
     else
     {

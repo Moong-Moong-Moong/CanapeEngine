@@ -475,9 +475,14 @@ namespace Canape
 		};
 	}
 
+	std::string SceneSerializer::SaveToString(Scene& scene)
+	{
+		return SceneWriter(scene).Write().dump(4);
+	}
+
 	bool SceneSerializer::Save(Scene& scene, const std::string& path)
 	{
-		const Json root = SceneWriter(scene).Write();
+		const std::string text = SaveToString(scene);
 
 		const std::filesystem::path filePath(path);
 		if (filePath.has_parent_path())
@@ -493,7 +498,7 @@ namespace Canape
 			return false;
 		}
 
-		file << root.dump(4);
+		file << text;
 		CN_LOG_RUNTIME("Scene", "씬 저장 완료 : ", path);
 		return true;
 	}

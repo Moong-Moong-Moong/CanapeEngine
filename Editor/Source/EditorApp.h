@@ -31,9 +31,14 @@ private:
     void NewScene();
     void OpenSceneDialog();
     void OpenScene(const std::string& path);
-    void SaveScene();
-    void SaveSceneAs();
+    bool SaveScene();
+    bool SaveSceneAs();
     void ReplaceActiveScene(Canape::Scene* scene);
+
+    void MarkSceneSaved();
+    bool HasUnsavedChanges();
+    bool SavePlaySnapshot();
+    bool ConfirmDiscardChanges();
 
     void StartPlay();
     void StopPlay();
@@ -47,6 +52,8 @@ private:
 
     Canape::Scene* m_LastScene = nullptr;
     std::string m_PlaySnapshotPath;
+    std::string m_PlaySnapshot;
+    std::string m_SavedSnapshot;
     uint64_t m_RestoreSelectionId = 0;
     bool m_Playing = false;
     bool m_RestoringFromPlay = false;
