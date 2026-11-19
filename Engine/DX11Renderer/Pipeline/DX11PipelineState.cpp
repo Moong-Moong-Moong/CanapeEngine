@@ -212,6 +212,19 @@ namespace Canape
             CN_LOG_RENDERER("Pipeline", error);
             return false;
         }
+
+        const D3D_SHADER_MACRO msaaDepthDefines[] = { { "MSAA_DEPTH", "1" }, { nullptr, nullptr } };
+        if (!CompileShaderFile(L"Shaders/Debug/DepthDebug.hlsl", "PSCameraDepth", "ps_5_0", msaaDepthDefines,
+            kShaderCompileFlags, pixelBytecode, error))
+            return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.CameraDepthMSAAPixelShader);
+        if (FAILED(result))
+        {
+            error = HResultMessage("ID3D11Device::CreatePixelShader(camera depth MSAA)", result);
+            CN_LOG_RENDERER("Pipeline", error);
+            return false;
+        }
 #endif
 
         if (!CompileShaderFile(L"Shaders/Skybox.hlsl", "VSMain", "vs_5_0", nullptr,
@@ -623,13 +636,15 @@ namespace Canape
         };
     }
 
-    DX11PipelineSelection DX11PipelineState::ResolveFinalOutput(bool cameraDepth) const
+    DX11PipelineSelection DX11PipelineState::ResolveFinalOutput(bool cameraDepth, bool multisampledDepth) const
     {
         ID3D11PixelShader* pixelShader = FinalOutputPixelShader.Get();
 #if CANAPE_RENDER_DEBUG
-        if (cameraDepth) pixelShader = CameraDepthPixelShader.Get();
+        if (cameraDepth)
+            pixelShader = multisampledDepth ? CameraDepthMSAAPixelShader.Get() : CameraDepthPixelShader.Get();
 #else
         (void)cameraDepth;
+        (void)multisampledDepth;
 #endif
         return {
             FinalOutputVertexShader.Get(),

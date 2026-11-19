@@ -73,6 +73,11 @@ namespace Canape
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
+        // Internal startup setting: change to 1 to disable the MSAA request for testing.
+        static constexpr UINT RequestedSceneSampleCount = 4;
+        static_assert(RequestedSceneSampleCount == 1 || RequestedSceneSampleCount == 4);
+        // Shared by scene rendering and camera depth; resource creation may fall back to 1x.
+        DXGI_SAMPLE_DESC SelectedSceneSampleDesc{ 1, 0 };
         // Reverse member destruction releases cached resources before Context and Device.
         // The cache retains neither pointer; all creation calls borrow this renderer's pair.
         DX11ResourceCache Resources;
@@ -108,7 +113,10 @@ namespace Canape
         ComPtr<IDXGISwapChain> SwapChain;
         ComPtr<ID3D11RenderTargetView> RenderTargetView;
         ComPtr<ID3D11RenderTargetView> OverlayRenderTargetView;
+        ComPtr<ID3D11Texture2D> SceneRenderTexture;
+        // Always single-sampled for post processing; aliases SceneRenderTexture at 1x.
         ComPtr<ID3D11Texture2D> SceneColorTexture;
+        // Scene rendering RTV: always views SceneRenderTexture, not the resolve destination.
         ComPtr<ID3D11RenderTargetView> SceneColorRenderTargetView;
         ComPtr<ID3D11ShaderResourceView> SceneColorShaderResourceView;
         ComPtr<ID3D11Texture2D> DisplayTexture;
@@ -139,6 +147,7 @@ namespace Canape
         Impl();
         ~Impl();
         void Shutdown();
+        void InitializeSceneSampleDesc();
 #if CANAPE_RENDER_DEBUG
         void InitializeProfiler();
         void BeginFrameProfiling(ID3D11DeviceContext* context);
@@ -159,6 +168,7 @@ namespace Canape
         void BindPipeline(const DX11PipelineSelection& pipeline);
         void DrawSkybox(const PreparedSkybox& skybox);
         void SetPostProcessSettings(const PostProcessSettings& settings);
+        void ResolveSceneColor();
         void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void ExecuteUIPass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
