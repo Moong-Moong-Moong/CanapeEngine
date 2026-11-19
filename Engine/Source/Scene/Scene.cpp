@@ -1,4 +1,5 @@
 #include "Scene/Scene.h"
+#include "Asset/AssetManager.h"
 #include "Core/Time.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/AnimatorComponent.h"
@@ -8,6 +9,7 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
+#include "Scene/Serialization/SceneSerializer.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -224,6 +226,13 @@ namespace Canape
 			gameObject->GetTransform()->SetId(GenerateId());
 		}
 		return handle;
+	}
+
+	Handle<GameObject> Scene::AddGameObject(const std::string& prefabPath, TransformComponent* parent)
+	{
+		const std::u8string file = AssetManager::GetAssetFile(prefabPath).u8string();
+		GameObject* root = SceneSerializer::InstantiatePrefab(*this, std::string(file.begin(), file.end()), parent);
+		return root ? root->GetHandle() : Handle<GameObject>{};
 	}
 
 	void Scene::RemoveGameObject(const Handle<GameObject> handle)
