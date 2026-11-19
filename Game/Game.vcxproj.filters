@@ -316,6 +316,9 @@
     <None Include="..\Engine\Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Rain.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -341,6 +344,9 @@
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Effects\IslandLeaves.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\IslandRain.effect">
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Game.json">

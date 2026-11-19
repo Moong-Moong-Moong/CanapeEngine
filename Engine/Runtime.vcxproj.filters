@@ -551,6 +551,9 @@
     <None Include="Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\Rain.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\Simulation.hlsli">
       <Filter>Shader</Filter>
     </None>

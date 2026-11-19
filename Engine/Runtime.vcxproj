@@ -237,6 +237,7 @@
     <None Include="Shader\Grass.hlsl" />
     <None Include="Shader\Leaves.hlsl" />
     <None Include="Shader\ParticleEffect.hlsli" />
+    <None Include="Shader\Rain.hlsl" />
     <None Include="Shader\Simulation.hlsli" />
     <None Include="Shader\Swell.hlsli" />
     <None Include="Shader\WaveRipple.hlsl" />
