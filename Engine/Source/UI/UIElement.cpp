@@ -80,25 +80,60 @@ namespace Canape
 		return nullptr;
 	}
 
+	Vector2 UIElement::GetPreferredSize(float scale) const
+	{
+		return { std::abs(m_Size.X) * scale, std::abs(m_Size.Y) * scale };
+	}
+
 	void UIElement::Layout(const UIRect& parentRect, float scale)
 	{
-		const float anchorLeft = parentRect.X + parentRect.Width * m_AnchorMin.X;
-		const float anchorRight = parentRect.X + parentRect.Width * m_AnchorMax.X;
-		const float anchorTop = parentRect.Y + parentRect.Height * m_AnchorMin.Y;
-		const float anchorBottom = parentRect.Y + parentRect.Height * m_AnchorMax.Y;
+		float anchorLeft = parentRect.X + parentRect.Width * m_AnchorMin.X;
+		float anchorRight = parentRect.X + parentRect.Width * m_AnchorMax.X;
+		float anchorTop = parentRect.Y + parentRect.Height * m_AnchorMin.Y;
+		float anchorBottom = parentRect.Y + parentRect.Height * m_AnchorMax.Y;
 
-		const float width = (anchorRight - anchorLeft) + m_Size.X * scale;
-		const float height = (anchorBottom - anchorTop) + m_Size.Y * scale;
+		float width = 0.0f;
+		float height = 0.0f;
+		if (m_FitContent)
+		{
+			anchorRight = anchorLeft;
+			anchorBottom = anchorTop;
+			const Vector2 preferred = GetPreferredSize(scale);
+			width = preferred.X;
+			height = preferred.Y;
+		}
+		else
+		{
+			width = (anchorRight - anchorLeft) + m_Size.X * scale;
+			height = (anchorBottom - anchorTop) + m_Size.Y * scale;
+		}
 		const float pivotX = anchorLeft + (anchorRight - anchorLeft) * m_Pivot.X + m_Position.X * scale;
 		const float pivotY = anchorTop + (anchorBottom - anchorTop) * m_Pivot.Y + m_Position.Y * scale;
 
-		// 모서리를 정수 픽셀에 맞춰 경계가 번지지 않게 한다.
-		const float left = std::round(pivotX - width * m_Pivot.X);
-		const float top = std::round(pivotY - height * m_Pivot.Y);
-		const float right = std::round(pivotX - width * m_Pivot.X + width);
-		const float bottom = std::round(pivotY - height * m_Pivot.Y + height);
-		m_LayoutRect = { left, top, std::max(right - left, 0.0f), std::max(bottom - top, 0.0f) };
+		const float left = pivotX - width * m_Pivot.X;
+		const float top = pivotY - height * m_Pivot.Y;
+		SetLayoutRect(left, top, left + width, top + height, scale);
+	}
 
+	void UIElement::ArrangeAt(const UIRect& rect, float scale)
+	{
+		SetLayoutRect(rect.X, rect.Y, rect.Right(), rect.Bottom(), scale);
+	}
+
+	void UIElement::SetLayoutRect(float left, float top, float right, float bottom, float scale)
+	{
+		// 모서리를 정수 픽셀에 맞춰 경계가 번지지 않게 한다.
+		const float snappedLeft = std::round(left);
+		const float snappedTop = std::round(top);
+		m_LayoutRect = { snappedLeft, snappedTop,
+			std::max(std::round(right) - snappedLeft, 0.0f), std::max(std::round(bottom) - snappedTop, 0.0f) };
+		m_LayoutScale = scale;
+		OnLayout();
+		LayoutChildren(scale);
+	}
+
+	void UIElement::LayoutChildren(float scale)
+	{
 		for (const auto& child : m_Children)
 		{
 			child->Layout(m_LayoutRect, scale);
@@ -112,9 +147,21 @@ namespace Canape
 			return;
 		}
 		OnPaint(painter);
+		if (m_Children.empty())
+		{
+			return;
+		}
+		if (m_ClipChildren)
+		{
+			painter.PushClip(m_LayoutRect);
+		}
 		for (const auto& child : m_Children)
 		{
 			child->Paint(painter);
+		}
+		if (m_ClipChildren)
+		{
+			painter.PopClip();
 		}
 	}
 
@@ -124,12 +171,15 @@ namespace Canape
 		{
 			return nullptr;
 		}
-		// 나중에 그려진 자식이 위에 있다.
-		for (const auto& child : m_Children | std::views::reverse)
+		// 나중에 그려진 자식이 위에 있다. 잘라 내는 요소 밖에서는 자식도 보이지 않으므로 검사하지 않는다.
+		if (!m_ClipChildren || m_LayoutRect.Contains(point))
 		{
-			if (UIElement* hit = child->HitTest(point))
+			for (const auto& child : m_Children | std::views::reverse)
 			{
-				return hit;
+				if (UIElement* hit = child->HitTest(point))
+				{
+					return hit;
+				}
 			}
 		}
 		return m_HitTestable && m_LayoutRect.Contains(point) ? this : nullptr;

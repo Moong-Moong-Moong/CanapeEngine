@@ -1,10 +1,12 @@
 #pragma once
 
 #include "DX11Renderer/Data/UIDrawList.h"
+#include "UI/Text/UIGlyphAtlas.h"
 #include "UI/UIPainter.h"
 #include "UI/UIPointerRouter.h"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace Canape
@@ -26,18 +28,28 @@ namespace Canape
 		void ResetPointerViewport();
 
 		void ProcessInput(Scene* scene, InputManager& input);
-		void BuildDrawList(Scene* scene, uint32_t targetWidth, uint32_t targetHeight, const UITextureResolver& resolver);
+		//*** device: 글리프 아틀라스 텍스처를 만들고 새로 구운 글자를 올리는 통로
+		void BuildDrawList(Scene* scene, uint32_t targetWidth, uint32_t targetHeight, const UITextureResolver& resolver,
+			const UITextureDevice& device);
 
 		const UIDrawList& GetDrawList() const { return m_DrawList; }
 		bool IsPointerOverUI() const { return m_Router.IsCapturingPointer(); }
+		UIGlyphAtlas& GetGlyphAtlas() { return m_Atlas; }
+
+		//*** 처음 그릴 때 이 폰트를 기본 폰트로 읽는다(에셋 루트 기준 경로).
+		static constexpr const char* kDefaultFontPath = "Content/Fonts/Pretendard-Regular.ttf";
 
 	private:
 		//*** 정렬 순서대로(나중이 위) 실행 가능한 캔버스
 		std::vector<UICanvasComponent*> CollectCanvases(Scene* scene) const;
 		UIPointerState MapPointer(const InputManager& input) const;
 
+		void EnsureDefaultFont();
+
 		UIPointerRouter m_Router;
 		UIDrawList m_DrawList;
+		UIGlyphAtlas m_Atlas;
+		bool m_DefaultFontTried = false;
 		std::vector<UIElement*> m_Roots;
 		Scene* m_LastScene = nullptr;
 		Vector2 m_TargetSize;

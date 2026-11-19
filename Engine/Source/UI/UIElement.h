@@ -68,8 +68,22 @@ namespace Canape
 		const Vector2& GetSize() const { return m_Size; }
 		void SetSize(const Vector2& size) { m_Size = size; }
 
+		//*** 켜면 크기를 앵커·Size 대신 내용(GetPreferredSize)으로 정한다. 앵커는 최솟값을 한 점으로 쓴다.
+		bool IsFitContent() const { return m_FitContent; }
+		void SetFitContent(bool fit) { m_FitContent = fit; }
+
+		//*** 내용이 원하는 크기(타깃 픽셀). 기본은 |Size| × 스케일, 텍스트·박스는 내용으로 잰다.
+		virtual Vector2 GetPreferredSize(float scale) const;
+		//*** 폭이 정해졌을 때 원하는 높이(줄바꿈 텍스트는 폭에 따라 줄 수가 바뀐다). 기본은 GetPreferredSize의 높이.
+		virtual float GetPreferredHeight(float width, float scale) const { (void)width; return GetPreferredSize(scale).Y; }
+
 		//*** 마지막 레이아웃 결과(타깃 픽셀, 정수로 맞춤)
 		const UIRect& GetLayoutRect() const { return m_LayoutRect; }
+		float GetLayoutScale() const { return m_LayoutScale; }
+
+		//*** 켜면 자식을 이 요소의 사각형 밖으로 그리지 않고, 밖에서는 자식이 입력도 받지 않는다.
+		bool GetClipChildren() const { return m_ClipChildren; }
+		void SetClipChildren(bool clip) { m_ClipChildren = clip; }
 
 		//***** 표시·입력
 		bool IsVisible() const { return m_Visible; }
@@ -83,13 +97,21 @@ namespace Canape
 		bool IsPressed() const { return m_Pressed; }
 
 		//***** UI 시스템 내부용
+		//*** 부모 사각형 안에서 앵커로 자기 사각형을 정하고 자식을 배치한다.
 		void Layout(const UIRect& parentRect, float scale);
+		//*** 컨테이너(박스)가 정해 준 사각형을 그대로 쓰고 자식을 배치한다.
+		void ArrangeAt(const UIRect& rect, float scale);
 		void Paint(UIPainter& painter) const;
 		//*** 맨 위(나중에 그려진) 요소부터 검사
 		UIElement* HitTest(const Vector2& point);
 		void FlushRemovals();
 
 	protected:
+		//*** 자기 사각형이 정해진 뒤 자식을 배치한다. 기본은 각 자식이 자기 앵커로 Layout.
+		virtual void LayoutChildren(float scale);
+		//*** 자기 사각형이 정해진 직후(자식 배치 전) 불린다. 텍스트가 줄바꿈 폭을 여기서 안다.
+		virtual void OnLayout() {}
+
 		virtual void OnPaint(UIPainter& painter) const { (void)painter; }
 
 		virtual void OnPointerEnter() {}
@@ -102,6 +124,7 @@ namespace Canape
 		friend class UIPointerRouter;
 
 		static uint64_t AllocateId();
+		void SetLayoutRect(float left, float top, float right, float bottom, float scale);
 
 		const uint64_t m_Id;
 		std::string m_Name;
@@ -114,7 +137,10 @@ namespace Canape
 		Vector2 m_Position{ 0.0f, 0.0f };
 		Vector2 m_Size{ 100.0f, 100.0f };
 		UIRect m_LayoutRect;
+		float m_LayoutScale = 1.0f;
 
+		bool m_FitContent = false;
+		bool m_ClipChildren = false;
 		bool m_Visible = true;
 		bool m_HitTestable = false;
 		bool m_PendingRemove = false;

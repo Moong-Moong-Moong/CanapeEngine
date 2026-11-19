@@ -9,6 +9,7 @@
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
 #include "DX11Renderer/Data/PostProcessSettings.h"
 #include "DX11Renderer/Data/UIDrawList.h"
+#include "DX11Renderer/Data/TextureData.h"
 
 #include <cstdint>
 #include <functional>
@@ -39,6 +40,12 @@ namespace Canape
 
         // 다음 Render 한 번에만 그려진다. Render가 끝날 때까지 list를 살려 둘 것.
         void SetUIDrawList(const UIDrawList* list);
+
+        // 에셋을 거치지 않는 GPU 텍스처(UI 글리프 아틀라스, 코드로 만든 UI 이미지). 수명은 만든 쪽이 관리한다.
+        TextureResourceId CreateTexture(uint32_t width, uint32_t height, TextureFormat format, std::span<const uint8_t> pixels);
+        bool UpdateTexture(TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+            std::span<const uint8_t> pixels);
+        void DestroyTexture(TextureResourceId texture);
 
         void SetViewOverride(const RenderView& view) { m_ViewOverride = view; }
         void ClearViewOverride() { m_ViewOverride.reset(); }
