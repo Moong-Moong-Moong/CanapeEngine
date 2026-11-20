@@ -127,9 +127,9 @@ namespace Canape
         ComPtr<ID3D11ShaderResourceView> RetiredDisplayShaderResourceView;
         ComPtr<ID3D11Texture2D> DepthTexture;
         ComPtr<ID3D11DepthStencilView> DepthStencilView;
-#if CANAPE_RENDER_DEBUG
+        // Camera depth as a texture (Texture2DMS when MSAA). Read by the world-space UI depth
+        // comparison in every configuration and by the debug depth view.
         ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
-#endif
         ComPtr<ID3D11Buffer> ObjectBuffer;
         ComPtr<ID3D11Buffer> SkinningBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;

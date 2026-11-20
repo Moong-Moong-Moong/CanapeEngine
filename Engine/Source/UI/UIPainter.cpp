@@ -94,12 +94,13 @@ namespace Canape
 		if (!m_List.Commands.empty())
 		{
 			UIDrawCommand& last = m_List.Commands.back();
-			if (last.Texture == texture && last.Clip == clip && last.IndexOffset + last.IndexCount == indexOffset)
+			if (last.Texture == texture && last.Clip == clip && last.Transform == m_Transform
+				&& last.IndexOffset + last.IndexCount == indexOffset)
 			{
 				last.IndexCount += 6;
 				return;
 			}
 		}
-		m_List.Commands.push_back({ texture, clip, indexOffset, 6 });
+		m_List.Commands.push_back({ texture, clip, indexOffset, 6, m_Transform });
 	}
 }

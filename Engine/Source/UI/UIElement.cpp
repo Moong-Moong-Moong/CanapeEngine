@@ -85,7 +85,7 @@ namespace Canape
 		return { std::abs(m_Size.X) * scale, std::abs(m_Size.Y) * scale };
 	}
 
-	void UIElement::Layout(const UIRect& parentRect, float scale)
+	void UIElement::Layout(const UIRect& parentRect, float scale, float rasterFactor)
 	{
 		float anchorLeft = parentRect.X + parentRect.Width * m_AnchorMin.X;
 		float anchorRight = parentRect.X + parentRect.Width * m_AnchorMax.X;
@@ -112,16 +112,17 @@ namespace Canape
 
 		const float left = pivotX - width * m_Pivot.X;
 		const float top = pivotY - height * m_Pivot.Y;
-		SetLayoutRect(left, top, left + width, top + height, scale);
+		SetLayoutRect(left, top, left + width, top + height, scale, rasterFactor);
 	}
 
-	void UIElement::ArrangeAt(const UIRect& rect, float scale)
+	void UIElement::ArrangeAt(const UIRect& rect, float scale, float rasterFactor)
 	{
-		SetLayoutRect(rect.X, rect.Y, rect.Right(), rect.Bottom(), scale);
+		SetLayoutRect(rect.X, rect.Y, rect.Right(), rect.Bottom(), scale, rasterFactor);
 	}
 
-	void UIElement::SetLayoutRect(float left, float top, float right, float bottom, float scale)
+	void UIElement::SetLayoutRect(float left, float top, float right, float bottom, float scale, float rasterFactor)
 	{
+		m_RasterFactor = rasterFactor;
 		// 모서리를 정수 픽셀에 맞춰 경계가 번지지 않게 한다.
 		const float snappedLeft = std::round(left);
 		const float snappedTop = std::round(top);
@@ -136,7 +137,7 @@ namespace Canape
 	{
 		for (const auto& child : m_Children)
 		{
-			child->Layout(m_LayoutRect, scale);
+			child->Layout(m_LayoutRect, scale, m_RasterFactor);
 		}
 	}
 

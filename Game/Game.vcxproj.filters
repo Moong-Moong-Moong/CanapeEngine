@@ -123,6 +123,12 @@
     <ClInclude Include="Source\Scripts\UIDemoHud.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\UIDemoTextures.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scripts\UIDemoWorldPanel.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\State\Grounded.h">
       <Filter>Source\State</Filter>
     </ClInclude>
@@ -216,6 +222,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\UIDemoHud.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\UIDemoWorldPanel.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\State\Grounded.cpp">

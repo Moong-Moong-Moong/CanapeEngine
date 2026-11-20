@@ -191,6 +191,27 @@ namespace Canape
         m_DX11->DestroyTexture(texture);
     }
 
+    std::optional<RenderView> Renderer::ResolveView(Scene* scene) const
+    {
+        if (m_ViewOverride)
+        {
+            return m_ViewOverride;
+        }
+        CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
+        const uint32_t width = m_DX11->GetWidth();
+        const uint32_t height = m_DX11->GetHeight();
+        if (!camera || !camera->IsEnabled() || width == 0 || height == 0)
+        {
+            return std::nullopt;
+        }
+        const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+        RenderView view;
+        view.view = camera->GetViewMatrix();
+        view.projection = camera->GetProjectionMatrix(aspectRatio);
+        view.cameraPosition = camera->GetTransform()->GetWorldPosition();
+        return view;
+    }
+
     void Renderer::Render(Scene* scene, const AssetManager& assets)
     {
         if (!m_DX11->BeginFrame())
@@ -200,18 +221,8 @@ namespace Canape
             return;
         }
 
-        CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
-
-        if (m_ViewOverride)
-        {
-            m_DX11->SetRenderView(*m_ViewOverride);
-            if (scene)
-            {
-                scene->BuildRenderScene(assets, *this);
-            }
-        }
-
-        else if (!camera || !camera->IsEnabled())
+        const std::optional<RenderView> view = ResolveView(scene);
+        if (!view)
         {
             if (!m_WarnedNoCamera)
             {
@@ -222,16 +233,15 @@ namespace Canape
 
         else
         {
-            m_WarnedNoCamera = false;
-
-            const float aspectRatio = static_cast<float>(m_DX11->GetWidth()) / static_cast<float>(m_DX11->GetHeight());
-            RenderView view;
-            view.view = camera->GetViewMatrix();
-            view.projection = camera->GetProjectionMatrix(aspectRatio);
-            view.cameraPosition = camera->GetTransform()->GetWorldPosition();
-            m_DX11->SetRenderView(view);
-
-            scene->BuildRenderScene(assets, *this);
+            if (!m_ViewOverride)
+            {
+                m_WarnedNoCamera = false;
+            }
+            m_DX11->SetRenderView(*view);
+            if (scene)
+            {
+                scene->BuildRenderScene(assets, *this);
+            }
         }
 
         m_DX11->DrawScene();

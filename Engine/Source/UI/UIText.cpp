@@ -51,7 +51,7 @@ namespace Canape
 
 	uint32_t UIText::GetPixelSize(float scale) const
 	{
-		return static_cast<uint32_t>(std::clamp(std::round(m_FontSize * scale), 1.0f, 512.0f));
+		return static_cast<uint32_t>(std::clamp(std::round(m_FontSize * scale * GetRasterFactor()), 1.0f, 512.0f));
 	}
 
 	const UITextLayout& UIText::Ensure(Cache& cache, const UIFont& font, uint32_t pixelSize, float maxWidth) const
@@ -76,8 +76,10 @@ namespace Canape
 		{
 			return UIElement::GetPreferredSize(scale);
 		}
+		// 굽는 배율로 잰 뒤 레이아웃 단위로 되돌린다(화면 캔버스는 배율 1).
+		const float raster = GetRasterFactor();
 		const UITextLayout& layout = Ensure(m_MeasureCache, *font, GetPixelSize(scale), 0.0f);
-		return { std::ceil(layout.Size.X), std::ceil(layout.Size.Y) };
+		return { std::ceil(layout.Size.X / raster), std::ceil(layout.Size.Y / raster) };
 	}
 
 	float UIText::GetPreferredHeight(float width, float scale) const
@@ -88,14 +90,16 @@ namespace Canape
 			return GetPreferredSize(scale).Y;
 		}
 		// 배치 직후 같은 폭으로 그리므로 그리기용 캐시를 그대로 채워 둔다.
-		return std::ceil(Ensure(m_PaintCache, *font, GetPixelSize(scale), width).Size.Y);
+		const float raster = GetRasterFactor();
+		return std::ceil(Ensure(m_PaintCache, *font, GetPixelSize(scale), width * raster).Size.Y / raster);
 	}
 
 	void UIText::OnLayout()
 	{
 		if (const UIFont* font = ResolveFont())
 		{
-			Ensure(m_PaintCache, *font, GetPixelSize(GetLayoutScale()), m_Wrap ? GetLayoutRect().Width : 0.0f);
+			Ensure(m_PaintCache, *font, GetPixelSize(GetLayoutScale()),
+				m_Wrap ? GetLayoutRect().Width * GetRasterFactor() : 0.0f);
 		}
 	}
 
@@ -107,16 +111,22 @@ namespace Canape
 		{
 			return;
 		}
+		// 배치·정렬은 굽는 픽셀(raster) 공간에서 하고, 마지막에 레이아웃 단위로 나눈다.
+		// 화면 캔버스(배율 1)에서는 글리프가 정수 픽셀에 놓여 1:1로 샘플링된다.
+		const float raster = GetRasterFactor();
 		const UIRect& rect = GetLayoutRect();
 		const uint32_t pixelSize = GetPixelSize(GetLayoutScale());
-		const UITextLayout& layout = Ensure(m_PaintCache, *font, pixelSize, m_Wrap ? rect.Width : 0.0f);
+		const UITextLayout& layout = Ensure(m_PaintCache, *font, pixelSize, m_Wrap ? rect.Width * raster : 0.0f);
 
-		const float top = rect.Y + (rect.Height - layout.Size.Y) * AlignFactor(m_VerticalAlign);
+		const float rectX = rect.X * raster;
+		const float rectWidth = rect.Width * raster;
+		const float top = rect.Y * raster + (rect.Height * raster - layout.Size.Y) * AlignFactor(m_VerticalAlign);
 		const float horizontal = AlignFactor(m_HorizontalAlign);
+		const float inverse = 1.0f / raster;
 		for (size_t index = 0; index < layout.Lines.size(); ++index)
 		{
 			const UITextLine& line = layout.Lines.at(index);
-			const float lineX = rect.X + (rect.Width - line.Width) * horizontal;
+			const float lineX = rectX + (rectWidth - line.Width) * horizontal;
 			const float baseline = std::round(top + layout.Ascent + layout.LineHeight * static_cast<float>(index));
 			for (uint32_t k = 0; k < line.Count; ++k)
 			{
@@ -126,11 +136,10 @@ namespace Canape
 				{
 					continue;
 				}
-				// 정수 픽셀에 맞춰 1:1로 샘플링되게 한다(번짐 방지).
 				const float x = std::round(lineX + glyph.X) + static_cast<float>(entry->OffsetX);
 				const float y = baseline + static_cast<float>(entry->OffsetY);
-				painter.AddQuadResource({ x, y, static_cast<float>(entry->Width), static_cast<float>(entry->Height) },
-					entry->UV, m_Color, atlas->GetTexture());
+				painter.AddQuadResource({ x * inverse, y * inverse, static_cast<float>(entry->Width) * inverse,
+					static_cast<float>(entry->Height) * inverse }, entry->UV, m_Color, atlas->GetTexture());
 			}
 		}
 	}

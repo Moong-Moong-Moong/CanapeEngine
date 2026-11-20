@@ -38,6 +38,9 @@ namespace Canape
 		void SetGlyphAtlas(UIGlyphAtlas* atlas) { m_Atlas = atlas; }
 		UIGlyphAtlas* GetGlyphAtlas() const { return m_Atlas; }
 
+		//*** 이후 사각형이 쓸 변환(UIDrawList::Transforms의 번호). 기본은 화면 공간.
+		void SetTransform(uint32_t transform) { m_Transform = transform; }
+
 	private:
 		void Emit(const UIRect& rect, const UIRect& uv, UIColor color, TextureResourceId texture);
 
@@ -47,5 +50,6 @@ namespace Canape
 		UIGlyphAtlas* m_Atlas = nullptr;
 		TextureResourceId m_SolidTexture;
 		Vector2 m_SolidUV;
+		uint32_t m_Transform = UIDrawCommand::kScreenSpace;
 	};
 }

@@ -11,6 +11,7 @@
 #include "UI/UIPainter.h"
 #include "UI/UIPointerRouter.h"
 #include "UI/UIText.h"
+#include "UI/UIWorld.h"
 
 #include <array>
 #include <cmath>
@@ -540,6 +541,100 @@ namespace
 	}
 }
 
+namespace
+{
+	//***** 4-1단계: 월드 공간 캔버스
+
+	void WorldChecks(const std::shared_ptr<UIFont>& font)
+	{
+		const Matrix4 canvasToLocal = MakeCanvasToLocal({ 400, 200 }, { 0.5f, 0.5f }, 0.01f);
+		const Vector3 topLeft = canvasToLocal.TransformPoint({ 0, 0, 0 });
+		const Vector3 bottomRight = canvasToLocal.TransformPoint({ 400, 200, 0 });
+		const Vector3 center = canvasToLocal.TransformPoint({ 200, 100, 0 });
+		Require(Near(topLeft.X, -2) && Near(topLeft.Y, 1) && Near(topLeft.Z, 0), "canvas top-left maps to local (-2, 1)");
+		Require(Near(bottomRight.X, 2) && Near(bottomRight.Y, -1), "canvas +Y down maps to local -Y");
+		Require(Near(center.X, 0) && Near(center.Y, 0), "pivot lands on the local origin");
+
+		// 90도 시야(투영 [1][1] = 1), 화면 높이 1000: 0.01m 픽셀은 거리 d에서 5/d 화면 픽셀
+		const Matrix4 projection = Matrix4::Perspective(3.14159265f * 0.5f, 16.0f / 9.0f, 0.1f, 100.0f);
+		const Matrix4 view = Matrix4::Identity;
+		const auto factorAt = [&](float distance) {
+			const Matrix4 canvasToWorld = canvasToLocal * Matrix4::Translation({ 0, 0, distance });
+			return ComputeRasterFactor(canvasToWorld, { 0, 0, distance }, view, projection, 1000.0f);
+		};
+		Require(Near(factorAt(5.0f), 1.0f), "1:1 density keeps the raster factor at 1");
+		Require(Near(factorAt(2.5f), 2.0f) && Near(factorAt(1.25f), 4.0f), "closer canvases raster at higher factors");
+		Require(Near(factorAt(3.5f), 2.0f), "density 1.43 rounds up to 2 (never below the screen)");
+		Require(Near(factorAt(15.0f), 0.5f), "density 0.33 rounds up to 1/2");
+		Require(Near(factorAt(4.9f), 2.0f) && Near(factorAt(5.1f), 1.0f), "rounding up switches just past 1:1");
+		Require(Near(factorAt(20.0f), 0.25f) && Near(factorAt(100.0f), 0.25f), "far canvases clamp to 1/4");
+		Require(Near(factorAt(0.1f), 4.0f), "near canvases clamp to 4");
+		Require(Near(factorAt(-5.0f), 1.0f), "behind the camera falls back to 1");
+		const Matrix4 scaled = canvasToLocal * Matrix4::Scale(2.0f) * Matrix4::Translation({ 0, 0, 5 });
+		Require(Near(ComputeRasterFactor(scaled, { 0, 0, 5 }, view, projection, 1000.0f), 2.0f), "object scale counts toward density");
+
+		// 굽는 배율 2: 글자 크기는 두 배로 굽지만 레이아웃 크기는 그대로
+		UIFont::SetDefault(font);
+		const auto measure = [](float raster, float& width, uint32_t& pixelSize, size_t& quads, float& quadWidth) {
+			UIElement root("Root");
+			SetupRoot(root);
+			auto* label = root.AddChild<UIText>("Label");
+			label->SetFitContent(true);
+			label->SetText("Canape UI");
+			label->SetFontSize(20.0f);
+			root.Layout({ 0, 0, 400, 100 }, 1.0f, raster);
+			width = label->GetLayoutRect().Width;
+			pixelSize = label->GetPixelSize(1.0f);
+			FakeDevice fake;
+			UIGlyphAtlas atlas;
+			atlas.BeginFrame(fake.device);
+			UIDrawList list;
+			UIPainter painter(list, { 0, 0, 400, 100 });
+			painter.SetGlyphAtlas(&atlas);
+			root.Paint(painter);
+			quads = list.Vertices.size() / 4;
+			float left = 1e9f, right = -1e9f;
+			for (const UIVertex& v : list.Vertices)
+			{
+				left = std::min(left, v.Position[0]);
+				right = std::max(right, v.Position[0]);
+			}
+			quadWidth = right - left;
+		};
+		float width1 = 0, width2 = 0, ink1 = 0, ink2 = 0;
+		uint32_t pixels1 = 0, pixels2 = 0;
+		size_t quads1 = 0, quads2 = 0;
+		measure(1.0f, width1, pixels1, quads1, ink1);
+		measure(2.0f, width2, pixels2, quads2, ink2);
+		Require(pixels1 == 20 && pixels2 == 40, "raster factor doubles the baked pixel size");
+		Require(quads1 == quads2 && quads1 == 8, "same glyph count at both factors");
+		Require(std::abs(width1 - width2) <= 2.0f, "layout width independent of the raster factor");
+		Require(std::abs(ink1 - ink2) <= 2.0f, "drawn text keeps its canvas size");
+
+		// 변환이 다르면 같은 텍스처·클립이어도 배치를 나눈다.
+		UIDrawList list;
+		UIPainter painter(list, { 0, 0, 100, 100 });
+		painter.SetTransform(5);
+		painter.AddQuad({ 0, 0, 10, 10 }, { 0, 0, 1, 1 }, UIColor::White());
+		painter.AddQuad({ 10, 0, 10, 10 }, { 0, 0, 1, 1 }, UIColor::White());
+		painter.SetTransform(6);
+		painter.AddQuad({ 20, 0, 10, 10 }, { 0, 0, 1, 1 }, UIColor::White());
+		Require(list.Commands.size() == 2 && list.Commands[0].Transform == 5 && list.Commands[0].IndexCount == 12
+			&& list.Commands[1].Transform == 6, "commands carry and split on the transform");
+
+		// 박스 자식도 부모의 굽는 배율을 받는다.
+		UIElement root("Root");
+		SetupRoot(root);
+		auto* column = root.AddChild<UIVerticalBox>("Column");
+		column->SetSize({ 200, 200 });
+		auto* text = column->AddChild<UIText>("Text");
+		text->SetText("A");
+		root.Layout({ 0, 0, 400, 400 }, 1.0f, 2.0f);
+		Require(Near(text->GetRasterFactor(), 2.0f), "boxes pass the raster factor to children");
+		std::cout << "UI world canvas math PASS\n";
+	}
+}
+
 int main()
 {
 	try
@@ -554,6 +649,7 @@ int main()
 		TextElementChecks(font);
 		NineSliceAndClipChecks();
 		BoxChecks(font);
+		WorldChecks(font);
 		UIFont::SetDefault(nullptr);
 		return 0;
 	}

@@ -123,7 +123,10 @@ namespace Canape
                 {
                     return renderer.UpdateTexture(texture, x, y, width, height, rgba);
                 };
-                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device);
+                // 월드 공간 UI도 렌더러와 같은 카메라(에디터 view override 포함)로 투영한다.
+                const std::optional<RenderView> view = m_Renderer->ResolveView(activeScene);
+                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device,
+                    view ? &*view : nullptr);
                 m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
                 m_Renderer->Render(activeScene, *m_AssetManager);
             }

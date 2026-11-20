@@ -29,6 +29,8 @@ fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\UI.h
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\UI.hlsl
 if errorlevel 1 exit /b %errorlevel%
+fxc /nologo /WX /Zpr /D UI_DEPTH_MS=1 /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\UI.hlsl
+if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++23preview /EHsc /MDd /Z7 /W4 /WX /D_DEBUG /utf-8 /ICommon /IEngine /IEngine\Source /I"$stbInclude" Engine\Source\UI\Tests\UICoreValidation.cpp Engine\Source\UI\UIElement.cpp Engine\Source\UI\UIImage.cpp Engine\Source\UI\UIButton.cpp Engine\Source\UI\UIPainter.cpp Engine\Source\UI\UIPointerRouter.cpp Engine\Source\UI\UIBox.cpp Engine\Source\UI\UIText.cpp Engine\Source\UI\Text\UIFont.cpp Engine\Source\UI\Text\UIGlyphAtlas.cpp Engine\Source\UI\Text\UITextLayout.cpp /FoIntermediate\UIValidation\ /FeIntermediate\UIValidation\UICoreValidation.exe
 if errorlevel 1 exit /b %errorlevel%
 Intermediate\UIValidation\UICoreValidation.exe
