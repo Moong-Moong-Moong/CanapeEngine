@@ -46,9 +46,10 @@ namespace Canape
         // Sampler is for PS s2; the skybox pass binds it separately from the generic s0 path.
         DX11PipelineSelection ResolveSkybox() const;
         // Scissor-enabled, depth-off, premultiplied-alpha pipeline for UIVertex geometry.
-        DX11PipelineSelection ResolveUI() const;
+        // multisampledDepth: pick the pixel shader that reads the camera depth as Texture2DMS.
+        DX11PipelineSelection ResolveUI(bool multisampledDepth = false) const;
         bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
-        bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler; }
+        bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler && UIPixelShaderMS; }
 
     private:
         bool InitializeShadows(ID3D11Device* device, std::string& error);
@@ -59,6 +60,7 @@ namespace Canape
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> UIRasterizerState;
         Microsoft::WRL::ComPtr<ID3D11BlendState> UIBlendState;
         Microsoft::WRL::ComPtr<ID3D11SamplerState> UISampler;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> UIPixelShaderMS;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> ShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> StaticShadowVertexShader;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> SkinnedShadowVertexShader;

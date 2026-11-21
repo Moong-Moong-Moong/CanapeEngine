@@ -105,6 +105,8 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
     <ClInclude Include="Source\Scripts\UIDemoHud.h" />
+    <ClInclude Include="Source\Scripts\UIDemoTextures.h" />
+    <ClInclude Include="Source\Scripts\UIDemoWorldPanel.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h" />
     <ClInclude Include="Source\Scripts\RippleSource.h" />
@@ -140,6 +142,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
     <ClCompile Include="Source\Scripts\UIDemoHud.cpp" />
+    <ClCompile Include="Source\Scripts\UIDemoWorldPanel.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp" />
     <ClCompile Include="Source\Scripts\RippleSource.cpp" />

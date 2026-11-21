@@ -531,6 +531,45 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 103,
+            "name": "UIDemoWorldPanel",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 104,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.3,
+                            "Y": 1.5,
+                            "Z": 5.6
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.3420201,
+                            "Z": 0.0,
+                            "W": 0.9396926
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "UIDemoWorldPanel",
+                    "id": 105,
+                    "properties": {
+                        "enabled": true,
+                        "worldUnitsPerPixel": 0.005
+                    }
+                }
+            ]
         }
     ]
 }

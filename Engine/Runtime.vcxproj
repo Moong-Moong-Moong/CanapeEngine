@@ -115,6 +115,7 @@
     <ClInclude Include="Source\UI\UISystem.h" />
     <ClInclude Include="Source\UI\UIText.h" />
     <ClInclude Include="Source\UI\UITypes.h" />
+    <ClInclude Include="Source\UI\UIWorld.h" />
     <ClInclude Include="Source\FSM\FsmCondition.h" />
     <ClInclude Include="Source\FSM\FsmData.h" />
     <ClInclude Include="Source\FSM\FsmState.h" />

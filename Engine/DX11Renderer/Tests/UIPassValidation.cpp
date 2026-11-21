@@ -263,6 +263,69 @@ namespace
         (void)grown;
         Require(impl.UIBuffers.VertexCapacity >= 2400, "UI vertex buffer grows");
 
+        // World-space commands: their own matrix, depth test against the scene depth, no scissor.
+        renderer.SetOverlay([] {});
+        renderer.SetSceneSize(kWidth, kHeight);
+        UIDrawList world;
+        UIDrawTransform transform;
+        transform.ClipFromCanvas[0] = 2.0f / kWidth;   // canvas pixels -> clip, like the screen mapping,
+        transform.ClipFromCanvas[5] = -2.0f / kHeight; // but at depth 0.5 instead of 0
+        transform.ClipFromCanvas[10] = 1.0f;
+        transform.ClipFromCanvas[12] = -1.0f;
+        transform.ClipFromCanvas[13] = 1.0f;
+        transform.ClipFromCanvas[14] = 0.5f;
+        transform.ClipFromCanvas[15] = 1.0f;
+        transform.DepthTest = true;
+        world.Transforms.push_back(transform);
+        AddQuad(world, 2, 40, 12, 12, Pack(255, 0, 0, 255), {}, { 0, 0, 1, 1 }); // tiny clip: ignored for world commands
+        world.Commands.back().Transform = 0;
+        AddQuad(world, 20, 40, 12, 12, Pack(0, 255, 0, 255));                    // screen space, never depth tested
+        AddQuad(world, 38, 40, 12, 12, Pack(0, 0, 255, 255));
+        world.Commands.back().Transform = 7;                                      // missing transform: skipped
+
+        const auto worldFrame = [&](float sceneDepth) {
+            Require(renderer.BeginFrame(), "world BeginFrame");
+            // Stand-in for scene geometry: everything already drawn sits at this depth.
+            impl.Context->ClearDepthStencilView(impl.DepthStencilView.Get(), D3D11_CLEAR_DEPTH, sceneDepth, 0);
+            renderer.SetUIDrawList(&world);
+            renderer.EndFrame();
+            return ReadDisplay(impl);
+        };
+        const auto worldChecks = [&](const char* label) {
+            world.Transforms[0].DepthTest = true;
+            const Image open = worldFrame(1.0f);
+            Expect(open.At(8, 46), 255, 0, 0, "world quad in front of the scene is drawn, clip ignored", 0);
+            Expect(open.At(26, 46), 0, 255, 0, "screen quad drawn", 0);
+            Expect(open.At(44, 46), background.r, background.g, background.b, "command with a missing transform skipped", 0);
+            const Image hidden = worldFrame(0.25f);
+            Expect(hidden.At(8, 46), background.r, background.g, background.b, "world quad behind the scene is hidden", 0);
+            Expect(hidden.At(26, 46), 0, 255, 0, "screen quad ignores scene depth", 0);
+            world.Transforms[0].DepthTest = false;
+            const Image always = worldFrame(0.25f);
+            Expect(always.At(8, 46), 255, 0, 0, "depth test can be turned off per canvas", 0);
+            Require(impl.Width == kWidth && impl.Height == kHeight, "world checks ran at the scene size");
+            std::cout << "UI pass (" << label << "): world-space matrix, depth test against the scene, per-canvas toggle PASS\n";
+        };
+        worldChecks("1x scene depth");
+
+        // The game runs 4x MSAA: camera depth is multisampled while the UI target is not.
+        impl.InitializeSceneSampleDesc();
+        Require(impl.CreateSceneTargets(kWidth, kHeight), "recreate scene targets with the selected MSAA");
+        if (impl.SelectedSceneSampleDesc.Count > 1)
+        {
+            worldChecks("4x MSAA scene depth");
+            // Screen UI colors must still be written through the UNORM view (no sRGB re-encode).
+            UIDrawList solid;
+            AddQuad(solid, 2, 2, 12, 12, Pack(70, 120, 210, 255));
+            Expect(Frame(renderer, &solid).At(8, 8), 70, 120, 210, "screen UI keeps its authored bytes with MSAA", 0);
+        }
+        else
+        {
+            std::cout << "UI pass: 4x MSAA unavailable on this device, MSAA world checks skipped\n";
+        }
+        renderer.SetSceneSize(0, 0);
+        renderer.SetOverlay({});
+
         renderer.DestroyTexture(unormTexture);
         renderer.DestroyTexture(srgbTexture);
         renderer.DestroyTexture(atlas);

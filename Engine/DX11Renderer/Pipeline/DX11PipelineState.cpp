@@ -455,20 +455,29 @@ namespace Canape
         result = device->CreateSamplerState(&samplerDesc, &pending.UISampler);
         if (FAILED(result)) { error = HResultMessage("CreateSamplerState(UI)", result); return false; }
 
+        const D3D_SHADER_MACRO multisampledDepth[] = { { "UI_DEPTH_MS", "1" }, { nullptr, nullptr } };
+        if (!CompileShaderFile(L"Shaders/UI.hlsl", "PSMain", "ps_5_0", multisampledDepth,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.UIPixelShaderMS);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(UI, MSAA depth)", result); return false; }
+
         UIVertexShader = std::move(pending.UIVertexShader);
         UIPixelShader = std::move(pending.UIPixelShader);
         UIInputLayout = std::move(pending.UIInputLayout);
         UIRasterizerState = std::move(pending.UIRasterizerState);
         UIBlendState = std::move(pending.UIBlendState);
         UISampler = std::move(pending.UISampler);
+        UIPixelShaderMS = std::move(pending.UIPixelShaderMS);
         error.clear();
         return true;
     }
 
-    DX11PipelineSelection DX11PipelineState::ResolveUI() const
+    DX11PipelineSelection DX11PipelineState::ResolveUI(bool multisampledDepth) const
     {
+        // Depth stays disabled in the output-merger; world-space UI compares in the pixel shader.
         return {
-            UIVertexShader.Get(), UIPixelShader.Get(), UIInputLayout.Get(),
+            UIVertexShader.Get(), multisampledDepth ? UIPixelShaderMS.Get() : UIPixelShader.Get(), UIInputLayout.Get(),
             UIRasterizerState.Get(), UIBlendState.Get(), FinalOutputDepthState.Get(), UISampler.Get()
         };
     }

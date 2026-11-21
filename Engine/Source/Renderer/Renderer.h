@@ -39,6 +39,10 @@ namespace Canape
 
         void Render(Scene* scene, const AssetManager& assets, Simulator& simulator);
 
+        // 이번 프레임에 쓸 뷰: 에디터 view override가 있으면 그것, 없으면 씬의 메인 카메라.
+        // UI(월드 공간 캔버스)도 같은 뷰를 쓰도록 Render 밖에서도 부를 수 있다. 카메라가 없으면 nullopt.
+        std::optional<RenderView> ResolveView(Scene* scene) const;
+
         // 다음 Render 한 번에만 그려진다. Render가 끝날 때까지 list를 살려 둘 것.
         void SetUIDrawList(const UIDrawList* list);
 

@@ -59,6 +59,7 @@ namespace Canape
 
 		//*** 마지막으로 배치한 결과(테스트·디버깅용)
 		const UITextLayout& GetTextLayout() const { return m_PaintCache.Layout; }
+		//*** 실제로 굽는 픽셀 크기 = 글자 크기 × 레이아웃 스케일 × 굽는 배율(GetRasterFactor)
 		uint32_t GetPixelSize(float scale) const;
 
 	protected:

@@ -68,7 +68,7 @@ namespace Canape::UIPass
     bool Execute(const UIDrawList& list, const DX11PipelineSelection& pipeline,
         const DX11ResourceCache& resources, DX11UIBuffers& buffers,
         ID3D11Device& device, ID3D11DeviceContext& context,
-        ID3D11RenderTargetView* target, uint32_t width, uint32_t height,
+        ID3D11RenderTargetView* target, ID3D11ShaderResourceView* sceneDepth, uint32_t width, uint32_t height,
         RendererDebugStats* stats, std::string& error)
     {
         if (list.IsEmpty() || list.Vertices.empty() || list.Indices.empty() || !target || width == 0 || height == 0)
@@ -98,7 +98,14 @@ namespace Canape::UIPass
             || !Write(context, buffers.Indices.Get(), list.Indices.data(), list.Indices.size() * sizeof(uint32_t), error))
             return false;
 
+        // No depth-stencil view: the camera depth may be multisampled while the UI target is not, and
+        // a mismatched OMSetRenderTargets is dropped by the runtime. World-space commands read the depth
+        // texture (t1) in the pixel shader instead.
         context.OMSetRenderTargets(1, &target, nullptr);
+        if (sceneDepth)
+        {
+            context.PSSetShaderResources(1, 1, &sceneDepth);
+        }
         D3D11_VIEWPORT viewport{};
         viewport.Width = static_cast<float>(width);
         viewport.Height = static_cast<float>(height);
@@ -115,16 +122,30 @@ namespace Canape::UIPass
         context.VSSetConstantBuffers(0, 1, &constants);
         context.PSSetConstantBuffers(0, 1, &constants);
 
+        // Render-target pixels -> clip space (row vector, row-major): x' = 2x/w - 1, y' = 1 - 2y/h.
+        float screenFromPixels[16]{};
+        screenFromPixels[0] = 2.0f / static_cast<float>(width);
+        screenFromPixels[5] = -2.0f / static_cast<float>(height);
+        screenFromPixels[10] = 1.0f;
+        screenFromPixels[12] = -1.0f;
+        screenFromPixels[13] = 1.0f;
+        screenFromPixels[15] = 1.0f;
+        const D3D11_RECT fullTarget{ 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+
         ShaderConstants::UIConstants uiConstants{};
-        uiConstants.InverseTargetSize[0] = 1.0f / static_cast<float>(width);
-        uiConstants.InverseTargetSize[1] = 1.0f / static_cast<float>(height);
         bool constantsUploaded = false;
+        uint32_t uploadedTransform = 0;
 
         for (const UIDrawCommand& command : list.Commands)
         {
             if (command.IndexCount == 0 || command.IndexOffset > indexCount
                 || command.IndexCount > indexCount - command.IndexOffset)
                 continue;
+
+            const bool screenSpace = command.Transform == UIDrawCommand::kScreenSpace;
+            if (!screenSpace && command.Transform >= list.Transforms.size())
+                continue;
+            const UIDrawTransform* transform = screenSpace ? nullptr : &list.Transforms[command.Transform];
 
             ID3D11ShaderResourceView* view = resources.GetWhiteTextureView();
             if (command.Texture.IsValid())
@@ -135,20 +156,32 @@ namespace Canape::UIPass
             }
             if (!view) continue;
 
-            const LONG left = std::clamp<LONG>(command.Clip.Left, 0, static_cast<LONG>(width));
-            const LONG top = std::clamp<LONG>(command.Clip.Top, 0, static_cast<LONG>(height));
-            const LONG right = std::clamp<LONG>(command.Clip.Right, 0, static_cast<LONG>(width));
-            const LONG bottom = std::clamp<LONG>(command.Clip.Bottom, 0, static_cast<LONG>(height));
-            if (right <= left || bottom <= top) continue;
-            const D3D11_RECT scissor{ left, top, right, bottom };
-            context.RSSetScissorRects(1, &scissor);
+            if (screenSpace)
+            {
+                const LONG left = std::clamp<LONG>(command.Clip.Left, 0, static_cast<LONG>(width));
+                const LONG top = std::clamp<LONG>(command.Clip.Top, 0, static_cast<LONG>(height));
+                const LONG right = std::clamp<LONG>(command.Clip.Right, 0, static_cast<LONG>(width));
+                const LONG bottom = std::clamp<LONG>(command.Clip.Bottom, 0, static_cast<LONG>(height));
+                if (right <= left || bottom <= top) continue;
+                const D3D11_RECT scissor{ left, top, right, bottom };
+                context.RSSetScissorRects(1, &scissor);
+            }
+            else
+            {
+                // Canvas-space clip rects do not map to a screen rectangle; world canvases are culled on the CPU.
+                context.RSSetScissorRects(1, &fullTarget);
+            }
 
             const uint32_t encodeSrgb = DecodesSrgb(view) ? 1u : 0u;
-            if (!constantsUploaded || uiConstants.EncodeSrgb != encodeSrgb)
+            if (!constantsUploaded || uiConstants.EncodeSrgb != encodeSrgb || uploadedTransform != command.Transform)
             {
+                const float* matrix = transform ? transform->ClipFromCanvas : screenFromPixels;
+                std::copy_n(matrix, 16, uiConstants.ClipFromCanvas);
                 uiConstants.EncodeSrgb = encodeSrgb;
+                uiConstants.DepthTest = transform && transform->DepthTest && sceneDepth ? 1u : 0u;
                 ConstantBuffers::Upload(context, constants, uiConstants);
                 constantsUploaded = true;
+                uploadedTransform = command.Transform;
             }
             context.PSSetShaderResources(0, 1, &view);
             context.DrawIndexed(command.IndexCount, command.IndexOffset, 0);
@@ -163,8 +196,9 @@ namespace Canape::UIPass
 #endif
         }
 
-        ID3D11ShaderResourceView* unboundView = nullptr;
-        context.PSSetShaderResources(0, 1, &unboundView);
+        // Unbind the color texture and the scene depth before the next frame binds depth as a DSV.
+        ID3D11ShaderResourceView* unboundViews[2] = {};
+        context.PSSetShaderResources(0, 2, unboundViews);
         ID3D11Buffer* unboundBuffer = nullptr;
         context.VSSetConstantBuffers(0, 1, &unboundBuffer);
         context.PSSetConstantBuffers(0, 1, &unboundBuffer);

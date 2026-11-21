@@ -80,6 +80,8 @@ namespace Canape
 		//*** 마지막 레이아웃 결과(타깃 픽셀, 정수로 맞춤)
 		const UIRect& GetLayoutRect() const { return m_LayoutRect; }
 		float GetLayoutScale() const { return m_LayoutScale; }
+		//*** 글자를 구울 때 추가로 곱하는 배율. 화면 캔버스는 1, 월드 캔버스는 화면에 보이는 밀도.
+		float GetRasterFactor() const { return m_RasterFactor; }
 
 		//*** 켜면 자식을 이 요소의 사각형 밖으로 그리지 않고, 밖에서는 자식이 입력도 받지 않는다.
 		bool GetClipChildren() const { return m_ClipChildren; }
@@ -98,9 +100,9 @@ namespace Canape
 
 		//***** UI 시스템 내부용
 		//*** 부모 사각형 안에서 앵커로 자기 사각형을 정하고 자식을 배치한다.
-		void Layout(const UIRect& parentRect, float scale);
+		void Layout(const UIRect& parentRect, float scale, float rasterFactor = 1.0f);
 		//*** 컨테이너(박스)가 정해 준 사각형을 그대로 쓰고 자식을 배치한다.
-		void ArrangeAt(const UIRect& rect, float scale);
+		void ArrangeAt(const UIRect& rect, float scale, float rasterFactor = 1.0f);
 		void Paint(UIPainter& painter) const;
 		//*** 맨 위(나중에 그려진) 요소부터 검사
 		UIElement* HitTest(const Vector2& point);
@@ -124,7 +126,7 @@ namespace Canape
 		friend class UIPointerRouter;
 
 		static uint64_t AllocateId();
-		void SetLayoutRect(float left, float top, float right, float bottom, float scale);
+		void SetLayoutRect(float left, float top, float right, float bottom, float scale, float rasterFactor);
 
 		const uint64_t m_Id;
 		std::string m_Name;
@@ -138,6 +140,7 @@ namespace Canape
 		Vector2 m_Size{ 100.0f, 100.0f };
 		UIRect m_LayoutRect;
 		float m_LayoutScale = 1.0f;
+		float m_RasterFactor = 1.0f;
 
 		bool m_FitContent = false;
 		bool m_ClipChildren = false;

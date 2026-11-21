@@ -245,13 +245,15 @@ namespace Canape::ShaderConstants
     static_assert(sizeof(DepthDisplayConstants) == 16);
 #endif
 
-    // UI.hlsl b0; only bound while the UI pass runs.
+    // UI.hlsl b0; only bound while the UI pass runs. Row-major, uploaded without a transpose.
     struct alignas(16) UIConstants
     {
-        float InverseTargetSize[2]{};
+        float ClipFromCanvas[16]{};
         uint32_t EncodeSrgb = 0;
-        uint32_t Padding = 0;
+        uint32_t DepthTest = 0;
+        uint32_t Padding[2]{};
     };
-    static_assert(sizeof(UIConstants) == 16);
-    static_assert(offsetof(UIConstants, EncodeSrgb) == 8);
+    static_assert(sizeof(UIConstants) == 80);
+    static_assert(offsetof(UIConstants, EncodeSrgb) == 64);
+    static_assert(offsetof(UIConstants, DepthTest) == 68);
 }

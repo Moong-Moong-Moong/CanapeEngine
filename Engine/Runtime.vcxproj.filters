@@ -243,6 +243,9 @@
     <ClInclude Include="Source\UI\UITypes.h">
       <Filter>Source\UI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\UIWorld.h">
+      <Filter>Source\UI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Physics\BoxColliderComponent.h">
       <Filter>Source\Physics</Filter>
     </ClInclude>
