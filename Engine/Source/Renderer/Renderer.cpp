@@ -6,6 +6,7 @@
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
+#include "Simulation/SimulationScene.h"
 
 namespace Canape
 {
@@ -212,7 +213,7 @@ namespace Canape
         return view;
     }
 
-    void Renderer::Render(Scene* scene, const AssetManager& assets)
+    void Renderer::Render(Scene* scene, const AssetManager& assets, Simulator& simulator)
     {
         if (!m_DX11->BeginFrame())
         {
@@ -244,7 +245,27 @@ namespace Canape
             }
         }
 
+        if (sceneBuilt)
+        {
+            if (SimulationScene* simulation = scene->GetSimulation())
+            {
+                m_DX11->SetAfterOpaqueCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterOpaque(simulator);
+                    }
+                );
+                m_DX11->SetAfterTransparentCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterTransparent(simulator);
+                    }
+                );
+            }
+        }
         m_DX11->DrawScene();
+        m_DX11->SetAfterOpaqueCallback(nullptr);
+        m_DX11->SetAfterTransparentCallback(nullptr);
         m_DX11->EndFrame();
     }
 

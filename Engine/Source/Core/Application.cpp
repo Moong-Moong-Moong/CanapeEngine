@@ -7,6 +7,9 @@
 
 #include <Windows.h>
 
+#include "DX11Simulation/Session.h"
+#include "DX11Simulation/Simulator.h"
+
 #include <stdexcept>
 
 namespace Canape
@@ -36,7 +39,6 @@ namespace Canape
         m_Renderer(std::make_unique<Renderer>()),
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
-        m_SceneManager(std::make_unique<SceneManager>(m_PhysicsRuntime.get())),
         m_Commands(std::make_unique<CommandRegistry>()),
         m_UISystem(std::make_unique<UISystem>()),
         m_Headless(windowDesc.Headless)
@@ -55,6 +57,13 @@ namespace Canape
         {
             throw std::runtime_error(m_Renderer->GetLastError());
         }
+
+        auto& device = *static_cast<ID3D11Device*>(m_Renderer->GetNativeDevice());
+        auto& context = *static_cast<ID3D11DeviceContext*>(m_Renderer->GetNativeContext());
+        m_SimulationSession = std::make_unique<Session>(device, context);
+        m_Simulator = std::make_unique<Simulator>(context);
+
+        m_SceneManager = std::make_unique<SceneManager>(m_PhysicsRuntime.get(), m_SimulationSession.get());
 
         if (s_Instance)
         {
@@ -109,7 +118,12 @@ namespace Canape
 
             if (!m_Headless)
             {
+                FrameScope frame(*m_Simulator);
                 Scene* activeScene = m_SceneManager->GetActiveScene();
+                if (activeScene != nullptr)
+                {
+                    activeScene->Simulate(*m_Simulator);
+                }
                 const GpuResourceRegistry& registry = m_Renderer->GetRegistry();
                 const UITextureResolver resolver = [&registry](TextureAssetId texture) { return registry.GetResourceId(texture); };
                 Renderer& renderer = *m_Renderer;
@@ -128,7 +142,7 @@ namespace Canape
                 m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device,
                     view ? &*view : nullptr);
                 m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
-                m_Renderer->Render(activeScene, *m_AssetManager);
+                m_Renderer->Render(activeScene, *m_AssetManager, *m_Simulator);
             }
 
             m_InputManager->EndFrame();

@@ -10,6 +10,7 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Serialization/SceneSerializer.h"
+#include "Simulation/SimulationScene.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -22,11 +23,19 @@ namespace Canape
 				return PhysicsScene(*runtime, PhysicsWorldDesc{});
 			return PhysicsScene();
 		}
+
+		std::unique_ptr<SimulationScene> MakeSimulationScene(Session* session)
+		{
+			if (session == nullptr) return nullptr;
+
+            return std::make_unique<SimulationScene>(*session);
+		}
 	}
 
-	Scene::Scene(std::string name, JoltRuntime* physicsRuntime)
+	Scene::Scene(std::string name, JoltRuntime* physicsRuntime, Session* simulationSession)
 		: m_Name(std::move(name))
 		, m_Physics(MakePhysicsScene(physicsRuntime))
+		, m_Simulation(MakeSimulationScene(simulationSession))
 	{
 	}
 
@@ -197,6 +206,18 @@ namespace Canape
 			}
 		}
 	}
+
+    void Scene::Simulate(Simulator& simulator)
+    {
+        if (m_Simulation != nullptr)
+        {
+            m_Simulation->Simulate(
+                simulator,
+                m_componentRegistry,
+                Time::DeltaTime()
+            );
+        }
+    }
 
 	void Scene::RegisterComponent(Component* component)
 	{

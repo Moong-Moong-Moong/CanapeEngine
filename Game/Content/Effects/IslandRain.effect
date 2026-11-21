@@ -1,0 +1,19 @@
+{
+    "shader": "Shaders/Rain.hlsl",
+    "pass": "additive",
+    "vertices": 6,
+    "count": 8192,
+    "parameters": {
+        "Drag": 1.4,
+        "SplashSeconds": 0.35,
+        "GroundRadius": 12.0,
+        "GroundCenter": [0.0, 0.0],
+        "GroundHeight": 0.0,
+        "SeaHeight": -0.6,
+        "StreakWidth": 0.025,
+        "StreakColor": [0.18, 0.21, 0.26],
+        "StreakLength": 0.5,
+        "SplashColor": [0.25, 0.3, 0.36],
+        "SplashRadius": 0.12
+    }
+}

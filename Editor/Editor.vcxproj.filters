@@ -131,6 +131,9 @@
     <ClCompile Include="..\Game\Source\Scripts\PlayerController.cpp">
       <Filter>Source\GameScripts\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\RippleSource.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
     <ClCompile Include="..\Game\Source\Scripts\SceneChanger.cpp">
       <Filter>Source\GameScripts\Scripts</Filter>
     </ClCompile>
@@ -257,6 +260,45 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Embers.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Fire.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Grass.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Leaves.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Meteors.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\ParticleEffect.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Rain.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Sky.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Stars.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Swell.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveRipple.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveSurface.hlsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

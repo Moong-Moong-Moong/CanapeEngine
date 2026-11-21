@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{1B92106F-BDFD-2EC4-29B6-A88C367EECA0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Buffer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputePass.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantView.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DFwd.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceContext.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Field.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="FlyweightPool.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameStats.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuTimer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Handles.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Kernel.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="NamedConstants.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Outer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Particles.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPass.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="RingBuffer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Session.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderDesc.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Simulator.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SlotHandle.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SlotMap.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DeviceContext.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Field.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuTimer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Kernel.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NamedConstants.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Outer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Particles.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderPass.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Session.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Simulator.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DX11Simulation.props" />
+  </ItemGroup>
+</Project>

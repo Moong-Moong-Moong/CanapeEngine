@@ -8,6 +8,9 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/AnimatorComponent.h"
+#include "Simulation/ParticleEffectComponent.h"
+#include "Simulation/WaveSurfaceComponent.h"
+#include "Simulation/WindComponent.h"
 #include "UI/UICanvasComponent.h"
 
 #include <algorithm>
@@ -107,6 +110,21 @@ namespace Canape
 				m_waterVolumes.push_back(water);
 			}
 
+			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))
+			{
+				m_waveSurfaces.push_back(waveSurface);
+			}
+
+			if (WindComponent* wind = dynamic_cast<WindComponent*>(component))
+			{
+				m_winds.push_back(wind);
+			}
+
+			if (ParticleEffectComponent* particleEffect = dynamic_cast<ParticleEffectComponent*>(component))
+			{
+				m_particleEffects.push_back(particleEffect);
+			}
+
 			if (AnimatorComponent* animator = dynamic_cast<AnimatorComponent*>(component))
 			{
 				m_animators.push_back(animator);
@@ -163,6 +181,22 @@ namespace Canape
 			{
 				std::erase(m_waterVolumes, water);
 			}
+
+			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))
+			{
+				std::erase(m_waveSurfaces, waveSurface);
+			}
+
+			if (WindComponent* wind = dynamic_cast<WindComponent*>(component))
+			{
+				std::erase(m_winds, wind);
+			}
+
+			if (ParticleEffectComponent* particleEffect = dynamic_cast<ParticleEffectComponent*>(component))
+			{
+				std::erase(m_particleEffects, particleEffect);
+			}
+
 			if (AnimatorComponent* animatorComponent = dynamic_cast<AnimatorComponent*>(component))
 			{
 				std::erase(m_animators, animatorComponent);

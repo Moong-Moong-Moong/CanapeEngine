@@ -109,6 +109,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\UIDemoWorldPanel.h" />
     <ClInclude Include="Source\Scripts\GarbageCollector.h" />
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h" />
+    <ClInclude Include="Source\Scripts\RippleSource.h" />
     <ClInclude Include="Source\Scripts\FlyCamera.h" />
     <ClInclude Include="Source\Puzzle\GoalCup.h" />
     <ClInclude Include="Source\Puzzle\GoalZone.h" />
@@ -144,6 +145,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\UIDemoWorldPanel.cpp" />
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp" />
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp" />
+    <ClCompile Include="Source\Scripts\RippleSource.cpp" />
     <ClCompile Include="Source\Scripts\FlyCamera.cpp" />
     <ClCompile Include="Source\Puzzle\GoalCup.cpp" />
     <ClCompile Include="Source\Puzzle\GoalZone.cpp" />
@@ -169,9 +171,19 @@ exit /b 0</Command>
     <ClCompile Include="Source\MoveSample\AttackState.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Content\Effects\Embers.effect" />
+    <None Include="Content\Effects\Fire.effect" />
+    <None Include="Content\Effects\IslandGrass.effect" />
+    <None Include="Content\Effects\IslandGrass.png" />
+    <None Include="Content\Effects\IslandLeaves.effect" />
+    <None Include="Content\Effects\IslandRain.effect" />
+    <None Include="Content\Effects\MeteorShower.effect" />
+    <None Include="Content\Effects\Stars.effect" />
+    <None Include="Content\Materials\M_CampfireLog.mat" />
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />
     <None Include="Content\Materials\M_Enemy_Transparent.mat" />
+    <None Include="Content\Materials\M_IslandSand.mat" />
     <None Include="Content\Materials\M_MapCheck_AOOnly.mat" />
     <None Include="Content\Materials\M_MapCheck_MROnly.mat" />
     <None Include="Content\Materials\M_MapCheck_NoMaps.mat" />
@@ -185,11 +197,14 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_PuzzleWall.mat" />
     <None Include="Content\Materials\M_PuzzleWater.mat" />
     <None Include="Content\Materials\M_PuzzleWeight.mat" />
+    <None Include="Content\Materials\M_TreeBark.mat" />
+    <None Include="Content\Materials\M_TreeCrown.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />
     <None Include="Content\Game.json" />
     <None Include="Content\Scenes\FsmSample.json" />
+    <None Include="Content\Scenes\Island.json" />
     <None Include="Content\Scenes\MaterialMaps.json" />
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />
@@ -205,6 +220,9 @@ exit /b 0</Command>
     <ProjectReference Include="..\Engine\DX11Renderer\DX11Renderer.vcxproj">
       <Project>{716e4d91-0c4d-4b04-9098-c511ce3711d8}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Engine\DX11Simulation\DX11Simulation.vcxproj">
+      <Project>{d5a3f6c2-8b14-4e7d-a9c0-2f6b1e3d7a58}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\JoltPhysics\JoltPhysics.vcxproj">
       <Project>{b6a1c3e4-5d2f-4e8a-9c71-3f0d8a2b6e15}</Project>
     </ProjectReference>
@@ -213,12 +231,19 @@ exit /b 0</Command>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EngineShader Include="$(CanapeRoot)Engine\Shader\**\*.hlsl;$(CanapeRoot)Engine\Shader\**\*.hlsli" />
+    <None Include="@(EngineShader)">
+      <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
     <RendererShader Include="$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsl;$(CanapeRoot)Engine\DX11Renderer\Shader\**\*.hlsli" />
     <None Include="@(RendererShader)">
       <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyEngineShaders" AfterTargets="Build">
+    <Copy SourceFiles="@(EngineShader)" DestinationFiles="@(EngineShader-&gt;'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="CopyRendererShaders" AfterTargets="Build">
     <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader-&gt;'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>

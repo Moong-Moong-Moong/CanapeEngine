@@ -30,4 +30,8 @@ private:
     Canape::Key m_ResetKey = Canape::Key::F;
 
     float m_SpeedScale = 1.0f;
+
+    Canape::Vector3 m_HomePosition{};
+    float m_HomeYaw = 0.0f;
+    float m_HomePitch = 0.0f;
 };

@@ -1,0 +1,15 @@
+{
+    "shader": "Shaders/Meteors.hlsl",
+    "pass": "additive",
+    "vertices": 6,
+    "count": 128,
+    "parameters": {
+        "RadiantDirection": [1.0, 1.0, 0.3],
+        "MeteorsPerSecond": 25.0,
+        "PathRange": [0.1, 0.7],
+        "Speed": 0.7,
+        "LowestElevation": 0.05,
+        "Width": 0.02,
+        "Color": [0.5, 1.25, 4.0]
+    }
+}
