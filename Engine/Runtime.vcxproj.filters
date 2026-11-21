@@ -548,6 +548,9 @@
     <None Include="Shader\Leaves.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\Meteors.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -555,6 +558,12 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Sky.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Stars.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Swell.hlsli">

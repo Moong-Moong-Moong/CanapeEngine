@@ -313,6 +313,9 @@
     <None Include="..\Engine\Shader\Leaves.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Meteors.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\ParticleEffect.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -320,6 +323,12 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Sky.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Stars.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Engine\Shader\Swell.hlsli">
@@ -347,6 +356,12 @@
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Effects\IslandRain.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\MeteorShower.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\Stars.effect">
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Game.json">

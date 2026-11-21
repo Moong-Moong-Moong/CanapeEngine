@@ -170,6 +170,8 @@ exit /b 0</Command>
     <None Include="Content\Effects\IslandGrass.png" />
     <None Include="Content\Effects\IslandLeaves.effect" />
     <None Include="Content\Effects\IslandRain.effect" />
+    <None Include="Content\Effects\MeteorShower.effect" />
+    <None Include="Content\Effects\Stars.effect" />
     <None Include="Content\Materials\M_CampfireLog.mat" />
     <None Include="Content\Materials\M_Enemy.mat" />
     <None Include="Content\Materials\M_Enemy_Masked.mat" />

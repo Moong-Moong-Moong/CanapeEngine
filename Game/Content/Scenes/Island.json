@@ -837,6 +837,84 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 61,
+            "name": "Meteor Shower",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 63,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/MeteorShower.effect"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 64,
+            "name": "Stars",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 65,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/Stars.effect"
+                    }
+                }
+            ]
         }
     ]
 }
