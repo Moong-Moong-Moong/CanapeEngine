@@ -4,6 +4,9 @@
     <Filter Include="Content">
       <UniqueIdentifier>{47790819-4050-550B-B6F5-7009048EF9D7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Content\Effects">
+      <UniqueIdentifier>{3b8e1c64-5f0a-4d27-9c1e-7a2f6d0b8e15}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Content\Materials">
       <UniqueIdentifier>{0739A6A8-8217-8EFA-5121-3C911B01D3D3}</UniqueIdentifier>
     </Filter>
@@ -117,6 +120,9 @@
     <ClInclude Include="Source\Scripts\PlayerController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\RippleSource.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\SceneChanger.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -210,6 +216,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PlayerController.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\RippleSource.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp">
@@ -319,8 +328,74 @@
     <None Include="..\Engine\DX11Renderer\Shader\UI.hlsl">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Embers.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Fire.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Grass.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Leaves.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Meteors.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\ParticleEffect.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Rain.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Sky.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Stars.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\Swell.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveRipple.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\WaveSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Content\Effects\Embers.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\Fire.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\IslandGrass.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\IslandGrass.png">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\IslandLeaves.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\IslandRain.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\MeteorShower.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\Stars.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
     <None Include="Content\Game.json">
       <Filter>Content</Filter>
+    </None>
+    <None Include="Content\Materials\M_CampfireLog.mat">
+      <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_Enemy.mat">
       <Filter>Content\Materials</Filter>
@@ -329,6 +404,9 @@
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_Enemy_Transparent.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_IslandSand.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_MapCheck_AOOnly.mat">
@@ -370,6 +448,12 @@
     <None Include="Content\Materials\M_PuzzleWeight.mat">
       <Filter>Content\Materials</Filter>
     </None>
+    <None Include="Content\Materials\M_TreeBark.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
+    <None Include="Content\Materials\M_TreeCrown.mat">
+      <Filter>Content\Materials</Filter>
+    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>
@@ -380,6 +464,9 @@
       <Filter>Content\Models</Filter>
     </None>
     <None Include="Content\Scenes\FsmSample.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\Island.json">
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\MaterialMaps.json">

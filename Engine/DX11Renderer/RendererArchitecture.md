@@ -85,8 +85,10 @@ DrawScene
   ShadowPass
   공통 리소스 바인딩
   MainPass Opaque/Masked
+  AfterOpaque 콜백 (설정된 경우)
   Skybox 상수 업로드 + SkyboxPass
   MainPass Transparent
+  AfterTransparent 콜백 (설정된 경우)
 
 EndFrame
   최종 출력 정보 준비와 필요한 깊이 표시 상수 업로드
@@ -94,6 +96,10 @@ EndFrame
   기존 Overlay 콜백 (설정된 경우)
   기존 계측 종료/통계 완료/Present
 ```
+
+AfterOpaque/AfterTransparent 콜백은 장면 타겟, 뷰포트, 장면의 공통 상수가 바인딩된 상태에서 불린다.
+콜백에서 바인딩된 셰이더는 토폴로지는 유지하면서 그 공통 상수를 그대로 읽되,
+자기 파이프라인을 b9~b11, t8~t10, s8에 묶은 후 바인딩을 푼다.
 
 `UploadLights`는 제거했다. CPU 계산은 `PrepareLights`/`PrepareShadow`, GPU 버퍼 갱신은
 `UploadLighting`, 실제 그림자 드로우는 `ShadowPass::Execute`로 나뉜다.

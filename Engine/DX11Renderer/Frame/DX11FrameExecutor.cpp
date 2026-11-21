@@ -304,8 +304,10 @@ namespace Canape
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;
             draw.Scene.SkyboxConstants = SkyboxViewBuffer.Get();
             MainPass::DrawOpaqueAndMasked(prepared, draw);
+            if (AfterOpaqueCallback) AfterOpaqueCallback();
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);
+            if (AfterTransparentCallback) AfterTransparentCallback();
         }
     }
 

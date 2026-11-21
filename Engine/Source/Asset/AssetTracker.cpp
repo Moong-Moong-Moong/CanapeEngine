@@ -25,6 +25,7 @@ namespace Canape
 		case AssetType::Material: return "Material";
 		case AssetType::Texture: return "Texture";
 		case AssetType::Cubemap: return "Cubemap";
+		case AssetType::ParticleEffect: return "ParticleEffect";
 		}
 		return "Unknown";
 	}
@@ -50,7 +51,7 @@ namespace Canape
 			std::vector<std::pair<uint64_t, const Record*>> records;
 		};
 
-		constexpr AssetType kTypes[] = { AssetType::Mesh, AssetType::Material, AssetType::Texture, AssetType::Cubemap, AssetType::AnimationClip };
+		constexpr AssetType kTypes[] = { AssetType::Mesh, AssetType::Material, AssetType::Texture, AssetType::Cubemap, AssetType::AnimationClip, AssetType::ParticleEffect };
 		constexpr size_t kTypeCount = std::size(kTypes);
 
 		std::map<uint64_t, AssetNode> nodesByType[kTypeCount];

@@ -6,6 +6,7 @@
 
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 #include <queue>
@@ -19,12 +20,14 @@ namespace Canape
 	class AssetManager;
 	class Renderer;
 	class JoltRuntime;
+	class Session;
+	class SimulationScene;
+	class Simulator;
 
 	class Scene final
 	{
 	public:
-		// A scene gets a physics world when a runtime is given.
-		explicit Scene(std::string name, JoltRuntime* physicsRuntime = nullptr);
+		explicit Scene(std::string name, JoltRuntime* physicsRuntime = nullptr, Session* simulationSession = nullptr);
 		~Scene();
 
 		Scene(const Scene&) = delete;
@@ -77,6 +80,12 @@ namespace Canape
 		PhysicsScene& GetPhysics() { return m_Physics; }
 		const PhysicsScene& GetPhysics() const { return m_Physics; }
 
+		//***** Simulation
+		// Null when the scene was made without a session.
+		SimulationScene* GetSimulation() { return m_Simulation.get(); }
+		// Once a frame, after the update and before the scene is rendered.
+		void Simulate(Simulator&);
+
 	private:
 		void RunAwakeAndStart();
 		void RunFixedStep();
@@ -89,6 +98,7 @@ namespace Canape
 		std::string m_Name;
 
 		PhysicsScene m_Physics;
+		std::unique_ptr<SimulationScene> m_Simulation;
 
 		std::queue<Component*> m_onDestroyQueue;
 		ComponentRegistry m_componentRegistry;

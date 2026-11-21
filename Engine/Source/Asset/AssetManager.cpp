@@ -57,11 +57,17 @@ namespace Canape
 			return PrimitiveMeshes::BuildSphere();
 		}
 
+		PrimitiveMeshData BuildDefaultCylinder()
+		{
+			return PrimitiveMeshes::BuildCylinder();
+		}
+
 		constexpr BuiltinMeshEntry BuiltinMeshes[] =
 		{
 			{ "builtin/cube", "Builtin/Cube", &PrimitiveMeshes::BuildCube },
 			{ "builtin/sphere", "Builtin/Sphere", &BuildDefaultSphere },
 			{ "builtin/plane", "Builtin/Plane", &PrimitiveMeshes::BuildPlane },
+			{ "builtin/cylinder", "Builtin/Cylinder", &BuildDefaultCylinder },
 		};
 
 		std::string NormalizeSeparators(std::string text)
@@ -907,6 +913,58 @@ namespace Canape
 		return unused.size();
 	}
 
+	//***** ParticleEffectAsset
+	ParticleEffectAssetHandle AssetManager::GetParticleEffectHandle(const std::string& path, const AssetOwnerInfo& owner)
+	{
+		ResolvedAssetPath effectPath;
+		if (!ResolveAssetPath(path, effectPath))
+		{
+			CN_LOG_RUNTIME("Asset", "파티클 이펙트 에셋 경로 오류 : ", path);
+			return {};
+		}
+
+		ParticleEffectAssetId effectId = FindParticleEffect(effectPath.key);
+		if (!effectId.IsValid())
+		{
+			std::unique_ptr<ParticleEffectAsset> effect = ParticleEffectAsset::Load(effectPath.utf8File);
+			if (!effect)
+			{
+				return {};
+			}
+			effectId = effect->GetAssetId();
+			m_ParticleEffectIdByPath.emplace(effectPath.key, effectId);
+			m_ParticleEffectsById.emplace(effectId, AssetEntry<ParticleEffectAsset>{ std::move(effect), effectPath.assetPath, effectPath.key });
+		}
+		return CreateParticleEffectHandle(effectId, owner);
+	}
+
+	const ParticleEffectAsset* AssetManager::GetParticleEffect(const ParticleEffectAssetHandle& handle) const
+	{
+		return FindAsset(m_ParticleEffectsById, handle);
+	}
+
+	ParticleEffectAssetId AssetManager::FindParticleEffect(const std::string& pathKey) const
+	{
+		return FindAssetId(m_ParticleEffectIdByPath, pathKey);
+	}
+
+	ParticleEffectAssetHandle AssetManager::CreateParticleEffectHandle(ParticleEffectAssetId id, const AssetOwnerInfo& owner)
+	{
+		return CreateHandle(m_ParticleEffectsById, AssetType::ParticleEffect, id, owner);
+	}
+
+	void AssetManager::Release(ParticleEffectAssetId id, AssetRecordId recordId)
+	{
+		ReleaseReference(m_ParticleEffectsById, id, recordId);
+	}
+
+	size_t AssetManager::ReleaseUnusedParticleEffects()
+	{
+		const std::vector<ParticleEffectAssetId> unused = CollectUnused(m_ParticleEffectsById);
+		EraseAssets(m_ParticleEffectIdByPath, m_ParticleEffectsById, unused);
+		return unused.size();
+	}
+
 	void AssetManager::PrintAssetRecords() const
 	{
 		std::vector<AssetStatus> statuses;
@@ -916,6 +974,7 @@ namespace Canape
 		AppendAssetStatuses(m_TexturesById, AssetType::Texture, statuses);
 		AppendAssetStatuses(m_CubemapsById, AssetType::Cubemap, statuses);
 		AppendAssetStatuses(m_AnimationClipsById, AssetType::AnimationClip, statuses);
+		AppendAssetStatuses(m_ParticleEffectsById, AssetType::ParticleEffect, statuses);
 		m_Tracker.PrintRecord(statuses);
 	}
 	size_t AssetManager::ReleaseUnusedAssets()
@@ -925,6 +984,7 @@ namespace Canape
 		released += ReleaseUnusedTextures();
 		released += ReleaseUnusedCubemaps();
 		released += ReleaseUnusedAnimationClips();
+		released += ReleaseUnusedParticleEffects();
 		return released;
 	}
 }

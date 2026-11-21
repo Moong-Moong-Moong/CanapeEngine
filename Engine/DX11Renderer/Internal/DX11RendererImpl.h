@@ -51,6 +51,8 @@ namespace Canape
         uint32_t RequestedSceneWidth = 0;
         uint32_t RequestedSceneHeight = 0;
         std::function<void()> Overlay;
+        std::function<void()> AfterOpaqueCallback;
+        std::function<void()> AfterTransparentCallback;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;

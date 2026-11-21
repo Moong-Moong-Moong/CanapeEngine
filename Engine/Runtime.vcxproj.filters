@@ -10,6 +10,9 @@
     <Filter Include="Common\Math">
       <UniqueIdentifier>{707909B4-7794-FED7-35AC-B9B5BF50C71F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{91F12DF7-60E7-3887-D5AB-48D568C85A95}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{7FB241F9-384C-492C-AA5E-EC84F7832C27}</UniqueIdentifier>
     </Filter>
@@ -67,6 +70,9 @@
     <Filter Include="Source\Scene\Serialization">
       <UniqueIdentifier>{B705F4E3-572C-5544-997A-2F8E7D1CE0C0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Simulation">
+      <UniqueIdentifier>{1979D691-8EB2-4AD7-9544-7A951A21B6AB}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\ThirdParty">
       <UniqueIdentifier>{AD4FD8F4-B56F-AF91-E0CE-1FF63F1EEC75}</UniqueIdentifier>
     </Filter>
@@ -81,6 +87,9 @@
     </Filter>
     <Filter Include="Source\Asset\Animation">
       <UniqueIdentifier>{e19d5515-1434-4dbb-932e-3ef4bc346904}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Asset\Effect">
+      <UniqueIdentifier>{7c0f6b52-9a3e-4d1b-8f5a-2e6d4c1b9a70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -318,6 +327,27 @@
     <ClInclude Include="Source\Scene\Serialization\SceneSerializer.h">
       <Filter>Source\Scene\Serialization</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Simulation\SimulationScene.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\WaveSurfaces.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\WindComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\ParticleEffectComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\ParticleEffects.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Asset\Effect\ParticleEffectAsset.h">
+      <Filter>Source\Asset\Effect</Filter>
+    </ClInclude>
     <ClInclude Include="Source\ThirdParty\ufbx\ufbx.h">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClInclude>
@@ -500,6 +530,24 @@
     <ClCompile Include="Source\Scene\Serialization\SceneSerializer.cpp">
       <Filter>Source\Scene\Serialization</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Simulation\SimulationScene.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\WaveSurfaces.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\WindComponent.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\ParticleEffectComponent.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Simulation\ParticleEffects.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Effect\ParticleEffectAsset.cpp">
+      <Filter>Source\Asset\Effect</Filter>
+    </ClCompile>
     <ClCompile Include="Source\ThirdParty\ufbx\ufbx.c">
       <Filter>Source\ThirdParty\ufbx</Filter>
     </ClCompile>
@@ -521,5 +569,44 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Runtime.props" />
+    <None Include="Shader\Embers.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Fire.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Grass.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Leaves.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Meteors.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\ParticleEffect.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Rain.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Simulation.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Sky.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Stars.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Swell.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\WaveRipple.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\WaveSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

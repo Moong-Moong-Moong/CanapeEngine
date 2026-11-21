@@ -1,0 +1,14 @@
+{
+    "shader": "Shaders/Stars.hlsl",
+    "pass": "additive",
+    "vertices": 6,
+    "count": 4096,
+    "parameters": {
+        "FaintestWidth": 0.006,
+        "CoolColor": [0.16, 0.24, 0.5],
+        "WarmColor": [0.4, 0.32, 0.24],
+        "Extinction": 0.1,
+        "TwinkleRate": 5.0,
+        "Twinkle": 0.7
+    }
+}

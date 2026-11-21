@@ -24,6 +24,7 @@ namespace Canape
     class DX11Renderer;
     class GpuResourceRegistry;
     class Scene;
+    class Simulator;
 
     class Renderer final
     {
@@ -36,7 +37,7 @@ namespace Canape
 
         bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
 
-        void Render(Scene* scene, const AssetManager& assets);
+        void Render(Scene* scene, const AssetManager& assets, Simulator& simulator);
 
         // 다음 Render 한 번에만 그려진다. Render가 끝날 때까지 list를 살려 둘 것.
         void SetUIDrawList(const UIDrawList* list);

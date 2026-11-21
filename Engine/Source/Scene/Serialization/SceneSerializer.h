@@ -8,6 +8,7 @@ namespace Canape
 	class GameObject;
 	class JoltRuntime;
 	class Scene;
+	class Session;
 	class TransformComponent;
 
 	class SceneSerializer final
@@ -15,7 +16,7 @@ namespace Canape
 	public:
 		static bool Save(Scene& scene, const std::string& path);
 		static std::string SaveToString(Scene& scene);
-		static std::unique_ptr<Scene> Load(const std::string& path, JoltRuntime* physicsRuntime = nullptr);
+		static std::unique_ptr<Scene> Load(const std::string& path, JoltRuntime* physicsRuntime = nullptr, Session* simulationSession = nullptr);
 
 		static bool SavePrefab(GameObject& root, const std::string& path);
 		static GameObject* InstantiatePrefab(Scene& scene, const std::string& path, TransformComponent* parent = nullptr);

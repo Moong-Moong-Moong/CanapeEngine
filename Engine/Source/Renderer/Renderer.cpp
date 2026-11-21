@@ -6,6 +6,7 @@
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
+#include "Simulation/SimulationScene.h"
 
 namespace Canape
 {
@@ -191,7 +192,7 @@ namespace Canape
         m_DX11->DestroyTexture(texture);
     }
 
-    void Renderer::Render(Scene* scene, const AssetManager& assets)
+    void Renderer::Render(Scene* scene, const AssetManager& assets, Simulator& simulator)
     {
         if (!m_DX11->BeginFrame())
         {
@@ -201,6 +202,7 @@ namespace Canape
         }
 
         CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
+        bool sceneBuilt = false;
 
         if (m_ViewOverride)
         {
@@ -208,6 +210,7 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
+                sceneBuilt = true;
             }
         }
 
@@ -232,9 +235,30 @@ namespace Canape
             m_DX11->SetRenderView(view);
 
             scene->BuildRenderScene(assets, *this);
+            sceneBuilt = true;
         }
 
+        if (sceneBuilt)
+        {
+            if (SimulationScene* simulation = scene->GetSimulation())
+            {
+                m_DX11->SetAfterOpaqueCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterOpaque(simulator);
+                    }
+                );
+                m_DX11->SetAfterTransparentCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterTransparent(simulator);
+                    }
+                );
+            }
+        }
         m_DX11->DrawScene();
+        m_DX11->SetAfterOpaqueCallback(nullptr);
+        m_DX11->SetAfterTransparentCallback(nullptr);
         m_DX11->EndFrame();
     }
 

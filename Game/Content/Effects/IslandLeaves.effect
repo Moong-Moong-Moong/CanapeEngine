@@ -1,0 +1,24 @@
+{
+    "shader": "Shaders/Leaves.hlsl",
+    "pass": "opaque",
+    "vertices": 6,
+    "count": 256,
+    "parameters": {
+        "CalmDetachRate": 0.004,
+        "WindDetachRate": 0.006,
+        "Drag": 4.9,
+        "Flutter": 0.6,
+        "FlutterRate": 4.0,
+        "SizeRange": [0.2, 0.32],
+        "RestSeconds": 12.0,
+        "GroundRadius": 12.0,
+        "GroundCenter": [0.0, 0.0],
+        "GroundHeight": 0.0,
+        "SeaHeight": -0.6,
+        "SeaDrift": 0.15,
+        "FreshColor": [0.22, 0.48, 0.08],
+        "TurnedShare": 0.3,
+        "TurnedColor": [0.75, 0.5, 0.08],
+        "DryColor": [0.35, 0.22, 0.08]
+    }
+}

@@ -26,5 +26,8 @@ namespace Canape
 
 		// 1x1 quad in the XZ plane at y = 0, facing +Y.
 		static PrimitiveMeshData BuildPlane();
+
+		// Cylinder of radius 0.5 and height 1 centred on the origin, axis +Y; separate cap and side vertices.
+		static PrimitiveMeshData BuildCylinder(uint32_t segments = 32);
 	};
 }

@@ -7,8 +7,9 @@
 
 namespace Canape
 {
-	SceneManager::SceneManager(JoltRuntime* physicsRuntime)
+	SceneManager::SceneManager(JoltRuntime* physicsRuntime, Session* simulationSession)
 		: m_PhysicsRuntime(physicsRuntime)
+		, m_SimulationSession(simulationSession)
 	{
 	}
 
@@ -26,7 +27,13 @@ namespace Canape
 			return existing;
 		}
 
-		m_Scenes.push_back(std::make_unique<Scene>(name, m_PhysicsRuntime));
+		m_Scenes.push_back(
+            std::make_unique<Scene>(
+                name,
+                m_PhysicsRuntime,
+                m_SimulationSession
+            )
+        );
 		Scene* created = m_Scenes.back().get();
 
 		if (!m_activeScene)
@@ -98,7 +105,11 @@ namespace Canape
 
 	Scene* SceneManager::LoadSceneFromFile(const std::string& path)
 	{
-		std::unique_ptr<Scene> loaded = SceneSerializer::Load(path, m_PhysicsRuntime);
+		auto loaded = SceneSerializer::Load(
+            path,
+            m_PhysicsRuntime,
+            m_SimulationSession
+        );
 		if (!loaded)
 		{
 			return nullptr;

@@ -32,15 +32,19 @@ namespace
 
 void FlyCamera::ReturnHome()
 {
-    constexpr Canape::Vector3 homePosition{ 0.0f, 7.3f, -3.9f };
-    constexpr float homeYaw = 0.0f;
-    constexpr float homePitch = Canape::Math::ToDegrees(0.873f);
-
-    ApplyPose(homePosition, homeYaw, homePitch);
+    ApplyPose(m_HomePosition, m_HomeYaw, m_HomePitch);
 }
 
 void FlyCamera::Start()
 {
+    using namespace Canape;
+
+    const auto& transform = *GetTransform();
+    const auto look = toYawPitch(transform.GetRotation());
+
+    m_HomePosition = transform.GetPosition();
+    m_HomeYaw = look.Yaw;
+    m_HomePitch = look.Pitch;
     ReturnHome();
 }
 
