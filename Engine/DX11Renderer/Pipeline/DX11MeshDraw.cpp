@@ -51,7 +51,7 @@ namespace Canape::MeshDraw
         }
     }
 
-    void SubmitMain(const PreparedMeshDraw& draw, MeshDrawContext& context)
+    void SubmitMain(const PreparedMeshDraw& draw, MeshDrawContext& context, TransparentFace face)
     {
         UploadAndBindSkinning(draw, context);
         UploadAndBindObject(draw, context);
@@ -65,9 +65,10 @@ namespace Canape::MeshDraw
         const auto& settings = *context.DebugSettings;
         const DebugViewMode view = settings.enabled ? settings.viewMode : DebugViewMode::Final;
         const bool wireframe = settings.enabled && settings.wireframe;
-        const auto pipeline = context.Pipelines.Resolve(draw.Mesh->Format, alpha, view, wireframe);
+        const auto pipeline = context.Pipelines.Resolve(draw.Mesh->Format, alpha, view, wireframe, face);
 #else
-        const auto pipeline = context.Pipelines.Resolve(draw.Mesh->Format, alpha);
+        const auto pipeline = context.Pipelines.Resolve(draw.Mesh->Format, alpha,
+            DebugViewMode::Final, false, face);
 #endif
         RenderBindings::BindPipeline(context.Context, pipeline);
         RenderBindings::BindScene(context.Context, context.Scene);

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <vector>
 
 namespace Canape
@@ -55,6 +56,7 @@ namespace Canape
 		constexpr uint32_t kDdsMagic = 0x20534444;
 		constexpr uint32_t kFourCCDx10 = 0x30315844;
 		constexpr uint32_t kDdsdMipMapCount = 0x20000;
+		constexpr uint32_t kDdsdPitch = 0x8;
 		constexpr uint32_t kDdpfAlphaPixels = 0x1;
 		constexpr uint32_t kDdpfFourCC = 0x4;
 		constexpr uint32_t kDdpfRgb = 0x40;
@@ -66,6 +68,9 @@ namespace Canape
 		constexpr uint32_t kDxgiR8G8B8A8UnormSrgb = 29;
 		constexpr uint32_t kDxgiB8G8R8A8Unorm = 87;
 		constexpr uint32_t kDxgiB8G8R8A8UnormSrgb = 91;
+		constexpr uint32_t kDxgiR16G16B16A16Float = 10;
+		constexpr uint32_t kDxgiR32G32B32A32Float = 2;
+		constexpr uint32_t kD3dFmtA16B16G16R16F = 113;
 		constexpr uint32_t kMaxFaceSize = 16384;
 
 		enum class ChannelOrder { Rgba, Bgra, Rgbx, Bgrx };
@@ -102,7 +107,9 @@ namespace Canape
 			return fail("Invalid DDS header");
 
 		ChannelOrder order = ChannelOrder::Rgba;
+		TextureFormat format = TextureFormat::RGBA8_SRGB;
 		const DdsPixelFormat& pixelFormat = header.pixelFormat;
+		if (pixelFormat.size != sizeof(DdsPixelFormat)) return fail("Invalid DDS pixel format header");
 		if ((pixelFormat.flags & kDdpfFourCC) && pixelFormat.fourCC == kFourCCDx10)
 		{
 			DdsHeaderDx10 dx10{};
@@ -110,9 +117,21 @@ namespace Canape
 			if (dx10.resourceDimension != kDx10DimensionTexture2D || !(dx10.miscFlag & kDx10MiscTextureCube) || dx10.arraySize != 1)
 				return fail("DDS is not a single cubemap");
 			if (dx10.dxgiFormat == kDxgiR8G8B8A8Unorm || dx10.dxgiFormat == kDxgiR8G8B8A8UnormSrgb)
+			{
 				order = ChannelOrder::Rgba;
+				format = dx10.dxgiFormat == kDxgiR8G8B8A8UnormSrgb
+					? TextureFormat::RGBA8_SRGB : TextureFormat::RGBA8_UNORM;
+			}
 			else if (dx10.dxgiFormat == kDxgiB8G8R8A8Unorm || dx10.dxgiFormat == kDxgiB8G8R8A8UnormSrgb)
+			{
 				order = ChannelOrder::Bgra;
+				format = dx10.dxgiFormat == kDxgiB8G8R8A8UnormSrgb
+					? TextureFormat::RGBA8_SRGB : TextureFormat::RGBA8_UNORM;
+			}
+			else if (dx10.dxgiFormat == kDxgiR16G16B16A16Float)
+				format = TextureFormat::RGBA16_FLOAT;
+			else if (dx10.dxgiFormat == kDxgiR32G32B32A32Float)
+				format = TextureFormat::RGBA32_FLOAT;
 			else
 				return fail("Unsupported DDS pixel format");
 		}
@@ -120,33 +139,43 @@ namespace Canape
 		{
 			if (!(header.caps2 & kDdsCaps2Cubemap) || (header.caps2 & kDdsCaps2AllFaces) != kDdsCaps2AllFaces)
 				return fail("DDS is not a complete cubemap");
-			if (!(pixelFormat.flags & kDdpfRgb) || pixelFormat.rgbBitCount != 32)
+			if ((pixelFormat.flags & kDdpfFourCC) && pixelFormat.fourCC == kD3dFmtA16B16G16R16F)
+				format = TextureFormat::RGBA16_FLOAT;
+			else if (!(pixelFormat.flags & kDdpfRgb) || pixelFormat.rgbBitCount != 32)
 				return fail("Unsupported DDS pixel format");
-			const bool hasAlpha = (pixelFormat.flags & kDdpfAlphaPixels) && pixelFormat.aMask == 0xFF000000;
-			if (pixelFormat.rMask == 0x000000FF && pixelFormat.gMask == 0x0000FF00 && pixelFormat.bMask == 0x00FF0000)
-				order = hasAlpha ? ChannelOrder::Rgba : ChannelOrder::Rgbx;
-			else if (pixelFormat.rMask == 0x00FF0000 && pixelFormat.gMask == 0x0000FF00 && pixelFormat.bMask == 0x000000FF)
-				order = hasAlpha ? ChannelOrder::Bgra : ChannelOrder::Bgrx;
-			else
-				return fail("Unsupported DDS pixel format");
+			if (format != TextureFormat::RGBA16_FLOAT)
+			{
+				const bool hasAlpha = (pixelFormat.flags & kDdpfAlphaPixels) && pixelFormat.aMask == 0xFF000000;
+				if (pixelFormat.rMask == 0x000000FF && pixelFormat.gMask == 0x0000FF00 && pixelFormat.bMask == 0x00FF0000)
+					order = hasAlpha ? ChannelOrder::Rgba : ChannelOrder::Rgbx;
+				else if (pixelFormat.rMask == 0x00FF0000 && pixelFormat.gMask == 0x0000FF00 && pixelFormat.bMask == 0x000000FF)
+					order = hasAlpha ? ChannelOrder::Bgra : ChannelOrder::Bgrx;
+				else
+					return fail("Unsupported DDS pixel format");
+			}
 		}
 
 		if (header.width == 0 || header.width != header.height) return fail("DDS cubemap faces must be square");
 		if (header.width > kMaxFaceSize) return fail("DDS cubemap face size is too large");
 		const uint32_t mipLevels = (header.flags & kDdsdMipMapCount) && header.mipMapCount > 0 ? header.mipMapCount : 1;
 		if (mipLevels > 32 || (header.width >> (mipLevels - 1)) == 0) return fail("Invalid DDS mip count");
+		const uint32_t bytesPerPixel = CubemapBytesPerPixel(format);
+		if ((header.flags & kDdsdPitch) && uint64_t(header.pitchOrLinearSize) != uint64_t(header.width) * bytesPerPixel)
+			return fail("Unsupported DDS row pitch");
 
 		uint64_t byteCount = 0;
 		for (uint32_t mip = 0; mip < mipLevels; ++mip)
 		{
 			const uint64_t size = header.width >> mip;
-			byteCount += size * size * 4;
+			const uint64_t rowPitch = size * bytesPerPixel;
+			byteCount += rowPitch * size;
 		}
 		byteCount *= 6;
-		if (bytes.size() - offset < byteCount) return fail("DDS pixel data is truncated");
+		if (byteCount > std::numeric_limits<size_t>::max() || bytes.size() - offset < byteCount)
+			return fail("DDS pixel data is truncated");
 
 		std::vector<uint8_t> pixels(bytes.begin() + offset, bytes.begin() + offset + static_cast<size_t>(byteCount));
-		if (order != ChannelOrder::Rgba)
+		if (bytesPerPixel == 4 && order != ChannelOrder::Rgba)
 		{
 			for (size_t i = 0; i < pixels.size(); i += 4)
 			{
@@ -156,6 +185,6 @@ namespace Canape
 		}
 
 		if (outError) outError->clear();
-		return std::make_unique<CubemapAsset>(header.width, mipLevels, std::move(pixels));
+		return std::make_unique<CubemapAsset>(header.width, mipLevels, std::move(pixels), format);
 	}
 }

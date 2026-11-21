@@ -102,6 +102,10 @@
     <ClInclude Include="Source\Core\Time.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
+    <ClInclude Include="Source\UI\Text\UIFont.h" />
+    <ClInclude Include="Source\UI\Text\UIGlyphAtlas.h" />
+    <ClInclude Include="Source\UI\Text\UITextLayout.h" />
+    <ClInclude Include="Source\UI\UIBox.h" />
     <ClInclude Include="Source\UI\UIButton.h" />
     <ClInclude Include="Source\UI\UICanvasComponent.h" />
     <ClInclude Include="Source\UI\UIElement.h" />
@@ -109,6 +113,7 @@
     <ClInclude Include="Source\UI\UIPainter.h" />
     <ClInclude Include="Source\UI\UIPointerRouter.h" />
     <ClInclude Include="Source\UI\UISystem.h" />
+    <ClInclude Include="Source\UI\UIText.h" />
     <ClInclude Include="Source\UI\UITypes.h" />
     <ClInclude Include="Source\FSM\FsmCondition.h" />
     <ClInclude Include="Source\FSM\FsmData.h" />
@@ -186,6 +191,10 @@
     <ClCompile Include="Source\Core\Time.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\UI\Text\UIFont.cpp" />
+    <ClCompile Include="Source\UI\Text\UIGlyphAtlas.cpp" />
+    <ClCompile Include="Source\UI\Text\UITextLayout.cpp" />
+    <ClCompile Include="Source\UI\UIBox.cpp" />
     <ClCompile Include="Source\UI\UIButton.cpp" />
     <ClCompile Include="Source\UI\UICanvasComponent.cpp" />
     <ClCompile Include="Source\UI\UIElement.cpp" />
@@ -193,6 +202,7 @@
     <ClCompile Include="Source\UI\UIPainter.cpp" />
     <ClCompile Include="Source\UI\UIPointerRouter.cpp" />
     <ClCompile Include="Source\UI\UISystem.cpp" />
+    <ClCompile Include="Source\UI\UIText.cpp" />
     <ClCompile Include="Source\FSM\FsmReflection.cpp" />
     <ClCompile Include="Source\FSM\FsmState.cpp" />
     <ClCompile Include="Source\FSM\StateMachine.cpp" />

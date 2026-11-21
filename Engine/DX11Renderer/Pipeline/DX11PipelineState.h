@@ -10,6 +10,8 @@
 
 namespace Canape
 {
+    enum class TransparentFace { Both, Back, Front };
+
     // Borrowed pointers owned by DX11PipelineState. Resolve and bind within the current draw;
     // do not retain selections across initialization or renderer shutdown.
     struct DX11PipelineSelection
@@ -36,8 +38,9 @@ namespace Canape
 
         bool Initialize(ID3D11Device* device, std::string& error);
         DX11PipelineSelection Resolve(VertexFormat vertexFormat, AlphaMode alphaMode,
-            DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false) const;
-        DX11PipelineSelection ResolveFinalOutput(bool cameraDepth) const;
+            DebugViewMode debugView = DebugViewMode::Final, bool wireframe = false,
+            TransparentFace face = TransparentFace::Both) const;
+        DX11PipelineSelection ResolveFinalOutput(bool cameraDepth, bool multisampledDepth = false) const;
         DX11PipelineSelection ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const;
         bool SetShadowRasterizer(ID3D11Device* device, ShadowCullMode cullMode, float slopeBias, std::string& error);
         // Sampler is for PS s2; the skybox pass binds it separately from the generic s0 path.
@@ -82,12 +85,15 @@ namespace Canape
         Microsoft::WRL::ComPtr<ID3D11PixelShader> FinalOutputPixelShader;
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11PixelShader> CameraDepthPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> CameraDepthMSAAPixelShader;
 #endif
         Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> StaticInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> SkinnedInputLayout;
         Microsoft::WRL::ComPtr<ID3D11InputLayout> SkyboxInputLayout;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> TransparentBackRasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> TransparentFrontRasterizerState;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> ShadowRasterizerState;
 #if CANAPE_RENDER_DEBUG
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> WireframeRasterizerState;

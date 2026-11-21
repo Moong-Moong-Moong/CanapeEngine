@@ -5,6 +5,7 @@
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Canape
@@ -83,6 +84,8 @@ namespace Canape
 
 	bool AnimatorComponent::SetClip(const std::string& clipPath)
 	{
+		if (m_ClipPath == clipPath) return true;
+
 		m_ClipPath = clipPath;
 		m_Time = 0.0f;
 		m_Targets.clear();
@@ -100,16 +103,25 @@ namespace Canape
 		return assets.GetAnimationClip(m_Clip) != nullptr;
 	}
 
+	float AnimatorComponent::GetDuration() const
+	{
+		const AnimationClipAsset* clip = Application::Get().GetAssetManager().GetAnimationClip(m_Clip);
+		return clip ? clip->GetDuration() : 0.0f;
+	}
+
 	void AnimatorComponent::Bind(const AnimationClipAsset& clip) // track
 	{
 		const std::vector<AnimationTrack>& tracks = clip.GetTracks();
-		m_Targets.assign(tracks.size(), nullptr);
+		m_Targets.assign(tracks.size(), TrackTarget{});
 		m_LastKeys.assign(tracks.size(), 0);
 
 		TransformComponent* root = GetTransform();
 		for (size_t i = 0; i < tracks.size(); ++i)
 		{
-			m_Targets[i] = FindByPath(root, tracks[i].targetPath);
+			const std::string& path = tracks[i].targetPath;
+			m_Targets[i].transform = FindByPath(root, path);
+			m_Targets[i].isTranslationRoot =
+				tracks[i].property == AnimationProperty::Translation && std::count(path.begin(), path.end(), '/') == 1;
 		}
 	}
 
@@ -158,7 +170,7 @@ namespace Canape
 		for (size_t i = 0; i < tracks.size(); ++i)
 		{
 			const AnimationTrack& track = tracks[i];
-			TransformComponent* target = m_Targets[i];
+			TransformComponent* target = m_Targets[i].transform;
 			const uint32_t keyCount = track.GetKeyCount();
 			if (!target || keyCount == 0) // 타겟 본이 없거나 키 카운트가 0이면
 			{
@@ -181,13 +193,23 @@ namespace Canape
 			switch (track.property)
 			{
 			case AnimationProperty::Translation:
-				target->SetLocalPosition(Lerp(ReadVector3(track.values, key), ReadVector3(track.values, next), s));
+			{
+				Vector3 position = Lerp(ReadVector3(track.values, key), ReadVector3(track.values, next), s);
+				if (!m_rootMotion && m_Targets[i].isTranslationRoot)
+				{
+					const TransformComponent* parent = target->GetParent();
+					const Vector3 up = parent ? parent->GetWorldRotation().Inverse().Rotate(Vector3::Up).Normalized() : Vector3::Up;
+					const Vector3 anchor = ReadVector3(track.values, 0);
+					position = anchor + up * Vector3::Dot(position - anchor, up);
+				}
+				target->SetPosition(position);
 				break;
+			}
 			case AnimationProperty::Rotation:
-				target->SetLocalRotation(Slerp(ReadQuaternion(track.values, key), ReadQuaternion(track.values, next), s));
+				target->SetRotation(Slerp(ReadQuaternion(track.values, key), ReadQuaternion(track.values, next), s));
 				break;
 			case AnimationProperty::Scale:
-				target->SetLocalScale(Lerp(ReadVector3(track.values, key), ReadVector3(track.values, next), s));
+				target->SetScale(Lerp(ReadVector3(track.values, key), ReadVector3(track.values, next), s));
 				break;
 			}
 		}

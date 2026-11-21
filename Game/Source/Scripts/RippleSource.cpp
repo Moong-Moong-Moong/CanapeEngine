@@ -21,5 +21,5 @@ void RippleSource::Update()
     auto* simulation = GetOwnerObject()->GetScene()->GetSimulation();
     if(simulation == nullptr) return;
 
-    simulation->Disturb(GetTransform()->GetPosition(), radius, strength);
+    simulation->Disturb(GetTransform()->GetWorldPosition(), radius, strength);
 }

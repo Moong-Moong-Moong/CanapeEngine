@@ -59,7 +59,7 @@ namespace Canape
 
         WaveSurfaceGeometry geometryOf(const WaveSurfaceComponent& surface)
         {
-            const auto center = surface.GetTransform()->GetPosition();
+            const auto center = surface.GetTransform()->GetWorldPosition();
             const auto& size = surface.GetAreaSize();
 
             return {

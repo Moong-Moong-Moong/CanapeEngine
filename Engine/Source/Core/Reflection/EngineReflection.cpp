@@ -151,9 +151,9 @@ namespace Canape
 				.property("enabled", &Component::IsEnabled, &Component::SetEnabled);
 
 			registration::class_<TransformComponent>("TransformComponent")
-				.property("localPosition", &TransformComponent::GetLocalPosition, &TransformComponent::SetLocalPosition)
-				.property("localRotation", &TransformComponent::GetLocalRotation, &TransformComponent::SetLocalRotation)
-				.property("localScale", &TransformComponent::GetLocalScale, &TransformComponent::SetLocalScale)
+				.property("localPosition", &TransformComponent::GetPosition, &TransformComponent::SetPosition)
+				.property("localRotation", &TransformComponent::GetRotation, &TransformComponent::SetRotation)
+				.property("localScale", &TransformComponent::GetScale, &TransformComponent::SetScale)
 				.property("parent", &TransformComponent::GetParent, &TransformComponent::SetParent);
 
 			registration::class_<CameraComponent>("CameraComponent")
@@ -201,7 +201,8 @@ namespace Canape
 
 			registration::class_<AnimatorComponent>("AnimatorComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
-				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath);
+				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath)
+				.property("rootMotion", &AnimatorComponent::GetRootMotion, &AnimatorComponent::SetRootMotion);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
 

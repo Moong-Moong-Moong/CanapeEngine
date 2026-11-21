@@ -35,6 +35,11 @@ namespace Canape::RenderBindings
         context.PSSetShaderResources(2, 1, &resources.EnvironmentView);
         context.PSSetSamplers(2, 1, &resources.EnvironmentSampler);
         context.PSSetConstantBuffers(6, 1, &resources.SkyboxConstants);
+        ID3D11ShaderResourceView* iblViews[] = {
+            resources.IrradianceView, resources.PrefilteredView, resources.BRDFView };
+        context.PSSetShaderResources(6, 3, iblViews);
+        context.PSSetConstantBuffers(ShaderConstants::IBLSlot, 1, &resources.IBLBuffer);
+        context.PSSetSamplers(3, 1, &resources.BRDFSampler);
     }
 
     void BindPipeline(ID3D11DeviceContext& context, const DX11PipelineSelection& pipeline)

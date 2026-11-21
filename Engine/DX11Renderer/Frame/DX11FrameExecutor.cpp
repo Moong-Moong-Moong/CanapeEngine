@@ -4,9 +4,87 @@
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
 #include "CNDebug/DebugLog.h"
+#include <utility>
 
 namespace Canape
 {
+    void DX11Renderer::Impl::ClearEnvironmentIBL()
+    {
+        if (Context)
+        {
+            ID3D11ShaderResourceView* unbound[3]{};
+            Context->PSSetShaderResources(6, 3, unbound);
+        }
+        EnvironmentIBL = {};
+    }
+
+    void DX11Renderer::Impl::InvalidateIBL(CubemapResourceId cubemap)
+    {
+        if (EnvironmentIBL.SourceId == cubemap) ClearEnvironmentIBL();
+        if (FailedIBLSourceId == cubemap)
+        {
+            FailedIBLSourceId = {};
+            FailedIBLSourceView = nullptr;
+        }
+    }
+
+    void DX11Renderer::Impl::EnsureSceneIBL(CubemapResourceId cubemap,
+        ID3D11ShaderResourceView* source)
+    {
+        if (!cubemap.IsValid() || !source)
+        {
+            ClearEnvironmentIBL();
+            FailedIBLSourceId = {};
+            FailedIBLSourceView = nullptr;
+            return;
+        }
+        if (EnvironmentIBL.SourceId == cubemap && EnvironmentIBL.SourceView == source
+            && EnvironmentIBL.Irradiance.ShaderResourceView
+            && EnvironmentIBL.Prefiltered.ShaderResourceView && BRDFLUT.ShaderResourceView)
+            return;
+        ClearEnvironmentIBL(); // Single-environment cache; never expose the previous HDRI.
+        if (FailedIBLSourceId == cubemap && FailedIBLSourceView == source) return;
+        if (!IBLBakerAttempted)
+        {
+            IBLBakerAttempted = true;
+            std::string error;
+            IBLBakerReady = IBLBaker.Initialize(Device.Get(), Pipelines.ResolveFinalOutput(false).VS, error);
+            if (!IBLBakerReady)
+            {
+                LastError = "IBL baker initialization: " + error;
+                CN_LOG_RENDERER("IBL", LastError);
+                return;
+            }
+        }
+        if (!IBLBakerReady) return;
+
+        EnvironmentIBLResources pending;
+        pending.SourceId = cubemap;
+        pending.SourceView = source;
+        DX11BRDFLUT pendingBRDF;
+        std::string error;
+        const bool baked = IBLBaker.BakeIrradiance(Context.Get(), source, pending.Irradiance,
+                error, IBLSettings.IrradianceSamples)
+            && IBLBaker.BakePrefilteredEnvironment(Context.Get(), source, pending.Prefiltered,
+                error, IBLSettings.PrefilterSamples, IBLSettings.PrefilterFaceSize,
+                IBLSettings.PrefilterMipLevels)
+            && (BRDFLUT.ShaderResourceView || IBLBaker.BakeBRDFLUT(Context.Get(), pendingBRDF,
+                error, IBLSettings.BRDFSamples, IBLSettings.BRDFSize));
+        if (!baked)
+        {
+            FailedIBLSourceId = cubemap;
+            FailedIBLSourceView = source;
+            LastError = "IBL bake: " + error;
+            CN_LOG_RENDERER("IBL", LastError);
+            return;
+        }
+        pending.PrefilterMipCount = IBLSettings.PrefilterMipLevels;
+        EnvironmentIBL = std::move(pending);
+        if (pendingBRDF.ShaderResourceView) BRDFLUT = std::move(pendingBRDF);
+        FailedIBLSourceId = {};
+        FailedIBLSourceView = nullptr;
+    }
+
     // The executor is a module of existing Impl members, not another state owner.
     PreparedLighting DX11Renderer::Impl::ResolveLighting(std::span<const RenderLight> lights, bool allowShadow)
     {
@@ -63,8 +141,9 @@ namespace Canape
         debug = &DebugSettings;
         stats = &CurrentStats;
 #endif
+        // This is the SampleDesc applied to camera depth, including resource-creation fallback.
         const auto output = ScenePreparation::PrepareFinalOutput(Pipelines, SceneColorShaderResourceView.Get(),
-            depth, ShadowMap.ShaderView.Get(), ShadowActive, debug);
+            depth, ShadowMap.ShaderView.Get(), ShadowActive, debug, SelectedSceneSampleDesc.Count);
 #if CANAPE_RENDER_DEBUG
         if (output.DisplayDepth) ConstantBuffers::Upload(*Context.Get(), depthDisplay, output.DepthDisplay);
 #endif
@@ -74,7 +153,7 @@ namespace Canape
         postProcess.PostProcessingEnabled = postProcessSettings_.enabled ? 1u : 0u;
         postProcess.ToneMappingEnabled = postProcessSettings_.toneMappingEnabled ? 1u : 0u;
 #if CANAPE_RENDER_DEBUG
-        postProcess.DebugViewEnabled = DebugSettings.enabled && DebugSettings.viewMode != DebugViewMode::Final ? 1u : 0u;
+        postProcess.DebugViewEnabled = debug->enabled && debug->viewMode != DebugViewMode::Final ? 1u : 0u;
 #endif
         ConstantBuffers::Upload(*Context.Get(), PostProcessBuffer.Get(), postProcess);
         FinalOutputPass::Execute(output, *Context.Get(), target, width, height,
@@ -122,7 +201,10 @@ namespace Canape
         BeginFrameProfiling(context);
 #endif
 
-        // Linear RGB and alpha are stored directly in the FP16 SceneColor target.
+        // Clear any previous final-output/depth read before writing the scene targets.
+        ID3D11ShaderResourceView* unbound = nullptr;
+        context->PSSetShaderResources(0, 1, &unbound);
+        // Linear RGB and alpha are stored directly in the FP16 scene rendering target.
         const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
         context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), clearColor);
         context->ClearDepthStencilView(DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -203,6 +285,7 @@ namespace Canape
 #endif
 
             const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
+            EnsureSceneIBL(scene.skybox.cubemap, prepared.Skybox.Texture);
             ViewData = prepared.View;
             SceneData = prepared.Scene;
             ViewDirty = SceneDirty = true;
@@ -212,6 +295,10 @@ namespace Canape
             if (lighting.ShadowActive) RenderShadowPass(prepared);
             BindSharedConstants();
             ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), prepared.Skybox.Constants);
+            const auto iblBindings = GetSceneBindings();
+            const SC::IBLConstants iblConstants{
+                iblBindings.IBLAvailable ? 1u : 0u, iblBindings.PrefilterMipCount };
+            ConstantBuffers::Upload(*Context.Get(), IBLBuffer.Get(), iblConstants);
             auto draw = GetDrawContext();
             draw.BonePalettes = std::span<const Matrix4>{ prepared.BonePalettes };
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;
@@ -235,6 +322,8 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
             FinalOutputScope scope(ProfilerAvailable, Profiler, Context.Get());
 #endif
+
+            ResolveSceneColor();
 
             // UI goes after final output into a UNORM view of the same target, so the editor
             // viewport shows it too. The overlay (editor ImGui) still draws last.

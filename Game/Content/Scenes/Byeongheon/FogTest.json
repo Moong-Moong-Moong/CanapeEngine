@@ -1,0 +1,989 @@
+{
+    "version": 1,
+    "name": "FogTest",
+    "mainCamera": 3,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 3.0,
+                            "Z": -10.0
+                        },
+                        "localRotation": {
+                            "X": 0.1305262,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9914449
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Directional Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.4082179,
+                            "Y": -0.23456971,
+                            "Z": 0.10938165,
+                            "W": 0.87542605
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": false,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.0,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Distance Fog - Linear 18 to 75",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "FogComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "mode": "Linear",
+                        "color": {
+                            "X": 0.62,
+                            "Y": 0.7,
+                            "Z": 0.78
+                        },
+                        "startDistance": 18.0,
+                        "endDistance": 75.0,
+                        "density": 0.035
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Wide Ground - 18 x 105",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 40.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 18.0,
+                            "Y": 1.0,
+                            "Z": 105.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Plane",
+                        "materials": [
+                            "Content/Materials/M_FsmSampleFloor.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "name": "12m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.4,
+                            "Z": 2.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "12m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 2.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "name": "12m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 2.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 22,
+            "name": "24m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.5,
+                            "Z": 14.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 25,
+            "name": "24m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 14.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "24m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 14.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 30,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 31,
+            "name": "37m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 32,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.5,
+                            "Z": 27.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 34,
+            "name": "37m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 35,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 27.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 36,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 37,
+            "name": "37m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 38,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 27.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 40,
+            "name": "52m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.5,
+                            "Z": 42.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 42,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 43,
+            "name": "52m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 44,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 42.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 46,
+            "name": "52m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 42.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 48,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 49,
+            "name": "70m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.5,
+                            "Z": 60.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 52,
+            "name": "70m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 53,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 60.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 54,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 55,
+            "name": "70m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 60.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 58,
+            "name": "90m - Orange Cube",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5.0,
+                            "Y": 1.5,
+                            "Z": 80.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 2.0,
+                            "Y": 3.0,
+                            "Z": 2.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 60,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_FsmSamplePlayer.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 61,
+            "name": "90m - White Sphere",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 1.5,
+                            "Z": 80.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 3.0,
+                            "Y": 3.0,
+                            "Z": 3.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 63,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_PuzzlePayload.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 64,
+            "name": "90m - Green Column",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 65,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5.0,
+                            "Y": 2.0,
+                            "Z": 80.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.6,
+                            "Y": 4.0,
+                            "Z": 1.6
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_PuzzleGoal.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 67,
+            "name": "GameObject",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 68,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "Content/HDRI/ludwikowice_farmland_cube.dds",
+                        "brightness": 1.0,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "ambientIntensity": 0.0
+                    }
+                }
+            ]
+        }
+    ]
+}

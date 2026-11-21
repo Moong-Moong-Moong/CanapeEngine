@@ -1005,17 +1005,17 @@ namespace Canape
 			if (node.HasMember("translation"))
 			{
 				Value& t = node["translation"];
-				transform->SetLocalPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
+				transform->SetPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
 			}
 			if (node.HasMember("rotation"))
 			{
 				Value& r = node["rotation"];
-				transform->SetLocalRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
+				transform->SetRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
 			}
 			if (node.HasMember("scale"))
 			{
 				Value& s = node["scale"];
-				transform->SetLocalScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
+				transform->SetScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
 			}
 		}
 

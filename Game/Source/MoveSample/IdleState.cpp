@@ -10,21 +10,28 @@ RTTR_REGISTRATION
 
 void IdleState::Initialize()
 {
-    Handle<GameObject> handle = GetOwnerObject()->GetScene()->FindGameObjectByName("MasterChief_v5.7_walk_scl");
-    m_animator = GetOwnerObject()->GetScene()->GetGameObject(handle)->GetComponent<AnimatorComponent>();
-
+    m_animator = GetScene()->FindGameObjectByName("Knight")->GetComponent<AnimatorComponent>();
 }
 
 void IdleState::Enter()
 {
-    if (m_animator)
-    {
-        m_animator->Stop();
-    }
+    m_idleTimer = 0.0f;
+
+    if (!m_animator) return;
+     m_animator->Play();
+     m_animator->SetClip("Content/Models/Knight/idle.aclip");
 }
 
 void IdleState::Update([[maybe_unused]] float deltaTime)
 {
+    if (m_idleTimer <= m_longIdleTime)
+    {
+        m_idleTimer += deltaTime;
+    }
+    else
+    {
+        m_animator->SetClip("Content/Models/Knight/longidle.aclip");
+    }
 }
 
 void IdleState::Exit()

@@ -36,7 +36,7 @@ namespace Canape
 		Handle<GameObject> handle =
 			m_gameObjects.Find([&](GameObject* obj)->bool
 			{
-				return obj->GetName() == name;
+				return !obj->IsPendingDestroy() && obj->GetName() == name;
 			});
 
 		return handle;

@@ -22,7 +22,7 @@ namespace
     bool isRotated(const Canape::TransformComponent& transform)
     {
         constexpr float IdentityTolerance = 1.0e-4f;
-        return std::fabs(transform.GetRotation().Normalized().W) < 1.0f - IdentityTolerance;
+        return std::fabs(transform.GetWorldRotation().Normalized().W) < 1.0f - IdentityTolerance;
     }
 
     std::optional<WorldBox> worldBoxOf(const Canape::GameObject& piece)
@@ -33,7 +33,7 @@ namespace
         const auto& transform = *piece.GetTransform();
         // The box collider is measured with the lossy scale, like the body is.
         const Canape::Vector3 half = Canape::Abs(box->GetSize() * transform.GetLossyScale()) * 0.5f;
-        const Canape::Vector3 center = transform.GetPosition();
+        const Canape::Vector3 center = transform.GetWorldPosition();
         return WorldBox{ center - half, center + half };
     }
 

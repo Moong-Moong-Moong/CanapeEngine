@@ -27,7 +27,7 @@ std::optional<GoalRegion> GoalZone::GetRegion() const
     sizeLogged = false;
 
     constexpr float IdentityTolerance = 1.0e-4f;
-    const bool rotated = std::fabs(transform.GetRotation().Normalized().W) < 1.0f - IdentityTolerance;
+    const bool rotated = std::fabs(transform.GetWorldRotation().Normalized().W) < 1.0f - IdentityTolerance;
     if(rotated && !rotationLogged)
     {
         CN_LOG_GAME("puzzle", "'", GetOwnerObject()->GetName(), "': a zone is an axis-aligned box; its rotation is ignored");
@@ -35,7 +35,7 @@ std::optional<GoalRegion> GoalZone::GetRegion() const
     rotationLogged = rotated;
 
     return GoalRegion{
-        transform.GetPosition(),
+        transform.GetWorldPosition(),
         extent * 0.5f
     };
 }

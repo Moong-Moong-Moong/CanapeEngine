@@ -15,6 +15,7 @@ namespace Canape
 {
 	class GameObject;
 	class Component;
+	class TransformComponent;
 	class CameraComponent;
 	class AssetManager;
 	class Renderer;
@@ -33,6 +34,7 @@ namespace Canape
 		Scene& operator=(const Scene&) = delete;
 
 		const std::string& GetName() const { return m_Name; }
+		void SetName(std::string name) { m_Name = std::move(name); }
 
 		void BeginUpdate();
 		void Update();
@@ -45,10 +47,16 @@ namespace Canape
 
 		//***** GameObject
 		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");
-		void RemoveGameObject(const Handle<GameObject> handle);
-		GameObject* GetGameObject(const Handle<GameObject> handle);
-		Handle<GameObject> FindGameObjectByName(const std::string& name);
+		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr);
+		Handle<GameObject> FindGameObjectHandleByName(const std::string& name);
 		Handle<GameObject> FindGameObjectById(uint64_t id);
+
+		GameObject* GetGameObject(const Handle<GameObject> handle);
+		GameObject* FindGameObjectByName(const std::string& name);
+
+		void RemoveGameObject(const Handle<GameObject> handle);
+		void RemoveGameObject(GameObject* gameObject);
+
 		std::vector<GameObject*> GetAllGameObjects();
 
 		uint64_t GenerateId() { return ++m_LastId; }

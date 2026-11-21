@@ -224,6 +224,8 @@ namespace Canape::ScenePreparation
         data.FogStartDistance = scene.fog.startDistance;
         data.FogEndDistance = scene.fog.endDistance;
         data.FogMode = static_cast<uint32_t>(scene.fog.mode);
+        data.FogBaseHeight = scene.fog.baseHeight;
+        data.FogHeightFalloff = scene.fog.heightFalloff;
         return data;
     }
 
@@ -452,21 +454,25 @@ namespace Canape::ScenePreparation
 
     PreparedFinalOutput PrepareFinalOutput(const DX11PipelineState& pipelines,
         ID3D11ShaderResourceView* sceneColor, ID3D11ShaderResourceView* depth,
-        ID3D11ShaderResourceView* shadow, bool shadowActive, const RendererDebugSettings* debug)
+        ID3D11ShaderResourceView* shadow, bool shadowActive, const RendererDebugSettings* debug,
+        UINT cameraDepthSampleCount)
     {
         PreparedFinalOutput result;
+        bool multisampledDepth = false;
 #if CANAPE_RENDER_DEBUG
         const bool cameraDepth = debug && debug->enabled && debug->viewMode == DebugViewMode::CameraDepth;
         const bool shadowDepth = debug && debug->enabled && debug->viewMode == DebugViewMode::ShadowDepth && shadowActive;
         result.DisplayDepth = cameraDepth || shadowDepth;
         result.Texture = shadowDepth ? shadow : cameraDepth ? depth : sceneColor;
+        multisampledDepth = cameraDepth && cameraDepthSampleCount > 1;
         if (result.DisplayDepth)
             result.DepthDisplay = { shadowDepth ? 0.0f : debug->depthMin, shadowDepth ? 1.0f : debug->depthMax };
 #else
         (void)depth; (void)shadow; (void)shadowActive; (void)debug;
+        (void)cameraDepthSampleCount;
         result.Texture = sceneColor;
 #endif
-        result.Pipeline = pipelines.ResolveFinalOutput(result.DisplayDepth);
+        result.Pipeline = pipelines.ResolveFinalOutput(result.DisplayDepth, multisampledDepth);
         return result;
     }
 }

@@ -93,6 +93,9 @@
     <ClInclude Include="Pass\DX11FinalOutputPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
+    <ClInclude Include="Pass\DX11IBLBaker.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
     <ClInclude Include="Pass\DX11UIPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
@@ -161,6 +164,9 @@
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
+    <ClCompile Include="Pass\DX11IBLBaker.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
     <ClCompile Include="Pass\DX11UIPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
@@ -189,6 +195,9 @@
   <ItemGroup>
     <None Include="DX11Renderer.props" />
     <None Include="Shader\Common\Constants.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
+    <None Include="Shader\Common\Fog.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
     <None Include="Shader\Common\FullscreenTypes.hlsli">
@@ -223,6 +232,18 @@
     </None>
     <None Include="Shader\FinalOutput.hlsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\IBLBRDFIntegration.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\IBLIrradiance.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\IBLPrefilter.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Common\IBLSampling.hlsli">
+      <Filter>Shader\Common</Filter>
     </None>
     <None Include="Shader\Mesh.hlsl">
       <Filter>Shader</Filter>

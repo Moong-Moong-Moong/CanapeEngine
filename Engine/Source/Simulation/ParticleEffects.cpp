@@ -78,7 +78,7 @@ namespace Canape
             if(effect == nullptr) continue;
 
             const auto* transform = component->GetTransform();
-            const auto position = transform->GetPosition();
+            const auto position = transform->GetWorldPosition();
             const auto scale = transform->GetLossyScale();
             const EmitterVector emitterPosition{ position.X, position.Y, position.Z };
             const EmitterVector emitterScale{ scale.X, scale.Y, scale.Z };

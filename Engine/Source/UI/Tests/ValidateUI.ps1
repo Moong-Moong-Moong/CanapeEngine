@@ -13,6 +13,9 @@ if (-not $VisualStudioPath) {
     if (-not $VisualStudioPath) { throw 'A Visual Studio C++ installation is required.' }
 }
 $vcvars = Join-Path $VisualStudioPath 'VC/Auxiliary/Build/vcvars64.bat'
+# stb_truetype comes from the vcpkg manifest; build the solution once so vcpkg installs it.
+$stbInclude = Join-Path $repoRoot 'vcpkg_installed/x64-windows-static-md/x64-windows-static-md/include'
+if (-not (Test-Path (Join-Path $stbInclude 'stb_truetype.h'))) { throw "stb_truetype.h not found under $stbInclude. Build Runtime once to install vcpkg packages." }
 $msbuild = Join-Path $VisualStudioPath 'MSBuild/Current/Bin/MSBuild.exe'
 New-Item -ItemType Directory -Path (Join-Path $validationDir 'Shaders') -Force | Out-Null
 Copy-Item (Join-Path $repoRoot 'Engine/DX11Renderer/Shader/*') (Join-Path $validationDir 'Shaders') -Recurse -Force
@@ -26,7 +29,7 @@ fxc /nologo /WX /Zpr /T vs_5_0 /E VSMain /Fo NUL Engine\DX11Renderer\Shader\UI.h
 if errorlevel 1 exit /b %errorlevel%
 fxc /nologo /WX /Zpr /T ps_5_0 /E PSMain /Fo NUL Engine\DX11Renderer\Shader\UI.hlsl
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++23preview /EHsc /MDd /Z7 /W4 /WX /D_DEBUG /utf-8 /ICommon /IEngine /IEngine\Source Engine\Source\UI\Tests\UICoreValidation.cpp Engine\Source\UI\UIElement.cpp Engine\Source\UI\UIImage.cpp Engine\Source\UI\UIButton.cpp Engine\Source\UI\UIPainter.cpp Engine\Source\UI\UIPointerRouter.cpp /FoIntermediate\UIValidation\ /FeIntermediate\UIValidation\UICoreValidation.exe
+cl /nologo /std:c++23preview /EHsc /MDd /Z7 /W4 /WX /D_DEBUG /utf-8 /ICommon /IEngine /IEngine\Source /I"$stbInclude" Engine\Source\UI\Tests\UICoreValidation.cpp Engine\Source\UI\UIElement.cpp Engine\Source\UI\UIImage.cpp Engine\Source\UI\UIButton.cpp Engine\Source\UI\UIPainter.cpp Engine\Source\UI\UIPointerRouter.cpp Engine\Source\UI\UIBox.cpp Engine\Source\UI\UIText.cpp Engine\Source\UI\Text\UIFont.cpp Engine\Source\UI\Text\UIGlyphAtlas.cpp Engine\Source\UI\Text\UITextLayout.cpp /FoIntermediate\UIValidation\ /FeIntermediate\UIValidation\UICoreValidation.exe
 if errorlevel 1 exit /b %errorlevel%
 Intermediate\UIValidation\UICoreValidation.exe
 if errorlevel 1 exit /b %errorlevel%

@@ -7,6 +7,8 @@ namespace Canape
 {
     namespace
     {
+        constexpr DXGI_FORMAT SceneColorFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        constexpr DXGI_FORMAT CameraDepthViewFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
         struct SkyboxVertex { float Position[2]; };
         static_assert(sizeof(SkyboxVertex) == sizeof(float) * 2);
     }
@@ -26,6 +28,49 @@ namespace Canape
     DX11Renderer::Impl::~Impl()
     {
         Shutdown();
+    }
+
+    void DX11Renderer::Impl::InitializeSceneSampleDesc()
+    {
+        // Called once after device creation, before targets; resize does not recheck support.
+        SelectedSceneSampleDesc = { 1, 0 };
+        std::string fallbackReason;
+        if constexpr (RequestedSceneSampleCount == 4)
+        {
+            UINT colorQualityLevels = 0;
+            UINT depthQualityLevels = 0;
+            UINT colorFormatSupport = 0;
+            const HRESULT colorResult = Device->CheckMultisampleQualityLevels(
+                SceneColorFormat, RequestedSceneSampleCount, &colorQualityLevels);
+            // Check the typed DSV format, including when the debug depth texture is typeless.
+            const HRESULT depthResult = Device->CheckMultisampleQualityLevels(
+                CameraDepthViewFormat, RequestedSceneSampleCount, &depthQualityLevels);
+            const HRESULT resolveResult = Device->CheckFormatSupport(SceneColorFormat, &colorFormatSupport);
+
+            if (FAILED(colorResult))
+                fallbackReason = RendererHResultMessage(
+                    "CheckMultisampleQualityLevels(SceneColor R16G16B16A16_FLOAT, 4x)", colorResult);
+            else if (colorQualityLevels == 0)
+                fallbackReason = "SceneColor R16G16B16A16_FLOAT has no 4x quality levels";
+            else if (FAILED(depthResult))
+                fallbackReason = RendererHResultMessage(
+                    "CheckMultisampleQualityLevels(camera depth D24_UNORM_S8_UINT, 4x)", depthResult);
+            else if (depthQualityLevels == 0)
+                fallbackReason = "Camera depth D24_UNORM_S8_UINT has no 4x quality levels";
+            else if (FAILED(resolveResult))
+                fallbackReason = RendererHResultMessage("CheckFormatSupport(SceneColor)", resolveResult);
+            else if ((colorFormatSupport & D3D11_FORMAT_SUPPORT_MULTISAMPLE_RESOLVE) == 0)
+                fallbackReason = "SceneColor R16G16B16A16_FLOAT does not support MULTISAMPLE_RESOLVE";
+            else
+                SelectedSceneSampleDesc = { RequestedSceneSampleCount, 0 };
+        }
+
+        CN_LOG_RENDERER("MSAA", "Requested scene samples=", RequestedSceneSampleCount,
+            "; selected scene samples=", SelectedSceneSampleDesc.Count,
+            "; quality=", SelectedSceneSampleDesc.Quality,
+            "; fallback=", fallbackReason.empty() ? "no" : "yes",
+            "; reason=", fallbackReason.empty() ? "none" : fallbackReason.c_str(),
+            "; capability selection (scene targets not created yet)");
     }
 
 #if CANAPE_RENDER_DEBUG
@@ -54,6 +99,12 @@ namespace Canape
         MinGpuFrameId = 0;
 #endif
         Resources.Clear();
+        EnvironmentIBL = {};
+        BRDFLUT = {};
+        IBLBaker = DX11IBLBaker{};
+        IBLBakerAttempted = IBLBakerReady = false;
+        FailedIBLSourceId = {};
+        FailedIBLSourceView = nullptr;
         Pipelines = DX11PipelineState{};
         ShadowMap = {};
         SkyboxVertexBuffer.Reset();
@@ -61,6 +112,7 @@ namespace Canape
         FallbackShadowSampler.Reset();
         RenderTargetView.Reset();
         OverlayRenderTargetView.Reset();
+        SceneRenderTexture.Reset();
         SceneColorTexture.Reset();
         SceneColorRenderTargetView.Reset();
         SceneColorShaderResourceView.Reset();
@@ -80,6 +132,7 @@ namespace Canape
         MaterialBuffer.Reset();
         ViewBuffer.Reset();
         SkyboxViewBuffer.Reset();
+        IBLBuffer.Reset();
         SceneBuffer.Reset();
         LightBuffer.Reset();
         PostProcessBuffer.Reset();
@@ -88,6 +141,7 @@ namespace Canape
         SwapChain.Reset();
         Context.Reset();
         Device.Reset();
+        SelectedSceneSampleDesc = { 1, 0 };
 
         Window = nullptr;
         Width = Height = BackBufferWidth = BackBufferHeight = 0;
@@ -107,6 +161,7 @@ namespace Canape
         postProcessSettings_ = {};
         ShadowActive = false;
         AttemptedShadowResolution = UINT32_MAX;
+        IBLSettings = {};
     }
 
     bool DX11Renderer::Impl::EnsureShadowResources()
@@ -192,12 +247,35 @@ namespace Canape
         return { SceneColorRenderTargetView.Get(), DepthStencilView.Get(), Width, Height };
     }
 
+    void DX11Renderer::Impl::ResolveSceneColor()
+    {
+        if (SelectedSceneSampleDesc.Count == 1) return;
+
+        // Scene color/depth reads use PS t0. Release reads and all scene outputs before resolve.
+        Context->OMSetRenderTargets(0, nullptr, nullptr);
+        ID3D11ShaderResourceView* unbound = nullptr;
+        Context->PSSetShaderResources(0, 1, &unbound);
+        Context->ResolveSubresource(SceneColorTexture.Get(), 0, SceneRenderTexture.Get(), 0, SceneColorFormat);
+    }
+
     SceneBindings DX11Renderer::Impl::GetSceneBindings() const
     {
         ID3D11SamplerState* sampler = ShadowSettings.pcf ? ShadowMap.PcfSampler.Get() : ShadowMap.PointSampler.Get();
         if (!sampler) sampler = FallbackShadowSampler.Get();
-        return { GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr, sampler,
-            nullptr, Pipelines.ResolveSkybox().Sampler, nullptr };
+        SceneBindings bindings{ GetSceneBuffers(), ShadowActive ? ShadowMap.ShaderView.Get() : nullptr,
+            sampler, nullptr, Pipelines.ResolveSkybox().Sampler, nullptr };
+        bindings.IBLBuffer = IBLBuffer.Get();
+        bindings.BRDFSampler = Pipelines.ResolveSkybox().Sampler;
+        if (EnvironmentIBL.SourceId.IsValid() && EnvironmentIBL.Irradiance.ShaderResourceView
+            && EnvironmentIBL.Prefiltered.ShaderResourceView && BRDFLUT.ShaderResourceView)
+        {
+            bindings.IrradianceView = EnvironmentIBL.Irradiance.ShaderResourceView.Get();
+            bindings.PrefilteredView = EnvironmentIBL.Prefiltered.ShaderResourceView.Get();
+            bindings.BRDFView = BRDFLUT.ShaderResourceView.Get();
+            bindings.PrefilterMipCount = EnvironmentIBL.PrefilterMipCount;
+            bindings.IBLAvailable = true;
+        }
+        return bindings;
     }
 
     MeshDrawContext DX11Renderer::Impl::GetDrawContext()
@@ -304,136 +382,161 @@ namespace Canape
 
     bool DX11Renderer::Impl::CreateSceneTargets(uint32_t width, uint32_t height)
     {
-        // Preserve linear HDR lighting and blending until final composition.
-        D3D11_TEXTURE2D_DESC sceneColorDesc{};
-        sceneColorDesc.Width = width;
-        sceneColorDesc.Height = height;
-        sceneColorDesc.MipLevels = 1;
-        sceneColorDesc.ArraySize = 1;
-        sceneColorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        sceneColorDesc.SampleDesc.Count = 1;
-        sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
-        sceneColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-        HRESULT result = Device->CreateTexture2D(&sceneColorDesc, nullptr, &SceneColorTexture);
-        if (FAILED(result))
+        std::string error;
+        const auto createTargets = [this, width, height, &error]()
         {
-            LastError = RendererHResultMessage("ID3D11Device::CreateTexture2D(scene color)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
-        D3D11_RENDER_TARGET_VIEW_DESC sceneTargetDesc{};
-        sceneTargetDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        sceneTargetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-        result = Device->CreateRenderTargetView(SceneColorTexture.Get(), &sceneTargetDesc, &SceneColorRenderTargetView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateRenderTargetView(scene color)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC sceneResourceDesc{};
-        sceneResourceDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        sceneResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        sceneResourceDesc.Texture2D.MipLevels = 1;
-        result = Device->CreateShaderResourceView(SceneColorTexture.Get(), &sceneResourceDesc, &SceneColorShaderResourceView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateShaderResourceView(scene color)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
-        // Existing editor viewport output: SDR storage, sRGB encoding, raw UNORM UI sampling.
-        // This is the final output destination when an overlay is installed, not an HDR intermediate.
-        D3D11_TEXTURE2D_DESC displayDesc = sceneColorDesc;
-        displayDesc.Format = DXGI_FORMAT_R8G8B8A8_TYPELESS;
-        sceneTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        result = Device->CreateTexture2D(&displayDesc, nullptr, &DisplayTexture);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateTexture2D(display)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-        result = Device->CreateRenderTargetView(DisplayTexture.Get(), &sceneTargetDesc, &DisplayRenderTargetView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateRenderTargetView(display)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-        sceneTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        result = Device->CreateRenderTargetView(DisplayTexture.Get(), &sceneTargetDesc, &DisplayUIRenderTargetView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateRenderTargetView(display UI)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-        sceneResourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        result = Device->CreateShaderResourceView(DisplayTexture.Get(), &sceneResourceDesc, &DisplayShaderResourceView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateShaderResourceView(display)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
-        D3D11_TEXTURE2D_DESC depthDesc{};
-        depthDesc.Width = width;
-        depthDesc.Height = height;
-        depthDesc.MipLevels = 1;
-        depthDesc.ArraySize = 1;
+            auto failed = [&error](const char* operation, HRESULT result)
+            {
+                error = RendererHResultMessage(operation, result);
+                return false;
+            };
+            // Publish a complete set only. A failed attempt releases all partial resources
+            // before retrying, including the shared ComPtr references used in 1x mode.
+            ComPtr<ID3D11Texture2D> sceneRenderTexture;
+            ComPtr<ID3D11Texture2D> sceneColorTexture;
+            ComPtr<ID3D11RenderTargetView> sceneRenderTargetView;
+            ComPtr<ID3D11ShaderResourceView> sceneColorShaderResourceView;
+            ComPtr<ID3D11Texture2D> displayTexture;
+            ComPtr<ID3D11RenderTargetView> displayRenderTargetView;
+            ComPtr<ID3D11RenderTargetView> displayUIRenderTargetView;
+            ComPtr<ID3D11ShaderResourceView> displayShaderResourceView;
+            ComPtr<ID3D11Texture2D> depthTexture;
+            ComPtr<ID3D11DepthStencilView> depthStencilView;
 #if CANAPE_RENDER_DEBUG
-        depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+            ComPtr<ID3D11ShaderResourceView> depthShaderResourceView;
+#endif
+            const bool multisampled = SelectedSceneSampleDesc.Count > 1;
+            D3D11_TEXTURE2D_DESC sceneRenderDesc{};
+            sceneRenderDesc.Width = width;
+            sceneRenderDesc.Height = height;
+            sceneRenderDesc.MipLevels = 1;
+            sceneRenderDesc.ArraySize = 1;
+            sceneRenderDesc.Format = SceneColorFormat;
+            sceneRenderDesc.SampleDesc = SelectedSceneSampleDesc;
+            sceneRenderDesc.Usage = D3D11_USAGE_DEFAULT;
+            sceneRenderDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+            if (!multisampled) sceneRenderDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+            HRESULT result = Device->CreateTexture2D(&sceneRenderDesc, nullptr, &sceneRenderTexture);
+            if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(scene render)", result);
+
+            // Post processing always reads a single-sample HDR texture.
+            D3D11_TEXTURE2D_DESC sceneColorDesc = sceneRenderDesc;
+            sceneColorDesc.SampleDesc = { 1, 0 };
+            if (multisampled)
+            {
+                sceneColorDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+                result = Device->CreateTexture2D(&sceneColorDesc, nullptr, &sceneColorTexture);
+                if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(scene color resolve)", result);
+            }
+            else
+            {
+                sceneColorTexture = sceneRenderTexture;
+            }
+
+            D3D11_RENDER_TARGET_VIEW_DESC sceneTargetDesc{};
+            sceneTargetDesc.Format = SceneColorFormat;
+            sceneTargetDesc.ViewDimension = multisampled
+                ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
+            result = Device->CreateRenderTargetView(sceneRenderTexture.Get(), &sceneTargetDesc, &sceneRenderTargetView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateRenderTargetView(scene render)", result);
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC sceneResourceDesc{};
+            sceneResourceDesc.Format = SceneColorFormat;
+            sceneResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            sceneResourceDesc.Texture2D.MipLevels = 1;
+            result = Device->CreateShaderResourceView(sceneColorTexture.Get(), &sceneResourceDesc, &sceneColorShaderResourceView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(scene color)", result);
+
+            // SDR editor viewport output and UI remain single-sampled in both modes.
+            D3D11_TEXTURE2D_DESC displayDesc = sceneColorDesc;
+            displayDesc.Format = DXGI_FORMAT_R8G8B8A8_TYPELESS;
+            displayDesc.SampleDesc = { 1, 0 };
+            displayDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+            result = Device->CreateTexture2D(&displayDesc, nullptr, &displayTexture);
+            if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(display)", result);
+
+            D3D11_RENDER_TARGET_VIEW_DESC displayTargetDesc{};
+            displayTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+            displayTargetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+            result = Device->CreateRenderTargetView(displayTexture.Get(), &displayTargetDesc, &displayRenderTargetView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateRenderTargetView(display)", result);
+            displayTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            result = Device->CreateRenderTargetView(displayTexture.Get(), &displayTargetDesc, &displayUIRenderTargetView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateRenderTargetView(display UI)", result);
+            sceneResourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            result = Device->CreateShaderResourceView(displayTexture.Get(), &sceneResourceDesc, &displayShaderResourceView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(display)", result);
+
+            D3D11_TEXTURE2D_DESC depthDesc{};
+            depthDesc.Width = width;
+            depthDesc.Height = height;
+            depthDesc.MipLevels = 1;
+            depthDesc.ArraySize = 1;
+#if CANAPE_RENDER_DEBUG
+            depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 #else
-        depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depthDesc.Format = CameraDepthViewFormat;
 #endif
-        depthDesc.SampleDesc.Count = 1;
-        depthDesc.Usage = D3D11_USAGE_DEFAULT;
+            depthDesc.SampleDesc = SelectedSceneSampleDesc;
+            depthDesc.Usage = D3D11_USAGE_DEFAULT;
 #if CANAPE_RENDER_DEBUG
-        depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+            depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 #else
-        depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+            depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 #endif
+            result = Device->CreateTexture2D(&depthDesc, nullptr, &depthTexture);
+            if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(depth)", result);
 
-        result = Device->CreateTexture2D(&depthDesc, nullptr, &DepthTexture);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateTexture2D(depth)", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
-        D3D11_DEPTH_STENCIL_VIEW_DESC depthViewDesc{};
-        depthViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        depthViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-        result = Device->CreateDepthStencilView(DepthTexture.Get(), &depthViewDesc, &DepthStencilView);
-        if (FAILED(result))
-        {
-            LastError = RendererHResultMessage("ID3D11Device::CreateDepthStencilView", result);
-            CN_LOG_RENDERER("Error", LastError);
-            return false;
-        }
-
+            D3D11_DEPTH_STENCIL_VIEW_DESC depthViewDesc{};
+            depthViewDesc.Format = CameraDepthViewFormat;
+            depthViewDesc.ViewDimension = multisampled
+                ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
+            result = Device->CreateDepthStencilView(depthTexture.Get(), &depthViewDesc, &depthStencilView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateDepthStencilView", result);
 #if CANAPE_RENDER_DEBUG
-        D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
-        depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        depthResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        depthResourceDesc.Texture2D.MipLevels = 1;
-        result = Device->CreateShaderResourceView(DepthTexture.Get(), &depthResourceDesc, &DepthShaderResourceView);
-        if (FAILED(result))
+            D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
+            depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+            depthResourceDesc.ViewDimension = multisampled
+                ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D;
+            if (!multisampled) depthResourceDesc.Texture2D.MipLevels = 1;
+            result = Device->CreateShaderResourceView(depthTexture.Get(), &depthResourceDesc, &depthShaderResourceView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(depth)", result);
+#endif
+
+            SceneRenderTexture = std::move(sceneRenderTexture);
+            SceneColorTexture = std::move(sceneColorTexture);
+            SceneColorRenderTargetView = std::move(sceneRenderTargetView);
+            SceneColorShaderResourceView = std::move(sceneColorShaderResourceView);
+            DisplayTexture = std::move(displayTexture);
+            DisplayRenderTargetView = std::move(displayRenderTargetView);
+            DisplayUIRenderTargetView = std::move(displayUIRenderTargetView);
+            DisplayShaderResourceView = std::move(displayShaderResourceView);
+            DepthTexture = std::move(depthTexture);
+            DepthStencilView = std::move(depthStencilView);
+#if CANAPE_RENDER_DEBUG
+            DepthShaderResourceView = std::move(depthShaderResourceView);
+#endif
+            Width = width;
+            Height = height;
+            return true;
+        };
+
+        bool created = createTargets();
+        if (!created && SelectedSceneSampleDesc.Count > 1)
         {
-            LastError = RendererHResultMessage("ID3D11Device::CreateShaderResourceView(depth)", result);
+            CN_LOG_RENDERER("MSAA", error, "; falling back to 1x for scene color and camera depth");
+            SelectedSceneSampleDesc = { 1, 0 };
+            created = createTargets();
+        }
+        if (!created)
+        {
+            LastError = std::move(error);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }
-#endif
-
-        Width = width;
-        Height = height;
+        CN_LOG_RENDERER("MSAA", "Created scene targets: requested=", RequestedSceneSampleCount,
+            "; actual samples=", SelectedSceneSampleDesc.Count, "; quality=", SelectedSceneSampleDesc.Quality,
+            "; post processing/display/back buffer=1x");
         return true;
     }
 
@@ -442,7 +545,8 @@ namespace Canape
         const uint32_t sceneWidth = RequestedSceneWidth ? RequestedSceneWidth : width;
         const uint32_t sceneHeight = RequestedSceneHeight ? RequestedSceneHeight : height;
         const bool backBufferChanged = width != BackBufferWidth || height != BackBufferHeight;
-        const bool sceneChanged = sceneWidth != Width || sceneHeight != Height;
+        const bool sceneChanged = sceneWidth != Width || sceneHeight != Height
+            || !SceneRenderTexture || !SceneColorTexture || !DepthTexture;
         if (!backBufferChanged && !sceneChanged)
         {
             return true;
@@ -460,6 +564,7 @@ namespace Canape
             DisplayTexture.Reset();
             SceneColorShaderResourceView.Reset();
             SceneColorRenderTargetView.Reset();
+            SceneRenderTexture.Reset();
             SceneColorTexture.Reset();
 #if CANAPE_RENDER_DEBUG
             DepthShaderResourceView.Reset();
@@ -580,6 +685,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(skybox view constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::IBLConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &IBLBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(IBL constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

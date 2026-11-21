@@ -194,7 +194,7 @@ void PuzzleDirector::restart(PuzzleMode mode)
         if(const auto* camera = findComponent<FlyCamera>(*current))
         {
             const auto& transform = *camera->GetTransform();
-            director->carriedCamera = Canape::PhysicsPose{ transform.GetLocalPosition(), transform.GetLocalRotation() };
+            director->carriedCamera = Canape::PhysicsPose{ transform.GetPosition(), transform.GetRotation() };
         }
     }
     snapshotHandedOver = fromSnapshot;
@@ -214,8 +214,8 @@ void PuzzleDirector::carryCamera()
     if(!camera->GetStarted()) return;
 
     auto& transform = *camera->GetTransform();
-    transform.SetLocalPosition(carriedCamera->position);
-    transform.SetLocalRotation(carriedCamera->rotation);
+    transform.SetPosition(carriedCamera->position);
+    transform.SetRotation(carriedCamera->rotation);
     carriedCamera.reset();
 }
 

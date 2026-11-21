@@ -76,6 +76,8 @@ namespace Canape
             return fail();
         }
 
+        m_Impl->InitializeSceneSampleDesc();
+
         if (!m_Impl->CreateTargets(width, height) || !m_Impl->CreatePipeline()
             || !m_Impl->CreateSkyboxQuad()) return fail();
 #if CANAPE_RENDER_DEBUG
@@ -373,6 +375,9 @@ namespace Canape
 
     void DX11Renderer::DestroyCubemap(CubemapResourceId cubemap)
     {
+        m_Impl->InvalidateIBL(cubemap);
+        ID3D11ShaderResourceView* unbound = nullptr;
+        if (m_Impl->Context) m_Impl->Context->PSSetShaderResources(2, 1, &unbound);
         m_Impl->Resources.DestroyCubemap(cubemap);
     }
 

@@ -29,6 +29,33 @@ namespace Canape
 		bool operator==(const UIRect&) const = default;
 	};
 
+	//***** 네 변의 두께(여백, 9-slice 테두리 등)
+	struct UIEdges
+	{
+		float Left = 0.0f;
+		float Top = 0.0f;
+		float Right = 0.0f;
+		float Bottom = 0.0f;
+
+		constexpr UIEdges() = default;
+		constexpr UIEdges(float all) : Left(all), Top(all), Right(all), Bottom(all) {}
+		constexpr UIEdges(float left, float top, float right, float bottom) : Left(left), Top(top), Right(right), Bottom(bottom) {}
+
+		constexpr float Horizontal() const { return Left + Right; }
+		constexpr float Vertical() const { return Top + Bottom; }
+		bool operator==(const UIEdges&) const = default;
+	};
+
+	//*** 두 사각형의 교집합(겹치지 않으면 크기 0)
+	inline UIRect Intersect(const UIRect& a, const UIRect& b)
+	{
+		const float left = std::max(a.X, b.X);
+		const float top = std::max(a.Y, b.Y);
+		const float right = std::min(a.Right(), b.Right());
+		const float bottom = std::min(a.Bottom(), b.Bottom());
+		return { left, top, std::max(right - left, 0.0f), std::max(bottom - top, 0.0f) };
+	}
+
 	//***** sRGB 8비트 색, 알파는 straight
 	struct UIColor
 	{

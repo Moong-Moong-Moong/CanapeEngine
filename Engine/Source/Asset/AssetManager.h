@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace Canape
 {
@@ -45,6 +46,7 @@ namespace Canape
 		static void SetAssetRoot(const std::filesystem::path& root);
 		static std::filesystem::path GetAssetFile(const std::string& path);
 		static std::string ToAssetPath(const std::string& path);
+		static std::vector<std::string> GetBuiltinMeshPaths();
 
 		//***** Release
 		size_t ReleaseUnusedAssets();

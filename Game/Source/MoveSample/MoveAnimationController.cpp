@@ -38,33 +38,52 @@ void MoveAnimationController::Update()
     move.X = lastX;
     move.Z = lastZ;
 
-    Vector3 moveAmount = move * m_moveSpeed * Time::DeltaTime();
+    const bool attacking = m_stateMachine->IsStateActive("AttackState");
 
     TransformComponent* transform = GetTransform();
-    transform->SetLocalPosition(transform->GetLocalPosition() + moveAmount);
+    if (!attacking)
+    {
+        Vector3 moveAmount = move * m_moveSpeed * Time::DeltaTime();
+        transform->SetPosition(transform->GetPosition() + moveAmount);
+    }
 
     //***** 캐릭터 회전
-    if (!move.IsNearlyZero())
+    if (!attacking)
     {
-        Vector3 dir = move.Normalized();
-        Quaternion target = Quaternion::LookRotation(dir);
-        Quaternion rotationAmount = Quaternion::RotateTowards(
-            transform->GetLocalRotation(), target, Math::ToRadians(m_turnSpeed) * Time::DeltaTime()
-        );
-        transform->SetLocalRotation(rotationAmount);
-
+        TurnTowards(move);
     }
 
     //***** StateMachine 컨트롤
     m_stateMachine->SetFloat("moveSpeed", move.Length());
+    m_stateMachine->SetBool("attackInput", input.IsKeyPressed(Key::D));
+}
 
+void MoveAnimationController::LateUpdate()
+{
     //***** 애니메이션 실행
     m_stateMachine->Update(Time::DeltaTime());
 }
 
+void MoveAnimationController::SetMoveSpeed(float speed)
+{
+    m_moveSpeed = speed;
+}
 
 void MoveAnimationController::FixedUpdate()
 {
 }
 
+void MoveAnimationController::TurnTowards(const Vector3& direction)
+{
+    if (direction.IsNearlyZero())
+    {
+        return;
+    }
 
+    TransformComponent* transform = GetTransform();
+    Quaternion target = Quaternion::LookRotation(direction.Normalized());
+    Quaternion rotationAmount = Quaternion::RotateTowards(
+        transform->GetRotation(), target, Math::ToRadians(m_turnSpeed) * Time::DeltaTime()
+    );
+    transform->SetRotation(rotationAmount);
+}

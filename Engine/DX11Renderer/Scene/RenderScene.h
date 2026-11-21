@@ -36,7 +36,7 @@ namespace Canape
         bool castShadow = false;
     };
 
-    enum class FogMode : uint8_t { Disabled, Linear, Exp, Exp2 };
+    enum class FogMode : uint8_t { Disabled, Linear, Exp, Exp2, Height };
 
     struct RenderFog
     {
@@ -44,7 +44,9 @@ namespace Canape
         Vector3 color{ 0.5f, 0.5f, 0.5f }; // Linear RGB.
         float startDistance = 0.0f; // Linear.
         float endDistance = 100.0f; // Linear.
-        float density = 0.01f; // Exp, Exp2.
+        float density = 0.01f; // Exp, Exp2, Height (at baseHeight).
+        float baseHeight = 0.0f; // Height: reference world-space Y.
+        float heightFalloff = 0.1f; // Height: exponential density falloff per world unit.
     };
 
     struct RenderSkybox
@@ -62,7 +64,7 @@ namespace Canape
         std::vector<Matrix4> bonePalettes;
 
         Vector3 ambientColor{ 1.0f, 1.0f, 1.0f }; // Linear RGB.
-        float ambientIntensity = 0.1f;
+        float ambientIntensity = 0.0f;
         RenderFog fog{};
         RenderSkybox skybox{};
 
