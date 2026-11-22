@@ -3,6 +3,8 @@
 #include "Scene/Component/AnimatorComponent.h"
 #include "FSM/StateMachine.h"
 #include "input/InputManager.h"
+#include "Scene/Scene.h"
+#include "Scene/Component/CameraComponent.h"
 
 RTTR_REGISTRATION
 {
@@ -30,13 +32,29 @@ void MoveAnimationController::Update()
     float lastZ = 0.0f;
 
     Vector3 move = Vector3::Zero;
-    if (input.IsKeyDown(Key::Up)) lastZ = 1.0f;
-    if (input.IsKeyDown(Key::Down)) lastZ = -1.0f;
-    if (input.IsKeyDown(Key::Right)) lastX = 1.0f;
-    if (input.IsKeyDown(Key::Left)) lastX = -1.0f;
+    if (input.IsKeyDown(Key::W)) lastZ = 1.0f;
+    if (input.IsKeyDown(Key::S)) lastZ = -1.0f;
+    if (input.IsKeyDown(Key::D)) lastX = 1.0f;
+    if (input.IsKeyDown(Key::A)) lastX = -1.0f;
 
-    move.X = lastX;
-    move.Z = lastZ;
+    //*** 카메라 기준 이동: W는 카메라가 보는 방향, D는 카메라의 오른쪽 (수평면 기준)
+    Vector3 forward = Vector3::Forward;
+    if (CameraComponent* camera = GetOwnerObject()->GetScene()->GetMainCamera())
+    {
+        const Vector3 cameraForward = camera->GetTransform()->GetForward();
+        const Vector3 flat(cameraForward.X, 0.0f, cameraForward.Z);
+        if (!flat.IsNearlyZero())
+        {
+            forward = flat.Normalized();
+        }
+    }
+    const Vector3 right(forward.Z, 0.0f, -forward.X);
+
+    move = right * lastX + forward * lastZ;
+    if (move.Length() > 1.0f)
+    {
+        move = move.Normalized(); // 대각선도 같은 속도
+    }
 
     const bool attacking = m_stateMachine->IsStateActive("AttackState");
 
@@ -55,7 +73,7 @@ void MoveAnimationController::Update()
 
     //***** StateMachine 컨트롤
     m_stateMachine->SetFloat("moveSpeed", move.Length());
-    m_stateMachine->SetBool("attackInput", input.IsKeyPressed(Key::D));
+    m_stateMachine->SetBool("attackInput", input.IsKeyPressed(Key::F));
 }
 
 void MoveAnimationController::LateUpdate()
