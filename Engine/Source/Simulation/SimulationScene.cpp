@@ -133,4 +133,18 @@ namespace Canape
         RenderPassScope pass(simulator, additivePass, outer);
         particleEffects.Draw(simulator, ParticleEffectPass::Additive);
     }
+
+    void SimulationScene::RenderMirror(Simulator& simulator)
+    {
+        {
+            RenderPassScope pass(simulator, opaquePass, outer);
+            terrainGeneration.Draw(simulator);
+            particleEffects.Draw(simulator, ParticleEffectPass::Opaque);
+        }
+
+        {
+            RenderPassScope pass(simulator, additivePass, outer);
+            particleEffects.Draw(simulator, ParticleEffectPass::Additive);
+        }
+    }
 }

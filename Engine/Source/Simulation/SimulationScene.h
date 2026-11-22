@@ -68,5 +68,6 @@ namespace Canape
 
         void RenderAfterOpaque(Simulator&);
         void RenderAfterTransparent(Simulator&);
+        void RenderMirror(Simulator&);
     };
 }

@@ -128,7 +128,9 @@ namespace Canape
             ConstantBuffers::Upload(*Context.Get(), MirrorViewBuffer.Get(), *view);
             draw.Scene.Constants.View = MirrorViewBuffer.Get();
             RenderBindings::BindMainTargets(*Context.Get(), { Mirror.ColorView.Get(), Mirror.DepthView.Get(), Width, Height });
+            RenderBindings::BindScene(*Context.Get(), draw.Scene);
             MainPass::DrawOpaqueAndMasked(scene, draw);
+            if (MirrorCallback) MirrorCallback();
             BindMainTargets();
         }
         ID3D11ShaderResourceView* mirrorTexture = Mirror.ShaderView.Get();

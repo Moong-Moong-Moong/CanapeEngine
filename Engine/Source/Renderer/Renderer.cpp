@@ -263,11 +263,18 @@ namespace Canape
                         simulation->RenderAfterTransparent(simulator);
                     }
                 );
+                m_DX11->SetMirrorCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderMirror(simulator);
+                    }
+                );
             }
         }
         m_DX11->DrawScene();
         m_DX11->SetAfterOpaqueCallback(nullptr);
         m_DX11->SetAfterTransparentCallback(nullptr);
+        m_DX11->SetMirrorCallback(nullptr);
         m_DX11->EndFrame();
     }
 

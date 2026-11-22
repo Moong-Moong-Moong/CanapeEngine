@@ -152,6 +152,7 @@ namespace Canape
         Overlay = {};
         AfterOpaqueCallback = {};
         AfterTransparentCallback = {};
+        MirrorCallback = {};
         LastError.clear();
         ViewData = {};
         DirectX::XMStoreFloat4x4(&ViewData.View, DirectX::XMMatrixIdentity());

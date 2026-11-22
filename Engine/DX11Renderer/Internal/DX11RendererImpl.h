@@ -61,6 +61,7 @@ namespace Canape
         std::function<void()> Overlay;
         std::function<void()> AfterOpaqueCallback;
         std::function<void()> AfterTransparentCallback;
+        std::function<void()> MirrorCallback;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;

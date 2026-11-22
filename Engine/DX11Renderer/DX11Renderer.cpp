@@ -429,6 +429,11 @@ namespace Canape
         m_Impl->AfterTransparentCallback = std::move(callback);
     }
 
+    void DX11Renderer::SetMirrorCallback(std::function<void()> callback)
+    {
+        m_Impl->MirrorCallback = std::move(callback);
+    }
+
     void* DX11Renderer::GetNativeDevice() const
     {
         return m_Impl->Device.Get();
