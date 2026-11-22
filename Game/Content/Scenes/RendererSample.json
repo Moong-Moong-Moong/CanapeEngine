@@ -1,0 +1,281 @@
+{
+    "version": 1,
+    "name": "RendererSample",
+    "mainCamera": 4,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 2.3,
+                            "Z": -6.0
+                        },
+                        "localRotation": {
+                            "X": 0.09584575,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9953962
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "FlyCamera",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "moveSpeed": 8.0,
+                        "lookSensitivity": 0.17,
+                        "resetKey": "F"
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Sample Sun",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.25881904,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9659258
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 2.0,
+                        "range": 10.0,
+                        "innerAngle": 1.5,
+                        "outerAngle": 0.52,
+                        "castShadow": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "Sample Sky",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "SkyboxComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "cubemap": "Content/HDRI/galileo_cross.dds",
+                        "brightness": 1.0,
+                        "rotation": 0.0,
+                        "ambientColor": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "ambientIntensity": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Sample Floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 39.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 60.0,
+                            "Y": 1.0,
+                            "Z": 120.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Plane",
+                        "materials": [
+                            "Content/Materials/M_FsmSampleFloor.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Sample Fog",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "FogComponent",
+                    "id": 16,
+                    "properties": {
+                        "enabled": false,
+                        "mode": "Linear",
+                        "color": {
+                            "X": 0.62,
+                            "Y": 0.7,
+                            "Z": 0.78
+                        },
+                        "startDistance": 18.0,
+                        "endDistance": 75.0,
+                        "density": 0.035
+                    }
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Renderer Sample Controller",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "RendererSample",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true
+                    }
+                }
+            ]
+        }
+    ]
+}
