@@ -175,7 +175,7 @@ namespace Canape
 		//***Mesh
 		for (RenderableComponent* renderable : m_componentRegistry.GetRenderables())
 		{
-			if (IsRunnable(renderable))
+			if (renderable->IsVisible() && IsRunnable(renderable))
 				renderable->AddRenderItem(assets, renderer);
 		}
 

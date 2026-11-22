@@ -21,6 +21,10 @@ namespace Canape
 		float GetFarClip() const { return m_FarClip; }
 		void SetFarClip(float farClip) { m_FarClip = farClip; }
 
+		// 에디터 씬뷰의 카메라 프록시 메쉬 표시 여부. 게임에는 영향 없음.
+		bool IsProxyVisible() const { return m_ProxyVisible; }
+		void SetProxyVisible(bool visible) { m_ProxyVisible = visible; }
+
 		Matrix4 GetViewMatrix() const;
 		Matrix4 GetProjectionMatrix(float aspectRatio) const;
 		Matrix4 GetViewProjectionMatrix(float aspectRatio) const;
@@ -29,5 +33,6 @@ namespace Canape
 		float m_FieldOfView = 60.0f;
 		float m_NearClip = 0.1f;
 		float m_FarClip = 150.0f;
+		bool m_ProxyVisible = true;
 	};
 }

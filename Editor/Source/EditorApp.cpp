@@ -7,6 +7,7 @@
 #include <imgui_internal.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+#include <ImGuizmo.h>
 
 #include <Windows.h>
 #include <commdlg.h>
@@ -86,6 +87,15 @@ void EditorApp::OnInit()
     SetRunSceneScripts(false);
     InitImGui();
 
+    // Light/camera icons exist only in the editor and only while editing; the game never registers this.
+    GetRenderer().SetEditorSubmit([this](Scene& scene, Renderer& renderer)
+    {
+        if (!m_Playing)
+        {
+            m_ProxyMeshes.Submit(scene, renderer);
+        }
+    });
+
     GetSceneManager().SetSceneDirectory(EditorUtils::GetSceneDirectory().string() + "/");
 
     const std::filesystem::path defaultScene = EditorUtils::GetSceneDirectory() / "SampleScene.json";
@@ -130,13 +140,14 @@ void EditorApp::OnUpdate(float deltaTime)
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 
     HandleShortcuts();
     DrawMainMenu();
     DrawDockSpace();
 
     m_Hierarchy.Draw(m_Context, scene);
-    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(GetRenderer(), GetUISystem(), deltaTime, m_Playing);
+    const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(m_Context, scene, GetRenderer(), GetUISystem(), deltaTime, m_Playing);
     m_Inspector.Draw(m_Context, scene);
     m_FileBrowser.Draw(m_Context);
     m_DebugConsole.Draw(GetCommands());
@@ -165,6 +176,8 @@ void EditorApp::OnShutdown()
         SetRunSceneScripts(false);
         m_Playing = false;
     }
+    GetRenderer().SetEditorSubmit(nullptr);
+    m_ProxyMeshes.Release();
     ShutdownImGui();
 }
 

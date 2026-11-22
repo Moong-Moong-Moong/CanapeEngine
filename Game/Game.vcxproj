@@ -134,6 +134,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\MoveSample\MoveAnimationController.h" />
     <ClInclude Include="Source\MoveSample\PlayerCamera.h" />
     <ClInclude Include="Source\MoveSample\AttackState.h" />
+    <ClInclude Include="Source\Scripts\Camera\BackViewCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -169,6 +170,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\MoveSample\MoveAnimationController.cpp" />
     <ClCompile Include="Source\MoveSample\PlayerCamera.cpp" />
     <ClCompile Include="Source\MoveSample\AttackState.cpp" />
+    <ClCompile Include="Source\Scripts\Camera\BackViewCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Effects\Embers.effect" />

@@ -46,6 +46,9 @@
     <Filter Include="Source\Scripts">
       <UniqueIdentifier>{0BA211BE-3D2B-B761-B652-2DC5B033D0FD}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Scripts\Camera">
+      <UniqueIdentifier>{99979288-6040-D674-28F9-E98CBE6DED54}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\State">
       <UniqueIdentifier>{7D8AD952-DF75-0986-65B8-FF56C7237457}</UniqueIdentifier>
     </Filter>
@@ -66,6 +69,9 @@
     <ClInclude Include="Source\GameApp.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\MoveSample\AttackState.h">
+      <Filter>Source\MoveSample</Filter>
+    </ClInclude>
     <ClInclude Include="Source\MoveSample\IdleState.h">
       <Filter>Source\MoveSample</Filter>
     </ClInclude>
@@ -73,6 +79,9 @@
       <Filter>Source\MoveSample</Filter>
     </ClInclude>
     <ClInclude Include="Source\MoveSample\MoveState.h">
+      <Filter>Source\MoveSample</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MoveSample\PlayerCamera.h">
       <Filter>Source\MoveSample</Filter>
     </ClInclude>
     <ClInclude Include="Source\Puzzle\GoalCup.h">
@@ -102,17 +111,14 @@
     <ClInclude Include="Source\Scripts\CameraController.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\Camera\BackViewCamera.h">
+      <Filter>Source\Scripts\Camera</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\FlyCamera.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\MoveSample\PlayerCamera.h">
-      <Filter>Source\MoveSample</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\MoveSample\AttackState.h">
-      <Filter>Source\MoveSample</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scripts\PhysicsStatsLog.h">
       <Filter>Source\Scripts</Filter>
@@ -173,6 +179,9 @@
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\MoveSample\AttackState.cpp">
+      <Filter>Source\MoveSample</Filter>
+    </ClCompile>
     <ClCompile Include="Source\MoveSample\IdleState.cpp">
       <Filter>Source\MoveSample</Filter>
     </ClCompile>
@@ -180,6 +189,9 @@
       <Filter>Source\MoveSample</Filter>
     </ClCompile>
     <ClCompile Include="Source\MoveSample\MoveState.cpp">
+      <Filter>Source\MoveSample</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MoveSample\PlayerCamera.cpp">
       <Filter>Source\MoveSample</Filter>
     </ClCompile>
     <ClCompile Include="Source\Puzzle\GoalCup.cpp">
@@ -206,17 +218,14 @@
     <ClCompile Include="Source\Scripts\CameraController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scripts\Camera\BackViewCamera.cpp">
+      <Filter>Source\Scripts\Camera</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Scripts\FlyCamera.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">
       <Filter>Source\Scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MoveSample\PlayerCamera.cpp">
-      <Filter>Source\MoveSample</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MoveSample\AttackState.cpp">
-      <Filter>Source\MoveSample</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\PhysicsStatsLog.cpp">
       <Filter>Source\Scripts</Filter>

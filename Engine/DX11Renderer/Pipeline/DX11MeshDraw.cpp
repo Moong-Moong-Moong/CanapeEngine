@@ -75,6 +75,19 @@ namespace Canape::MeshDraw
         SubmitGeometry(draw, context);
     }
 
+    void SubmitOutlineMask(const PreparedMeshDraw& draw, MeshDrawContext& context, ID3D11Buffer* maskBuffer)
+    {
+        UploadAndBindSkinning(draw, context);
+        UploadAndBindObject(draw, context);
+        UploadAndBindMaterial(draw, context);
+        ShaderConstants::OutlineMaskConstants constants{};
+        constants.MaskId = draw.OutlineMaskId;
+        ConstantBuffers::Upload(context.Context, maskBuffer, constants);
+        context.Context.PSSetConstantBuffers(ShaderConstants::OutlineSlot, 1, &maskBuffer);
+        RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolveOutlineMask(draw.Mesh->Format));
+        SubmitGeometry(draw, context);
+    }
+
     void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context)
     {
         UploadAndBindSkinning(draw, context);

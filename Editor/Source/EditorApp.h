@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "EditorProxyMeshes.h"
 #include "Panels/DebugConsolePanel.h"
 #include "Panels/FileBrowserPanel.h"
 #include "Panels/HierarchyPanel.h"
@@ -49,6 +50,7 @@ private:
     SceneViewPanel m_SceneView;
     FileBrowserPanel m_FileBrowser;
     DebugConsolePanel m_DebugConsole;
+    EditorProxyMeshes m_ProxyMeshes;
 
     Canape::Scene* m_LastScene = nullptr;
     std::string m_PlaySnapshotPath;

@@ -9,6 +9,7 @@ namespace Canape
 	class ScriptComponent;
 	class RenderableComponent;
 	class LightComponent;
+	class CameraComponent;
 	class FogComponent;
 	class SkyboxComponent;
 	class RigidBodyComponent;
@@ -41,6 +42,7 @@ namespace Canape
 		std::span<ScriptComponent* const> GetScripts() const { return m_scripts; }
 		std::span<RenderableComponent* const> GetRenderables() const { return m_renderables; }
 		std::span<LightComponent* const> GetLights() const { return m_lights; }
+		std::span<CameraComponent* const> GetCameras() const { return m_cameras; }
 		std::span<FogComponent* const> GetFogs() const { return m_fogs; }
 		std::span<SkyboxComponent* const> GetSkyboxes() const { return m_skyboxes; }
 		std::span<RigidBodyComponent* const> GetRigidBodies() const { return m_rigidBodies; }
@@ -59,6 +61,7 @@ namespace Canape
 		std::vector<ScriptComponent*> m_scripts;
 		std::vector<RenderableComponent*> m_renderables;
 		std::vector<LightComponent*> m_lights;
+		std::vector<CameraComponent*> m_cameras;
 		std::vector<FogComponent*> m_fogs;
 		std::vector<SkyboxComponent*> m_skyboxes;
 		std::vector<RigidBodyComponent*> m_rigidBodies;

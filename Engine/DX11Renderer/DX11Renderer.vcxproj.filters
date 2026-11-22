@@ -48,6 +48,9 @@
     <ClInclude Include="Data\PostProcessSettings.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\OutlineStyle.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\MeshData.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
@@ -85,6 +88,9 @@
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Pass\DX11MainPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11OutlinePass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Pass\DX11SkyboxPass.h">
@@ -158,6 +164,9 @@
     <ClCompile Include="Pass\DX11MainPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
+    <ClCompile Include="Pass\DX11OutlinePass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
     <ClCompile Include="Pass\DX11SkyboxPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
@@ -203,6 +212,9 @@
     <None Include="Shader\Common\FullscreenTypes.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\OutlineCompositeCommon.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="Shader\Common\Lighting.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
@@ -234,6 +246,15 @@
       <Filter>Shader\Debug</Filter>
     </None>
     <None Include="Shader\FinalOutput.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\OutlineMask.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\OutlineComposite.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\OutlineCompositeMSAA.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\IBLBRDFIntegration.hlsl">

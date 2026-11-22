@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <utility>
+#include <unordered_map>
 #include "CNDebug/DebugLog.h"
 
 namespace Canape::ScenePreparation
@@ -405,10 +406,33 @@ namespace Canape::ScenePreparation
         result.Scene = BuildSceneConstants(scene);
         result.BonePalettes = scene.bonePalettes;
         result.Draws.reserve(scene.items.size() + scene.skinnedItems.size());
-        auto appendDraw = [&](PreparedMeshDraw draw, const Matrix4& world, bool castShadow)
+        std::unordered_map<uint64_t, uint32_t> outlineIds;
+        result.OutlineStyles.emplace_back();
+        result.OutlineStyles[0].Opacity = 0.0f;
+        result.OutlineStyles[0].Thickness = 0;
+        auto appendDraw = [&](PreparedMeshDraw draw, const Matrix4& world, bool castShadow,
+            uint64_t objectId, bool outlineEnabled, const OutlineStyle& submittedStyle)
         {
             const size_t index = result.Draws.size();
             const AlphaMode alpha = draw.Material.Description.alphaMode;
+            const auto style = SanitizeOutlineStyle(submittedStyle);
+            if (outlineEnabled && style.Opacity > 0.0f && objectId != 0 && alpha != AlphaMode::Transparent)
+            {
+                auto found = outlineIds.find(objectId);
+                if (found == outlineIds.end() && result.OutlineStyles.size() < UINT32_MAX)
+                {
+                    const auto maskId = static_cast<uint32_t>(result.OutlineStyles.size());
+                    found = outlineIds.emplace(objectId, maskId).first;
+                    // A component submits identical styles for all submeshes. First submission owns the ID's style.
+                    result.OutlineStyles.push_back(style);
+                    result.OutlineMaxThickness = std::max(result.OutlineMaxThickness, style.Thickness);
+                }
+                if (found != outlineIds.end())
+                {
+                    draw.OutlineMaskId = found->second;
+                    result.OutlineDraws.push_back(index);
+                }
+            }
             if (castShadow && alpha != AlphaMode::Transparent) result.ShadowCasters.push_back(index);
             switch (alpha)
             {
@@ -433,13 +457,13 @@ namespace Canape::ScenePreparation
                 CN_LOG_RENDERER("Draw", error);
                 continue;
             }
-            appendDraw(std::move(draw), item.world, item.castShadow);
+            appendDraw(std::move(draw), item.world, item.castShadow, item.objectId, item.outlineEnabled, item.outlineStyle);
         }
         for (const auto& item : scene.skinnedItems)
         {
             PreparedMeshDraw draw;
             if (!PrepareSkinnedMeshDraw(scene, resources, item, draw, error)) continue;
-            appendDraw(std::move(draw), item.world, item.castShadow);
+            appendDraw(std::move(draw), item.world, item.castShadow, item.objectId, item.outlineEnabled, item.outlineStyle);
         }
         std::stable_sort(result.Transparent.begin(), result.Transparent.end(), [&](size_t a, size_t b)
         {

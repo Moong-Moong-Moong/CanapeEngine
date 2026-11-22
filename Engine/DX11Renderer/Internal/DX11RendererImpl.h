@@ -84,7 +84,7 @@ namespace Canape
 
         ComPtr<ID3D11Device> Device;
         ComPtr<ID3D11DeviceContext> Context;
-        // Internal startup setting: change to 1 to disable the MSAA request for testing.
+        // Scene color, camera depth and object-ID masks use the same actual sample description.
         static constexpr UINT RequestedSceneSampleCount = 4;
         static_assert(RequestedSceneSampleCount == 1 || RequestedSceneSampleCount == 4);
         // Shared by scene rendering and camera depth; resource creation may fall back to 1x.
@@ -139,6 +139,17 @@ namespace Canape
         ComPtr<ID3D11ShaderResourceView> RetiredDisplayShaderResourceView;
         ComPtr<ID3D11Texture2D> DepthTexture;
         ComPtr<ID3D11DepthStencilView> DepthStencilView;
+        ComPtr<ID3D11Texture2D> OutlineMaskTexture;
+        ComPtr<ID3D11RenderTargetView> OutlineMaskTarget;
+        ComPtr<ID3D11ShaderResourceView> OutlineMaskView;
+        ComPtr<ID3D11Buffer> OutlineMaskBuffer;
+        ComPtr<ID3D11Buffer> OutlineCompositeBuffer;
+        ComPtr<ID3D11Buffer> OutlineStyleBuffer;
+        ComPtr<ID3D11ShaderResourceView> OutlineStyleView;
+        uint32_t OutlineStyleCapacity = 0;
+        uint32_t OutlineStyleCount = 0;
+        uint32_t OutlineMaxThickness = 0;
+        bool OutlineMaskReady = false;
         // Camera depth as a texture (Texture2DMS when MSAA). Read by the world-space UI depth
         // comparison in every configuration and by the debug depth view.
         ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
@@ -185,6 +196,11 @@ namespace Canape
         void ResolveSceneColor();
         void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
+        bool EnsureOutlineResources();
+        bool UploadOutlineStyles(const PreparedScene& scene);
+        void ReleaseOutlineResources();
+        bool OutlinesAllowed() const;
+        void ExecuteOutlineComposite(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void ExecuteUIPass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);
         void RenderOverlay();
         bool CreateTargets(uint32_t width, uint32_t height);

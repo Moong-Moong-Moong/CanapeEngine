@@ -3,6 +3,8 @@
 #include "EditorContext.h"
 #include "Panels/RenderDebugMenu.h"
 
+#include <imgui.h>
+
 class SceneViewPanel
 {
 public:
@@ -16,14 +18,24 @@ public:
     };
 
     // Also tells the UI system where the scene image sits so game UI receives the mouse while playing.
-    PlayRequest Draw(Canape::Renderer& renderer, Canape::UISystem& ui, float deltaTime, bool playing);
+    // In edit mode the selected object gets a transform gizmo.
+    PlayRequest Draw(EditorContext& context, Canape::Scene* scene, Canape::Renderer& renderer, Canape::UISystem& ui,
+        float deltaTime, bool playing);
     void FrameMainCamera(Canape::Scene* scene);
 
 private:
+    enum class GizmoOperation { Translate, Rotate, Scale };
+
     PlayRequest DrawToolbar(Canape::Renderer& renderer, bool playing);
+    void DrawGizmoToolbar();
+    void HandleGizmoShortcuts(bool hovered);
+    void DrawGizmo(Canape::GameObject* selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
     void UpdateCamera(bool hovered, float deltaTime);
     Canape::Quaternion GetRotation() const;
     Canape::RenderView BuildView(float aspectRatio) const;
+
+    GizmoOperation m_GizmoOperation = GizmoOperation::Translate;
+    bool m_GizmoLocal = false;
 
     RenderDebugMenu m_RenderDebugMenu;
     Canape::Vector3 m_Position{ 0.0f, 3.0f, -10.0f };

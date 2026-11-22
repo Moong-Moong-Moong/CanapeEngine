@@ -11,6 +11,22 @@
 
 namespace Canape::ShaderConstants
 {
+    inline constexpr uint32_t OutlineSlot = 11;
+    inline constexpr uint32_t OutlineStylesSlot = 9; // PS t9, independent of VS skinning b9.
+    struct alignas(16) OutlineMaskConstants
+    {
+        uint32_t MaskId = 0;
+        uint32_t Padding[3]{};
+    };
+    struct alignas(16) OutlineCompositeConstants
+    {
+        uint32_t StyleCount = 0;
+        uint32_t MaxThickness = 0;
+        float OutputWidth = 1.0f;
+        float OutputHeight = 1.0f;
+    };
+    static_assert(sizeof(OutlineMaskConstants) == 16);
+    static_assert(sizeof(OutlineCompositeConstants) == 16);
     // Per-draw palette capacity; keep in sync with Shader/Common/Skinning.hlsli.
     inline constexpr uint32_t MaxSkinMatrices = 256;
     inline constexpr uint32_t SkinningSlot = 9;
