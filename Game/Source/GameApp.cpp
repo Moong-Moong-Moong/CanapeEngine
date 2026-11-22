@@ -129,9 +129,11 @@ void GameApp::OnUpdate(float deltaTime)
     const Canape::InputManager& input = GetInputManager();
     if (input.IsKeyPressed(Canape::Key::Escape) || input.IsGamepadPressed(Canape::GamepadButton::Back))
     {
-        // 잠겨 있으면 첫 Esc는 포인터만 풀고, 풀린 상태에서 한 번 더 누르면 종료한다.
-        if (m_CursorLocked)
+        // 첫 Esc는 포인터만 풀고, 풀린 상태에서 한 번 더 누르면 종료한다.
+        // (퍼즐이 포인터를 요청해 이미 보이는 중이어도 첫 Esc로 바로 종료되지 않게 m_ReleasedByUser로 센다.)
+        if (!m_ReleasedByUser)
         {
+            m_ReleasedByUser = true;
             SetCursorLocked(false);
         }
         else
@@ -157,13 +159,15 @@ void GameApp::UpdateCursorLock()
         return;
     }
 
-    // 창이 막 활성화됐거나(시작 포함), 풀린 상태에서 창 안을 클릭하면 잠근다.
+    // 창이 막 활성화됐거나(시작 포함) 창 안을 클릭하면 Esc로 푼 상태를 끝낸다.
     const bool justFocused = !m_WasFocused;
     m_WasFocused = true;
-    if (!m_CursorLocked && (justFocused || GetInputManager().IsMousePressed(Canape::MouseButton::Left)))
+    if (justFocused || GetInputManager().IsMousePressed(Canape::MouseButton::Left))
     {
-        SetCursorLocked(true);
+        m_ReleasedByUser = false;
     }
+    // 스크립트가 포인터를 요청하는 동안에는 풀어 두고, 요청이 끝나면 다시 잠근다.
+    SetCursorLocked(!m_ReleasedByUser && !GetInputManager().IsCursorRequested());
 
     // 창이 움직이거나 크기가 바뀔 수 있으니 잠겨 있는 동안 매 프레임 가두는 영역을 갱신한다.
     if (m_CursorLocked)

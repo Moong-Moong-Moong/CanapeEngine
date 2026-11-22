@@ -98,6 +98,8 @@ void LeverConsole::Enter()
     SetPlayerControl(false);
     m_Active = true;
     m_Hud.SetShown(true);
+    // 돌을 마우스로 집으므로 퍼즐 중에는 포인터를 보여 달라고 요청한다(실행 파일의 포인터 잠금이 풀린다).
+    Application::Get().GetInputManager().SetCursorRequested(true);
 }
 
 void LeverConsole::Exit()
@@ -119,6 +121,7 @@ void LeverConsole::Exit()
     m_PreviousCamera = {};
     m_Active = false;
     m_Hud.SetShown(false);
+    Application::Get().GetInputManager().SetCursorRequested(false);
 }
 
 bool LeverConsole::GetMouseRay(Vector3& origin, Vector3& direction) const

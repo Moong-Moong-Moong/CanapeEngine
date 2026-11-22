@@ -103,6 +103,11 @@ namespace Canape
 		void SetPointerCapturedByUI(bool captured) { m_PointerCapturedByUI = captured; }
 		bool IsPointerCapturedByUI() const { return m_PointerCapturedByUI; }
 
+		// 게임 스크립트가 마우스 포인터를 보여 달라고 요청한다(마우스로 물건을 집는 퍼즐 등).
+		// 포인터를 숨기고 창에 가두는 앱(GameApp)은 요청이 켜져 있는 동안 잠금을 풀어 포인터를 보여 준다.
+		void SetCursorRequested(bool requested) { m_CursorRequested = requested; }
+		bool IsCursorRequested() const { return m_CursorRequested; }
+
 		bool IsGamepadDown(GamepadButton button) const { return m_Input.Gamepad.Buttons[Index(button)]; }
 		bool IsGamepadPressed(GamepadButton button) const { return m_Input.Gamepad.Buttons[Index(button)] && !m_Previous.Gamepad.Buttons[Index(button)]; }
 		bool IsGamepadReleased(GamepadButton button) const { return !m_Input.Gamepad.Buttons[Index(button)] && m_Previous.Gamepad.Buttons[Index(button)]; }
@@ -125,5 +130,6 @@ namespace Canape
 		void* m_WindowHandle = nullptr;
 		uint64_t m_NextGamepadPollTime = 0;
 		bool m_PointerCapturedByUI = false;
+		bool m_CursorRequested = false;
 	};
 }
