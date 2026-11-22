@@ -18,9 +18,9 @@ namespace Canape
 
     Renderer::~Renderer() = default;
 
-    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
+    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless)
     {
-        if (!m_DX11->Initialize(nativeWindow, width, height)) return false;
+        if (!m_DX11->Initialize(nativeWindow, width, height, headless)) return false;
         m_DX11->SetDebugSettings(m_DebugSettings);
         m_DebugSettings = m_DX11->GetDebugSettings();
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();

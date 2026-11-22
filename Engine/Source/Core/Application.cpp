@@ -53,7 +53,7 @@ namespace Canape
         m_InputManager->InitInput(m_Window->GetNativeHandle());
         m_Window->SetMessageObserver([this](const MSG& msg) { m_InputManager->ObserveInput(msg); });
 
-        if (!m_Renderer->Initialize(m_Window->GetNativeHandle(), m_Window->GetWidth(), m_Window->GetHeight()))
+        if (!m_Renderer->Initialize(m_Window->GetNativeHandle(), m_Window->GetWidth(), m_Window->GetHeight(), windowDesc.Headless))
         {
             throw std::runtime_error(m_Renderer->GetLastError());
         }
@@ -116,7 +116,6 @@ namespace Canape
 
             m_SceneManager->Update(m_RunSceneScripts);
 
-            if (!m_Headless)
             {
                 FrameScope frame(*m_Simulator);
                 Scene* activeScene = m_SceneManager->GetActiveScene();
@@ -124,24 +123,27 @@ namespace Canape
                 {
                     activeScene->Simulate(*m_Simulator);
                 }
-                const GpuResourceRegistry& registry = m_Renderer->GetRegistry();
-                const UITextureResolver resolver = [&registry](TextureAssetId texture) { return registry.GetResourceId(texture); };
-                Renderer& renderer = *m_Renderer;
-                UITextureDevice device;
-                device.Create = [&renderer](uint32_t width, uint32_t height, std::span<const uint8_t> rgba)
+                if (!m_Headless)
                 {
-                    return renderer.CreateTexture(width, height, TextureFormat::RGBA8_UNORM, rgba);
-                };
-                device.Update = [&renderer](TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
-                    std::span<const uint8_t> rgba)
-                {
-                    return renderer.UpdateTexture(texture, x, y, width, height, rgba);
-                };
-                // 월드 공간 UI도 렌더러와 같은 카메라(에디터 view override 포함)로 투영한다.
-                const std::optional<RenderView> view = m_Renderer->ResolveView(activeScene);
-                m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device,
-                    view ? &*view : nullptr);
-                m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
+                    const GpuResourceRegistry& registry = m_Renderer->GetRegistry();
+                    const UITextureResolver resolver = [&registry](TextureAssetId texture) { return registry.GetResourceId(texture); };
+                    Renderer& renderer = *m_Renderer;
+                    UITextureDevice device;
+                    device.Create = [&renderer](uint32_t width, uint32_t height, std::span<const uint8_t> rgba)
+                    {
+                        return renderer.CreateTexture(width, height, TextureFormat::RGBA8_UNORM, rgba);
+                    };
+                    device.Update = [&renderer](TextureResourceId texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                        std::span<const uint8_t> rgba)
+                    {
+                        return renderer.UpdateTexture(texture, x, y, width, height, rgba);
+                    };
+                    // 월드 공간 UI도 렌더러와 같은 카메라(에디터 view override 포함)로 투영한다.
+                    const std::optional<RenderView> view = m_Renderer->ResolveView(activeScene);
+                    m_UISystem->BuildDrawList(activeScene, m_Renderer->GetWidth(), m_Renderer->GetHeight(), resolver, device,
+                        view ? &*view : nullptr);
+                    m_Renderer->SetUIDrawList(&m_UISystem->GetDrawList());
+                }
                 m_Renderer->Render(activeScene, *m_AssetManager, *m_Simulator);
             }
 

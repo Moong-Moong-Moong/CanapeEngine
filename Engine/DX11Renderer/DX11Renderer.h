@@ -33,7 +33,7 @@ namespace Canape
         DX11Renderer(const DX11Renderer&) = delete;
         DX11Renderer& operator=(const DX11Renderer&) = delete;
 
-        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
+        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless);
         void Shutdown();
 
         MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);

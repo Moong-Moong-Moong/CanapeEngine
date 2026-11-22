@@ -144,6 +144,7 @@ namespace Canape
         SelectedSceneSampleDesc = { 1, 0 };
 
         Window = nullptr;
+        Headless = false;
         Width = Height = BackBufferWidth = BackBufferHeight = 0;
         RequestedSceneWidth = RequestedSceneHeight = 0;
         Overlay = {};

@@ -1,5 +1,5 @@
 // Integration check of the physics playground: the real JSON scene, opened through the SceneManager and played by the
-// real Application loop, headless: the window is hidden and the loop does not render. The checks run on a fiber that gives
+// real Application loop, headless: the window is hidden and nothing is drawn to the screen. The checks run on a fiber that gives
 // control back to the loop once per frame, so every frame is a real frame of Application::Run; time scale decides how many
 // fixed ticks a frame runs. Lane results are read from the game components' public state; the program changes nothing in
 // the game.
