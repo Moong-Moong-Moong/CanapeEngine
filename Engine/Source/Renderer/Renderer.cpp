@@ -222,6 +222,8 @@ namespace Canape
             return;
         }
 
+        bool sceneBuilt = false;
+
         const std::optional<RenderView> view = ResolveView(scene);
         if (!view)
         {
@@ -242,6 +244,7 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
+                sceneBuilt = true;
             }
         }
 
