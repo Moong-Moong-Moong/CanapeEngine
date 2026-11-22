@@ -2,6 +2,7 @@
 #include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/WaterVolumeComponent.h"
+#include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/FogComponent.h"
 #include "Scene/Component/LightComponent.h"
 #include "Scene/Component/RenderableComponent.h"
@@ -85,6 +86,11 @@ namespace Canape
 				m_lights.push_back(light);
 			}
 
+			if (CameraComponent* camera = dynamic_cast<CameraComponent*>(component))
+			{
+				m_cameras.push_back(camera);
+			}
+
 			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))
 			{
 				m_fogs.push_back(fog);
@@ -155,6 +161,11 @@ namespace Canape
 			if (LightComponent* light = dynamic_cast<LightComponent*>(component))
 			{
 				std::erase(m_lights, light);
+			}
+
+			if (CameraComponent* camera = dynamic_cast<CameraComponent*>(component))
+			{
+				std::erase(m_cameras, camera);
 			}
 
 			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))

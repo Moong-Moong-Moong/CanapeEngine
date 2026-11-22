@@ -45,6 +45,9 @@
     <ClInclude Include="Source\EditorContext.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\EditorProxyMeshes.h">
+      <Filter>Source</Filter>
+    </ClInclude>
     <ClInclude Include="Source\EditorUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -162,6 +165,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\EditorContext.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EditorProxyMeshes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\EditorUtils.cpp">

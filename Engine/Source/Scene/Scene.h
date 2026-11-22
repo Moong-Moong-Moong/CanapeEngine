@@ -71,6 +71,9 @@ namespace Canape
 
 		//*** 등록된 UI 캔버스(실행 가능 여부는 IsRunnable로 확인)
 		std::span<UICanvasComponent* const> GetUICanvases() const { return m_componentRegistry.GetUICanvases(); }
+		//*** 등록된 조명/카메라(에디터 아이콘 등). 실행 가능 여부는 IsRunnable로 확인
+		std::span<LightComponent* const> GetLights() const { return m_componentRegistry.GetLights(); }
+		std::span<CameraComponent* const> GetCameras() const { return m_componentRegistry.GetCameras(); }
 
 		//***** Camera
 		CameraComponent* GetMainCamera() ;

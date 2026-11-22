@@ -1,0 +1,331 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 91,
+            "name": "CampFire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 92,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Campfire Log 1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.09,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.4,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Campfire Log 2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.09,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.7071068,
+                            "Z": 0.0,
+                            "W": 0.7071067
+                        },
+                        "localScale": {
+                            "X": 1.4000001,
+                            "Y": 0.18,
+                            "Z": 0.18000002
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 16,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Campfire Log 3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.27,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -0.0,
+                            "Y": 0.38268292,
+                            "Z": -0.0,
+                            "W": 0.92387974
+                        },
+                        "localScale": {
+                            "X": 1.25,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "Campfire Log 4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.27,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": -0.0,
+                            "Y": -0.38268292,
+                            "Z": -0.0,
+                            "W": 0.92387974
+                        },
+                        "localScale": {
+                            "X": 1.25,
+                            "Y": 0.18,
+                            "Z": 0.18
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_CampfireLog.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 23,
+            "name": "Campfire Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.9,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Point",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 0.45,
+                            "Z": 0.15
+                        },
+                        "intensity": 1.5,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 47,
+            "name": "Campfire Fire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 48,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.4,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/Fire.effect"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 50,
+            "name": "Campfire Embers",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.5,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 92
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 52,
+                    "properties": {
+                        "enabled": true,
+                        "effect": "Content/Effects/Embers.effect"
+                    }
+                }
+            ]
+        }
+    ]
+}

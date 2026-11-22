@@ -17,6 +17,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 
 namespace Canape
 {
@@ -91,10 +92,15 @@ namespace Canape
         void SetPcfTapSpacingScale(float scale);
         void SetBlockerSearchRadius(float radius);
 
-        void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
+        void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+            bool castShadow = true);
         uint32_t AddBonePalette(std::span<const Matrix4> palette);
         void AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
             uint32_t paletteOffset, uint32_t paletteCount);
+
+        //***** 에디터 전용
+        // Scene::BuildRenderScene 직후마다 불린다. 에디터가 조명/카메라 아이콘 같은 추가 아이템을 넣는 자리.
+        void SetEditorSubmit(std::function<void(Scene&, Renderer&)> submit) { m_EditorSubmit = std::move(submit); }
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);
@@ -114,6 +120,8 @@ namespace Canape
         bool m_WarnedNoCamera = false;
         RendererDebugSettings m_DebugSettings{};
         ShadowFilterSettings m_ShadowFilterSettings{};
+
+        std::function<void(Scene&, Renderer&)> m_EditorSubmit;
 
         void ApplyDebugSettings();
         void ApplyShadowFilterSettings();

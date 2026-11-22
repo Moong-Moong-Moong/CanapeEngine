@@ -1,0 +1,21 @@
+{
+    "shader": "Shaders/Grass.hlsl",
+    "map": "Tile_091.png",
+    "pass": "opaque",
+    "vertices": 18,
+    "count": 16,
+    "parameters": {
+        "MapHalfExtent": 4.0,
+        "HeightRange": [0.65, 0.9],
+        "WindLean": 0.1,
+        "Flutter": 0.3,
+        "FlutterRate": 4.5,
+        "RestLean": 0.25,
+        "Stiffness": 60.0,
+        "MaxBend": 0.8,
+        "RootColor": [0.03, 0.06, 0.02],
+        "TipColor": [0.25, 0.45, 0.1],
+        "DryColor": [0.45, 0.42, 0.18],
+        "WidthRange": [0.02, 0.04]
+    }
+}
