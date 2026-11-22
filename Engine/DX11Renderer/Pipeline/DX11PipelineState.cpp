@@ -392,6 +392,22 @@ namespace Canape
 #endif
 
 
+        if (!CompileShaderFile(L"Shaders/OutlineMask.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error)) return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.OutlineMaskPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(outline mask)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/OutlineComposite.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error)) return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.OutlineCompositePixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(outline composite)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/OutlineCompositeMSAA.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, pixelBytecode, error)) return false;
+        result = device->CreatePixelShader(pixelBytecode->GetBufferPointer(), pixelBytecode->GetBufferSize(),
+            nullptr, &pending.OutlineCompositeMSAAPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(outline MSAA composite)", result); return false; }
+
         *this = std::move(pending);
         // Shadows are optional: a failed shadow shader must not disable the main renderer.
         std::string shadowError;
@@ -655,6 +671,24 @@ namespace Canape
             FinalOutputDepthState.Get(),
             LinearSampler.Get()
         };
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveOutlineMask(VertexFormat vertexFormat) const
+    {
+        // Reuse exactly the main pass vertex transforms, layouts, sampler and solid rasterizer.
+        auto pipeline = Resolve(vertexFormat, AlphaMode::Opaque);
+        pipeline.PS = OutlineMaskPixelShader.Get();
+        pipeline.Depth = SkyboxDepthState.Get(); // LESS_EQUAL, depth writes disabled.
+        return pipeline;
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveOutlineComposite(bool multisampled) const
+    {
+        auto pipeline = ResolveFinalOutput(false);
+        pipeline.PS = multisampled ? OutlineCompositeMSAAPixelShader.Get() : OutlineCompositePixelShader.Get();
+        // Reuse straight-alpha blending to composite sample coverage in linear SDR.
+        pipeline.Blend = TransparentBlendState.Get();
+        return pipeline;
     }
 
     DX11PipelineSelection DX11PipelineState::ResolveSkybox() const

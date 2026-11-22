@@ -86,10 +86,12 @@ namespace Canape
         void SetPcfTapSpacingScale(float scale);
         void SetBlockerSearchRadius(float radius);
 
-        void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world);
+        void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+            uint64_t objectId = 0, bool outlineEnabled = false, const OutlineStyle& outlineStyle = {});
         uint32_t AddBonePalette(std::span<const Matrix4> palette);
         void AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-            uint32_t paletteOffset, uint32_t paletteCount);
+            uint32_t paletteOffset, uint32_t paletteCount, uint64_t objectId = 0, bool outlineEnabled = false,
+            const OutlineStyle& outlineStyle = {});
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);

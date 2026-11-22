@@ -190,7 +190,11 @@ namespace Canape
 			registration::class_<MeshRendererComponent>("MeshRendererComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("mesh", &MeshRendererComponent::GetMeshPath, &MeshRendererComponent::SetMeshPath)
-				.property("materials", &MeshRendererComponent::GetMaterialNames, &MeshRendererComponent::SetMaterialNames);
+				.property("materials", &MeshRendererComponent::GetMaterialNames, &MeshRendererComponent::SetMaterialNames)
+				.property("outlineEnabled", &MeshRendererComponent::IsOutlineEnabled, &MeshRendererComponent::SetOutlineEnabled)
+				.property("outlineColor", &MeshRendererComponent::GetOutlineColor, &MeshRendererComponent::SetOutlineColor)
+				.property("outlineThickness", &MeshRendererComponent::GetOutlineThickness, &MeshRendererComponent::SetOutlineThickness)
+				.property("outlineOpacity", &MeshRendererComponent::GetOutlineOpacity, &MeshRendererComponent::SetOutlineOpacity);
 
 			registration::class_<SkinnedMeshRendererComponent>("SkinnedMeshRendererComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)

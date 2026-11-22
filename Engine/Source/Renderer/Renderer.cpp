@@ -238,7 +238,8 @@ namespace Canape
         m_DX11->EndFrame();
     }
 
-    void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world)
+    void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+        uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -247,6 +248,9 @@ namespace Canape
         }
 
         MeshItem item;
+        item.outlineStyle = outlineStyle;
+        item.objectId = objectId;
+        item.outlineEnabled = outlineEnabled;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
@@ -260,7 +264,7 @@ namespace Canape
     }
 
     void Renderer::AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-        uint32_t paletteOffset, uint32_t paletteCount)
+        uint32_t paletteOffset, uint32_t paletteCount, uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -269,6 +273,9 @@ namespace Canape
         }
 
         SkinnedMeshItem item;
+        item.outlineStyle = outlineStyle;
+        item.objectId = objectId;
+        item.outlineEnabled = outlineEnabled;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);

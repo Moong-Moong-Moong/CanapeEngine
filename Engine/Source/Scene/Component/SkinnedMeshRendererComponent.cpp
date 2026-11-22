@@ -90,7 +90,8 @@ namespace Canape
             {
                 materialId = material->GetAssetId();
             }
-            renderer.AddSkinnedRenderItem(mesh->GetAssetId(), i, materialId, world, paletteOffset, paletteCount);
+            renderer.AddSkinnedRenderItem(mesh->GetAssetId(), i, materialId, world, paletteOffset, paletteCount,
+                GetId(), IsOutlineEnabled(), GetOutlineStyle());
         }
     }
 }

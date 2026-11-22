@@ -123,6 +123,12 @@ namespace Canape
         RetiredDisplayShaderResourceView.Reset();
         DepthTexture.Reset();
         DepthStencilView.Reset();
+        ReleaseOutlineResources();
+        OutlineMaskBuffer.Reset();
+        OutlineCompositeBuffer.Reset();
+        OutlineStyleView.Reset();
+        OutlineStyleBuffer.Reset();
+        OutlineStyleCapacity = OutlineStyleCount = OutlineMaxThickness = 0;
 #if CANAPE_RENDER_DEBUG
         DepthShaderResourceView.Reset();
         DepthDisplayBuffer.Reset();
@@ -556,6 +562,7 @@ namespace Canape
 
         if (sceneChanged)
         {
+            ReleaseOutlineResources();
             RetiredDisplayShaderResourceView = std::move(DisplayShaderResourceView);
             DisplayRenderTargetView.Reset();
             DisplayUIRenderTargetView.Reset();
@@ -647,6 +654,21 @@ namespace Canape
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(constants)", result);
             CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::OutlineMaskConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &OutlineMaskBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("CreateBuffer(outline mask)", result);
+            return false;
+        }
+        constantBufferDesc.ByteWidth = sizeof(SC::OutlineCompositeConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &OutlineCompositeBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("CreateBuffer(outline composite)", result);
             return false;
         }
 
