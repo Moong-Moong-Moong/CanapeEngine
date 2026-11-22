@@ -293,6 +293,11 @@ namespace Canape
         m_Impl->QueuedScene.skybox = skybox;
     }
 
+    void DX11Renderer::SetMirrorPlaneHeight(float height)
+    {
+        m_Impl->QueuedScene.mirrorPlaneHeight = height;
+    }
+
     void DX11Renderer::SetAmbient(const Vector3& color, float intensity)
     {
         m_Impl->QueuedScene.ambientColor = color;

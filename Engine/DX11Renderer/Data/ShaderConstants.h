@@ -72,6 +72,8 @@ namespace Canape::ShaderConstants
     static_assert(sizeof(IBLConstants) == 16);
     static_assert(offsetof(IBLConstants, PrefilterMipCount) == 4);
 
+    inline constexpr uint32_t MirrorSlot = 11; // t11 in Common/Mirror.hlsli
+
     // Initial fixed capacities. Keep these in sync with Common/Constants.hlsli
     // and Shadow/ShadowConstants.hlsli.
     inline constexpr uint32_t MaxDirectionalLights = 4;

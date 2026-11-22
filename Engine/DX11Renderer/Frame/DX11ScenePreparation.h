@@ -4,6 +4,7 @@
 #include "DX11Renderer/Resource/DX11ResourceCache.h"
 #include "DX11Renderer/Pipeline/DX11PipelineState.h"
 
+#include <optional>
 #include <vector>
 
 namespace Canape
@@ -98,6 +99,8 @@ namespace Canape
             ID3D11ShaderResourceView* shadow, bool shadowActive, const RendererDebugSettings* debug,
             UINT cameraDepthSampleCount);
         ShaderConstants::ViewConstants BuildViewConstants(const float* view, const float* projection);
+        std::optional<ShaderConstants::ViewConstants> BuildMirrorViewConstants(
+            const ShaderConstants::ViewConstants& camera, float planeHeight);
         ShaderConstants::SceneConstants BuildSceneConstants(const RenderScene& scene);
         ShaderConstants::ObjectConstants BuildObjectConstants(const float* world);
         PreparedMaterial PrepareMaterial(const DX11ResourceCache& resources, MaterialResourceId material);

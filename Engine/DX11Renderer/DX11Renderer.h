@@ -83,6 +83,7 @@ namespace Canape
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(const RenderSkybox& skybox);
+        void SetMirrorPlaneHeight(float height);
         void SetAmbient(const Vector3& color, float intensity);
 
         bool BeginFrame();

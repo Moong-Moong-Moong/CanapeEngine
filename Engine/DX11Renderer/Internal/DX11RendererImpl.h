@@ -39,6 +39,13 @@ namespace Canape
             uint32_t Resolution = 0;
         };
 
+        struct MirrorResources
+        {
+            ComPtr<ID3D11RenderTargetView> ColorView;
+            ComPtr<ID3D11DepthStencilView> DepthView;
+            ComPtr<ID3D11ShaderResourceView> ShaderView;
+        };
+
         SC::ViewConstants ViewData{};
         SC::SceneConstants SceneData{};
         bool ViewDirty = true;
@@ -112,6 +119,7 @@ namespace Canape
         CubemapResourceId FailedIBLSourceId{};
         ID3D11ShaderResourceView* FailedIBLSourceView = nullptr;
         ShadowMapResources ShadowMap;
+        MirrorResources Mirror;
         ComPtr<ID3D11SamplerState> FallbackShadowSampler;
         ComPtr<IDXGISwapChain> SwapChain;
         ComPtr<ID3D11RenderTargetView> RenderTargetView;
@@ -137,6 +145,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> SkinningBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;
         ComPtr<ID3D11Buffer> ViewBuffer;
+        ComPtr<ID3D11Buffer> MirrorViewBuffer;
         ComPtr<ID3D11Buffer> SkyboxViewBuffer;
         ComPtr<ID3D11Buffer> IBLBuffer;
         ComPtr<ID3D11Buffer> SceneBuffer;
@@ -167,6 +176,7 @@ namespace Canape
         void InvalidateIBL(CubemapResourceId cubemap);
         MeshDrawContext GetDrawContext();
         void RenderShadowPass(const PreparedScene& scene);
+        void RenderMirrorPass(const PreparedScene& scene, MeshDrawContext draw, float planeHeight);
         void BindSharedConstants();
         void BindPipeline(const DX11PipelineSelection& pipeline);
         void DrawSkybox(const PreparedSkybox& skybox);

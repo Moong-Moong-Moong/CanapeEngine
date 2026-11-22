@@ -1,4 +1,5 @@
 #include "Common/Lighting.hlsli"
+#include "Common/Mirror.hlsli"
 #include "Simulation.hlsli"
 #include "Swell.hlsli"
 
@@ -111,5 +112,5 @@ float4 ps_main(WaveSurfaceVarying input) : SV_TARGET
 
     const float3 lighting = AmbientColor * AmbientIntensity
         + CalculateDirectLighting(input.WorldPosition, normal);
-    return float4(albedo * lighting + glint, 1.0);
+    return float4(albedo * lighting + glint + fresnel * MirrorColor(input.Position), 1.0);
 }

@@ -8,6 +8,12 @@
 
 namespace Canape
 {
+    namespace
+    {
+        // Linear RGB and alpha are stored directly in the FP16 scene rendering target.
+        constexpr float SceneClearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
+    }
+
     void DX11Renderer::Impl::ClearEnvironmentIBL()
     {
         if (Context)
@@ -111,6 +117,24 @@ namespace Canape
         ShadowPass::Execute(scene, draw, { ShadowMap.DepthView.Get(), ShadowMap.Resolution }, GetMainTargets());
     }
 
+    void DX11Renderer::Impl::RenderMirrorPass(const PreparedScene& scene, MeshDrawContext draw, float planeHeight)
+    {
+        ID3D11ShaderResourceView* unbound = nullptr;
+        Context->PSSetShaderResources(SC::MirrorSlot, 1, &unbound);
+        Context->ClearRenderTargetView(Mirror.ColorView.Get(), SceneClearColor);
+        Context->ClearDepthStencilView(Mirror.DepthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        if (const auto view = ScenePreparation::BuildMirrorViewConstants(ViewData, planeHeight))
+        {
+            ConstantBuffers::Upload(*Context.Get(), MirrorViewBuffer.Get(), *view);
+            draw.Scene.Constants.View = MirrorViewBuffer.Get();
+            RenderBindings::BindMainTargets(*Context.Get(), { Mirror.ColorView.Get(), Mirror.DepthView.Get(), Width, Height });
+            MainPass::DrawOpaqueAndMasked(scene, draw);
+            BindMainTargets();
+        }
+        ID3D11ShaderResourceView* mirrorTexture = Mirror.ShaderView.Get();
+        Context->PSSetShaderResources(SC::MirrorSlot, 1, &mirrorTexture);
+    }
+
     void DX11Renderer::Impl::DrawSkybox(const PreparedSkybox& skybox)
     {
         if (!skybox.Texture) return;
@@ -204,9 +228,7 @@ namespace Canape
         // Clear any previous final-output/depth read before writing the scene targets.
         ID3D11ShaderResourceView* unbound = nullptr;
         context->PSSetShaderResources(0, 1, &unbound);
-        // Linear RGB and alpha are stored directly in the FP16 scene rendering target.
-        const float clearColor[] = { 0.025f, 0.035f, 0.055f, 1.0f };
-        context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), clearColor);
+        context->ClearRenderTargetView(SceneColorRenderTargetView.Get(), SceneClearColor);
         context->ClearDepthStencilView(DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
         BindMainTargets();
@@ -293,7 +315,6 @@ namespace Canape
             ConstantBuffers::UploadLighting(*Context.Get(), GetSceneBuffers(), lighting);
             UploadPendingConstants();
             if (lighting.ShadowActive) RenderShadowPass(prepared);
-            BindSharedConstants();
             ConstantBuffers::Upload(*Context.Get(), SkyboxViewBuffer.Get(), prepared.Skybox.Constants);
             const auto iblBindings = GetSceneBindings();
             const SC::IBLConstants iblConstants{
@@ -303,6 +324,8 @@ namespace Canape
             draw.BonePalettes = std::span<const Matrix4>{ prepared.BonePalettes };
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;
             draw.Scene.SkyboxConstants = SkyboxViewBuffer.Get();
+            if (scene.mirrorPlaneHeight) RenderMirrorPass(prepared, draw, *scene.mirrorPlaneHeight);
+            BindSharedConstants();
             MainPass::DrawOpaqueAndMasked(prepared, draw);
             if (AfterOpaqueCallback) AfterOpaqueCallback();
             DrawSkybox(prepared.Skybox);

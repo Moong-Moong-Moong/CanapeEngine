@@ -328,6 +328,11 @@ namespace Canape
         m_DX11->SetSkybox(resolved);
     }
 
+    void Renderer::SetMirrorPlaneHeight(float height)
+    {
+        m_DX11->SetMirrorPlaneHeight(height);
+    }
+
     void Renderer::SetAmbient(const Vector3& color, float intensity)
     {
         m_DX11->SetAmbient(color, intensity);

@@ -107,6 +107,7 @@ namespace Canape
         FailedIBLSourceView = nullptr;
         Pipelines = DX11PipelineState{};
         ShadowMap = {};
+        Mirror = {};
         SkyboxVertexBuffer.Reset();
         SkyboxIndexBuffer.Reset();
         FallbackShadowSampler.Reset();
@@ -131,6 +132,7 @@ namespace Canape
         SkinningBuffer.Reset();
         MaterialBuffer.Reset();
         ViewBuffer.Reset();
+        MirrorViewBuffer.Reset();
         SkyboxViewBuffer.Reset();
         IBLBuffer.Reset();
         SceneBuffer.Reset();
@@ -407,6 +409,7 @@ namespace Canape
             ComPtr<ID3D11Texture2D> depthTexture;
             ComPtr<ID3D11DepthStencilView> depthStencilView;
             ComPtr<ID3D11ShaderResourceView> depthShaderResourceView;
+            MirrorResources mirror;
             const bool multisampled = SelectedSceneSampleDesc.Count > 1;
             D3D11_TEXTURE2D_DESC sceneRenderDesc{};
             sceneRenderDesc.Width = width;
@@ -496,6 +499,26 @@ namespace Canape
             result = Device->CreateShaderResourceView(depthTexture.Get(), &depthResourceDesc, &depthShaderResourceView);
             if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(depth)", result);
 
+            D3D11_TEXTURE2D_DESC mirrorColorDesc = sceneColorDesc;
+            mirrorColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+            ComPtr<ID3D11Texture2D> mirrorColorTexture;
+            result = Device->CreateTexture2D(&mirrorColorDesc, nullptr, &mirrorColorTexture);
+            if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(mirror color)", result);
+            result = Device->CreateRenderTargetView(mirrorColorTexture.Get(), nullptr, &mirror.ColorView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateRenderTargetView(mirror color)", result);
+            result = Device->CreateShaderResourceView(mirrorColorTexture.Get(), nullptr, &mirror.ShaderView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(mirror color)", result);
+
+            D3D11_TEXTURE2D_DESC mirrorDepthDesc = depthDesc;
+            mirrorDepthDesc.Format = CameraDepthViewFormat;
+            mirrorDepthDesc.SampleDesc = { 1, 0 };
+            mirrorDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+            ComPtr<ID3D11Texture2D> mirrorDepthTexture;
+            result = Device->CreateTexture2D(&mirrorDepthDesc, nullptr, &mirrorDepthTexture);
+            if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(mirror depth)", result);
+            result = Device->CreateDepthStencilView(mirrorDepthTexture.Get(), nullptr, &mirror.DepthView);
+            if (FAILED(result)) return failed("ID3D11Device::CreateDepthStencilView(mirror depth)", result);
+
             SceneRenderTexture = std::move(sceneRenderTexture);
             SceneColorTexture = std::move(sceneColorTexture);
             SceneColorRenderTargetView = std::move(sceneRenderTargetView);
@@ -507,6 +530,7 @@ namespace Canape
             DepthTexture = std::move(depthTexture);
             DepthStencilView = std::move(depthStencilView);
             DepthShaderResourceView = std::move(depthShaderResourceView);
+            Mirror = std::move(mirror);
             Width = width;
             Height = height;
             return true;
@@ -546,9 +570,11 @@ namespace Canape
         Context->OMSetRenderTargets(0, nullptr, nullptr);
         ID3D11ShaderResourceView* unbound = nullptr;
         Context->PSSetShaderResources(0, 1, &unbound);
+        Context->PSSetShaderResources(SC::MirrorSlot, 1, &unbound);
 
         if (sceneChanged)
         {
+            Mirror = {};
             RetiredDisplayShaderResourceView = std::move(DisplayShaderResourceView);
             DisplayRenderTargetView.Reset();
             DisplayUIRenderTargetView.Reset();
@@ -665,6 +691,14 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(view constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &MirrorViewBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(mirror view constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

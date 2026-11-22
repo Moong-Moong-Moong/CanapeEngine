@@ -141,6 +141,7 @@
     <None Include="Shader\Common\MeshSurface.hlsli" />
     <None Include="Shader\Common\MeshTransform.hlsli" />
     <None Include="Shader\Common\MeshTypes.hlsli" />
+    <None Include="Shader\Common\Mirror.hlsli" />
     <None Include="Shader\Common\Skinning.hlsli" />
     <None Include="Shader\Common\SkyboxEnvironment.hlsli" />
     <None Include="Shader\Debug\DepthDebug.hlsl" />

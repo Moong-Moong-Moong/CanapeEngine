@@ -6,6 +6,7 @@
 #include "Math/Vector3.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace Canape
@@ -67,6 +68,7 @@ namespace Canape
         float ambientIntensity = 0.0f;
         RenderFog fog{};
         RenderSkybox skybox{};
+        std::optional<float> mirrorPlaneHeight; // World-space Y.
 
         std::vector<RenderLight> lights;
     };
