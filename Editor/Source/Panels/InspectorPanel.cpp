@@ -1,5 +1,6 @@
 #include "Panels/InspectorPanel.h"
 #include "EditorUtils.h"
+#include "Simulation/SimulationScene.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -278,6 +279,18 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
             else if (ImGui::Button("Set Main Camera"))
             {
                 scene.SetMainCamera(camera);
+            }
+        }
+
+        if (auto* terrainGenerator = dynamic_cast<TerrainGeneratorComponent*>(&component))
+        {
+            if (auto* simulation = scene.GetSimulation())
+            {
+                BeginPropertyRow("terrain");
+                if (ImGui::Button("Generate"))
+                {
+                    simulation->GenerateTerrain(*terrainGenerator);
+                }
             }
         }
         ImGui::EndTable();

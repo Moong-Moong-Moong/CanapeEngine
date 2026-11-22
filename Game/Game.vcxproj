@@ -209,6 +209,7 @@ exit /b 0</Command>
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />
     <None Include="Content\Scenes\SampleScene2.json" />
+    <None Include="Content\Scenes\TerrainGen.json" />
     <None Include="Content\Texture\Enemy_BaseColor.png" />
     <None Include="Content\Texture\Enemy_ORM.png" />
     <None Include="Content\Texture\MaterialMaps_ORM.png" />

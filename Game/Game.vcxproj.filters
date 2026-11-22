@@ -370,6 +370,15 @@
     <None Include="..\Engine\Shader\Swell.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Terrain.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\TerrainSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\TerrainUplift.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\WaveRipple.hlsl">
       <Filter>Shader</Filter>
     </None>
@@ -488,6 +497,9 @@
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\SampleScene2.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\TerrainGen.json">
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Texture\Enemy_BaseColor.png">

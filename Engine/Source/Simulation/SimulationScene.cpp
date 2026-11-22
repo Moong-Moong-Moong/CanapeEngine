@@ -65,6 +65,11 @@ namespace Canape
         };
     }
 
+    void SimulationScene::GenerateTerrain(const TerrainGeneratorComponent& component)
+    {
+        terrainGeneration.Request(component);
+    }
+
     void SimulationScene::Simulate(
         Simulator& simulator,
         const ComponentRegistry& registry,
@@ -87,6 +92,12 @@ namespace Canape
         outer.Upload(values);
         waveSurfaces.Update(session, registry.GetWaveSurfaces());
         particleEffects.Update(session, registry.GetParticleEffects());
+        terrainGeneration.Update(session, registry.GetTerrainGenerators());
+
+        {
+            ComputePassScope pass(simulator, computePass, outer);
+            terrainGeneration.Step(simulator);
+        }
 
         const auto steppedTime = std::clamp(dt, 0.0f, MaxSteppedTime);
         // Equal steps, each as long as the ripples allow at most.
@@ -113,6 +124,7 @@ namespace Canape
     {
         RenderPassScope pass(simulator, opaquePass, outer);
         waveSurfaces.Draw(simulator);
+        terrainGeneration.Draw(simulator);
         particleEffects.Draw(simulator, ParticleEffectPass::Opaque);
     }
 

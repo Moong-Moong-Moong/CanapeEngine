@@ -14,6 +14,7 @@ namespace Canape
 	class RigidBodyComponent;
 	class HingeComponent;
 	class WaterVolumeComponent;
+	class TerrainGeneratorComponent;
 	class WaveSurfaceComponent;
 	class WindComponent;
 	class ParticleEffectComponent;
@@ -45,6 +46,7 @@ namespace Canape
 		std::span<RigidBodyComponent* const> GetRigidBodies() const { return m_rigidBodies; }
 		std::span<HingeComponent* const> GetHinges() const { return m_hinges; }
 		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
+		std::span<TerrainGeneratorComponent* const> GetTerrainGenerators() const { return m_terrainGenerators; }
 		std::span<WaveSurfaceComponent* const> GetWaveSurfaces() const { return m_waveSurfaces; }
 		std::span<WindComponent* const> GetWinds() const { return m_winds; }
 		std::span<ParticleEffectComponent* const> GetParticleEffects() const { return m_particleEffects; }
@@ -62,6 +64,7 @@ namespace Canape
 		std::vector<RigidBodyComponent*> m_rigidBodies;
 		std::vector<HingeComponent*> m_hinges;
 		std::vector<WaterVolumeComponent*> m_waterVolumes;
+		std::vector<TerrainGeneratorComponent*> m_terrainGenerators;
 		std::vector<WaveSurfaceComponent*> m_waveSurfaces;
 		std::vector<WindComponent*> m_winds;
 		std::vector<ParticleEffectComponent*> m_particleEffects;
