@@ -20,6 +20,7 @@ static const SwellWave SwellWaves[SwellWaveCount] = {
     { 0.29, 0.2, -0.9 }
 };
 
+// Mirrors swellHeight in Source/Simulation/SimulationScene.cpp.
 // The swell the wind raises at xz, over the sea's base height. A wave shorter than shortestWavelength fades out.
 float SwellHeight(float2 xz, float shortestWavelength, out float2 gradient)
 {

@@ -137,6 +137,9 @@
     <ClCompile Include="..\Game\Source\Scripts\RippleSource.cpp">
       <Filter>Source\GameScripts\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="..\Game\Source\Scripts\SwellRider.cpp">
+      <Filter>Source\GameScripts\Scripts</Filter>
+    </ClCompile>
     <ClCompile Include="..\Game\Source\Scripts\SceneChanger.cpp">
       <Filter>Source\GameScripts\Scripts</Filter>
     </ClCompile>

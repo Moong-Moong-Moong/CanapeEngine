@@ -849,6 +849,55 @@
                     }
                 }
             ]
+        },
+        {
+            "id": 67,
+            "name": "Raft",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 68,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 10.0,
+                            "Y": -0.6,
+                            "Z": 15.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.707107,
+                            "Z": 0.0,
+                            "W": 0.707107
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "mesh": "Content/Models/Raft/Raft.gltf",
+                        "materials": []
+                    }
+                },
+                {
+                    "type": "SwellRider",
+                    "id": 70,
+                    "properties": {
+                        "enabled": true,
+                        "lengthMeters": 4.9,
+                        "widthMeters": 2.9
+                    }
+                }
+            ]
         }
     ]
 }
