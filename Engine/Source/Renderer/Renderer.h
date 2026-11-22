@@ -93,10 +93,12 @@ namespace Canape
         void SetBlockerSearchRadius(float radius);
 
         void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+            uint64_t objectId = 0, bool outlineEnabled = false, const OutlineStyle& outlineStyle = {},
             bool castShadow = true);
         uint32_t AddBonePalette(std::span<const Matrix4> palette);
         void AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-            uint32_t paletteOffset, uint32_t paletteCount);
+            uint32_t paletteOffset, uint32_t paletteCount, uint64_t objectId = 0, bool outlineEnabled = false,
+            const OutlineStyle& outlineStyle = {});
 
         //***** 에디터 전용
         // Scene::BuildRenderScene 직후마다 불린다. 에디터가 조명/카메라 아이콘 같은 추가 아이템을 넣는 자리.

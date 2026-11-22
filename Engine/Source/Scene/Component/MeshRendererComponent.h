@@ -2,6 +2,7 @@
 
 #include "Scene/Component/RenderableComponent.h"
 #include "Asset/AssetManager.h"
+#include "DX11Renderer/Data/OutlineStyle.h"
 
 #include <cstdint>
 #include <string>
@@ -18,6 +19,15 @@ namespace Canape
 		void AddRenderItem(const AssetManager& assets, Renderer& renderer) const override;
 		bool SetMesh(const std::string& path);
 		const MeshAssetHandle& GetMesh() const { return m_Mesh; }
+		bool IsOutlineEnabled() const { return m_OutlineEnabled; }
+		void SetOutlineEnabled(bool enabled) { m_OutlineEnabled = enabled; }
+		const Vector3& GetOutlineColor() const { return m_OutlineStyle.Color; }
+		void SetOutlineColor(const Vector3& color);
+		uint32_t GetOutlineThickness() const { return m_OutlineStyle.Thickness; }
+		void SetOutlineThickness(uint32_t pixels);
+		float GetOutlineOpacity() const { return m_OutlineStyle.Opacity; }
+		void SetOutlineOpacity(float opacity);
+		const OutlineStyle& GetOutlineStyle() const { return m_OutlineStyle; }
 
 		// 슬롯 머티리얼 오버라이드. 빈 이름이면 메쉬 기본 머티리얼을 사용한다.
 		bool SetMaterial(uint32_t slot, const std::string& materialName);
@@ -36,6 +46,8 @@ namespace Canape
 		void LoadDefaultMaterials();
 
 		MeshAssetHandle m_Mesh;
+		bool m_OutlineEnabled = false;
+		OutlineStyle m_OutlineStyle{};
 		std::vector<MaterialAssetHandle> m_DefaultMaterials; // 메쉬 머티리얼 슬롯에서 로드, 직렬화 X
 		std::vector<MaterialAssetHandle> m_Materials;        // 오버라이드
 		std::string m_MeshPath;

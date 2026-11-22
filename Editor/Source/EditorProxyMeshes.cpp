@@ -74,7 +74,7 @@ void EditorProxyMeshes::SubmitParts(Renderer& renderer, std::initializer_list<Pa
     {
         if (const MeshAsset* mesh = assets.GetMesh(*part.mesh))
         {
-            renderer.AddRenderItem(mesh->GetAssetId(), 0, materialId, part.local * objectWorld, false);
+            renderer.AddRenderItem(mesh->GetAssetId(), 0, materialId, part.local * objectWorld, 0, false, {}, false);
         }
     }
 }

@@ -83,6 +83,7 @@
     <ClInclude Include="Pass\DX11UIPass.h" />
     <ClInclude Include="Pass\DX11SkyboxPass.h" />
     <ClInclude Include="Pass\DX11MainPass.h" />
+    <ClInclude Include="Pass\DX11OutlinePass.h" />
     <ClInclude Include="Pass\DX11ShadowPass.h" />
     <ClInclude Include="Pipeline\DX11MeshDraw.h" />
     <ClInclude Include="Pipeline\DX11RenderBindings.h" />
@@ -90,6 +91,7 @@
     <ClInclude Include="Frame\DX11ScenePreparation.h" />
     <ClInclude Include="Data\MeshData.h" />
     <ClInclude Include="Data\PostProcessSettings.h" />
+    <ClInclude Include="Data\OutlineStyle.h" />
     <ClInclude Include="Data\RendererDebugSettings.h" />
     <ClInclude Include="Data\RendererDebugStats.h" />
     <ClInclude Include="Data\ShadowFilterSettings.h" />
@@ -118,6 +120,7 @@
     <ClCompile Include="Pass\DX11UIPass.cpp" />
     <ClCompile Include="Pass\DX11SkyboxPass.cpp" />
     <ClCompile Include="Pass\DX11MainPass.cpp" />
+    <ClCompile Include="Pass\DX11OutlinePass.cpp" />
     <ClCompile Include="Pass\DX11ShadowPass.cpp" />
     <ClCompile Include="Pipeline\DX11MeshDraw.cpp" />
     <ClCompile Include="Pipeline\DX11RenderBindings.cpp" />
@@ -135,6 +138,7 @@
     <None Include="Shader\Common\Constants.hlsli" />
     <None Include="Shader\Common\Fog.hlsli" />
     <None Include="Shader\Common\FullscreenTypes.hlsli" />
+    <None Include="Shader\Common\OutlineCompositeCommon.hlsli" />
     <None Include="Shader\Common\IBLSampling.hlsli" />
     <None Include="Shader\Common\Lighting.hlsli" />
     <None Include="Shader\Common\Material.hlsli" />
@@ -146,6 +150,9 @@
     <None Include="Shader\Debug\DepthDebug.hlsl" />
     <None Include="Shader\Debug\MeshDebug.hlsl" />
     <None Include="Shader\FinalOutput.hlsl" />
+    <None Include="Shader\OutlineMask.hlsl" />
+    <None Include="Shader\OutlineComposite.hlsl" />
+    <None Include="Shader\OutlineCompositeMSAA.hlsl" />
     <None Include="Shader\IBLBRDFIntegration.hlsl" />
     <None Include="Shader\IBLIrradiance.hlsl" />
     <None Include="Shader\IBLPrefilter.hlsl" />

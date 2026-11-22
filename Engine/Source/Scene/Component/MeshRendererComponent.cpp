@@ -20,6 +20,24 @@ namespace Canape
 		}
 	}
 
+	void MeshRendererComponent::SetOutlineColor(const Vector3& color)
+	{
+		m_OutlineStyle.Color = color;
+		m_OutlineStyle = SanitizeOutlineStyle(m_OutlineStyle);
+	}
+
+	void MeshRendererComponent::SetOutlineThickness(uint32_t pixels)
+	{
+		m_OutlineStyle.Thickness = pixels;
+		m_OutlineStyle = SanitizeOutlineStyle(m_OutlineStyle);
+	}
+
+	void MeshRendererComponent::SetOutlineOpacity(float opacity)
+	{
+		m_OutlineStyle.Opacity = opacity;
+		m_OutlineStyle = SanitizeOutlineStyle(m_OutlineStyle);
+	}
+
 	void MeshRendererComponent::AddRenderItem(const AssetManager& assets, Renderer& renderer) const
 	{
 		const MeshAsset* mesh = assets.GetMesh(m_Mesh);
@@ -39,7 +57,7 @@ namespace Canape
 				materialId = material->GetAssetId();
 			}
 
-			renderer.AddRenderItem(mesh->GetAssetId(), i, materialId, world);
+			renderer.AddRenderItem(mesh->GetAssetId(), i, materialId, world, GetId(), IsOutlineEnabled(), GetOutlineStyle());
 		}
 	}
 

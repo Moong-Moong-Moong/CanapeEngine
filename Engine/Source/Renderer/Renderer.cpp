@@ -225,7 +225,6 @@ namespace Canape
         bool sceneBuilt = false;
 
         const std::optional<RenderView> view = ResolveView(scene);
-        bool sceneBuilt = false;
         if (!view)
         {
             if (!m_WarnedNoCamera)
@@ -245,7 +244,7 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
-              
+
                 if (m_EditorSubmit)
                 {
                     m_EditorSubmit(*scene, *this);
@@ -280,7 +279,7 @@ namespace Canape
     }
 
     void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-        bool castShadow)
+        uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle, bool castShadow)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -289,6 +288,9 @@ namespace Canape
         }
 
         MeshItem item;
+        item.outlineStyle = outlineStyle;
+        item.objectId = objectId;
+        item.outlineEnabled = outlineEnabled;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
@@ -303,7 +305,7 @@ namespace Canape
     }
 
     void Renderer::AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-        uint32_t paletteOffset, uint32_t paletteCount)
+        uint32_t paletteOffset, uint32_t paletteCount, uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -312,6 +314,9 @@ namespace Canape
         }
 
         SkinnedMeshItem item;
+        item.outlineStyle = outlineStyle;
+        item.objectId = objectId;
+        item.outlineEnabled = outlineEnabled;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);

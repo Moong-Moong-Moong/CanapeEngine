@@ -59,6 +59,7 @@ namespace Canape
         // Range in PreparedScene::BonePalettes. Non-skinned draws keep both zero.
         uint32_t PaletteOffset = 0;
         uint32_t PaletteCount = 0;
+        uint32_t OutlineMaskId = 0; // Dense per-scene ID; never a truncated objectId.
     };
     struct PreparedSkybox
     {
@@ -73,6 +74,9 @@ namespace Canape
         // Own the frame snapshot; draws retain offsets rather than vector pointers.
         std::vector<Matrix4> BonePalettes;
         std::vector<size_t> Opaque, Masked, Transparent, ShadowCasters;
+        std::vector<size_t> OutlineDraws;
+        std::vector<OutlineStyle> OutlineStyles; // Indexed by dense mask ID; entry 0 is background.
+        uint32_t OutlineMaxThickness = 0;
         PreparedSkybox Skybox;
     };
     struct PreparedFinalOutput

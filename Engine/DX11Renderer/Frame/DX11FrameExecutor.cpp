@@ -3,11 +3,158 @@
 #include "DX11Renderer/Pass/DX11MainPass.h"
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
+#include "DX11Renderer/Pass/DX11OutlinePass.h"
 #include "CNDebug/DebugLog.h"
 #include <utility>
+#include <algorithm>
+#include <limits>
 
 namespace Canape
 {
+    bool DX11Renderer::Impl::OutlinesAllowed() const
+    {
+#if CANAPE_RENDER_DEBUG
+        if (DebugSettings.enabled && DebugSettings.viewMode != DebugViewMode::Final) return false;
+#endif
+        return true;
+    }
+
+    void DX11Renderer::Impl::ReleaseOutlineResources()
+    {
+        if (Context)
+        {
+            // This helper is also called while resizing and shutting down.
+            Context->OMSetRenderTargets(0, nullptr, nullptr);
+            ID3D11ShaderResourceView* unbound = nullptr;
+            Context->PSSetShaderResources(0, 1, &unbound);
+            Context->PSSetShaderResources(SC::OutlineStylesSlot, 1, &unbound);
+        }
+        OutlineMaskReady = false;
+        OutlineStyleCount = OutlineMaxThickness = 0;
+        OutlineMaskView.Reset();
+        OutlineMaskTarget.Reset();
+        OutlineMaskTexture.Reset();
+    }
+
+    bool DX11Renderer::Impl::EnsureOutlineResources()
+    {
+        if (!OutlinesAllowed()) return false;
+        if (OutlineMaskTexture)
+        {
+            D3D11_TEXTURE2D_DESC existing{};
+            OutlineMaskTexture->GetDesc(&existing);
+            if (existing.Width == Width && existing.Height == Height
+                && existing.SampleDesc.Count == SelectedSceneSampleDesc.Count
+                && existing.SampleDesc.Quality == SelectedSceneSampleDesc.Quality) return true;
+            ReleaseOutlineResources();
+        }
+        // An unsupported outline format must not downgrade the existing scene MSAA.
+        UINT support = 0;
+        UINT qualityLevels = 0;
+        const UINT required = D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_SHADER_LOAD
+            | (SelectedSceneSampleDesc.Count > 1
+                ? D3D11_FORMAT_SUPPORT_MULTISAMPLE_RENDERTARGET | D3D11_FORMAT_SUPPORT_MULTISAMPLE_LOAD : 0);
+        HRESULT hr = Device->CheckFormatSupport(DXGI_FORMAT_R32_UINT, &support);
+        if (SUCCEEDED(hr)) hr = Device->CheckMultisampleQualityLevels(DXGI_FORMAT_R32_UINT,
+            SelectedSceneSampleDesc.Count, &qualityLevels);
+        if (FAILED(hr) || (support & required) != required || qualityLevels <= SelectedSceneSampleDesc.Quality)
+        {
+            LastError = "Object-ID mask R32_UINT does not support the selected scene samples/quality; scene MSAA preserved";
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = Width;
+        desc.Height = Height;
+        desc.MipLevels = desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R32_UINT;
+        desc.SampleDesc = SelectedSceneSampleDesc;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+        ComPtr<ID3D11Texture2D> texture;
+        ComPtr<ID3D11RenderTargetView> target;
+        ComPtr<ID3D11ShaderResourceView> view;
+        D3D11_RENDER_TARGET_VIEW_DESC rtv{};
+        rtv.Format = desc.Format;
+        rtv.ViewDimension = desc.SampleDesc.Count > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
+        D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+        srv.Format = desc.Format;
+        srv.ViewDimension = desc.SampleDesc.Count > 1 ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D;
+        if (desc.SampleDesc.Count == 1) srv.Texture2D.MipLevels = 1;
+        hr = Device->CreateTexture2D(&desc, nullptr, &texture);
+        if (SUCCEEDED(hr)) hr = Device->CreateRenderTargetView(texture.Get(), &rtv, &target);
+        if (SUCCEEDED(hr)) hr = Device->CreateShaderResourceView(texture.Get(), &srv, &view);
+        if (FAILED(hr))
+        {
+            LastError = RendererHResultMessage("Create outline mask resources", hr);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+        OutlineMaskTexture = std::move(texture);
+        OutlineMaskTarget = std::move(target);
+        OutlineMaskView = std::move(view);
+        return true;
+    }
+
+    bool DX11Renderer::Impl::UploadOutlineStyles(const PreparedScene& scene)
+    {
+        OutlineStyleCount = OutlineMaxThickness = 0;
+        const size_t count = scene.OutlineStyles.size();
+        const size_t maxCount = std::numeric_limits<UINT>::max() / sizeof(OutlineStyle);
+        if (scene.OutlineDraws.empty() || count <= 1 || count > maxCount) return false;
+        ID3D11ShaderResourceView* unbound = nullptr;
+        Context->PSSetShaderResources(SC::OutlineStylesSlot, 1, &unbound);
+        if (!OutlineStyleBuffer || count > OutlineStyleCapacity)
+        {
+            const size_t capacity = std::min(maxCount, std::max(count,
+                OutlineStyleCapacity ? size_t(OutlineStyleCapacity) * 2 : size_t(16)));
+            D3D11_BUFFER_DESC desc{};
+            desc.ByteWidth = static_cast<UINT>(capacity * sizeof(OutlineStyle));
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+            desc.StructureByteStride = sizeof(OutlineStyle);
+            ComPtr<ID3D11Buffer> buffer;
+            ComPtr<ID3D11ShaderResourceView> view;
+            HRESULT hr = Device->CreateBuffer(&desc, nullptr, &buffer);
+            D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+            srv.Format = DXGI_FORMAT_UNKNOWN;
+            srv.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+            srv.Buffer.NumElements = static_cast<UINT>(capacity);
+            if (SUCCEEDED(hr)) hr = Device->CreateShaderResourceView(buffer.Get(), &srv, &view);
+            if (FAILED(hr))
+            {
+                LastError = RendererHResultMessage("Create outline style buffer", hr);
+                CN_LOG_RENDERER("Error", LastError);
+                return false;
+            }
+            OutlineStyleBuffer = std::move(buffer);
+            OutlineStyleView = std::move(view);
+            OutlineStyleCapacity = static_cast<uint32_t>(capacity);
+        }
+        // Snapshot CPU data before PreparedScene dies; update only populated elements.
+        D3D11_BOX bytes{};
+        bytes.right = static_cast<UINT>(count * sizeof(OutlineStyle));
+        bytes.bottom = bytes.back = 1;
+        Context->UpdateSubresource(OutlineStyleBuffer.Get(), 0, &bytes, scene.OutlineStyles.data(), 0, 0);
+        OutlineStyleCount = static_cast<uint32_t>(count);
+        OutlineMaxThickness = scene.OutlineMaxThickness;
+        return true;
+    }
+
+    void DX11Renderer::Impl::ExecuteOutlineComposite(ID3D11RenderTargetView* target,
+        uint32_t width, uint32_t height)
+    {
+        if (!OutlineMaskReady || !OutlinesAllowed()) return;
+        RendererDebugStats* stats = nullptr;
+#if CANAPE_RENDER_DEBUG
+        stats = &CurrentStats;
+#endif
+        OutlinePass::Composite(*Context.Get(), Pipelines, OutlineMaskView.Get(), target,
+            width, height, OutlineCompositeBuffer.Get(), OutlineStyleView.Get(), OutlineStyleCount,
+            OutlineMaxThickness, stats, SelectedSceneSampleDesc.Count > 1);
+    }
+
     void DX11Renderer::Impl::ClearEnvironmentIBL()
     {
         if (Context)
@@ -127,6 +274,7 @@ namespace Canape
     {
         // Future HDR effects that need their own textures/passes run here, before SDR conversion.
         ExecuteFinalCompositePass(target, width, height);
+        ExecuteOutlineComposite(target, width, height);
     }
 
     void DX11Renderer::Impl::ExecuteFinalCompositePass(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
@@ -196,6 +344,8 @@ namespace Canape
         }
 
         ID3D11DeviceContext* context = Context.Get();
+        OutlineMaskReady = false;
+        OutlineStyleCount = OutlineMaxThickness = 0;
 
 #if CANAPE_RENDER_DEBUG
         BeginFrameProfiling(context);
@@ -308,6 +458,15 @@ namespace Canape
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);
             if (AfterTransparentCallback) AfterTransparentCallback();
+            OutlineMaskReady = false;
+            OutlineStyleCount = OutlineMaxThickness = 0;
+            if (!prepared.OutlineDraws.empty() && EnsureOutlineResources() && UploadOutlineStyles(prepared))
+            {
+                OutlinePass::DrawMask(prepared, draw, OutlineMaskTarget.Get(), DepthStencilView.Get(),
+                    Width, Height, OutlineMaskBuffer.Get());
+                OutlineMaskReady = true;
+                BindMainTargets();
+            }
         }
     }
 

@@ -42,6 +42,8 @@ namespace Canape
             TransparentFace face = TransparentFace::Both) const;
         DX11PipelineSelection ResolveFinalOutput(bool cameraDepth, bool multisampledDepth = false) const;
         DX11PipelineSelection ResolveShadow(VertexFormat vertexFormat, AlphaMode alphaMode) const;
+        DX11PipelineSelection ResolveOutlineMask(VertexFormat vertexFormat) const;
+        DX11PipelineSelection ResolveOutlineComposite(bool multisampled = false) const;
         bool SetShadowRasterizer(ID3D11Device* device, ShadowCullMode cullMode, float slopeBias, std::string& error);
         // Sampler is for PS s2; the skybox pass binds it separately from the generic s0 path.
         DX11PipelineSelection ResolveSkybox() const;
@@ -52,6 +54,9 @@ namespace Canape
         bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler && UIPixelShaderMS; }
 
     private:
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineMaskPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineCompositePixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineCompositeMSAAPixelShader;
         bool InitializeShadows(ID3D11Device* device, std::string& error);
         bool InitializeUI(ID3D11Device* device, std::string& error);
         Microsoft::WRL::ComPtr<ID3D11VertexShader> UIVertexShader;
