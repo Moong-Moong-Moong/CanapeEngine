@@ -129,8 +129,8 @@ namespace Canape
         OutlineStyleView.Reset();
         OutlineStyleBuffer.Reset();
         OutlineStyleCapacity = OutlineStyleCount = OutlineMaxThickness = 0;
-#if CANAPE_RENDER_DEBUG
         DepthShaderResourceView.Reset();
+#if CANAPE_RENDER_DEBUG
         DepthDisplayBuffer.Reset();
 #endif
         ObjectBuffer.Reset();
@@ -150,9 +150,12 @@ namespace Canape
         SelectedSceneSampleDesc = { 1, 0 };
 
         Window = nullptr;
+        Headless = false;
         Width = Height = BackBufferWidth = BackBufferHeight = 0;
         RequestedSceneWidth = RequestedSceneHeight = 0;
         Overlay = {};
+        AfterOpaqueCallback = {};
+        AfterTransparentCallback = {};
         LastError.clear();
         ViewData = {};
         DirectX::XMStoreFloat4x4(&ViewData.View, DirectX::XMMatrixIdentity());
@@ -316,9 +319,12 @@ namespace Canape
 #if CANAPE_RENDER_DEBUG
         stats = &CurrentStats;
 #endif
+        // World-space UI compares against the camera depth; only valid when the target matches the scene size.
+        ID3D11ShaderResourceView* depth = (width == Width && height == Height) ? DepthShaderResourceView.Get() : nullptr;
+        const bool multisampledDepth = SelectedSceneSampleDesc.Count > 1;
         std::string error;
-        if (!UIPass::Execute(*list, Pipelines.ResolveUI(), Resources, UIBuffers, *Device.Get(), *Context.Get(),
-                target, width, height, stats, error))
+        if (!UIPass::Execute(*list, Pipelines.ResolveUI(multisampledDepth), Resources, UIBuffers,
+                *Device.Get(), *Context.Get(), target, depth, width, height, stats, error))
         {
             LastError = error;
             CN_LOG_RENDERER("UI", LastError);
@@ -406,9 +412,7 @@ namespace Canape
             ComPtr<ID3D11ShaderResourceView> displayShaderResourceView;
             ComPtr<ID3D11Texture2D> depthTexture;
             ComPtr<ID3D11DepthStencilView> depthStencilView;
-#if CANAPE_RENDER_DEBUG
             ComPtr<ID3D11ShaderResourceView> depthShaderResourceView;
-#endif
             const bool multisampled = SelectedSceneSampleDesc.Count > 1;
             D3D11_TEXTURE2D_DESC sceneRenderDesc{};
             sceneRenderDesc.Width = width;
@@ -476,18 +480,11 @@ namespace Canape
             depthDesc.Height = height;
             depthDesc.MipLevels = 1;
             depthDesc.ArraySize = 1;
-#if CANAPE_RENDER_DEBUG
+            // Typeless + shader-readable in every configuration: world-space UI compares against it.
             depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-#else
-            depthDesc.Format = CameraDepthViewFormat;
-#endif
             depthDesc.SampleDesc = SelectedSceneSampleDesc;
             depthDesc.Usage = D3D11_USAGE_DEFAULT;
-#if CANAPE_RENDER_DEBUG
             depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-#else
-            depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-#endif
             result = Device->CreateTexture2D(&depthDesc, nullptr, &depthTexture);
             if (FAILED(result)) return failed("ID3D11Device::CreateTexture2D(depth)", result);
 
@@ -497,7 +494,6 @@ namespace Canape
                 ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
             result = Device->CreateDepthStencilView(depthTexture.Get(), &depthViewDesc, &depthStencilView);
             if (FAILED(result)) return failed("ID3D11Device::CreateDepthStencilView", result);
-#if CANAPE_RENDER_DEBUG
             D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
             depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
             depthResourceDesc.ViewDimension = multisampled
@@ -505,7 +501,6 @@ namespace Canape
             if (!multisampled) depthResourceDesc.Texture2D.MipLevels = 1;
             result = Device->CreateShaderResourceView(depthTexture.Get(), &depthResourceDesc, &depthShaderResourceView);
             if (FAILED(result)) return failed("ID3D11Device::CreateShaderResourceView(depth)", result);
-#endif
 
             SceneRenderTexture = std::move(sceneRenderTexture);
             SceneColorTexture = std::move(sceneColorTexture);
@@ -517,9 +512,7 @@ namespace Canape
             DisplayShaderResourceView = std::move(displayShaderResourceView);
             DepthTexture = std::move(depthTexture);
             DepthStencilView = std::move(depthStencilView);
-#if CANAPE_RENDER_DEBUG
             DepthShaderResourceView = std::move(depthShaderResourceView);
-#endif
             Width = width;
             Height = height;
             return true;
@@ -571,9 +564,7 @@ namespace Canape
             SceneColorRenderTargetView.Reset();
             SceneRenderTexture.Reset();
             SceneColorTexture.Reset();
-#if CANAPE_RENDER_DEBUG
             DepthShaderResourceView.Reset();
-#endif
             DepthStencilView.Reset();
             DepthTexture.Reset();
         }

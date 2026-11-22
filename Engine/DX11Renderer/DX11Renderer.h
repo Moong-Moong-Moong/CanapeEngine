@@ -33,7 +33,7 @@ namespace Canape
         DX11Renderer(const DX11Renderer&) = delete;
         DX11Renderer& operator=(const DX11Renderer&) = delete;
 
-        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
+        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless);
         void Shutdown();
 
         MeshResourceId CreateMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices);
@@ -97,6 +97,11 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        // Called inside DrawScene with the scene targets, the viewport and the scene's shared constants bound.
+        // The callee keeps the triangle-list topology, binds its own at b9-b11, t8-t10 and s8, and unbinds it.
+        void SetAfterOpaqueCallback(std::function<void()>);
+        void SetAfterTransparentCallback(std::function<void()>);
+
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;

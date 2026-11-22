@@ -1,5 +1,5 @@
 // Integration check of the physics playground: the real JSON scene, opened through the SceneManager and played by the
-// real Application loop, headless: the window is hidden and the loop does not render. The checks run on a fiber that gives
+// real Application loop, headless: the window is hidden and nothing is drawn to the screen. The checks run on a fiber that gives
 // control back to the loop once per frame, so every frame is a real frame of Application::Run; time scale decides how many
 // fixed ticks a frame runs. Lane results are read from the game components' public state; the program changes nothing in
 // the game.
@@ -298,7 +298,7 @@ namespace
             Canape::Scene& scene = Active();
             for(const char* name : { "KickerJump", "TiltTray", "CarriedScoop", "SwingCut", "LeverCatapult", "BuoyPop" })
             {
-                Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(name));
+                Canape::GameObject* root = scene.FindGameObjectByName(name);
                 auto* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
                 if(lane)
                 {
@@ -537,7 +537,7 @@ namespace
 
         const Canape::Vector3 tiny{ 0.01f, 0.01f, 0.01f };
         bool foundPayload = false;
-        for(const Canape::RigidBodyComponent* body : physics.QueryBox(payload->GetTransform()->GetPosition(), tiny))
+        for(const Canape::RigidBodyComponent* body : physics.QueryBox(payload->GetTransform()->GetWorldPosition(), tiny))
         {
             foundPayload = foundPayload || body->GetOwnerObject() == payload;
         }
@@ -573,7 +573,7 @@ namespace
         Canape::Scene& scene = h.Active();
         for(const Expected& e : expected)
         {
-            Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName(e.lane));
+            Canape::GameObject* root = scene.FindGameObjectByName(e.lane);
             const PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
             const auto* cup = lane ? dynamic_cast<const GoalCup*>(h.Goal(*lane)) : nullptr;
             const std::optional<GoalRegion> region = cup ? cup->GetRegion() : std::nullopt;
@@ -586,13 +586,13 @@ namespace
         }
 
         Canape::GameObject* halfCup = scene.GetGameObject(scene.AddGameObject("halfCup"));
-        halfCup->GetTransform()->SetLocalPosition({ 250.0f, 50.0f, 0.0f });
+        halfCup->GetTransform()->SetPosition({ 250.0f, 50.0f, 0.0f });
         auto* cup = halfCup->AddComponent<GoalCup>();
         for(const float x : { -0.5f, 0.5f })
         {
             Canape::GameObject* piece = scene.GetGameObject(scene.AddGameObject("halfCupPiece"));
             piece->GetTransform()->SetParent(halfCup->GetTransform());
-            piece->GetTransform()->SetLocalPosition({ x, 0.0f, 0.0f });
+            piece->GetTransform()->SetPosition({ x, 0.0f, 0.0f });
             piece->AddComponent<Canape::BoxColliderComponent>();
             piece->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
         }
@@ -626,7 +626,7 @@ namespace
             {
                 Canape::TransformComponent* transform = payload->GetTransform();
                 const Canape::TransformComponent* parent = transform->GetParent();
-                transform->SetLocalPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(m_Target) : m_Target);
+                transform->SetPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(m_Target) : m_Target);
                 body->SetEnabled(false);
                 m_State = 1;
             }
@@ -685,23 +685,23 @@ namespace
         Canape::Scene& scene = h.Active();
         const Canape::Vector3 origin{ 300.0f, 50.0f, 0.0f };
         Canape::GameObject* floor = scene.GetGameObject(scene.AddGameObject("zoneFloor"));
-        floor->GetTransform()->SetLocalPosition(origin);
-        floor->GetTransform()->SetLocalScale({ 2.0f, 0.2f, 2.0f });
+        floor->GetTransform()->SetPosition(origin);
+        floor->GetTransform()->SetScale({ 2.0f, 0.2f, 2.0f });
         floor->AddComponent<Canape::BoxColliderComponent>();
         floor->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
         Canape::GameObject* ball = scene.GetGameObject(scene.AddGameObject("zoneBall"));
-        ball->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 3.0f, 0.0f });
-        ball->GetTransform()->SetLocalScale({ 0.2f, 0.2f, 0.2f });
+        ball->GetTransform()->SetPosition(origin + Canape::Vector3{ 0.0f, 3.0f, 0.0f });
+        ball->GetTransform()->SetScale({ 0.2f, 0.2f, 0.2f });
         ball->AddComponent<Canape::SphereColliderComponent>();
         ball->AddComponent<Canape::RigidBodyComponent>()->SetMass(1.0f);
         Canape::GameObject* zoneObject = scene.GetGameObject(scene.AddGameObject("zone"));
-        zoneObject->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
-        zoneObject->GetTransform()->SetLocalScale({ 1.0f, 0.2f, 1.0f });
+        zoneObject->GetTransform()->SetPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
+        zoneObject->GetTransform()->SetScale({ 1.0f, 0.2f, 1.0f });
         auto* zone = zoneObject->AddComponent<GoalZone>();
         rttr::type::get<PuzzleGoal>().get_property("payload").set_value(*zone, ball->GetHandle());
         Canape::GameObject* emptyObject = scene.GetGameObject(scene.AddGameObject("emptyZone"));
-        emptyObject->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
-        emptyObject->GetTransform()->SetLocalScale({ 0.0f, 1.0f, 1.0f });
+        emptyObject->GetTransform()->SetPosition(origin + Canape::Vector3{ 0.0f, 1.0f, 0.0f });
+        emptyObject->GetTransform()->SetScale({ 0.0f, 1.0f, 1.0f });
         auto* empty = emptyObject->AddComponent<GoalZone>();
         rttr::type::get<PuzzleGoal>().get_property("payload").set_value(*empty, ball->GetHandle());
 
@@ -715,7 +715,7 @@ namespace
         {
             h.Frame();
         }
-        Check(ball->GetTransform()->GetPosition().Y < origin.Y + 0.5f, "the ball fell through the zone onto the floor");
+        Check(ball->GetTransform()->GetWorldPosition().Y < origin.Y + 0.5f, "the ball fell through the zone onto the floor");
         Check(zone->IsSatisfied() && !zone->HoldsPayload() && !zone->IsShownInside(), "the zone stays met after the ball fell through and shows it outside");
         Check(!empty->IsSatisfied(), "a zone without a region is never met");
         Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !h.Front()->HasFailed(), "zones are no issue");
@@ -899,14 +899,14 @@ namespace
         const Canape::Vector3 homePosition{ 0.0f, 7.3f, -3.9f };
         const Canape::Quaternion homeRotation{ 0.42277023f, 0.0f, 0.0f, 0.9062369f };
         Canape::TransformComponent& transform = *camera->GetTransform();
-        Check(IsNear(transform.GetLocalPosition(), homePosition), "the camera starts at the home position over the lanes");
-        Check(IsNear(transform.GetLocalRotation(), homeRotation), "the camera starts looking down at the lanes");
+        Check(IsNear(transform.GetPosition(), homePosition), "the camera starts at the home position over the lanes");
+        Check(IsNear(transform.GetRotation(), homeRotation), "the camera starts looking down at the lanes");
 
-        transform.SetLocalPosition({ 4.0f, 1.0f, 2.0f });
-        transform.SetLocalRotation(Canape::Rotator(-20.0f, 70.0f, 0.0f).ToQuaternion());
+        transform.SetPosition({ 4.0f, 1.0f, 2.0f });
+        transform.SetRotation(Canape::Rotator(-20.0f, 70.0f, 0.0f).ToQuaternion());
         h.Frame({ Canape::Key::F });
-        Check(IsNear(transform.GetLocalPosition(), homePosition), "F returns the camera to the home position");
-        Check(IsNear(transform.GetLocalRotation(), homeRotation), "F returns the camera to the home rotation");
+        Check(IsNear(transform.GetPosition(), homePosition), "F returns the camera to the home position");
+        Check(IsNear(transform.GetRotation(), homeRotation), "F returns the camera to the home rotation");
     }
 
     // A reload carries the pose of the fly camera over; the new camera does not snap home.
@@ -923,8 +923,8 @@ namespace
 
         const Canape::Vector3 position{ 1.5f, 2.5f, -3.5f };
         const Canape::Quaternion rotation = Canape::Rotator(-12.0f, 33.0f, 0.0f).ToQuaternion();
-        camera->GetTransform()->SetLocalPosition(position);
-        camera->GetTransform()->SetLocalRotation(rotation);
+        camera->GetTransform()->SetPosition(position);
+        camera->GetTransform()->SetRotation(rotation);
         h.Frame({ Canape::Key::R });
         h.Frame();
         h.Frame();
@@ -933,8 +933,8 @@ namespace
         Check(carried != nullptr && carried != camera, "the reloaded scene has its own camera");
         if(carried && carried != camera)
         {
-            Check(IsNear(carried->GetTransform()->GetLocalPosition(), position), "the reloaded camera sits at the carried position");
-            Check(IsNear(carried->GetTransform()->GetLocalRotation(), rotation), "the reloaded camera keeps the carried rotation");
+            Check(IsNear(carried->GetTransform()->GetPosition(), position), "the reloaded camera sits at the carried position");
+            Check(IsNear(carried->GetTransform()->GetRotation(), rotation), "the reloaded camera keeps the carried rotation");
         }
     }
 
@@ -967,19 +967,19 @@ namespace
             const Canape::TransformComponent* transform = m_Body->GetTransform();
             if(tick == m_DisableTick)
             {
-                m_PositionAtDisable = transform->GetPosition();
+                m_PositionAtDisable = transform->GetWorldPosition();
                 m_Body->SetEnabled(false);
             }
             else if(tick == m_DisableTick + 1)
             {
-                m_PositionNextTick = transform->GetPosition();
+                m_PositionNextTick = transform->GetWorldPosition();
                 m_HasBodyNextTick = m_Body->HasBody();
             }
             if(tick == m_CaptureTick)
             {
                 for(const Canape::GameObject* object : m_Watched)
                 {
-                    m_Captured.push_back(object->GetTransform()->GetPosition());
+                    m_Captured.push_back(object->GetTransform()->GetWorldPosition());
                 }
                 m_Done = true;
                 m_Armed = false;
@@ -1065,7 +1065,7 @@ namespace
 
     ObjectPose PoseOf(const Canape::GameObject& object)
     {
-        return { object.GetTransform()->GetPosition(), object.GetTransform()->GetRotation() };
+        return { object.GetTransform()->GetWorldPosition(), object.GetTransform()->GetWorldRotation() };
     }
 
     bool SamePose(const ObjectPose& a, const ObjectPose& b)
@@ -1122,7 +1122,7 @@ namespace
                 m_BodiesAtAdd = stats.bodyCount;
                 m_Added = scene->AddGameObject("addedInFixedUpdate");
                 Canape::GameObject* object = scene->GetGameObject(m_Added);
-                object->GetTransform()->SetLocalPosition(AddedPosition);
+                object->GetTransform()->SetPosition(AddedPosition);
                 object->AddComponent<Canape::BoxColliderComponent>();
                 object->AddComponent<Canape::RigidBodyComponent>()->SetMass(1.0f);
             }
@@ -1132,7 +1132,7 @@ namespace
                 const auto* body = object ? object->GetComponent<Canape::RigidBodyComponent>() : nullptr;
                 m_BodiesNextTick = stats.bodyCount;
                 m_HasBodyNextTick = body && body->HasBody();
-                m_DroppedNextTick = body && object->GetTransform()->GetPosition().Y < AddedPosition.Y;
+                m_DroppedNextTick = body && object->GetTransform()->GetWorldPosition().Y < AddedPosition.Y;
             }
             if(tick == m_CaptureTick)
             {
@@ -1268,12 +1268,12 @@ namespace
             Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the collider removal probe");
             Canape::Scene& scene = h.Active();
             Canape::GameObject* compound = scene.GetGameObject(scene.AddGameObject("compoundBody"));
-            compound->GetTransform()->SetLocalPosition({ 200.0f, 80.0f, 20.0f });
+            compound->GetTransform()->SetPosition({ 200.0f, 80.0f, 20.0f });
             compound->AddComponent<Canape::BoxColliderComponent>();
             auto* body = compound->AddComponent<Canape::RigidBodyComponent>();
             Canape::GameObject* arm = scene.GetGameObject(scene.AddGameObject("compoundArm"));
             arm->GetTransform()->SetParent(compound->GetTransform());
-            arm->GetTransform()->SetLocalPosition({ 1.0f, 0.0f, 0.0f });
+            arm->GetTransform()->SetPosition({ 1.0f, 0.0f, 0.0f });
             auto* armCollider = arm->AddComponent<Canape::BoxColliderComponent>();
             body->AddImpulse({ 40.0f, 0.0f, 0.0f });
 
@@ -1321,7 +1321,7 @@ namespace
                 const Canape::Vector3 goal = region->center;
                 Canape::TransformComponent* transform = payload->GetTransform();
                 const Canape::TransformComponent* parent = transform->GetParent();
-                transform->SetLocalPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(goal) : goal);
+                transform->SetPosition(parent ? parent->GetWorldToLocalMatrix().TransformPoint(goal) : goal);
                 body->SetEnabled(false);
                 m_State = 1;
             }
@@ -1451,7 +1451,7 @@ namespace
     Canape::GameObject* AddFarBody(Canape::Scene& scene, const char* name, const Canape::Vector3& position, bool withCollider, bool withImpulse)
     {
         Canape::GameObject* object = scene.GetGameObject(scene.AddGameObject(name));
-        object->GetTransform()->SetLocalPosition(position);
+        object->GetTransform()->SetPosition(position);
         if(withCollider)
         {
             object->AddComponent<Canape::BoxColliderComponent>();
@@ -1476,15 +1476,15 @@ namespace
 
         const auto* pushedBody = pushed->GetComponent<Canape::RigidBodyComponent>();
         const auto* plainBody = plain->GetComponent<Canape::RigidBodyComponent>();
-        Check(pushedBody->HasBody() && pushed->GetTransform()->GetPosition().X > 200.01f, "an impulse added in Start moves the body in the first frame");
-        Check(plainBody->HasBody() && std::fabs(plain->GetTransform()->GetPosition().X - 200.0f) < 1.0e-4f, "a body without the impulse does not move sideways");
+        Check(pushedBody->HasBody() && pushed->GetTransform()->GetWorldPosition().X > 200.01f, "an impulse added in Start moves the body in the first frame");
+        Check(plainBody->HasBody() && std::fabs(plain->GetTransform()->GetWorldPosition().X - 200.0f) < 1.0e-4f, "a body without the impulse does not move sideways");
 
         auto* failingBody = failing->GetComponent<Canape::RigidBodyComponent>();
         Check(!failingBody->HasBody() && failingBody->HasFailed(), "a body without a collider has no body");
         failing->AddComponent<Canape::BoxColliderComponent>();
         h.Frame();
         h.Frame();
-        Check(failingBody->HasBody() && std::fabs(failing->GetTransform()->GetPosition().X - 200.0f) < 1.0e-4f,
+        Check(failingBody->HasBody() && std::fabs(failing->GetTransform()->GetWorldPosition().X - 200.0f) < 1.0e-4f,
             "an impulse queued on a body that failed to create is dropped");
     }
 
@@ -1531,7 +1531,7 @@ namespace
         for(std::size_t i = 0; i < cases.size(); ++i)
         {
             Canape::GameObject* object = scene.GetGameObject(scene.AddGameObject("badValue"));
-            object->GetTransform()->SetLocalPosition({ 200.0f + 5.0f * static_cast<float>(i), 50.0f, 40.0f });
+            object->GetTransform()->SetPosition({ 200.0f + 5.0f * static_cast<float>(i), 50.0f, 40.0f });
             if(cases[i].sphere)
             {
                 object->AddComponent<Canape::SphereColliderComponent>();
@@ -1590,7 +1590,7 @@ namespace
         HingeRig rig;
         rig.anchor = anchor;
         rig.arm = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Arm"));
-        rig.arm->GetTransform()->SetLocalPosition(anchor);
+        rig.arm->GetTransform()->SetPosition(anchor);
         rig.body = rig.arm->AddComponent<Canape::RigidBodyComponent>();
         rig.body->SetMass(1.0f);
         rig.hinge = rig.arm->AddComponent<Canape::HingeComponent>();
@@ -1599,10 +1599,10 @@ namespace
         rig.hinge->SetMaxAngle(0.0f);
         Canape::GameObject* rod = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Rod"));
         rod->GetTransform()->SetParent(rig.arm->GetTransform());
-        rod->GetTransform()->SetLocalPosition({ 0.5f, 0.0f, 0.0f });
+        rod->GetTransform()->SetPosition({ 0.5f, 0.0f, 0.0f });
         rig.tip = scene.GetGameObject(scene.AddGameObject(std::string(name) + "Tip"));
         rig.tip->GetTransform()->SetParent(rig.arm->GetTransform());
-        rig.tip->GetTransform()->SetLocalPosition({ 1.0f, 0.0f, 0.0f });
+        rig.tip->GetTransform()->SetPosition({ 1.0f, 0.0f, 0.0f });
         if(colliders)
         {
             rod->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 1.0f, 0.1f, 0.1f });
@@ -1613,7 +1613,7 @@ namespace
 
     float RadiusOf(const HingeRig& rig)
     {
-        return (rig.tip->GetTransform()->GetPosition() - rig.anchor).Length();
+        return (rig.tip->GetTransform()->GetWorldPosition() - rig.anchor).Length();
     }
 
     // A hinge fixed to the world holds the arm's tip at its radius and stops at the limit; the anchor point never moves.
@@ -1632,7 +1632,7 @@ namespace
         }
         // The pivot's velocity is the backend's drift correction, a few percent of the tip's.
         const float anchorSpeed = rig.body->GetVelocityAt(rig.anchor).Length();
-        const float tipSpeed = rig.body->GetVelocityAt(rig.tip->GetTransform()->GetPosition()).Length();
+        const float tipSpeed = rig.body->GetVelocityAt(rig.tip->GetTransform()->GetWorldPosition()).Length();
         Check(tipSpeed > 0.5f && anchorSpeed < 0.1f * tipSpeed, "the anchor point nearly stands still while the tip swings (anchor " + std::to_string(anchorSpeed) + ", tip " + std::to_string(tipSpeed) + ")");
 
         float worstRadius = 0.0f;
@@ -1649,8 +1649,8 @@ namespace
         Check(lowest > -Pi / 4.0f - 0.2f && highest < 0.2f, "the angle stays within the limits (lowest " + std::to_string(lowest) + ", highest " + std::to_string(highest) + ")");
         Check(std::fabs(rig.hinge->GetAngle() + Pi / 4.0f) < 0.05f, "the arm rests on the lower limit (" + std::to_string(rig.hinge->GetAngle()) + ")");
         Check(rig.hinge->IsHeld(), "the hinge is still held");
-        Check(Near(rig.arm->GetTransform()->GetPosition(), rig.anchor, 1.0e-2f), "the arm's origin stays at the anchor (off by " + std::to_string((rig.arm->GetTransform()->GetPosition() - rig.anchor).Length()) + ")");
-        Check(rig.body->GetVelocityAt(rig.tip->GetTransform()->GetPosition()).Length() < 0.05f, "a resting arm has no velocity at its tip");
+        Check(Near(rig.arm->GetTransform()->GetWorldPosition(), rig.anchor, 1.0e-2f), "the arm's origin stays at the anchor (off by " + std::to_string((rig.arm->GetTransform()->GetWorldPosition() - rig.anchor).Length()) + ")");
+        Check(rig.body->GetVelocityAt(rig.tip->GetTransform()->GetWorldPosition()).Length() < 0.05f, "a resting arm has no velocity at its tip");
         Check(scene.GetPhysics().GetAuthoringIssueCount() == 0, "a held hinge is no issue");
     }
 
@@ -1669,14 +1669,14 @@ namespace
         h.Frame();
         Check(rig.hinge->HasHinge() && rig.hinge->IsHeld() && std::fabs(rig.hinge->GetAngle()) < 0.3f, "an enabled hinge is made again, at angle 0 from where the arm is");
 
-        const float heightBefore = rig.tip->GetTransform()->GetPosition().Y;
+        const float heightBefore = rig.tip->GetTransform()->GetWorldPosition().Y;
         rig.hinge->Release();
         Check(!rig.hinge->IsHeld() && rig.hinge->HasHinge(), "a released hinge is not held but still exists");
         for(int frame = 0; frame < 8; ++frame)
         {
             h.Frame();
         }
-        Check(heightBefore - rig.tip->GetTransform()->GetPosition().Y > 0.5f, "the released arm falls");
+        Check(heightBefore - rig.tip->GetTransform()->GetWorldPosition().Y > 0.5f, "the released arm falls");
         Check(std::isfinite(rig.hinge->GetAngle()), "the angle of a released hinge still reads");
         rig.hinge->Release();
         h.Frame();
@@ -1707,7 +1707,7 @@ namespace
         h.Frame();
         Check(gone.hinge->IsHeld() && freed.hinge->IsHeld(), "both hinges hold before the removals");
 
-        const float heightBefore = freed.tip->GetTransform()->GetPosition().Y;
+        const float heightBefore = freed.tip->GetTransform()->GetWorldPosition().Y;
         const Handle<Canape::GameObject> goneHandle = gone.arm->GetHandle();
         scene.RemoveGameObject(goneHandle);
         h.Frame();
@@ -1718,7 +1718,7 @@ namespace
         {
             h.Frame();
         }
-        Check(heightBefore - freed.tip->GetTransform()->GetPosition().Y > 0.5f, "an arm whose hinge component is removed falls free");
+        Check(heightBefore - freed.tip->GetTransform()->GetWorldPosition().Y > 0.5f, "an arm whose hinge component is removed falls free");
         Check(scene.GetPhysics().GetAuthoringIssueCount() == 0 && !Canape::StepFailed(scene.GetPhysics().GetLastStepError()),
             "the removals leave no issue and the world keeps stepping");
         Check(!h.Front()->HasFailed(), "the removals fail no lane");
@@ -1736,7 +1736,7 @@ namespace
         Check(physics.GetAuthoringIssueCount() == 0, "no issue before the bad hinges");
 
         Canape::GameObject* bare = scene.GetGameObject(scene.AddGameObject("noBodyArm"));
-        bare->GetTransform()->SetLocalPosition({ 300.0f, 50.0f, 0.0f });
+        bare->GetTransform()->SetPosition({ 300.0f, 50.0f, 0.0f });
         auto* noBody = bare->AddComponent<Canape::HingeComponent>();
         const HingeRig notDynamic = BuildHingeRig(scene, "notDynamic", { 310.0f, 50.0f, 0.0f });
         notDynamic.body->SetMotion(Canape::PhysicsMotion::Static);
@@ -1768,28 +1768,28 @@ namespace
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the disabled child body");
         Canape::Scene& scene = h.Active();
         Canape::GameObject* holder = scene.GetGameObject(scene.AddGameObject("holder"));
-        holder->GetTransform()->SetLocalPosition({ 300.0f, 50.0f, 0.0f });
+        holder->GetTransform()->SetPosition({ 300.0f, 50.0f, 0.0f });
         holder->AddComponent<Canape::BoxColliderComponent>()->SetSize({ 0.2f, 0.2f, 0.2f });
         auto* holderBody = holder->AddComponent<Canape::RigidBodyComponent>();
         holderBody->SetMotion(Canape::PhysicsMotion::Static);
         Canape::GameObject* rider = scene.GetGameObject(scene.AddGameObject("rider"));
         rider->GetTransform()->SetParent(holder->GetTransform());
-        rider->GetTransform()->SetLocalPosition({ 0.0f, 1.0f, 0.0f });
+        rider->GetTransform()->SetPosition({ 0.0f, 1.0f, 0.0f });
         rider->AddComponent<Canape::SphereColliderComponent>()->SetRadius(0.2f);
         auto* riderBody = rider->AddComponent<Canape::RigidBodyComponent>();
         riderBody->SetEnabled(false);
         h.Frame();
         const Canape::PhysicsScene& physics = scene.GetPhysics();
         Check(holderBody->HasBody() && !riderBody->HasBody() && physics.GetAuthoringIssueCount() == 0, "the holder has a body, the disabled rider none, and nothing is an issue");
-        const Canape::Vector3 riderCenter = rider->GetTransform()->GetPosition();
+        const Canape::Vector3 riderCenter = rider->GetTransform()->GetWorldPosition();
         const Canape::Vector3 tiny{ 0.01f, 0.01f, 0.01f };
         Check(physics.QueryBox(riderCenter, tiny).empty(), "the static holder carries the rider's collider, so a moving-body query finds nothing there");
 
         rider->GetTransform()->SetParent(nullptr);
-        rider->GetTransform()->SetLocalPosition(riderCenter);
+        rider->GetTransform()->SetPosition(riderCenter);
         riderBody->SetEnabled(true);
         h.Frame();
-        const Canape::RigidBodies atRider = physics.QueryBox(rider->GetTransform()->GetPosition(), tiny);
+        const Canape::RigidBodies atRider = physics.QueryBox(rider->GetTransform()->GetWorldPosition(), tiny);
         Check(riderBody->HasBody() && atRider.size() == 1 && atRider.front() == riderBody, "the enabled rider is its own moving body");
         Check(physics.GetAuthoringIssueCount() == 0, "a rider that left its holder is no issue");
         riderBody->SetEnabled(false);
@@ -1861,7 +1861,7 @@ namespace
         Canape::Vector3 origin{};
 
         // The buoy's height above the rig's origin.
-        float Height() const { return buoy->GetTransform()->GetPosition().Y - origin.Y; }
+        float Height() const { return buoy->GetTransform()->GetWorldPosition().Y - origin.Y; }
     };
 
     // The BuoyPop tank without its walls: a floor whose top is 0.2 above the origin, a 10 kg sphere of radius 0.2 and a
@@ -1872,18 +1872,18 @@ namespace
         WaterRig rig;
         rig.origin = origin;
         rig.floor = scene.GetGameObject(scene.AddGameObject("waterFloor"));
-        rig.floor->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
-        rig.floor->GetTransform()->SetLocalScale({ 1.8f, 0.2f, 1.2f });
+        rig.floor->GetTransform()->SetPosition(origin + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
+        rig.floor->GetTransform()->SetScale({ 1.8f, 0.2f, 1.2f });
         rig.floor->AddComponent<Canape::BoxColliderComponent>();
         rig.floor->AddComponent<Canape::RigidBodyComponent>()->SetMotion(Canape::PhysicsMotion::Static);
         rig.buoy = scene.GetGameObject(scene.AddGameObject("buoy"));
-        rig.buoy->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ -0.3f, 1.255f, 0.0f });
-        rig.buoy->GetTransform()->SetLocalScale({ 0.4f, 0.4f, 0.4f });
+        rig.buoy->GetTransform()->SetPosition(origin + Canape::Vector3{ -0.3f, 1.255f, 0.0f });
+        rig.buoy->GetTransform()->SetScale({ 0.4f, 0.4f, 0.4f });
         rig.buoy->AddComponent<Canape::SphereColliderComponent>();
         rig.buoy->AddComponent<Canape::RigidBodyComponent>()->SetMass(10.0f);
         rig.water = scene.GetGameObject(scene.AddGameObject("water"));
-        rig.water->GetTransform()->SetLocalPosition(origin + Canape::Vector3{ 0.0f, 0.7f, 0.0f });
-        rig.water->GetTransform()->SetLocalScale({ 1.6f, 1.0f, 1.0f });
+        rig.water->GetTransform()->SetPosition(origin + Canape::Vector3{ 0.0f, 0.7f, 0.0f });
+        rig.water->GetTransform()->SetScale({ 1.6f, 1.0f, 1.0f });
         rig.volume = rig.water->AddComponent<Canape::WaterVolumeComponent>();
         return rig;
     }
@@ -2060,7 +2060,7 @@ namespace
             return;
         }
         Canape::TransformComponent* transform = rig.water->GetTransform();
-        transform->SetLocalPosition(transform->GetLocalPosition() + Canape::Vector3{ 0.0f, 0.3f, 0.0f });
+        transform->SetPosition(transform->GetPosition() + Canape::Vector3{ 0.0f, 0.3f, 0.0f });
         Check(RunWaterTo(h, WaterSettleTick + 60), "the run with raised water settles");
         Check(rig.Height() > FloatingHeight + 0.15f, "water raised by 0.3 m raises the buoy at " + std::to_string(rig.Height()));
 
@@ -2068,7 +2068,7 @@ namespace
         {
             return;
         }
-        rig.water->GetTransform()->SetLocalRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
+        rig.water->GetTransform()->SetRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
         Check(RunWaterTo(h, WaterSettleTick), "the run with rotated water settles");
         Check(IsFloating(rig), "a rotated water volume acts as the axis-aligned box and floats the buoy at " + std::to_string(rig.Height()));
     }
@@ -2118,7 +2118,7 @@ namespace
             { "water moved up", false, false, [](WaterRig& rig)
                 {
                     Canape::TransformComponent* transform = rig.water->GetTransform();
-                    transform->SetLocalPosition(transform->GetLocalPosition() + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
+                    transform->SetPosition(transform->GetPosition() + Canape::Vector3{ 0.0f, 0.1f, 0.0f });
                 } },
         };
 
@@ -2204,7 +2204,7 @@ namespace
                 rig.volume->SetEnabled(false);
                 break;
             case MoveAway:
-                rig.water->GetTransform()->SetLocalPosition(rig.water->GetTransform()->GetLocalPosition() + Canape::Vector3{ 40.0f, 0.0f, 0.0f });
+                rig.water->GetTransform()->SetPosition(rig.water->GetTransform()->GetPosition() + Canape::Vector3{ 40.0f, 0.0f, 0.0f });
                 break;
             case RemoveComponent:
                 remover->ArmComponent(rig.volume);
@@ -2245,17 +2245,17 @@ namespace
     {
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for BuoyPop");
         Canape::Scene& scene = h.Active();
-        Canape::GameObject* root = scene.GetGameObject(scene.FindGameObjectByName("BuoyPop"));
+        Canape::GameObject* root = scene.FindGameObjectByName("BuoyPop");
         PuzzleLane* lane = root ? root->GetComponent<PuzzleLane>() : nullptr;
         auto* zone = lane ? dynamic_cast<GoalZone*>(h.Goal(*lane)) : nullptr;
-        Canape::GameObject* waterObject = scene.GetGameObject(scene.FindGameObjectByName("water"));
+        Canape::GameObject* waterObject = scene.FindGameObjectByName("water");
         Check(lane && zone && waterObject && waterObject->GetComponent<Canape::WaterVolumeComponent>(), "BuoyPop has its lane, zone and water");
         if(!lane || !zone || !waterObject)
         {
             return;
         }
         const std::optional<GoalRegion> region = zone->GetRegion();
-        Check(region && Near(region->center, root->GetTransform()->GetPosition() + Canape::Vector3{ -0.3f, 2.15f, 0.0f }, 1.0e-4f)
+        Check(region && Near(region->center, root->GetTransform()->GetWorldPosition() + Canape::Vector3{ -0.3f, 2.15f, 0.0f }, 1.0e-4f)
             && Near(region->halfExtent, { 0.25f, 0.05f, 0.25f }, 1.0e-5f), "the zone hangs 0.45 m over the hoop");
         Check(h.RunUntil([&] { return lane->GetTick() >= 100; }), "the run reaches the pop");
         Check(!zone->IsSatisfied(), "the zone is not met before the pop");
@@ -2266,13 +2266,13 @@ namespace
 
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for rotated water");
         Canape::Scene& rotatedScene = h.Active();
-        Canape::GameObject* rotatedWater = rotatedScene.GetGameObject(rotatedScene.FindGameObjectByName("water"));
+        Canape::GameObject* rotatedWater = rotatedScene.FindGameObjectByName("water");
         Check(rotatedWater != nullptr, "the rotated-water scene has its water");
         if(!rotatedWater)
         {
             return;
         }
-        rotatedWater->GetTransform()->SetLocalRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
+        rotatedWater->GetTransform()->SetRotation(Canape::Rotator(0.0f, 0.0f, 30.0f).ToQuaternion());
         Check(h.RunToVerdict(PuzzleMode::Solution), "the run with rotated water reaches its verdict");
         CheckSame("rotated water", solution, h.Verdicts());
     }
@@ -2284,7 +2284,7 @@ namespace
         Check(type.get_property("toggleKey").is_valid() && !type.get_property("logging").is_valid(), "PhysicsStatsLog registers its key and no run state");
         Check(h.Reload(PuzzleMode::Solution) != nullptr, "a scene opens for the stats log");
         Canape::Scene& scene = h.Active();
-        const Canape::GameObject* object = scene.GetGameObject(scene.FindGameObjectByName("Physics Stats"));
+        const Canape::GameObject* object = scene.FindGameObjectByName("Physics Stats");
         const auto* log = object ? object->GetComponent<PhysicsStatsLog>() : nullptr;
         Check(log != nullptr, "the playground has a stats log object");
         if(!log)
@@ -2336,7 +2336,7 @@ namespace
     HingeLanes FindHingeLanes(Harness& h)
     {
         Canape::Scene& scene = h.Active();
-        const auto object = [&](const char* name) { return scene.GetGameObject(scene.FindGameObjectByName(name)); };
+        const auto object = [&](const char* name) { return scene.FindGameObjectByName(name); };
         HingeLanes lanes;
         if(Canape::GameObject* root = object("SwingCut"))
         {
@@ -2395,21 +2395,21 @@ namespace
         }
 
         const Canape::PhysicsScene& physics = h.Active().GetPhysics();
-        const Canape::Vector3 swingRoot = lanes.swing->GetTransform()->GetPosition();
-        const Canape::Vector3 leverRoot = lanes.lever->GetTransform()->GetPosition();
+        const Canape::Vector3 swingRoot = lanes.swing->GetTransform()->GetWorldPosition();
+        const Canape::Vector3 leverRoot = lanes.lever->GetTransform()->GetWorldPosition();
         Check(lanes.swingHinge->IsHeld() && Near(lanes.swingHinge->GetWorldAnchor(), swingRoot + Canape::Vector3{ -0.25f, 3.2f, 0.0f }, 1.0e-4f),
             "the swing arm hangs from the bottom of the crossbar");
         Check(lanes.leverHinge->IsHeld() && Near(lanes.leverHinge->GetWorldAnchor(), leverRoot + Canape::Vector3{ 0.3f, 0.75f, 0.0f }, 1.0e-4f),
             "the lever turns on top of the stand");
         Check(lanes.leverHinge->GetMinAngle() == 0.0f && std::fabs(lanes.leverHinge->GetMaxAngle() - 0.6981317f) < 1.0e-6f, "the lever turns from 0 to 40 degrees");
         Check(RidesOnArm(lanes), "the bob rides in the arm's body with its own body off");
-        const Canape::Vector3 bobPosition = lanes.bob->GetTransform()->GetPosition();
+        const Canape::Vector3 bobPosition = lanes.bob->GetTransform()->GetWorldPosition();
         Check(Near(bobPosition, swingRoot + Canape::Vector3{ -1.3224622f, 2.3000972f, 0.0f }, 0.05f), "the bob starts 1.4 m from the pivot, 50 degrees up");
         const Canape::RigidBodies atBob = physics.QueryBox(bobPosition, { 0.01f, 0.01f, 0.01f });
         Check(atBob.size() == 1 && atBob.front() == lanes.armBody, "a query at the bob finds the arm's body");
         Check(!lanes.release->IsApplied() && lanes.release->GetTick(PuzzleMode::Solution) == 50 && lanes.release->GetTick(PuzzleMode::Control) == 37,
             "the release waits for tick 50 in Solution and 37 in Control");
-        const Canape::Vector3 scale = lanes.rod->GetTransform()->GetLocalScale();
+        const Canape::Vector3 scale = lanes.rod->GetTransform()->GetScale();
         Check(IsRodShown(lanes) && scale.X == 0.03f && scale.Y == 1.4f && scale.Z == 0.03f, "the rod is shown at its authored size");
     }
 
@@ -2446,7 +2446,7 @@ namespace
                 return;
             }
             m_Samples.push_back({ m_Lanes.swing->GetTick(), m_Lanes.swingHinge->IsHeld(), m_Lanes.release->IsApplied(), m_Lanes.bobBody->HasBody(),
-                m_Lanes.bob->GetTransform()->GetPosition() });
+                m_Lanes.bob->GetTransform()->GetWorldPosition() });
             m_Done = m_Lanes.swing->GetTick() >= m_LastTick;
         }
 

@@ -454,8 +454,10 @@ namespace Canape
             draw.Scene.EnvironmentView = prepared.Skybox.Texture;
             draw.Scene.SkyboxConstants = SkyboxViewBuffer.Get();
             MainPass::DrawOpaqueAndMasked(prepared, draw);
+            if (AfterOpaqueCallback) AfterOpaqueCallback();
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);
+            if (AfterTransparentCallback) AfterTransparentCallback();
             OutlineMaskReady = false;
             OutlineStyleCount = OutlineMaxThickness = 0;
             if (!prepared.OutlineDraws.empty() && EnsureOutlineResources() && UploadOutlineStyles(prepared))
@@ -484,22 +486,27 @@ namespace Canape
 
             // UI goes after final output into a UNORM view of the same target, so the editor
             // viewport shows it too. The overlay (editor ImGui) still draws last.
-            if (Overlay)
+            if (!Headless)
             {
-                ExecutePostProcessing(DisplayRenderTargetView.Get(), Width, Height);
-                ExecuteUIPass(DisplayUIRenderTargetView.Get(), Width, Height);
-                RenderOverlay();
-            }
-            else
-            {
-                ExecutePostProcessing(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
-                ExecuteUIPass(OverlayRenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+                if (Overlay)
+                {
+                    ExecutePostProcessing(DisplayRenderTargetView.Get(), Width, Height);
+                    ExecuteUIPass(DisplayUIRenderTargetView.Get(), Width, Height);
+                    RenderOverlay();
+                }
+                else
+                {
+                    ExecutePostProcessing(RenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+                    ExecuteUIPass(OverlayRenderTargetView.Get(), BackBufferWidth, BackBufferHeight);
+                }
             }
         }
         PendingUI = nullptr;
 
         FrameActive = false;
         recordDebugStat();
+
+        if (Headless) return;
 
         const HRESULT result = SwapChain->Present(1, 0);
         if (FAILED(result))

@@ -1,6 +1,7 @@
 #include "Panels/SceneViewPanel.h"
 
 #include <imgui.h>
+#include <ImGuizmo.h>
 
 #include <algorithm>
 #include <cmath>
@@ -15,7 +16,8 @@ namespace
     constexpr float kFarClip = 2000.0f;
 }
 
-SceneViewPanel::PlayRequest SceneViewPanel::Draw(Renderer& renderer, UISystem& ui, float deltaTime, bool playing)
+SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* scene, Renderer& renderer, UISystem& ui,
+    float deltaTime, bool playing)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const bool visible = ImGui::Begin(kName);
@@ -61,14 +63,107 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(Renderer& renderer, UISystem& u
         }
         else
         {
-            UpdateCamera(ImGui::IsItemHovered(), deltaTime);
-            renderer.SetViewOverride(BuildView(static_cast<float>(width) / static_cast<float>(height)));
-            ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, min.y + 6.0f), IM_COL32(255, 255, 255, 160),
-                "RMB: look  WASD/QE: move  Shift: fast  Wheel: speed");
+            const bool hovered = ImGui::IsItemHovered();
+            UpdateCamera(hovered, deltaTime);
+            HandleGizmoShortcuts(hovered);
+            const RenderView view = BuildView(static_cast<float>(width) / static_cast<float>(height));
+            renderer.SetViewOverride(view);
+            ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, max.y - ImGui::GetTextLineHeight() - 6.0f),
+                IM_COL32(255, 255, 255, 160),
+                "W/E/R: move/rotate/scale  T: local/world  RMB: look  WASD/QE: move  Wheel: speed");
+
+            DrawGizmo(context.GetSelected(scene), view, min, max);
         }
     }
     ImGui::End();
     return request;
+}
+
+void SceneViewPanel::DrawGizmoToolbar()
+{
+    const auto modeButton = [this](const char* label, GizmoOperation operation)
+    {
+        const bool active = m_GizmoOperation == operation;
+        if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (ImGui::Button(label)) m_GizmoOperation = operation;
+        if (active) ImGui::PopStyleColor();
+        ImGui::SameLine();
+    };
+    modeButton("Move", GizmoOperation::Translate);
+    modeButton("Rotate", GizmoOperation::Rotate);
+    modeButton("Scale", GizmoOperation::Scale);
+    if (ImGui::Button(m_GizmoLocal ? "Local" : "World", ImVec2(52.0f, 0.0f)))
+    {
+        m_GizmoLocal = !m_GizmoLocal;
+    }
+}
+
+void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
+{
+    // RMB + WASD/QE flies the camera, so the shortcuts only apply while not navigating.
+    if (m_Navigating || !hovered || ImGui::GetIO().WantTextInput || ImGuizmo::IsUsing())
+    {
+        return;
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_W, false)) m_GizmoOperation = GizmoOperation::Translate;
+    if (ImGui::IsKeyPressed(ImGuiKey_E, false)) m_GizmoOperation = GizmoOperation::Rotate;
+    if (ImGui::IsKeyPressed(ImGuiKey_R, false)) m_GizmoOperation = GizmoOperation::Scale;
+    if (ImGui::IsKeyPressed(ImGuiKey_T, false)) m_GizmoLocal = !m_GizmoLocal;
+}
+
+void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, const ImVec2& min, const ImVec2& max)
+{
+    if (!selected)
+    {
+        return;
+    }
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(min.x, min.y, max.x - min.x, max.y - min.y);
+
+    TransformComponent* transform = selected->GetTransform();
+    Matrix4 world = transform->GetLocalToWorldMatrix();
+
+    ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+    float snapStep[3] = { 0.5f, 0.5f, 0.5f };
+    if (m_GizmoOperation == GizmoOperation::Rotate)
+    {
+        operation = ImGuizmo::ROTATE;
+        snapStep[0] = snapStep[1] = snapStep[2] = 15.0f;
+    }
+    else if (m_GizmoOperation == GizmoOperation::Scale)
+    {
+        operation = ImGuizmo::SCALE;
+        snapStep[0] = snapStep[1] = snapStep[2] = 0.1f;
+    }
+    // Scale is always applied in the object's own axes.
+    const ImGuizmo::MODE mode = (m_GizmoLocal || operation == ImGuizmo::SCALE) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
+    const bool snap = ImGui::GetIO().KeyCtrl;
+
+    // Engine matrices are row-major with row vectors (translation in the last row), the layout ImGuizmo expects.
+    if (ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), operation, mode, world.Data(), nullptr,
+        snap ? snapStep : nullptr))
+    {
+        // The gizmo edits the world matrix; bring it back into the parent's space.
+        Matrix4 local = world;
+        if (const TransformComponent* parent = transform->GetParent())
+        {
+            local = world * parent->GetLocalToWorldMatrix().Inverse();
+        }
+
+        DirectX::XMVECTOR scale, rotation, translation;
+        if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, local.ToXM()))
+        {
+            // Write back only what this operation changes, so moving never adds rounding to rotation or scale.
+            switch (m_GizmoOperation)
+            {
+            case GizmoOperation::Translate: transform->SetPosition(Vector3::FromXM(translation)); break;
+            case GizmoOperation::Rotate: transform->SetRotation(Quaternion::FromXM(rotation).Normalized()); break;
+            case GizmoOperation::Scale: transform->SetScale(Vector3::FromXM(scale)); break;
+            }
+        }
+    }
 }
 
 SceneViewPanel::PlayRequest SceneViewPanel::DrawToolbar(Renderer& renderer, bool playing)
@@ -82,6 +177,12 @@ SceneViewPanel::PlayRequest SceneViewPanel::DrawToolbar(Renderer& renderer, bool
 
     ImGui::SetCursorPos(ImVec2(contentWidth - m_RenderDebugMenu.GetButtonWidth() - kRightMargin, toolbarY));
     m_RenderDebugMenu.Draw(renderer);
+
+    if (!playing)
+    {
+        ImGui::SetCursorPos(ImVec2(kRightMargin, toolbarY));
+        DrawGizmoToolbar();
+    }
 
     ImGui::SetCursorPos(ImVec2(std::max((contentWidth - toolbarWidth) * 0.5f, 0.0f), toolbarY));
 
@@ -123,7 +224,7 @@ void SceneViewPanel::FrameMainCamera(Scene* scene)
 
     const TransformComponent* transform = camera->GetTransform();
     const Vector3 forward = transform->GetForward().Normalized();
-    m_Position = transform->GetPosition();
+    m_Position = transform->GetWorldPosition();
     m_Yaw = Math::ToDegrees(std::atan2(forward.X, forward.Z));
     m_Pitch = Math::ToDegrees(std::asin(std::clamp(-forward.Y, -1.0f, 1.0f)));
     m_FieldOfView = camera->GetFieldOfView();

@@ -17,16 +17,17 @@ namespace Canape
 	public:
 		~TransformComponent() override;
 
-		const Vector3& GetLocalPosition() const { return m_LocalPosition; }
-		const Quaternion& GetLocalRotation() const { return m_LocalRotation; }
-		const Vector3& GetLocalScale() const { return m_LocalScale; }
+		const Vector3& GetPosition() const { return m_Position; }
+		const Quaternion& GetRotation() const { return m_Rotation; }
+		const Vector3& GetScale() const { return m_Scale; }
 
-		void SetLocalPosition(const Vector3& position) { m_LocalPosition = position; }
-		void SetLocalRotation(const Quaternion& rotation) { m_LocalRotation = rotation; }
-		void SetLocalScale(const Vector3& scale) { m_LocalScale = scale; }
+		// 값이 실제로 바뀔 때만 자신과 자식들의 월드 캐시를 무효화한다.
+		void SetPosition(const Vector3& position);
+		void SetRotation(const Quaternion& rotation);
+		void SetScale(const Vector3& scale);
 
-		Vector3 GetPosition() const;
-		Quaternion GetRotation() const;
+		Vector3 GetWorldPosition() const;
+		Quaternion GetWorldRotation() const;
 		// The product of every local scale up the chain; rotation between the scales is ignored.
 		Vector3 GetLossyScale() const;
 
@@ -37,6 +38,7 @@ namespace Canape
 		void LookAt(const Vector3& target, const Vector3& up = Vector3::Up);
 
 		Matrix4 GetLocalMatrix() const;
+		// 월드 값들은 캐시된다. 자신이나 조상의 로컬 값/부모가 바뀌기 전까지 다시 계산하지 않는다.
 		Matrix4 GetLocalToWorldMatrix() const;
 		Matrix4 GetWorldToLocalMatrix() const;
 
@@ -53,11 +55,25 @@ namespace Canape
 
 		TransformComponent() = default;
 
-		Vector3 m_LocalPosition = Vector3::Zero;
-		Quaternion m_LocalRotation = Quaternion::Identity;
-		Vector3 m_LocalScale = Vector3::One;
+		// 자신과 모든 자손의 월드 캐시를 무효화한다.
+		// 불변식: dirty인 노드의 자손은 모두 dirty다. 그래서 이미 dirty면 내려가지 않고 바로 끝낸다.
+		void MarkWorldDirty();
+		// dirty일 때만 부모 캐시를 이용해 월드 값을 다시 계산한다.
+		void UpdateWorld() const;
+
+		Vector3 m_Position = Vector3::Zero;
+		Quaternion m_Rotation = Quaternion::Identity;
+		Vector3 m_Scale = Vector3::One;
 
 		TransformComponent* m_Parent = nullptr;
 		std::vector<TransformComponent*> m_Children;
+
+		// 월드 캐시 (const getter에서 지연 계산)
+		mutable Matrix4 m_LocalToWorld{};
+		mutable Matrix4 m_WorldToLocal{};
+		mutable Quaternion m_WorldRotation = Quaternion::Identity;
+		mutable Vector3 m_LossyScale = Vector3::One;
+		mutable bool m_WorldDirty = true;
+		mutable bool m_InverseDirty = true;
 	};
 }

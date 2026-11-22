@@ -1,4 +1,5 @@
 #include "Scene/Scene.h"
+#include "Asset/AssetManager.h"
 #include "Core/Time.h"
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Component/AnimatorComponent.h"
@@ -8,6 +9,8 @@
 #include "Scene/Component/RenderableComponent.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
+#include "Scene/Serialization/SceneSerializer.h"
+#include "Simulation/SimulationScene.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -20,11 +23,19 @@ namespace Canape
 				return PhysicsScene(*runtime, PhysicsWorldDesc{});
 			return PhysicsScene();
 		}
+
+		std::unique_ptr<SimulationScene> MakeSimulationScene(Session* session)
+		{
+			if (session == nullptr) return nullptr;
+
+            return std::make_unique<SimulationScene>(*session);
+		}
 	}
 
-	Scene::Scene(std::string name, JoltRuntime* physicsRuntime)
+	Scene::Scene(std::string name, JoltRuntime* physicsRuntime, Session* simulationSession)
 		: m_Name(std::move(name))
 		, m_Physics(MakePhysicsScene(physicsRuntime))
+		, m_Simulation(MakeSimulationScene(simulationSession))
 	{
 	}
 
@@ -163,7 +174,7 @@ namespace Canape
 		//***Mesh
 		for (RenderableComponent* renderable : m_componentRegistry.GetRenderables())
 		{
-			if (IsRunnable(renderable))
+			if (renderable->IsVisible() && IsRunnable(renderable))
 				renderable->AddRenderItem(assets, renderer);
 		}
 
@@ -196,6 +207,18 @@ namespace Canape
 		}
 	}
 
+    void Scene::Simulate(Simulator& simulator)
+    {
+        if (m_Simulation != nullptr)
+        {
+            m_Simulation->Simulate(
+                simulator,
+                m_componentRegistry,
+                Time::DeltaTime()
+            );
+        }
+    }
+
 	void Scene::RegisterComponent(Component* component)
 	{
 		m_componentRegistry.Register(component);
@@ -226,19 +249,39 @@ namespace Canape
 		return handle;
 	}
 
+	Handle<GameObject> Scene::Instantiate(const std::string& prefabPath, TransformComponent* parent)
+	{
+		const std::u8string file = AssetManager::GetAssetFile(prefabPath).u8string();
+		GameObject* root = SceneSerializer::InstantiatePrefab(*this, std::string(file.begin(), file.end()), parent);
+		return root ? root->GetHandle() : Handle<GameObject>{};
+	}
+
 	void Scene::RemoveGameObject(const Handle<GameObject> handle)
 	{
 		m_gameObjects.RemoveGameObject(handle);
-	}	
+	}
+
+	void Scene::RemoveGameObject(GameObject* gameObject)
+	{
+		if (gameObject && gameObject->GetScene() == this)
+		{
+			m_gameObjects.RemoveGameObject(gameObject->GetHandle());
+		}
+	}
 
 	GameObject* Scene::GetGameObject(const Handle<GameObject> handle)
 	{
 		return m_gameObjects.GetGameObject(handle);
 	}
 
-	Handle<GameObject> Scene::FindGameObjectByName(const std::string& name)
+	Handle<GameObject> Scene::FindGameObjectHandleByName(const std::string& name)
 	{
 		return m_gameObjects.FindGameObjectByName(name);
+	}
+
+	GameObject* Scene::FindGameObjectByName(const std::string& name)
+	{
+		return m_gameObjects.GetGameObject(m_gameObjects.FindGameObjectByName(name));
 	}
 
 	Handle<GameObject> Scene::FindGameObjectById(uint64_t id)

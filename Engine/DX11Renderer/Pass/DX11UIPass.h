@@ -24,11 +24,13 @@ namespace Canape
     namespace UIPass
     {
         // Draws the list into target (expected to be a UNORM view: blending stays in sRGB space).
-        // Leaves t0/b0 unbound. Returns false only on GPU resource failure.
+        // sceneDepth: the camera depth texture (same pixel size as target; Texture2DMS when the pipeline
+        // was resolved for MSAA) for world-space commands, or null to draw them untested.
+        // Leaves t0/t1/b0 unbound. Returns false only on GPU resource failure.
         bool Execute(const UIDrawList& list, const DX11PipelineSelection& pipeline,
             const DX11ResourceCache& resources, DX11UIBuffers& buffers,
             ID3D11Device& device, ID3D11DeviceContext& context,
-            ID3D11RenderTargetView* target, uint32_t width, uint32_t height,
+            ID3D11RenderTargetView* target, ID3D11ShaderResourceView* sceneDepth, uint32_t width, uint32_t height,
             RendererDebugStats* stats, std::string& error);
     }
 }

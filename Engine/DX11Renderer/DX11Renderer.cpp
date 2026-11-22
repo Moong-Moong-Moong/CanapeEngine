@@ -18,7 +18,7 @@ namespace Canape
 
     DX11Renderer::~DX11Renderer() = default;
 
-    bool DX11Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
+    bool DX11Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless)
     {
         Shutdown();
         const auto fail = [this]()
@@ -29,6 +29,7 @@ namespace Canape
             return false;
         };
         m_Impl->Window = static_cast<HWND>(nativeWindow);
+        m_Impl->Headless = headless;
 
         if (!m_Impl->Window || !IsWindow(m_Impl->Window))
         {
@@ -411,6 +412,16 @@ namespace Canape
     void DX11Renderer::SetOverlay(std::function<void()> overlay)
     {
         m_Impl->Overlay = std::move(overlay);
+    }
+
+    void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
+    {
+        m_Impl->AfterOpaqueCallback = std::move(callback);
+    }
+
+    void DX11Renderer::SetAfterTransparentCallback(std::function<void()> callback)
+    {
+        m_Impl->AfterTransparentCallback = std::move(callback);
     }
 
     void* DX11Renderer::GetNativeDevice() const

@@ -25,6 +25,9 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/TransformComponent.h"
+#include "Simulation/WaveSurfaceComponent.h"
+#include "Simulation/ParticleEffectComponent.h"
+#include "Simulation/WindComponent.h"
 
 #define CN_KEY_VALUE(name) rttr::value(#name, Key::name)
 
@@ -148,16 +151,17 @@ namespace Canape
 				.property("enabled", &Component::IsEnabled, &Component::SetEnabled);
 
 			registration::class_<TransformComponent>("TransformComponent")
-				.property("localPosition", &TransformComponent::GetLocalPosition, &TransformComponent::SetLocalPosition)
-				.property("localRotation", &TransformComponent::GetLocalRotation, &TransformComponent::SetLocalRotation)
-				.property("localScale", &TransformComponent::GetLocalScale, &TransformComponent::SetLocalScale)
+				.property("localPosition", &TransformComponent::GetPosition, &TransformComponent::SetPosition)
+				.property("localRotation", &TransformComponent::GetRotation, &TransformComponent::SetRotation)
+				.property("localScale", &TransformComponent::GetScale, &TransformComponent::SetScale)
 				.property("parent", &TransformComponent::GetParent, &TransformComponent::SetParent);
 
 			registration::class_<CameraComponent>("CameraComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("fieldOfView", &CameraComponent::GetFieldOfView, &CameraComponent::SetFieldOfView)
 				.property("nearClip", &CameraComponent::GetNearClip, &CameraComponent::SetNearClip)
-				.property("farClip", &CameraComponent::GetFarClip, &CameraComponent::SetFarClip);
+				.property("farClip", &CameraComponent::GetFarClip, &CameraComponent::SetFarClip)
+				.property("proxyVisible", &CameraComponent::IsProxyVisible, &CameraComponent::SetProxyVisible);
 
 			registration::class_<LightComponent>("LightComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
@@ -167,7 +171,8 @@ namespace Canape
 				.property("range", &LightComponent::GetRange, &LightComponent::SetRange)
 				.property("innerAngle", &LightComponent::GetInnerAngle, &LightComponent::SetInnerAngle)
 				.property("outerAngle", &LightComponent::GetOuterAngle, &LightComponent::SetOuterAngle)
-				.property("castShadow", &LightComponent::GetCastShadow, &LightComponent::SetCastShadow);
+				.property("castShadow", &LightComponent::GetCastShadow, &LightComponent::SetCastShadow)
+				.property("proxyVisible", &LightComponent::IsProxyVisible, &LightComponent::SetProxyVisible);
 
 			registration::class_<FogComponent>("FogComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
@@ -185,7 +190,8 @@ namespace Canape
 				.property("ambientColor", &SkyboxComponent::GetAmbientColor, &SkyboxComponent::SetAmbientColor)
 				.property("ambientIntensity", &SkyboxComponent::GetAmbientIntensity, &SkyboxComponent::SetAmbientIntensity);
 
-			registration::class_<RenderableComponent>("RenderableComponent");
+			registration::class_<RenderableComponent>("RenderableComponent")
+				.property("visible", &RenderableComponent::IsVisible, &RenderableComponent::SetVisible);
 
 			registration::class_<MeshRendererComponent>("MeshRendererComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
@@ -202,7 +208,8 @@ namespace Canape
 
 			registration::class_<AnimatorComponent>("AnimatorComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
-				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath);
+				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath)
+				.property("rootMotion", &AnimatorComponent::GetRootMotion, &AnimatorComponent::SetRootMotion);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
 
@@ -240,6 +247,24 @@ namespace Canape
 				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
 				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
 				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
+
+			registration::class_<WaveSurfaceComponent>("WaveSurfaceComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("areaSize", &WaveSurfaceComponent::GetAreaSize, &WaveSurfaceComponent::SetAreaSize)
+				.property("resolution", &WaveSurfaceComponent::GetResolution, &WaveSurfaceComponent::SetResolution)
+				.property("rippleSpeed", &WaveSurfaceComponent::GetRippleSpeed, &WaveSurfaceComponent::SetRippleSpeed)
+				.property("rippleDamping", &WaveSurfaceComponent::GetRippleDamping, &WaveSurfaceComponent::SetRippleDamping)
+				.property("rippleStrength", &WaveSurfaceComponent::GetRippleStrength, &WaveSurfaceComponent::SetRippleStrength)
+				.property("deepColor", &WaveSurfaceComponent::GetDeepColor, &WaveSurfaceComponent::SetDeepColor)
+				.property("shallowColor", &WaveSurfaceComponent::GetShallowColor, &WaveSurfaceComponent::SetShallowColor);
+
+			registration::class_<WindComponent>("WindComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("speed", &WindComponent::GetSpeed, &WindComponent::SetSpeed);
+
+			registration::class_<ParticleEffectComponent>("ParticleEffectComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("effect", &ParticleEffectComponent::GetEffectPath, &ParticleEffectComponent::SetEffectPath);
 		}
 	}
 

@@ -689,6 +689,64 @@ void Run(UINT sampleCount, D3D_DRIVER_TYPE driver)
     Require(Yellow(pixels[32 * 64 + 15]), "resize back preserves outline");
     std::cout << "PASS: Transparent exclusion, empty-frame reset, debug Final gating, viewport resize\n";
 
+    // Both simulation hooks must finish before the mask, without affecting its final output.
+    unsigned callbackStage = 0;
+    renderer.SetAfterOpaqueCallback([&]
+    {
+        Require(callbackStage == 0 && !impl.OutlineMaskReady, "opaque hook precedes mask");
+        callbackStage = 1;
+    });
+    renderer.SetAfterTransparentCallback([&]
+    {
+        Require(callbackStage == 1 && !impl.OutlineMaskReady, "transparent hook follows opaque, before mask");
+        callbackStage = 2;
+    });
+    pixels = frame(scene);
+    Require(callbackStage == 2 && Yellow(pixels[32 * 64 + 15]), "both hooks and outline execute together");
+    renderer.SetAfterOpaqueCallback({});
+    renderer.SetAfterTransparentCallback({});
+
+    // The shared scene depth must remain available to world UI in Debug and Shipping.
+    UIDrawList worldUI;
+    worldUI.Vertices = {{{14,30},{0,0},0xFF0000FF}, {{24,30},{0,0},0xFF0000FF},
+        {{24,34},{0,0},0xFF0000FF}, {{14,34},{0,0},0xFF0000FF}};
+    worldUI.Indices = {0,1,2,0,2,3};
+    worldUI.Commands.push_back({{}, {}, 0, 6, 0});
+    UIDrawTransform worldTransform;
+    worldTransform.ClipFromCanvas[0] = 2.0f / 64;
+    worldTransform.ClipFromCanvas[5] = -2.0f / 64;
+    worldTransform.ClipFromCanvas[10] = 1;
+    worldTransform.ClipFromCanvas[12] = -1;
+    worldTransform.ClipFromCanvas[13] = 1;
+    worldTransform.ClipFromCanvas[14] = .75f;
+    worldTransform.ClipFromCanvas[15] = 1;
+    worldUI.Transforms.push_back(worldTransform);
+    const auto beforeUI = pixels;
+    auto worldUIFrame = [&]
+    {
+        Require(renderer.BeginFrame(), "world UI frame");
+        renderer.DrawScene(scene);
+        renderer.SetUIDrawList(&worldUI);
+        renderer.EndFrame();
+        return Read(impl, impl.DisplayTexture.Get());
+    };
+    pixels = worldUIFrame();
+    Require((pixels[32 * 64 + 15] & 0xFFFFFF) == 0x0000FF, "world UI covers finished outline outside geometry");
+    Require(pixels[32 * 64 + 20] == beforeUI[32 * 64 + 20], "occluded world UI uses scene depth after mask");
+    worldUI.Transforms[0].ClipFromCanvas[14] = .25f;
+    pixels = worldUIFrame();
+    Require((pixels[32 * 64 + 20] & 0xFFFFFF) == 0x0000FF, "foreground world UI remains visible");
+
+    bool headlessOverlay = false;
+    renderer.SetOverlay([&] { headlessOverlay = true; });
+    impl.Headless = true;
+    const auto beforeHeadless = Read(impl, impl.DisplayTexture.Get());
+    frame(RenderScene{});
+    Require(!headlessOverlay && Read(impl, impl.DisplayTexture.Get()) == beforeHeadless,
+        "headless skips final output, UI and overlay");
+    impl.Headless = false;
+    std::cout << "PASS: simulation hooks coexist with mask, world UI depth and headless output gating\n";
+
     // UI must cover the finished outline, and the editor overlay must observe that result.
     UIDrawList ui;
     ui.Vertices = {{{14,30},{0,0},0xFF0000FF}, {{16,30},{0,0},0xFF0000FF},

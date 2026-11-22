@@ -9,11 +9,15 @@ namespace Canape
 	class ScriptComponent;
 	class RenderableComponent;
 	class LightComponent;
+	class CameraComponent;
 	class FogComponent;
 	class SkyboxComponent;
 	class RigidBodyComponent;
 	class HingeComponent;
 	class WaterVolumeComponent;
+	class WaveSurfaceComponent;
+	class WindComponent;
+	class ParticleEffectComponent;
 	class AnimatorComponent;
 	class UICanvasComponent;
 
@@ -37,11 +41,15 @@ namespace Canape
 		std::span<ScriptComponent* const> GetScripts() const { return m_scripts; }
 		std::span<RenderableComponent* const> GetRenderables() const { return m_renderables; }
 		std::span<LightComponent* const> GetLights() const { return m_lights; }
+		std::span<CameraComponent* const> GetCameras() const { return m_cameras; }
 		std::span<FogComponent* const> GetFogs() const { return m_fogs; }
 		std::span<SkyboxComponent* const> GetSkyboxes() const { return m_skyboxes; }
 		std::span<RigidBodyComponent* const> GetRigidBodies() const { return m_rigidBodies; }
 		std::span<HingeComponent* const> GetHinges() const { return m_hinges; }
 		std::span<WaterVolumeComponent* const> GetWaterVolumes() const { return m_waterVolumes; }
+		std::span<WaveSurfaceComponent* const> GetWaveSurfaces() const { return m_waveSurfaces; }
+		std::span<WindComponent* const> GetWinds() const { return m_winds; }
+		std::span<ParticleEffectComponent* const> GetParticleEffects() const { return m_particleEffects; }
 		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
 		std::span<UICanvasComponent* const> GetUICanvases() const { return m_uiCanvases; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
@@ -51,11 +59,15 @@ namespace Canape
 		std::vector<ScriptComponent*> m_scripts;
 		std::vector<RenderableComponent*> m_renderables;
 		std::vector<LightComponent*> m_lights;
+		std::vector<CameraComponent*> m_cameras;
 		std::vector<FogComponent*> m_fogs;
 		std::vector<SkyboxComponent*> m_skyboxes;
 		std::vector<RigidBodyComponent*> m_rigidBodies;
 		std::vector<HingeComponent*> m_hinges;
 		std::vector<WaterVolumeComponent*> m_waterVolumes;
+		std::vector<WaveSurfaceComponent*> m_waveSurfaces;
+		std::vector<WindComponent*> m_winds;
+		std::vector<ParticleEffectComponent*> m_particleEffects;
 		std::vector<AnimatorComponent*> m_animators;
 		std::vector<UICanvasComponent*> m_uiCanvases;
 

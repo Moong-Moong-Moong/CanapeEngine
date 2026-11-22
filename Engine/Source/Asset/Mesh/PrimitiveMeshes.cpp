@@ -130,4 +130,63 @@ namespace Canape
 		}
 		return mesh;
 	}
+
+	PrimitiveMeshData PrimitiveMeshes::BuildCylinder(uint32_t segments)
+	{
+		constexpr float TwoPi = 2.0f * std::numbers::pi_v<float>;
+
+		PrimitiveMeshData mesh;
+		mesh.vertices.reserve(static_cast<size_t>(segments + 1) * 4);
+		mesh.indices.reserve(static_cast<size_t>(segments) * 12);
+
+		// Side: a top and a bottom vertex per column; the seam column is duplicated for the UVs.
+		for (uint32_t i = 0; i <= segments; ++i)
+		{
+			const float u = static_cast<float>(i) / static_cast<float>(segments);
+			const float phi = TwoPi * u;
+			const Vector3 normal{ std::cos(phi), 0.0f, std::sin(phi) };
+			const Vector3 rim = normal * HalfExtent;
+
+			mesh.vertices.push_back({ { rim.X, HalfExtent, rim.Z }, normal, { u, 0.0f } });
+			mesh.vertices.push_back({ { rim.X, -HalfExtent, rim.Z }, normal, { u, 1.0f } });
+		}
+		for (uint32_t i = 0; i < segments; ++i)
+		{
+			const uint32_t a = i * 2;
+			const uint32_t b = a + 2;
+			const uint32_t c = a + 1;
+			const uint32_t d = a + 3;
+			mesh.indices.insert(mesh.indices.end(), { a, b, c, b, d, c });
+		}
+
+		// Caps: a centre vertex then one rim vertex per segment, planar UVs.
+		const Vector3 capNormals[] = { { 0.0f, 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
+		for (const Vector3& normal : capNormals)
+		{
+			const uint32_t centre = static_cast<uint32_t>(mesh.vertices.size());
+			const float y = normal.Y * HalfExtent;
+			mesh.vertices.push_back({ { 0.0f, y, 0.0f }, normal, { 0.5f, 0.5f } });
+			for (uint32_t i = 0; i < segments; ++i)
+			{
+				const float phi = TwoPi * static_cast<float>(i) / static_cast<float>(segments);
+				const float x = std::cos(phi);
+				const float z = std::sin(phi);
+				mesh.vertices.push_back({ { x * HalfExtent, y, z * HalfExtent }, normal, { 0.5f + 0.5f * x, 0.5f - 0.5f * z * normal.Y } });
+			}
+			for (uint32_t i = 0; i < segments; ++i)
+			{
+				const uint32_t current = centre + 1 + i;
+				const uint32_t next = centre + 1 + (i + 1) % segments;
+				if (normal.Y > 0.0f)
+				{
+					mesh.indices.insert(mesh.indices.end(), { centre, next, current });
+				}
+				else
+				{
+					mesh.indices.insert(mesh.indices.end(), { centre, current, next });
+				}
+			}
+		}
+		return mesh;
+	}
 }

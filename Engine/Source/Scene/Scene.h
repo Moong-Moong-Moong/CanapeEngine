@@ -6,6 +6,7 @@
 
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 #include <queue>
@@ -14,16 +15,19 @@ namespace Canape
 {
 	class GameObject;
 	class Component;
+	class TransformComponent;
 	class CameraComponent;
 	class AssetManager;
 	class Renderer;
 	class JoltRuntime;
+	class Session;
+	class SimulationScene;
+	class Simulator;
 
 	class Scene final
 	{
 	public:
-		// A scene gets a physics world when a runtime is given.
-		explicit Scene(std::string name, JoltRuntime* physicsRuntime = nullptr);
+		explicit Scene(std::string name, JoltRuntime* physicsRuntime = nullptr, Session* simulationSession = nullptr);
 		~Scene();
 
 		Scene(const Scene&) = delete;
@@ -43,10 +47,16 @@ namespace Canape
 
 		//***** GameObject
 		Handle<GameObject> AddGameObject(const std::string& name = "GameObject");
-		void RemoveGameObject(const Handle<GameObject> handle);
-		GameObject* GetGameObject(const Handle<GameObject> handle);
-		Handle<GameObject> FindGameObjectByName(const std::string& name);
+		Handle<GameObject> Instantiate(const std::string& prefabPath, TransformComponent* parent = nullptr);
+		Handle<GameObject> FindGameObjectHandleByName(const std::string& name);
 		Handle<GameObject> FindGameObjectById(uint64_t id);
+
+		GameObject* GetGameObject(const Handle<GameObject> handle);
+		GameObject* FindGameObjectByName(const std::string& name);
+
+		void RemoveGameObject(const Handle<GameObject> handle);
+		void RemoveGameObject(GameObject* gameObject);
+
 		std::vector<GameObject*> GetAllGameObjects();
 
 		uint64_t GenerateId() { return ++m_LastId; }
@@ -61,6 +71,9 @@ namespace Canape
 
 		//*** 등록된 UI 캔버스(실행 가능 여부는 IsRunnable로 확인)
 		std::span<UICanvasComponent* const> GetUICanvases() const { return m_componentRegistry.GetUICanvases(); }
+		//*** 등록된 조명/카메라(에디터 아이콘 등). 실행 가능 여부는 IsRunnable로 확인
+		std::span<LightComponent* const> GetLights() const { return m_componentRegistry.GetLights(); }
+		std::span<CameraComponent* const> GetCameras() const { return m_componentRegistry.GetCameras(); }
 
 		//***** Camera
 		CameraComponent* GetMainCamera() ;
@@ -69,6 +82,12 @@ namespace Canape
 		//***** Physics
 		PhysicsScene& GetPhysics() { return m_Physics; }
 		const PhysicsScene& GetPhysics() const { return m_Physics; }
+
+		//***** Simulation
+		// Null when the scene was made without a session.
+		SimulationScene* GetSimulation() { return m_Simulation.get(); }
+		// Once a frame, after the update and before the scene is rendered.
+		void Simulate(Simulator&);
 
 	private:
 		void RunAwakeAndStart();
@@ -82,6 +101,7 @@ namespace Canape
 		std::string m_Name;
 
 		PhysicsScene m_Physics;
+		std::unique_ptr<SimulationScene> m_Simulation;
 
 		std::queue<Component*> m_onDestroyQueue;
 		ComponentRegistry m_componentRegistry;

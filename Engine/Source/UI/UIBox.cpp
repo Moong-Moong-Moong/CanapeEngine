@@ -55,7 +55,7 @@ namespace Canape
 		{
 			if (!TakesSpace(*child))
 			{
-				child->ArrangeAt({ content.X, content.Y, 0.0f, 0.0f }, scale);
+				child->ArrangeAt({ content.X, content.Y, 0.0f, 0.0f }, scale, GetRasterFactor());
 				continue;
 			}
 			const Vector2 preferred = child->GetPreferredSize(scale);
@@ -77,7 +77,7 @@ namespace Canape
 			const UIRect slot = horizontal
 				? UIRect{ cursor, content.Y + offset, main, cross }
 				: UIRect{ content.X + offset, cursor, cross, main };
-			child->ArrangeAt(slot, scale);
+			child->ArrangeAt(slot, scale, GetRasterFactor());
 			cursor += main + m_Spacing * scale;
 		}
 	}

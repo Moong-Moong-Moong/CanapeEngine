@@ -13,6 +13,9 @@
 
 namespace Canape
 {
+    class Session;
+    class Simulator;
+
     class Application
     {
     public:
@@ -51,6 +54,8 @@ namespace Canape
         std::unique_ptr<Renderer> m_Renderer;
         std::unique_ptr<AssetManager> m_AssetManager;
         std::unique_ptr<JoltRuntime> m_PhysicsRuntime;
+        std::unique_ptr<Session> m_SimulationSession;
+        std::unique_ptr<Simulator> m_Simulator;
         std::unique_ptr<SceneManager> m_SceneManager;
         std::unique_ptr<CommandRegistry> m_Commands;
         std::unique_ptr<UISystem> m_UISystem;

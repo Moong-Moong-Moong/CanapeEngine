@@ -17,6 +17,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 
 namespace Canape
 {
@@ -24,6 +25,7 @@ namespace Canape
     class DX11Renderer;
     class GpuResourceRegistry;
     class Scene;
+    class Simulator;
 
     class Renderer final
     {
@@ -34,9 +36,13 @@ namespace Canape
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
-        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
+        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless);
 
-        void Render(Scene* scene, const AssetManager& assets);
+        void Render(Scene* scene, const AssetManager& assets, Simulator& simulator);
+
+        // 이번 프레임에 쓸 뷰: 에디터 view override가 있으면 그것, 없으면 씬의 메인 카메라.
+        // UI(월드 공간 캔버스)도 같은 뷰를 쓰도록 Render 밖에서도 부를 수 있다. 카메라가 없으면 nullopt.
+        std::optional<RenderView> ResolveView(Scene* scene) const;
 
         // 다음 Render 한 번에만 그려진다. Render가 끝날 때까지 list를 살려 둘 것.
         void SetUIDrawList(const UIDrawList* list);
@@ -87,11 +93,16 @@ namespace Canape
         void SetBlockerSearchRadius(float radius);
 
         void AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-            uint64_t objectId = 0, bool outlineEnabled = false, const OutlineStyle& outlineStyle = {});
+            uint64_t objectId = 0, bool outlineEnabled = false, const OutlineStyle& outlineStyle = {},
+            bool castShadow = true);
         uint32_t AddBonePalette(std::span<const Matrix4> palette);
         void AddSkinnedRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
             uint32_t paletteOffset, uint32_t paletteCount, uint64_t objectId = 0, bool outlineEnabled = false,
             const OutlineStyle& outlineStyle = {});
+
+        //***** 에디터 전용
+        // Scene::BuildRenderScene 직후마다 불린다. 에디터가 조명/카메라 아이콘 같은 추가 아이템을 넣는 자리.
+        void SetEditorSubmit(std::function<void(Scene&, Renderer&)> submit) { m_EditorSubmit = std::move(submit); }
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);
@@ -111,6 +122,8 @@ namespace Canape
         bool m_WarnedNoCamera = false;
         RendererDebugSettings m_DebugSettings{};
         ShadowFilterSettings m_ShadowFilterSettings{};
+
+        std::function<void(Scene&, Renderer&)> m_EditorSubmit;
 
         void ApplyDebugSettings();
         void ApplyShadowFilterSettings();

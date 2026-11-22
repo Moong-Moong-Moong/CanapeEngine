@@ -1,0 +1,23 @@
+{
+    "shader": "Shaders/Embers.hlsl",
+    "pass": "additive",
+    "vertices": 6,
+    "count": 128,
+    "parameters": {
+        "Radius": 0.3,
+        "LifeRange": [1.5, 3.0],
+        "BurstInterval": 2.5,
+        "BurstShare": 0.2,
+        "TrickleRate": 0.3,
+        "LaunchSpeed": 2.0,
+        "LaunchSpread": 1.2,
+        "Buoyancy": 1.5,
+        "Drag": 0.8,
+        "Sway": 1.5,
+        "EmberSize": 0.05,
+        "HotColor": [6.0, 2.6, 0.6],
+        "CoolColor": [1.2, 0.15, 0.02],
+        "Brightness": 1.5,
+        "FlickerRate": 14.0
+    }
+}

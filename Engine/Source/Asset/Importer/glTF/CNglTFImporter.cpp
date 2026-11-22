@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
+#include <algorithm>
 #include <vector>
 #include "../../Mesh/MeshAsset.h"
 #include "../../Texture/TextureAsset.h"
@@ -32,6 +33,22 @@ namespace Canape
 		{
 			const std::filesystem::path full = (ToPath(gltfFile).parent_path() / ToPath(fileName)).lexically_normal();
 			return AssetManager::ToAssetPath(ToUtf8(full.generic_u8string()));
+		}
+
+		// accessor가 가리키는 데이터의 bin 내 시작 위치 = bufferView.byteOffset + accessor.byteOffset (둘 다 생략 시 0)
+		size_t GetAccessorDataOffset(Value& bufferViews, Value& accessor)
+		{
+			Value& bufferView = bufferViews[accessor["bufferView"].GetUint()];
+			const size_t viewOffset = bufferView.HasMember("byteOffset") ? bufferView["byteOffset"].GetUint() : 0u;
+			const size_t accessorOffset = accessor.HasMember("byteOffset") ? accessor["byteOffset"].GetUint() : 0u;
+			return viewOffset + accessorOffset;
+		}
+
+		// 요소 간 간격. byteStride가 없으면 tight packing(요소 크기)
+		size_t GetAccessorStride(Value& bufferViews, Value& accessor, size_t elementSize)
+		{
+			Value& bufferView = bufferViews[accessor["bufferView"].GetUint()];
+			return bufferView.HasMember("byteStride") ? bufferView["byteStride"].GetUint() : elementSize;
 		}
 
 		// ===== [Tangent] 헬퍼 시작 =====
@@ -491,6 +508,19 @@ namespace Canape
 
 	Matrix4 CNglTFImporter::GetNodeTRS(Value& node)
 	{
+		//*** matrix가 있으면 TRS 대신 사용
+		// glTF는 열벡터 + column-major 배열, 엔진은 행벡터 + row-major → 배열 순서 그대로 복사하면 된다.
+		if (node.HasMember("matrix"))
+		{
+			Value& matrix = node["matrix"];
+			Matrix4 m;
+			for (uint32_t i = 0; i < 16; i++)
+			{
+				m.M[i / 4][i % 4] = matrix[i].GetFloat();
+			}
+			return m;
+		}
+
 		Matrix4 s;
 		Matrix4 r;
 		Matrix4 t;
@@ -575,10 +605,10 @@ namespace Canape
 				Value& bufferViews = doc["bufferViews"];
 
 				//*** Position
-				uint32_t aPos = attributes["POSITION"].GetUint(); // 포지션 엑세서 인덱스
-				uint32_t bPos = accessors[aPos]["bufferView"].GetUint(); // 포지션 버퍼뷰 인덱스
-				uint32_t posCnt = accessors[aPos]["count"].GetUint(); // 읽을 포지션 개수
-				uint32_t pOffset = bufferViews[bPos]["byteOffset"].GetUint(); // 포지션 버퍼 뷰 오프셋
+				Value& aPos = accessors[attributes["POSITION"].GetUint()]; // 포지션 엑세서
+				uint32_t posCnt = aPos["count"].GetUint(); // 읽을 포지션 개수
+				size_t pOffset = GetAccessorDataOffset(bufferViews, aPos); // 포지션 데이터 시작 위치
+				size_t pStride = GetAccessorStride(bufferViews, aPos, sizeof(Vector3));
 
 				//***** 바이너리에서 정점 정보 복사
 				//*** 이 primitive를 위한 정점 데이터 메모리 할당
@@ -588,7 +618,7 @@ namespace Canape
 				for (uint32_t i = 0; i < posCnt; i++)
 				{
 					Vector3 pos;
-					std::memcpy(&pos, cNglTF.m_bin.data() + pOffset + (i * sizeof(Vector3)), sizeof(Vector3));
+					std::memcpy(&pos, cNglTF.m_bin.data() + pOffset + (i * pStride), sizeof(Vector3));
 					pos = TRS.TransformPoint(pos);
 					// 좌표계 변환
 					pos.X = -pos.X;
@@ -598,17 +628,17 @@ namespace Canape
 				//*** Normal
 				if (attributes.HasMember("NORMAL"))
 				{
-					uint32_t aNormal = attributes["NORMAL"].GetUint(); // 노말 엑세서 인덱스
-					uint32_t bNormal = accessors[aNormal]["bufferView"].GetUint(); // 노말 버퍼뷰 인덱스
-					uint32_t norCnt = accessors[aNormal]["count"].GetUint(); // 읽을 노말 개수
-					uint32_t nOffset = bufferViews[bNormal]["byteOffset"].GetUint(); // 노말 버퍼 뷰 오프셋
+					Value& aNormal = accessors[attributes["NORMAL"].GetUint()]; // 노말 엑세서
+					uint32_t norCnt = (std::min)(aNormal["count"].GetUint(), posCnt); // 읽을 노말 개수
+					size_t nOffset = GetAccessorDataOffset(bufferViews, aNormal); // 노말 데이터 시작 위치
+					size_t nStride = GetAccessorStride(bufferViews, aNormal, sizeof(Vector3));
 
 					//* Normal에는 스케일이 포함되면 방향이 바뀌기 때문에 역전체 행렬을 사용해야함
 					DirectX::XMMATRIX normalMat = DirectX::XMMatrixTranspose(TRS.Inverse().ToXM());
 					for (uint32_t i = 0; i < norCnt; i++)
 					{
 						Vector3 normal;
-						std::memcpy(&normal, cNglTF.m_bin.data() + nOffset + (i * sizeof(Vector3)), sizeof(Vector3));
+						std::memcpy(&normal, cNglTF.m_bin.data() + nOffset + (i * nStride), sizeof(Vector3));
 						DirectX::XMVECTOR n =
 							DirectX::XMVector3TransformNormal(normal.ToXM(), normalMat);
 						Vector3 nrm = Vector3::FromXM(DirectX::XMVector3Normalize(n));
@@ -620,15 +650,15 @@ namespace Canape
 				//*** uv
 				if (attributes.HasMember("TEXCOORD_0"))
 				{
-					uint32_t aUv = attributes["TEXCOORD_0"].GetUint(); // UV 엑세서 인덱스
-					uint32_t bUv = accessors[aUv]["bufferView"].GetUint(); // UV 버퍼뷰 인덱스
-					uint32_t uvCnt = accessors[aUv]["count"].GetUint(); // 읽을 UV 개수
-					uint32_t uvOffset = bufferViews[bUv]["byteOffset"].GetUint(); // UV 버퍼 뷰 오프셋
+					Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()]; // UV 엑세서
+					uint32_t uvCnt = (std::min)(aUv["count"].GetUint(), posCnt); // 읽을 UV 개수
+					size_t uvOffset = GetAccessorDataOffset(bufferViews, aUv); // UV 데이터 시작 위치
+					size_t uvStride = GetAccessorStride(bufferViews, aUv, sizeof(Vector2));
 
 					for (uint32_t i = 0; i < uvCnt; i++)
 					{
 						Vector2 uv;
-						std::memcpy(&uv, cNglTF.m_bin.data() + uvOffset + (i * sizeof(Vector2)), sizeof(Vector2));
+						std::memcpy(&uv, cNglTF.m_bin.data() + uvOffset + (i * uvStride), sizeof(Vector2));
 						vertices[svStart + i].UV = uv;
 					}
 				}
@@ -637,16 +667,16 @@ namespace Canape
 				bool hasTangent = attributes.HasMember("TANGENT");
 				if (hasTangent)
 				{
-					uint32_t aTan = attributes["TANGENT"].GetUint();
-					uint32_t bTan = accessors[aTan]["bufferView"].GetUint();
-					uint32_t tanCnt = accessors[aTan]["count"].GetUint();
-					uint32_t tOffset = bufferViews[bTan]["byteOffset"].GetUint();
+					Value& aTan = accessors[attributes["TANGENT"].GetUint()];
+					uint32_t tanCnt = (std::min)(aTan["count"].GetUint(), posCnt);
+					size_t tOffset = GetAccessorDataOffset(bufferViews, aTan);
+					size_t tStride = GetAccessorStride(bufferViews, aTan, sizeof(Vector4));
 					const DirectX::XMMATRIX M = TRS.ToXM();
 
 					for (uint32_t i = 0; i < tanCnt; i++)
 					{
 						Vector4 t; // VEC4 float
-						std::memcpy(&t, cNglTF.m_bin.data() + tOffset + (i * sizeof(Vector4)), sizeof(Vector4));
+						std::memcpy(&t, cNglTF.m_bin.data() + tOffset + (i * tStride), sizeof(Vector4));
 
 						// 탄젠트는 표면 방향 → 역전치 X, TRS 그대로 w=0
 						Vector3 tv = Vector3::FromXM(DirectX::XMVector3Normalize(
@@ -658,17 +688,31 @@ namespace Canape
 				}
 
 				//***** 인덱스 복사
-				uint32_t aIndex = primitive["indices"].GetUint();
-				uint32_t bIndex = accessors[aIndex]["bufferView"].GetUint();
-				uint32_t iOffset = bufferViews[bIndex]["byteOffset"].GetUint();
-				uint32_t indexCnt = accessors[aIndex]["count"].GetUint();
+				Value& aIndex = accessors[primitive["indices"].GetUint()];
+				size_t iOffset = GetAccessorDataOffset(bufferViews, aIndex);
+				uint32_t indexCnt = aIndex["count"].GetUint();
+				const uint32_t componentType = aIndex["componentType"].GetUint(); // 5121: u8, 5123: u16, 5125: u32
 				const uint32_t iStart = static_cast<uint32_t>(indices.size());  // = sm.startIndex
 				indices.resize(iStart + indexCnt);
+				const uint8_t* indexData = cNglTF.m_bin.data() + iOffset;
 				for (uint32_t i = 0; i < indexCnt; i++)
 				{
-					uint16_t vi; // componentType : 5123 - 2byte; 인덱스는 2바이트
-					std::memcpy(&vi, cNglTF.m_bin.data() + iOffset + (i * sizeof(uint16_t)), sizeof(uint16_t));
-					indices[iStart + i] = vi;
+					if (componentType == 5125)
+					{
+						uint32_t vi;
+						std::memcpy(&vi, indexData + (i * sizeof(uint32_t)), sizeof(uint32_t));
+						indices[iStart + i] = vi;
+					}
+					else if (componentType == 5123)
+					{
+						uint16_t vi;
+						std::memcpy(&vi, indexData + (i * sizeof(uint16_t)), sizeof(uint16_t));
+						indices[iStart + i] = vi;
+					}
+					else
+					{
+						indices[iStart + i] = indexData[i];
+					}
 				}
 
 				//***** 와인딩 반전: X 미러링으로 앞뒷면이 바뀜 (노드에도 미러링이 있으면 원래대로)
@@ -1005,17 +1049,17 @@ namespace Canape
 			if (node.HasMember("translation"))
 			{
 				Value& t = node["translation"];
-				transform->SetLocalPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
+				transform->SetPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
 			}
 			if (node.HasMember("rotation"))
 			{
 				Value& r = node["rotation"];
-				transform->SetLocalRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
+				transform->SetRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
 			}
 			if (node.HasMember("scale"))
 			{
 				Value& s = node["scale"];
-				transform->SetLocalScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
+				transform->SetScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
 			}
 		}
 

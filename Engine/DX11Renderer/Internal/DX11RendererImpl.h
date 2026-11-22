@@ -44,6 +44,7 @@ namespace Canape
         bool ViewDirty = true;
         bool SceneDirty = true;
         HWND Window = nullptr;
+        bool Headless = false;
         uint32_t Width = 0;
         uint32_t Height = 0;
         uint32_t BackBufferWidth = 0;
@@ -51,6 +52,8 @@ namespace Canape
         uint32_t RequestedSceneWidth = 0;
         uint32_t RequestedSceneHeight = 0;
         std::function<void()> Overlay;
+        std::function<void()> AfterOpaqueCallback;
+        std::function<void()> AfterTransparentCallback;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;
@@ -138,9 +141,9 @@ namespace Canape
         uint32_t OutlineStyleCount = 0;
         uint32_t OutlineMaxThickness = 0;
         bool OutlineMaskReady = false;
-#if CANAPE_RENDER_DEBUG
+        // Camera depth as a texture (Texture2DMS when MSAA). Read by the world-space UI depth
+        // comparison in every configuration and by the debug depth view.
         ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
-#endif
         ComPtr<ID3D11Buffer> ObjectBuffer;
         ComPtr<ID3D11Buffer> SkinningBuffer;
         ComPtr<ID3D11Buffer> MaterialBuffer;

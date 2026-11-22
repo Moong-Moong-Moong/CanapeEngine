@@ -1,0 +1,21 @@
+{
+    "shader": "Shaders/Fire.hlsl",
+    "pass": "additive",
+    "vertices": 6,
+    "count": 512,
+    "parameters": {
+        "Radius": 0.25,
+        "LifeRange": [0.6, 1.2],
+        "LaunchSpeed": 0.6,
+        "Buoyancy": 5.0,
+        "InwardPull": 3.0,
+        "Sway": 3.0,
+        "WindFollow": 0.6,
+        "FlameSize": 0.5,
+        "CoreColor": [3.5, 2.6, 1.3],
+        "MidColor": [2.4, 0.8, 0.15],
+        "TailColor": [0.55, 0.05, 0.01],
+        "Brightness": 0.04,
+        "Aspect": 2.2
+    }
+}

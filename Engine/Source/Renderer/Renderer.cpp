@@ -6,6 +6,7 @@
 #include "Scene/Component/CameraComponent.h"
 #include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
+#include "Simulation/SimulationScene.h"
 
 namespace Canape
 {
@@ -17,9 +18,9 @@ namespace Canape
 
     Renderer::~Renderer() = default;
 
-    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
+    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless)
     {
-        if (!m_DX11->Initialize(nativeWindow, width, height)) return false;
+        if (!m_DX11->Initialize(nativeWindow, width, height, headless)) return false;
         m_DX11->SetDebugSettings(m_DebugSettings);
         m_DebugSettings = m_DX11->GetDebugSettings();
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();
@@ -191,7 +192,28 @@ namespace Canape
         m_DX11->DestroyTexture(texture);
     }
 
-    void Renderer::Render(Scene* scene, const AssetManager& assets)
+    std::optional<RenderView> Renderer::ResolveView(Scene* scene) const
+    {
+        if (m_ViewOverride)
+        {
+            return m_ViewOverride;
+        }
+        CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
+        const uint32_t width = m_DX11->GetWidth();
+        const uint32_t height = m_DX11->GetHeight();
+        if (!camera || !camera->IsEnabled() || width == 0 || height == 0)
+        {
+            return std::nullopt;
+        }
+        const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+        RenderView view;
+        view.view = camera->GetViewMatrix();
+        view.projection = camera->GetProjectionMatrix(aspectRatio);
+        view.cameraPosition = camera->GetTransform()->GetWorldPosition();
+        return view;
+    }
+
+    void Renderer::Render(Scene* scene, const AssetManager& assets, Simulator& simulator)
     {
         if (!m_DX11->BeginFrame())
         {
@@ -200,18 +222,10 @@ namespace Canape
             return;
         }
 
-        CameraComponent* camera = scene ? scene->GetMainCamera() : nullptr;
+        bool sceneBuilt = false;
 
-        if (m_ViewOverride)
-        {
-            m_DX11->SetRenderView(*m_ViewOverride);
-            if (scene)
-            {
-                scene->BuildRenderScene(assets, *this);
-            }
-        }
-
-        else if (!camera || !camera->IsEnabled())
+        const std::optional<RenderView> view = ResolveView(scene);
+        if (!view)
         {
             if (!m_WarnedNoCamera)
             {
@@ -222,24 +236,50 @@ namespace Canape
 
         else
         {
-            m_WarnedNoCamera = false;
+            if (!m_ViewOverride)
+            {
+                m_WarnedNoCamera = false;
+            }
+            m_DX11->SetRenderView(*view);
+            if (scene)
+            {
+                scene->BuildRenderScene(assets, *this);
 
-            const float aspectRatio = static_cast<float>(m_DX11->GetWidth()) / static_cast<float>(m_DX11->GetHeight());
-            RenderView view;
-            view.view = camera->GetViewMatrix();
-            view.projection = camera->GetProjectionMatrix(aspectRatio);
-            view.cameraPosition = camera->GetTransform()->GetPosition();
-            m_DX11->SetRenderView(view);
+                if (m_EditorSubmit)
+                {
+                    m_EditorSubmit(*scene, *this);
+                }
 
-            scene->BuildRenderScene(assets, *this);
+                sceneBuilt = true;
+            }
         }
 
+        if (sceneBuilt)
+        {
+            if (SimulationScene* simulation = scene->GetSimulation())
+            {
+                m_DX11->SetAfterOpaqueCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterOpaque(simulator);
+                    }
+                );
+                m_DX11->SetAfterTransparentCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderAfterTransparent(simulator);
+                    }
+                );
+            }
+        }
         m_DX11->DrawScene();
+        m_DX11->SetAfterOpaqueCallback(nullptr);
+        m_DX11->SetAfterTransparentCallback(nullptr);
         m_DX11->EndFrame();
     }
 
     void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
-        uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle)
+        uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle, bool castShadow)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -255,6 +295,7 @@ namespace Canape
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
         item.world = world;
+        item.castShadow = castShadow;
         m_DX11->AddRenderItem(item);
     }
 

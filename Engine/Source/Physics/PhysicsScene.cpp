@@ -22,8 +22,8 @@ namespace Canape
 		PhysicsPose PoseOf(const TransformComponent& transform)
 		{
 			return {
-				.position = transform.GetPosition(),
-				.rotation = transform.GetRotation().Normalized()
+				.position = transform.GetWorldPosition(),
+				.rotation = transform.GetWorldRotation().Normalized()
 			};
 		}
 
@@ -450,8 +450,8 @@ namespace Canape
 		}
 
 		const TransformComponent& transform = *hinge.GetTransform();
-		const Vector3 pivot = transform.GetPosition();
-		const Vector3 axis = transform.GetRotation().Normalized().Rotate(hinge.GetAxis()).Normalized();
+		const Vector3 pivot = transform.GetWorldPosition();
+		const Vector3 axis = transform.GetWorldRotation().Normalized().Rotate(hinge.GetAxis()).Normalized();
 		const PhysicsHingeId created = m_World->CreateHinge(PhysicsHingeDesc{
 			.body = heldId,
 			.pivot = pivot,
@@ -562,7 +562,7 @@ namespace Canape
 			}
 			state.invalidLogged = false;
 
-			const bool rotated = std::fabs(transform.GetRotation().Normalized().W) < 0.99999f;
+			const bool rotated = std::fabs(transform.GetWorldRotation().Normalized().W) < 0.99999f;
 			if (rotated && !state.rotationLogged)
 			{
 				CN_LOG_RUNTIME("Physics", "'", water->GetOwnerObject()->GetName(), "': a water volume is an axis-aligned box; its rotation is ignored");
@@ -570,7 +570,7 @@ namespace Canape
 			state.rotationLogged = rotated;
 
 			const PhysicsWaterDesc desc{
-				.center = transform.GetPosition(),
+				.center = transform.GetWorldPosition(),
 				.halfExtent = size * 0.5f,
 				.density = water->GetDensity(),
 				.linearDrag = water->GetLinearDrag(),
@@ -647,13 +647,13 @@ namespace Canape
 		TransformComponent* transform = body.GetTransform();
 		if (const TransformComponent* parent = transform->GetParent())
 		{
-            transform->SetLocalPosition(parent->GetWorldToLocalMatrix().TransformPoint(pose.position));
-            transform->SetLocalRotation((parent->GetRotation().Inverse() * pose.rotation).Normalized());
+            transform->SetPosition(parent->GetWorldToLocalMatrix().TransformPoint(pose.position));
+            transform->SetRotation((parent->GetWorldRotation().Inverse() * pose.rotation).Normalized());
         }
         else
         {
-            transform->SetLocalPosition(pose.position);
-            transform->SetLocalRotation(pose.rotation);
+            transform->SetPosition(pose.position);
+            transform->SetRotation(pose.rotation);
         }
 	}
 

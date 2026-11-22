@@ -59,7 +59,7 @@ int main()
         { std::ofstream file(path); file << json.dump(); }
         auto restored = SceneSerializer::Load(path);
         Require(restored != nullptr, "load serialized scene");
-        auto* restoredObject = restored->GetGameObject(restored->FindGameObjectByName("Outline"));
+        auto* restoredObject = restored->FindGameObjectByName("Outline");
         Require(restoredObject->GetComponent<MeshRendererComponent>()->IsOutlineEnabled()
             && restoredObject->GetComponent<SkinnedMeshRendererComponent>()->IsOutlineEnabled(), "true survives round trip");
         for (auto* component : restoredObject->GetComponents<MeshRendererComponent>())
@@ -75,7 +75,7 @@ int main()
         { std::ofstream file(path); file << json.dump(); }
         restored = SceneSerializer::Load(path);
         Require(restored != nullptr, "load legacy scene");
-        restoredObject = restored->GetGameObject(restored->FindGameObjectByName("Outline"));
+        restoredObject = restored->FindGameObjectByName("Outline");
         Require(!restoredObject->GetComponent<MeshRendererComponent>()->IsOutlineEnabled()
             && !restoredObject->GetComponent<SkinnedMeshRendererComponent>()->IsOutlineEnabled(), "legacy scene defaults false");
         for (auto* component : restoredObject->GetComponents<MeshRendererComponent>())

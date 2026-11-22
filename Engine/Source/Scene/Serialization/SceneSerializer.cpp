@@ -216,9 +216,13 @@ namespace Canape
 		class SceneReader
 		{
 		public:
-			std::unique_ptr<Scene> Read(const Json& root, JoltRuntime* physicsRuntime)
+			std::unique_ptr<Scene> Read(const Json& root, JoltRuntime* physicsRuntime, Session* simulationSession)
 			{
-				auto scene = std::make_unique<Scene>(root.value("name", std::string("Scene")), physicsRuntime);
+				auto scene = std::make_unique<Scene>(
+                    root.value("name", std::string("Scene")),
+                    physicsRuntime,
+                    simulationSession
+                );
 				m_Scene = scene.get();
 
 				struct PendingComponent
@@ -503,7 +507,7 @@ namespace Canape
 		return true;
 	}
 
-	std::unique_ptr<Scene> SceneSerializer::Load(const std::string& path, JoltRuntime* physicsRuntime)
+	std::unique_ptr<Scene> SceneSerializer::Load(const std::string& path, JoltRuntime* physicsRuntime, Session* simulationSession)
 	{
 		std::ifstream file(std::filesystem::path(path), std::ios::binary);
 		if (!file)
@@ -525,7 +529,7 @@ namespace Canape
 			return nullptr;
 		}
 
-		std::unique_ptr<Scene> scene = SceneReader().Read(root, physicsRuntime);
+		std::unique_ptr<Scene> scene = SceneReader().Read(root, physicsRuntime, simulationSession);
 		CN_LOG_RUNTIME("Scene", "씬 로드 완료 : ", path);
 		return scene;
 	}
