@@ -293,6 +293,11 @@ namespace Canape
         m_Impl->QueuedScene.skybox = skybox;
     }
 
+    void DX11Renderer::SetMirrorPlaneHeight(float height)
+    {
+        m_Impl->QueuedScene.mirrorPlaneHeight = height;
+    }
+
     void DX11Renderer::SetAmbient(const Vector3& color, float intensity)
     {
         m_Impl->QueuedScene.ambientColor = color;
@@ -422,6 +427,11 @@ namespace Canape
     void DX11Renderer::SetAfterTransparentCallback(std::function<void()> callback)
     {
         m_Impl->AfterTransparentCallback = std::move(callback);
+    }
+
+    void DX11Renderer::SetMirrorCallback(std::function<void()> callback)
+    {
+        m_Impl->MirrorCallback = std::move(callback);
     }
 
     void* DX11Renderer::GetNativeDevice() const

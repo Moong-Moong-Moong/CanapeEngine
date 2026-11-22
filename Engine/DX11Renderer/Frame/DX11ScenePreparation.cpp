@@ -215,6 +215,36 @@ namespace Canape::ScenePreparation
         return data;
     }
 
+    std::optional<SC::ViewConstants> BuildMirrorViewConstants(const SC::ViewConstants& camera, float planeHeight)
+    {
+        using namespace DirectX;
+        constexpr float MinCameraHeight = 0.05f;
+        if (camera.CameraPosition.Y - planeHeight < MinCameraHeight) return std::nullopt;
+
+        const XMVECTOR plane = XMVectorSet(0.0f, 1.0f, 0.0f, -planeHeight);
+        // The x flip undoes the handedness the reflection changes, so the view stays a rigid camera.
+        const XMMATRIX view = XMMatrixReflect(plane) * XMLoadFloat4x4(&camera.View)
+            * XMMatrixScaling(-1.0f, 1.0f, 1.0f);
+        const XMMATRIX projection = XMLoadFloat4x4(&camera.Projection);
+
+        // Oblique near plane.
+        const XMVECTOR viewPlane = XMPlaneTransform(plane, XMMatrixTranspose(XMMatrixInverse(nullptr, view)));
+        const XMVECTOR clipPlane = XMPlaneTransform(viewPlane, XMMatrixTranspose(XMMatrixInverse(nullptr, projection)));
+        const XMVECTOR farCorner = XMVectorSet(
+            std::copysign(1.0f, XMVectorGetX(clipPlane)), std::copysign(1.0f, XMVectorGetY(clipPlane)), 1.0f, 1.0f);
+        const XMVECTOR depthColumn = XMVectorDivide(viewPlane, XMVector4Dot(farCorner, clipPlane));
+
+        XMFLOAT4X4 viewData;
+        XMFLOAT4X4 projectionData = camera.Projection;
+        XMStoreFloat4x4(&viewData, view);
+        for (int row = 0; row < 4; ++row) projectionData.m[row][2] = XMVectorGetByIndex(depthColumn, row);
+
+        auto result = BuildViewConstants(&viewData.m[0][0], &projectionData.m[0][0]);
+        result.CameraPosition = { camera.CameraPosition.X, 2.0f * planeHeight - camera.CameraPosition.Y,
+            camera.CameraPosition.Z };
+        return result;
+    }
+
     SC::SceneConstants BuildSceneConstants(const RenderScene& scene)
     {
         SC::SceneConstants data{};

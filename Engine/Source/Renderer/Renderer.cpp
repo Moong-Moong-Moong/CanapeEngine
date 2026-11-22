@@ -270,11 +270,18 @@ namespace Canape
                         simulation->RenderAfterTransparent(simulator);
                     }
                 );
+                m_DX11->SetMirrorCallback(
+                    [simulation, &simulator]
+                    {
+                        simulation->RenderMirror(simulator);
+                    }
+                );
             }
         }
         m_DX11->DrawScene();
         m_DX11->SetAfterOpaqueCallback(nullptr);
         m_DX11->SetAfterTransparentCallback(nullptr);
+        m_DX11->SetMirrorCallback(nullptr);
         m_DX11->EndFrame();
     }
 
@@ -341,6 +348,11 @@ namespace Canape
         RenderSkybox resolved = skybox;
         resolved.cubemap = m_Registry->GetResourceId(cubemap);
         m_DX11->SetSkybox(resolved);
+    }
+
+    void Renderer::SetMirrorPlaneHeight(float height)
+    {
+        m_DX11->SetMirrorPlaneHeight(height);
     }
 
     void Renderer::SetAmbient(const Vector3& color, float intensity)

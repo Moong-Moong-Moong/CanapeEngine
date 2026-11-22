@@ -364,7 +364,7 @@
         },
         {
             "id": 26,
-            "name": "Tree 1 Trunk",
+            "name": "Trees",
             "active": true,
             "components": [
                 {
@@ -374,7 +374,7 @@
                         "enabled": true,
                         "localPosition": {
                             "X": -6.0,
-                            "Y": 2.1,
+                            "Y": 0.0,
                             "Z": 3.0
                         },
                         "localRotation": {
@@ -384,9 +384,9 @@
                             "W": 1.0
                         },
                         "localScale": {
-                            "X": 0.56,
-                            "Y": 4.2,
-                            "Z": 0.56
+                            "X": 0.7,
+                            "Y": 0.7,
+                            "Z": 0.7
                         },
                         "parent": 0
                     }
@@ -396,17 +396,15 @@
                     "id": 28,
                     "properties": {
                         "enabled": true,
-                        "mesh": "Builtin/Cylinder",
-                        "materials": [
-                            "Content/Materials/M_TreeBark.mat"
-                        ]
+                        "mesh": "Content/Models/TreeLowPoly/scene.gltf",
+                        "materials": []
                     }
                 }
             ]
         },
         {
             "id": 29,
-            "name": "Tree 1 Crown",
+            "name": "Tree 1 Leaves",
             "active": true,
             "components": [
                 {
@@ -415,8 +413,8 @@
                     "properties": {
                         "enabled": true,
                         "localPosition": {
-                            "X": -6.0,
-                            "Y": 4.6,
+                            "X": -4.1,
+                            "Y": 3.92,
                             "Z": 3.0
                         },
                         "localRotation": {
@@ -426,22 +424,11 @@
                             "W": 1.0
                         },
                         "localScale": {
-                            "X": 3.6,
-                            "Y": 3.6,
-                            "Z": 3.6
+                            "X": 2.66,
+                            "Y": 3.5,
+                            "Z": 2.66
                         },
                         "parent": 0
-                    }
-                },
-                {
-                    "type": "MeshRendererComponent",
-                    "id": 31,
-                    "properties": {
-                        "enabled": true,
-                        "mesh": "Builtin/Sphere",
-                        "materials": [
-                            "Content/Materials/M_TreeCrown.mat"
-                        ]
                     }
                 },
                 {
@@ -455,50 +442,8 @@
             ]
         },
         {
-            "id": 32,
-            "name": "Tree 2 Trunk",
-            "active": true,
-            "components": [
-                {
-                    "type": "TransformComponent",
-                    "id": 33,
-                    "properties": {
-                        "enabled": true,
-                        "localPosition": {
-                            "X": 6.5,
-                            "Y": 1.7,
-                            "Z": 4.5
-                        },
-                        "localRotation": {
-                            "X": 0.0,
-                            "Y": 0.0,
-                            "Z": 0.0,
-                            "W": 1.0
-                        },
-                        "localScale": {
-                            "X": 0.48,
-                            "Y": 3.4,
-                            "Z": 0.48
-                        },
-                        "parent": 0
-                    }
-                },
-                {
-                    "type": "MeshRendererComponent",
-                    "id": 34,
-                    "properties": {
-                        "enabled": true,
-                        "mesh": "Builtin/Cylinder",
-                        "materials": [
-                            "Content/Materials/M_TreeBark.mat"
-                        ]
-                    }
-                }
-            ]
-        },
-        {
             "id": 35,
-            "name": "Tree 2 Crown",
+            "name": "Tree 2 Leaves",
             "active": true,
             "components": [
                 {
@@ -507,9 +452,9 @@
                     "properties": {
                         "enabled": true,
                         "localPosition": {
-                            "X": 6.5,
-                            "Y": 3.8,
-                            "Z": 4.5
+                            "X": -7.9,
+                            "Y": 3.71,
+                            "Z": 3.0
                         },
                         "localRotation": {
                             "X": 0.0,
@@ -518,22 +463,11 @@
                             "W": 1.0
                         },
                         "localScale": {
-                            "X": 3.0,
-                            "Y": 3.0,
-                            "Z": 3.0
+                            "X": 2.59,
+                            "Y": 3.22,
+                            "Z": 2.59
                         },
                         "parent": 0
-                    }
-                },
-                {
-                    "type": "MeshRendererComponent",
-                    "id": 37,
-                    "properties": {
-                        "enabled": true,
-                        "mesh": "Builtin/Sphere",
-                        "materials": [
-                            "Content/Materials/M_TreeCrown.mat"
-                        ]
                     }
                 },
                 {

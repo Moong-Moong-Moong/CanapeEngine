@@ -83,6 +83,7 @@ namespace Canape
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(const RenderSkybox& skybox);
+        void SetMirrorPlaneHeight(float height);
         void SetAmbient(const Vector3& color, float intensity);
 
         bool BeginFrame();
@@ -101,6 +102,9 @@ namespace Canape
         // The callee keeps the triangle-list topology, binds its own at b9-b11, t8-t10 and s8, and unbinds it.
         void SetAfterOpaqueCallback(std::function<void()>);
         void SetAfterTransparentCallback(std::function<void()>);
+        // The same contract inside the mirror pass, after its opaque meshes: the mirror's targets and view constants.
+        // Not called when there is no mirror view, that is no mirror plane or a camera below or barely above it.
+        void SetMirrorCallback(std::function<void()>);
 
         void* GetNativeDevice() const;
         void* GetNativeContext() const;

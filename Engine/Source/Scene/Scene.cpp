@@ -11,6 +11,7 @@
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Serialization/SceneSerializer.h"
 #include "Simulation/SimulationScene.h"
+#include "Simulation/WaveSurfaceComponent.h"
 #include "Renderer/Renderer.h"
 
 namespace Canape
@@ -202,6 +203,16 @@ namespace Canape
 			{
 				renderer.SetSkybox(skybox->GetCubemap().GetId(), skybox->BuildRenderSkybox());
 				renderer.SetAmbient(skybox->GetAmbientColor(), skybox->GetAmbientIntensity());
+				break;
+			}
+		}
+
+		//***Mirror
+		for (WaveSurfaceComponent* surface : m_componentRegistry.GetWaveSurfaces())
+		{
+			if (IsRunnable(surface))
+			{
+				renderer.SetMirrorPlaneHeight(surface->GetTransform()->GetWorldPosition().Y);
 				break;
 			}
 		}

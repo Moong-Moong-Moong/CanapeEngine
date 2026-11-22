@@ -35,7 +35,7 @@
                     "id": 208,
                     "properties": {
                         "enabled": true,
-                        "effect": "Content/Effects/IslandGrass.effect"
+                        "effect": "Content/Effects/Grass-1.effect"
                     }
                 }
             ]

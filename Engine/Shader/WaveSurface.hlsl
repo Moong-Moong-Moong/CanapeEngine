@@ -1,4 +1,5 @@
 #include "Common/Lighting.hlsli"
+#include "Common/Mirror.hlsli"
 #include "Simulation.hlsli"
 #include "Swell.hlsli"
 
@@ -33,6 +34,8 @@ static const uint2 CellCorners[6] = {
     uint2(1, 0)
 };
 static const float GlintPower = 200.0;
+// The mirror texture holds no distance, so what the sea reflects is taken to be this far away.
+static const float MirrorDistanceMeters = 1.5;
 
 struct WaveSurfaceVarying
 {
@@ -90,6 +93,22 @@ WaveSurfaceVarying vs_main(uint vertexId : SV_VertexID)
     return output;
 }
 
+float2 NdcPosition(float3 worldPosition)
+{
+    const float4 position = mul(float4(worldPosition, 1.0), ViewProjection);
+    return position.xy / position.w;
+}
+
+float2 MirrorNdcOffset(float3 worldPosition, float3 toCamera, float3 normal)
+{
+    float3 reflected = reflect(-toCamera, normal);
+    reflected.y = max(reflected.y, 0.0);
+
+    const float3 hit = worldPosition + reflected * MirrorDistanceMeters;
+    const float3 hitImage = float3(hit.x, 2.0 * BaseHeight - hit.y, hit.z);
+    return NdcPosition(hitImage) - NdcPosition(worldPosition);
+}
+
 float4 ps_main(WaveSurfaceVarying input) : SV_TARGET
 {
     const float3 normal = normalize(input.WorldNormal);
@@ -111,5 +130,8 @@ float4 ps_main(WaveSurfaceVarying input) : SV_TARGET
 
     const float3 lighting = AmbientColor * AmbientIntensity
         + CalculateDirectLighting(input.WorldPosition, normal);
-    return float4(albedo * lighting + glint, 1.0);
+    const float2 mirrorOffset = MirrorNdcOffset(input.WorldPosition, toCamera, normal);
+    // A lerp of the water color and the mirror by fresnel would be physically closer;
+    // the sum keeps the waves visible.
+    return float4(albedo * lighting + glint + fresnel * MirrorColor(input.Position, mirrorOffset), 1.0);
 }

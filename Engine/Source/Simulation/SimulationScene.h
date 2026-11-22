@@ -9,6 +9,7 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Simulation/ParticleEffects.h"
+#include "Simulation/TerrainGeneration.h"
 #include "Simulation/WaveSurfaces.h"
 
 namespace Canape
@@ -16,6 +17,7 @@ namespace Canape
     class ComponentRegistry;
     class Session;
     class Simulator;
+    class TerrainGeneratorComponent;
 
     inline constexpr std::uint32_t MaxWaveDisturbances = 8;
 
@@ -40,6 +42,7 @@ namespace Canape
         Outer outer;
         WaveSurfaces waveSurfaces;
         ParticleEffects particleEffects;
+        TerrainGeneration terrainGeneration;
 
         // Seconds.
         double time = 0.0;
@@ -60,9 +63,11 @@ namespace Canape
         // Pushes the water around position once, in the next step.
         // Ignored once MaxWaveDisturbances are waiting.
         void Disturb(const Vector3& position, float radius, float strength);
+        void GenerateTerrain(const TerrainGeneratorComponent&);
         void Simulate(Simulator&, const ComponentRegistry&, float dt);
 
         void RenderAfterOpaque(Simulator&);
         void RenderAfterTransparent(Simulator&);
+        void RenderMirror(Simulator&);
     };
 }

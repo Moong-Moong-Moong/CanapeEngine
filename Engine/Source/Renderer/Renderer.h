@@ -106,6 +106,7 @@ namespace Canape
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);
+        void SetMirrorPlaneHeight(float height);
         void SetAmbient(const Vector3& color, float intensity);
 
         GpuResourceRegistry& GetRegistry() { return *m_Registry; }

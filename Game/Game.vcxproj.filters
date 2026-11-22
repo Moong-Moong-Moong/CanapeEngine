@@ -379,6 +379,15 @@
     <None Include="..\Engine\Shader\Swell.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Engine\Shader\Terrain.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\TerrainSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Engine\Shader\TerrainUplift.hlsl">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="..\Engine\Shader\WaveRipple.hlsl">
       <Filter>Shader</Filter>
     </None>
@@ -389,6 +398,9 @@
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Effects\Fire.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
+    <None Include="Content\Effects\Grass-1.effect">
       <Filter>Content\Effects</Filter>
     </None>
     <None Include="Content\Effects\IslandGrass.effect">
@@ -466,12 +478,6 @@
     <None Include="Content\Materials\M_PuzzleWeight.mat">
       <Filter>Content\Materials</Filter>
     </None>
-    <None Include="Content\Materials\M_TreeBark.mat">
-      <Filter>Content\Materials</Filter>
-    </None>
-    <None Include="Content\Materials\M_TreeCrown.mat">
-      <Filter>Content\Materials</Filter>
-    </None>
     <None Include="Content\Models\Enemy.fbx">
       <Filter>Content\Models</Filter>
     </None>
@@ -497,6 +503,9 @@
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\SampleScene2.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\TerrainGen.json">
       <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Texture\Enemy_BaseColor.png">

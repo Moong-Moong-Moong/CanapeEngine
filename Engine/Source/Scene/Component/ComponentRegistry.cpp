@@ -10,6 +10,7 @@
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/AnimatorComponent.h"
 #include "Simulation/ParticleEffectComponent.h"
+#include "Simulation/TerrainGeneratorComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
 #include "Simulation/WindComponent.h"
 #include "UI/UICanvasComponent.h"
@@ -116,6 +117,11 @@ namespace Canape
 				m_waterVolumes.push_back(water);
 			}
 
+			if (TerrainGeneratorComponent* terrainGenerator = dynamic_cast<TerrainGeneratorComponent*>(component))
+			{
+				m_terrainGenerators.push_back(terrainGenerator);
+			}
+
 			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))
 			{
 				m_waveSurfaces.push_back(waveSurface);
@@ -191,6 +197,11 @@ namespace Canape
 			if (WaterVolumeComponent* water = dynamic_cast<WaterVolumeComponent*>(component))
 			{
 				std::erase(m_waterVolumes, water);
+			}
+
+			if (TerrainGeneratorComponent* terrainGenerator = dynamic_cast<TerrainGeneratorComponent*>(component))
+			{
+				std::erase(m_terrainGenerators, terrainGenerator);
 			}
 
 			if (WaveSurfaceComponent* waveSurface = dynamic_cast<WaveSurfaceComponent*>(component))

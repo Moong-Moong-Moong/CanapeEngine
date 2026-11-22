@@ -25,6 +25,7 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Component/SkyboxComponent.h"
 #include "Scene/Component/TransformComponent.h"
+#include "Simulation/TerrainGeneratorComponent.h"
 #include "Simulation/WaveSurfaceComponent.h"
 #include "Simulation/ParticleEffectComponent.h"
 #include "Simulation/WindComponent.h"
@@ -247,6 +248,11 @@ namespace Canape
 				.property("density", &WaterVolumeComponent::GetDensity, &WaterVolumeComponent::SetDensity)
 				.property("linearDrag", &WaterVolumeComponent::GetLinearDrag, &WaterVolumeComponent::SetLinearDrag)
 				.property("angularDrag", &WaterVolumeComponent::GetAngularDrag, &WaterVolumeComponent::SetAngularDrag);
+
+			registration::class_<TerrainGeneratorComponent>("TerrainGeneratorComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("seed", &TerrainGeneratorComponent::GetSeed, &TerrainGeneratorComponent::SetSeed)
+				.property("amount", &TerrainGeneratorComponent::GetAmount, &TerrainGeneratorComponent::SetAmount);
 
 			registration::class_<WaveSurfaceComponent>("WaveSurfaceComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)

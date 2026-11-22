@@ -333,6 +333,12 @@
     <ClInclude Include="Source\Simulation\SimulationScene.h">
       <Filter>Source\Simulation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Simulation\TerrainGeneration.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Simulation\TerrainGeneratorComponent.h">
+      <Filter>Source\Simulation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Simulation\WaveSurfaceComponent.h">
       <Filter>Source\Simulation</Filter>
     </ClInclude>
@@ -536,6 +542,9 @@
     <ClCompile Include="Source\Simulation\SimulationScene.cpp">
       <Filter>Source\Simulation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Simulation\TerrainGeneration.cpp">
+      <Filter>Source\Simulation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Simulation\WaveSurfaces.cpp">
       <Filter>Source\Simulation</Filter>
     </ClCompile>
@@ -603,6 +612,15 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Swell.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Terrain.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\TerrainSurface.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\TerrainUplift.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\WaveRipple.hlsl">

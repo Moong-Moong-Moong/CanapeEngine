@@ -1,0 +1,137 @@
+{
+    "version": 1,
+    "name": "TerrainGen",
+    "mainCamera": 3,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1536.0,
+                            "Y": 900.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.21644,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.976296
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 1.0,
+                        "farClip": 8000.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Sun",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.092296,
+                            "Y": 0.701057,
+                            "Z": -0.092296,
+                            "W": 0.701057
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 0.95,
+                            "Z": 0.85
+                        },
+                        "intensity": 2.5,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Terrain Generator",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "TerrainGeneratorComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "seed": 1,
+                        "amount": 520.0
+                    }
+                }
+            ]
+        }
+    ]
+}

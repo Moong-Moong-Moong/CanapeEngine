@@ -230,6 +230,9 @@
     <None Include="Shader\Common\MeshTypes.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
+    <None Include="Shader\Common\Mirror.hlsli">
+      <Filter>Shader\Common</Filter>
+    </None>
     <None Include="Shader\Common\Skinning.hlsli">
       <Filter>Shader\Common</Filter>
     </None>
