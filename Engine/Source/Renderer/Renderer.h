@@ -36,7 +36,7 @@ namespace Canape
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
-        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height);
+        bool Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless);
 
         void Render(Scene* scene, const AssetManager& assets, Simulator& simulator);
 

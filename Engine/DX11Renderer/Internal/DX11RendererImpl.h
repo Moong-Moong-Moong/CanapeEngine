@@ -44,6 +44,7 @@ namespace Canape
         bool ViewDirty = true;
         bool SceneDirty = true;
         HWND Window = nullptr;
+        bool Headless = false;
         uint32_t Width = 0;
         uint32_t Height = 0;
         uint32_t BackBufferWidth = 0;

@@ -18,9 +18,9 @@ namespace Canape
 
     Renderer::~Renderer() = default;
 
-    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height)
+    bool Renderer::Initialize(void* nativeWindow, uint32_t width, uint32_t height, bool headless)
     {
-        if (!m_DX11->Initialize(nativeWindow, width, height)) return false;
+        if (!m_DX11->Initialize(nativeWindow, width, height, headless)) return false;
         m_DX11->SetDebugSettings(m_DebugSettings);
         m_DebugSettings = m_DX11->GetDebugSettings();
         m_ShadowFilterSettings = m_DX11->GetShadowFilterSettings();
@@ -225,6 +225,7 @@ namespace Canape
         bool sceneBuilt = false;
 
         const std::optional<RenderView> view = ResolveView(scene);
+        bool sceneBuilt = false;
         if (!view)
         {
             if (!m_WarnedNoCamera)
@@ -244,10 +245,12 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
+              
                 if (m_EditorSubmit)
                 {
                     m_EditorSubmit(*scene, *this);
                 }
+
                 sceneBuilt = true;
             }
         }
