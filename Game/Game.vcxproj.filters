@@ -400,6 +400,9 @@
     <None Include="Content\Effects\Fire.effect">
       <Filter>Content\Effects</Filter>
     </None>
+    <None Include="Content\Effects\Grass-1.effect">
+      <Filter>Content\Effects</Filter>
+    </None>
     <None Include="Content\Effects\IslandGrass.effect">
       <Filter>Content\Effects</Filter>
     </None>
@@ -473,12 +476,6 @@
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Materials\M_PuzzleWeight.mat">
-      <Filter>Content\Materials</Filter>
-    </None>
-    <None Include="Content\Materials\M_TreeBark.mat">
-      <Filter>Content\Materials</Filter>
-    </None>
-    <None Include="Content\Materials\M_TreeCrown.mat">
       <Filter>Content\Materials</Filter>
     </None>
     <None Include="Content\Models\Enemy.fbx">

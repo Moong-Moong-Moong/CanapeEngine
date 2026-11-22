@@ -175,6 +175,7 @@ exit /b 0</Command>
   <ItemGroup>
     <None Include="Content\Effects\Embers.effect" />
     <None Include="Content\Effects\Fire.effect" />
+    <None Include="Content\Effects\Grass-1.effect" />
     <None Include="Content\Effects\IslandGrass.effect" />
     <None Include="Content\Effects\IslandGrass.png" />
     <None Include="Content\Effects\IslandLeaves.effect" />
@@ -199,8 +200,6 @@ exit /b 0</Command>
     <None Include="Content\Materials\M_PuzzleWall.mat" />
     <None Include="Content\Materials\M_PuzzleWater.mat" />
     <None Include="Content\Materials\M_PuzzleWeight.mat" />
-    <None Include="Content\Materials\M_TreeBark.mat" />
-    <None Include="Content\Materials\M_TreeCrown.mat" />
     <None Include="Content\Models\Enemy.fbx" />
     <None Include="Content\Models\level.FBX" />
     <None Include="Content\Models\Player.fbx" />
