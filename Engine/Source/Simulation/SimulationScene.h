@@ -47,6 +47,8 @@ namespace Canape
         // Seconds.
         double time = 0.0;
         std::uint32_t stepNumber = 0;
+        // World XZ, meters per second; of the last Simulate.
+        Vector2 windVelocity;
         // Waiting for the next step.
         std::array<WaveDisturbance, MaxWaveDisturbances> disturbances;
         std::uint32_t disturbanceCount = 0;
@@ -63,6 +65,8 @@ namespace Canape
         // Pushes the water around position once, in the next step.
         // Ignored once MaxWaveDisturbances are waiting.
         void Disturb(const Vector3& position, float radius, float strength);
+        // The swell at xz over the sea's base height, as the last Simulate left it.
+        float SwellHeightAt(const Vector2& xz) const;
         void GenerateTerrain(const TerrainGeneratorComponent&);
         void Simulate(Simulator&, const ComponentRegistry&, float dt);
 

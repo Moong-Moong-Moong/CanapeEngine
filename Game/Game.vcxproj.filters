@@ -129,6 +129,9 @@
     <ClInclude Include="Source\Scripts\RippleSource.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\SwellRider.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\SceneChanger.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -234,6 +237,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\RippleSource.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\SwellRider.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\SceneChanger.cpp">
