@@ -244,6 +244,10 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
+                if (m_EditorSubmit)
+                {
+                    m_EditorSubmit(*scene, *this);
+                }
                 sceneBuilt = true;
             }
         }
@@ -272,7 +276,8 @@ namespace Canape
         m_DX11->EndFrame();
     }
 
-    void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world)
+    void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
+        bool castShadow)
     {
         const MeshResourceId meshResource = m_Registry->GetResourceId(mesh);
         if (!meshResource.IsValid())
@@ -285,6 +290,7 @@ namespace Canape
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
         item.world = world;
+        item.castShadow = castShadow;
         m_DX11->AddRenderItem(item);
     }
 

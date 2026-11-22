@@ -36,6 +36,10 @@ namespace Canape
 		bool GetCastShadow() const { return m_CastShadow; }
 		void SetCastShadow(bool castShadow) { m_CastShadow = castShadow; }
 
+		// 에디터 씬뷰의 조명 프록시 메쉬 표시 여부. 게임에는 영향 없음.
+		bool IsProxyVisible() const { return m_ProxyVisible; }
+		void SetProxyVisible(bool visible) { m_ProxyVisible = visible; }
+
 		RenderLight BuildRenderLight() const;
 
 	private:
@@ -47,5 +51,6 @@ namespace Canape
 		float m_InnerAngleRadians = 0.35f;
 		float m_OuterAngleRadians = 0.52f;
 		bool m_CastShadow = false;
+		bool m_ProxyVisible = true;
 	};
 }

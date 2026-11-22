@@ -160,7 +160,8 @@ namespace Canape
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("fieldOfView", &CameraComponent::GetFieldOfView, &CameraComponent::SetFieldOfView)
 				.property("nearClip", &CameraComponent::GetNearClip, &CameraComponent::SetNearClip)
-				.property("farClip", &CameraComponent::GetFarClip, &CameraComponent::SetFarClip);
+				.property("farClip", &CameraComponent::GetFarClip, &CameraComponent::SetFarClip)
+				.property("proxyVisible", &CameraComponent::IsProxyVisible, &CameraComponent::SetProxyVisible);
 
 			registration::class_<LightComponent>("LightComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
@@ -170,7 +171,8 @@ namespace Canape
 				.property("range", &LightComponent::GetRange, &LightComponent::SetRange)
 				.property("innerAngle", &LightComponent::GetInnerAngle, &LightComponent::SetInnerAngle)
 				.property("outerAngle", &LightComponent::GetOuterAngle, &LightComponent::SetOuterAngle)
-				.property("castShadow", &LightComponent::GetCastShadow, &LightComponent::SetCastShadow);
+				.property("castShadow", &LightComponent::GetCastShadow, &LightComponent::SetCastShadow)
+				.property("proxyVisible", &LightComponent::IsProxyVisible, &LightComponent::SetProxyVisible);
 
 			registration::class_<FogComponent>("FogComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
@@ -188,7 +190,8 @@ namespace Canape
 				.property("ambientColor", &SkyboxComponent::GetAmbientColor, &SkyboxComponent::SetAmbientColor)
 				.property("ambientIntensity", &SkyboxComponent::GetAmbientIntensity, &SkyboxComponent::SetAmbientIntensity);
 
-			registration::class_<RenderableComponent>("RenderableComponent");
+			registration::class_<RenderableComponent>("RenderableComponent")
+				.property("visible", &RenderableComponent::IsVisible, &RenderableComponent::SetVisible);
 
 			registration::class_<MeshRendererComponent>("MeshRendererComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
