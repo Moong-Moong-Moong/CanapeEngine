@@ -223,6 +223,7 @@ namespace Canape
         }
 
         const std::optional<RenderView> view = ResolveView(scene);
+        bool sceneBuilt = false;
         if (!view)
         {
             if (!m_WarnedNoCamera)
@@ -242,6 +243,7 @@ namespace Canape
             if (scene)
             {
                 scene->BuildRenderScene(assets, *this);
+                sceneBuilt = true;
             }
         }
 
