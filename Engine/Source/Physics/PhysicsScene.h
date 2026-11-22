@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -22,6 +23,13 @@ namespace Canape
 	class JoltWorld;
 
 	using RigidBodies = std::vector<const RigidBodyComponent*>;
+
+	struct PhysicsRayHit
+	{
+		const RigidBodyComponent* body = nullptr;
+		float distance = 0.0f;
+		Vector3 point{};
+	};
 
 	struct PhysicsSceneStats
 	{
@@ -60,6 +68,9 @@ namespace Canape
 		// Where a kinematic body is to be after the next step; without a target it holds its creation pose.
 		// Kept until the body is released, so a target set before the body exists reaches its first step.
 		void SetKinematicTarget(const RigidBodyComponent&, const PhysicsPose& target);
+		// Moves the body to the world pose at once, at rest, and writes it to the Transform. Without a body only the
+		// Transform moves (the body is created there). A kinematic body also takes the pose as its target.
+		void Teleport(const RigidBodyComponent&, const PhysicsPose& worldPose);
 		// The velocity of a world-space point moving with the body, as of the last step; zero without a body.
 		Vector3 GetVelocityAt(const RigidBodyComponent&, const Vector3& worldPoint) const;
 
@@ -76,6 +87,8 @@ namespace Canape
 
 		// Moving bodies (sleeping ones included) whose shapes overlap the world-space box, in creation order.
 		RigidBodies QueryBox(const Vector3& center, const Vector3& halfExtent) const;
+		// 레이(origin에서 direction 방향)가 maxDistance 안에서 처음 맞는 바디(스태틱 포함). 없으면 비어 있다.
+		std::optional<PhysicsRayHit> RayCast(const Vector3& origin, const Vector3& direction, float maxDistance) const;
 
 		// Bodies and hinges whose issue is an authoring problem, as of the last sync.
 		std::uint32_t GetAuthoringIssueCount() const { return m_BodyIssueCount + m_HingeIssueCount; }

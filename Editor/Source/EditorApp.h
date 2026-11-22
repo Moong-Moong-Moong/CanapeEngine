@@ -44,6 +44,11 @@ private:
     void StartPlay();
     void StopPlay();
 
+    // 명령줄 임포트: Editor.exe --import-gltf <원본.gltf> <대상 폴더(Game 기준)> [--static] [--skeleton-model]
+    //   [--skeleton] [--anim] (여러 번 반복 가능), [--import-log <파일>]. 임포트만 하고 종료한다.
+    // 임포트가 하나라도 있으면 true.
+    bool RunCommandLineImports();
+
     EditorContext m_Context;
     HierarchyPanel m_Hierarchy;
     InspectorPanel m_Inspector;
@@ -61,4 +66,5 @@ private:
     bool m_RestoringFromPlay = false;
     bool m_ResetLayout = false;
     bool m_ShowDemoWindow = false;
+    bool m_QuitAfterCommandLine = false;
 };

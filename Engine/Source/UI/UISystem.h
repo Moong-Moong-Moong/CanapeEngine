@@ -39,6 +39,9 @@ namespace Canape
 
 		const UIDrawList& GetDrawList() const { return m_DrawList; }
 		bool IsPointerOverUI() const { return m_Router.IsCapturingPointer(); }
+		//*** 마우스 위치를 게임 화면(에디터는 씬 뷰 이미지, 게임은 창 전체) 기준 NDC로. x, y는 [-1, 1], +y가 위.
+		//*** 화면 밖이거나 씬 뷰에 마우스가 없으면 false. 월드 레이캐스트(마우스 피킹)에 쓴다.
+		bool GetPointerNdc(const InputManager& input, float& ndcX, float& ndcY) const;
 		UIGlyphAtlas& GetGlyphAtlas() { return m_Atlas; }
 
 		//*** 처음 그릴 때 이 폰트를 기본 폰트로 읽는다(에셋 루트 기준 경로).

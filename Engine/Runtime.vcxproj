@@ -113,6 +113,8 @@
     <ClInclude Include="Source\UI\UIPainter.h" />
     <ClInclude Include="Source\UI\UIPointerRouter.h" />
     <ClInclude Include="Source\UI\UISystem.h" />
+    <ClInclude Include="Source\Audio\AudioSystem.h" />
+    <ClInclude Include="Source\Audio\AudioSourceComponent.h" />
     <ClInclude Include="Source\UI\UIText.h" />
     <ClInclude Include="Source\UI\UITypes.h" />
     <ClInclude Include="Source\UI\UIWorld.h" />
@@ -203,6 +205,8 @@
     <ClCompile Include="Source\UI\UIPainter.cpp" />
     <ClCompile Include="Source\UI\UIPointerRouter.cpp" />
     <ClCompile Include="Source\UI\UISystem.cpp" />
+    <ClCompile Include="Source\Audio\AudioSystem.cpp" />
+    <ClCompile Include="Source\Audio\AudioSourceComponent.cpp" />
     <ClCompile Include="Source\UI\UIText.cpp" />
     <ClCompile Include="Source\FSM\FsmReflection.cpp" />
     <ClCompile Include="Source\FSM\FsmState.cpp" />

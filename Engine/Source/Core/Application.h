@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset/AssetManager.h"
+#include "Audio/AudioSystem.h"
 #include "Core/Console/CommandRegistry.h"
 #include "Core/Window.h"
 #include "Input/InputManager.h"
@@ -38,6 +39,7 @@ namespace Canape
         JoltRuntime& GetPhysicsRuntime() { return *m_PhysicsRuntime; }
         CommandRegistry& GetCommands() { return *m_Commands; }
         UISystem& GetUISystem() { return *m_UISystem; }
+        AudioSystem& GetAudioSystem() { return *m_AudioSystem; }
 
     protected:
         virtual void OnInit() {}
@@ -53,6 +55,8 @@ namespace Canape
         std::unique_ptr<InputManager> m_InputManager;
         std::unique_ptr<Renderer> m_Renderer;
         std::unique_ptr<AssetManager> m_AssetManager;
+        // 씬(SceneManager)보다 먼저 만들어지고 늦게 사라진다: 컴포넌트 소멸자가 소리를 정리한다.
+        std::unique_ptr<AudioSystem> m_AudioSystem;
         std::unique_ptr<JoltRuntime> m_PhysicsRuntime;
         std::unique_ptr<Session> m_SimulationSession;
         std::unique_ptr<Simulator> m_Simulator;

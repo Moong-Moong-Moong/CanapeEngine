@@ -20,6 +20,8 @@
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -397,6 +399,10 @@ namespace Canape
         settings.mRestitution = bodySettings.restitution;
         settings.mLinearDamping = bodySettings.linearDamping;
         settings.mAngularDamping = bodySettings.angularDamping;
+        settings.mMotionQuality = bodySettings.continuousCollision ?
+            JPH::EMotionQuality::LinearCast :
+            JPH::EMotionQuality::Discrete;
+        settings.mAllowSleeping = bodySettings.allowSleeping;
         // Reduction merges coplanar contacts into one manifold that keeps a single part id.
         settings.mUseManifoldReduction = !HasFrictionOverride(desc);
         const bool dynamic = bodySettings.motion == PhysicsMotion::Dynamic;
@@ -593,6 +599,16 @@ namespace Canape
             ToJolt(impulse),
             ToJolt(worldPoint)
         );
+    }
+
+    void JoltWorld::SetPose(PhysicsBodyId id, const PhysicsPose& pose)
+    {
+        const auto slot = m_Impl->Find(id);
+        if (slot == nullptr || slot->motion == PhysicsMotion::Static || !IsUsablePose(pose)) return;
+
+        JPH::BodyInterface& bodies = m_Impl->physics->GetBodyInterfaceNoLock();
+        bodies.SetPositionAndRotation(slot->id, ToJolt(pose.position), ToJoltUnit(pose.rotation), JPH::EActivation::Activate);
+        bodies.SetLinearAndAngularVelocity(slot->id, JPH::Vec3::sZero(), JPH::Vec3::sZero());
     }
 
     void JoltWorld::MoveKinematic(PhysicsBodyId id, const PhysicsPose& target, float dt)
@@ -869,5 +885,30 @@ namespace Canape
             found.push_back(impl.ToId(handle));
         }
         return found;
+    }
+
+    std::optional<JoltWorld::RayHit> JoltWorld::CastRay(const Vector3& origin, const Vector3& direction, float maxDistance) const
+    {
+        const Impl& impl = *m_Impl;
+        if (!impl.HasRuntime()) return std::nullopt;
+        if (!IsFinite(origin) || !IsFinite(direction) || !IsPositive(maxDistance)) return std::nullopt;
+        const float length = direction.Length();
+        if (!(length > 1.0e-6f)) return std::nullopt;
+
+        const Vector3 span = direction * (maxDistance / length);
+        const JPH::RRayCast ray{ ToJolt(origin), ToJolt(span) };
+        JPH::RayCastResult result;
+        if (!impl.physics->GetNarrowPhaseQueryNoLock().CastRay(ray, result))
+        {
+            return std::nullopt;
+        }
+
+        const Impl::BodyHandle handle = impl.bodySlots.HandleAt(static_cast<std::uint32_t>(
+            impl.physics->GetBodyInterfaceNoLock().GetUserData(result.mBodyID)
+        ));
+        if (impl.bodySlots.Get(handle) == nullptr) return std::nullopt;
+
+        const float distance = result.mFraction * maxDistance;
+        return RayHit{ impl.ToId(handle), distance, origin + span * result.mFraction };
     }
 }

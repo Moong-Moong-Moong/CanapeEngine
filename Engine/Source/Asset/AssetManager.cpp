@@ -368,6 +368,48 @@ namespace Canape
 			return CreateMeshHandle(skinId, owner);
 		}
 
+		// "모델.gltf#node<인덱스>": 그 노드에 달린 메쉬만, 노드 로컬 공간으로(애니메이션되는 노드의 강체 메쉬용).
+		const size_t nodeHash = path.find("#node");
+		if (nodeHash != std::string::npos)
+		{
+			ResolvedAssetPath nodeFile;
+			if (!ResolveAssetPath(path.substr(0, nodeHash), nodeFile))
+			{
+				CN_LOG_RUNTIME("Asset", "메쉬 에셋 경로 오류 : ", path);
+				return {};
+			}
+
+			const std::string subPart = path.substr(nodeHash + 1);
+			const std::string nodeKey = nodeFile.key + "#" + subPart;
+			MeshAssetId nodeId = FindMesh(nodeKey);
+			if (!nodeId.IsValid())
+			{
+				CNglTF cnglTF;
+				CNglTFImporter glTFImporter;
+				std::unique_ptr<MeshAsset> mesh;
+				if (glTFImporter.ReadglTF(nodeFile.utf8File, cnglTF))
+				{
+					mesh = glTFImporter.LoadNodeMeshAsset(cnglTF, static_cast<uint32_t>(std::stoul(subPart.substr(4))));
+				}
+				if (!mesh)
+				{
+					CN_LOG_RUNTIME("Asset", "노드 메쉬 에셋 로드 오류 : ", path);
+					return {};
+				}
+				WriteDefaultMaterialFiles(*mesh);
+				if (!m_GpuRegistry.CreateMeshResource(*mesh).IsValid())
+				{
+					CN_LOG_RUNTIME("Asset", "메쉬 에셋 Gpu 로드 실패, ", path);
+					return {};
+				}
+
+				nodeId = mesh->GetAssetId();
+				m_MeshIdByPath.emplace(nodeKey, nodeId);
+				m_MeshesById.emplace(nodeId, AssetEntry<MeshAsset>{ std::move(mesh), nodeFile.assetPath + "#" + subPart, nodeKey }).first->second.gpuUploaded = true;
+			}
+			return CreateMeshHandle(nodeId, owner);
+		}
+
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
 		{

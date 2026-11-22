@@ -32,10 +32,13 @@ void MoveAnimationController::Update()
     float lastZ = 0.0f;
 
     Vector3 move = Vector3::Zero;
-    if (input.IsKeyDown(Key::W)) lastZ = 1.0f;
-    if (input.IsKeyDown(Key::S)) lastZ = -1.0f;
-    if (input.IsKeyDown(Key::D)) lastX = 1.0f;
-    if (input.IsKeyDown(Key::A)) lastX = -1.0f;
+    if (m_inputEnabled)
+    {
+        if (input.IsKeyDown(Key::W)) lastZ = 1.0f;
+        if (input.IsKeyDown(Key::S)) lastZ = -1.0f;
+        if (input.IsKeyDown(Key::D)) lastX = 1.0f;
+        if (input.IsKeyDown(Key::A)) lastX = -1.0f;
+    }
 
     //*** 카메라 기준 이동: W는 카메라가 보는 방향, D는 카메라의 오른쪽 (수평면 기준)
     Vector3 forward = Vector3::Forward;
@@ -73,7 +76,7 @@ void MoveAnimationController::Update()
 
     //***** StateMachine 컨트롤
     m_stateMachine->SetFloat("moveSpeed", move.Length());
-    m_stateMachine->SetBool("attackInput", input.IsKeyPressed(Key::F));
+    m_stateMachine->SetBool("attackInput", m_inputEnabled && input.IsKeyPressed(Key::F));
 }
 
 void MoveAnimationController::LateUpdate()

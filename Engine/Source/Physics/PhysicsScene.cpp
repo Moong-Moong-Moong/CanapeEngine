@@ -156,6 +156,33 @@ namespace Canape
         });
 	}
 
+	void PhysicsScene::Teleport(const RigidBodyComponent& body, const PhysicsPose& worldPose)
+	{
+		const PhysicsPose pose{ .position = worldPose.position, .rotation = worldPose.rotation.Normalized() };
+		const auto* state = HasWorld() ? FindState(body) : nullptr;
+		if (state && state->IsBuilt())
+		{
+			if (m_World->GetMotion(state->GetId()) == PhysicsMotion::Static) return;
+			m_World->SetPose(state->GetId(), pose);
+			if (m_World->GetMotion(state->GetId()) == PhysicsMotion::Kinematic)
+			{
+				m_Bodies[&body].SetKinematicTarget(pose);
+			}
+		}
+
+		TransformComponent* transform = body.GetTransform();
+		if (const TransformComponent* parent = transform->GetParent())
+		{
+			transform->SetPosition(parent->GetWorldToLocalMatrix().TransformPoint(pose.position));
+			transform->SetRotation((parent->GetWorldRotation().Inverse() * pose.rotation).Normalized());
+		}
+		else
+		{
+			transform->SetPosition(pose.position);
+			transform->SetRotation(pose.rotation);
+		}
+	}
+
 	Vector3 PhysicsScene::GetVelocityAt(const RigidBodyComponent& body, const Vector3& worldPoint) const
 	{
 		const auto* state = FindState(body);
@@ -655,6 +682,16 @@ namespace Canape
             transform->SetPosition(pose.position);
             transform->SetRotation(pose.rotation);
         }
+	}
+
+	std::optional<PhysicsRayHit> PhysicsScene::RayCast(const Vector3& origin, const Vector3& direction, float maxDistance) const
+	{
+		if (!HasWorld()) return std::nullopt;
+		const auto hit = m_World->CastRay(origin, direction, maxDistance);
+		if (!hit) return std::nullopt;
+		const RigidBodyComponent* body = FindBody(hit->body);
+		if (!body) return std::nullopt;
+		return PhysicsRayHit{ body, hit->distance, hit->point };
 	}
 
 	RigidBodies PhysicsScene::QueryBox(const Vector3& center, const Vector3& halfExtent) const

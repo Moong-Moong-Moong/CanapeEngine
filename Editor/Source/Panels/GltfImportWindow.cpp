@@ -62,59 +62,18 @@ void GltfImportWindow::Draw()
 
     ImGui::Checkbox("Import Skeleton", &m_ImportSkeleton);
     ImGui::Checkbox("Import Skeleton Model", &m_ImportSkeletonModel);
+    ImGui::Checkbox("Import Static Model", &m_ImportStaticModel);
     ImGui::Checkbox("Import Animation Clip", &m_ImportAnimationClip);
 
-    ImGui::BeginDisabled(m_SourcePath.empty() || (!m_ImportSkeleton && !m_ImportSkeletonModel && !m_ImportAnimationClip));
+    ImGui::BeginDisabled(m_SourcePath.empty() || (!m_ImportSkeleton && !m_ImportSkeletonModel && !m_ImportStaticModel && !m_ImportAnimationClip));
     if (ImGui::Button("Import"))
     {
-        m_Message.clear();
-        const std::string targetDirectory = EditorUtils::ToUtf8(m_TargetDirectory);
-        std::string clipPath;
-
-        if (m_ImportAnimationClip)
-        {
-            CNglTF cNglTF;
-            CNglTFImporter importer;
-            size_t saved = 0;
-            if (importer.ReadglTF(m_SourcePath, cNglTF))
-            {
-                for (const std::unique_ptr<AnimationClipAsset>& clip : importer.LoadAnimationClipAsset(cNglTF))
-                {
-                    std::string fileName = clip->GetName();
-                    for (char& c : fileName)
-                    {
-                        if (c == '\\' || c == '/' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
-                        {
-                            c = '_';
-                        }
-                    }
-                    const std::filesystem::path file = m_TargetDirectory / EditorUtils::FromUtf8(fileName + ".aclip");
-                    if (AnimationClipSerializer::Save(*clip, EditorUtils::ToUtf8(file)))
-                    {
-                        if (clipPath.empty())
-                        {
-                            clipPath = EditorUtils::ToGameRelativePath(file);
-                        }
-                        ++saved;
-                    }
-                }
-            }
-            m_Message += std::to_string(saved) + " Animation Clip(s) imported.\n";
-        }
-
-        if (m_ImportSkeleton)
-        {
-            CNglTFImporter importer;
-            m_Message += importer.ImportSkeleton(m_SourcePath, targetDirectory, clipPath)
-                ? "Skeleton imported.\n" : "Skeleton import failed.\n";
-        }
-
-        if (m_ImportSkeletonModel)
-        {
-            CNglTFImporter importer;
-            m_Message += importer.ImportSkeletonModel(m_SourcePath, targetDirectory, clipPath)
-                ? "Skeleton Model imported.\n" : "Skeleton Model import failed.\n";
-        }
+        Options options;
+        options.skeleton = m_ImportSkeleton;
+        options.skeletonModel = m_ImportSkeletonModel;
+        options.staticModel = m_ImportStaticModel;
+        options.animationClip = m_ImportAnimationClip;
+        m_Message = Import(m_SourcePath, m_TargetDirectory, options);
     }
     ImGui::EndDisabled();
 
@@ -124,4 +83,66 @@ void GltfImportWindow::Draw()
     }
 
     ImGui::End();
+}
+
+std::string GltfImportWindow::Import(const std::string& sourcePath, const std::filesystem::path& targetDirectory, const Options& options)
+{
+    std::string message;
+    const std::string targetDirectoryUtf8 = EditorUtils::ToUtf8(targetDirectory);
+    std::string clipPath;
+
+    if (options.animationClip)
+    {
+        CNglTF cNglTF;
+        CNglTFImporter importer;
+        size_t saved = 0;
+        if (importer.ReadglTF(sourcePath, cNglTF))
+        {
+            std::error_code error;
+            std::filesystem::create_directories(targetDirectory, error);
+            for (const std::unique_ptr<AnimationClipAsset>& clip : importer.LoadAnimationClipAsset(cNglTF))
+            {
+                std::string fileName = clip->GetName();
+                for (char& c : fileName)
+                {
+                    if (c == '\\' || c == '/' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+                    {
+                        c = '_';
+                    }
+                }
+                const std::filesystem::path file = targetDirectory / EditorUtils::FromUtf8(fileName + ".aclip");
+                if (AnimationClipSerializer::Save(*clip, EditorUtils::ToUtf8(file)))
+                {
+                    if (clipPath.empty())
+                    {
+                        clipPath = EditorUtils::ToGameRelativePath(file);
+                    }
+                    ++saved;
+                }
+            }
+        }
+        message += std::to_string(saved) + " Animation Clip(s) imported.\n";
+    }
+
+    if (options.skeleton)
+    {
+        CNglTFImporter importer;
+        message += importer.ImportSkeleton(sourcePath, targetDirectoryUtf8, clipPath)
+            ? "Skeleton imported.\n" : "Skeleton import failed.\n";
+    }
+
+    if (options.skeletonModel)
+    {
+        CNglTFImporter importer;
+        message += importer.ImportSkeletonModel(sourcePath, targetDirectoryUtf8, clipPath)
+            ? "Skeleton Model imported.\n" : "Skeleton Model import failed.\n";
+    }
+
+    if (options.staticModel)
+    {
+        CNglTFImporter importer;
+        message += importer.ImportStaticModel(sourcePath, targetDirectoryUtf8)
+            ? "Static Model imported.\n" : "Static Model import failed.\n";
+    }
+    return message;
 }

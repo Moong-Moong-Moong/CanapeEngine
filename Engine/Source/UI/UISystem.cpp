@@ -67,6 +67,18 @@ namespace Canape
 		return pointer;
 	}
 
+	bool UISystem::GetPointerNdc(const InputManager& input, float& ndcX, float& ndcY) const
+	{
+		const UIPointerState pointer = MapPointer(input);
+		if (!pointer.Inside || m_TargetSize.X <= 0.0f || m_TargetSize.Y <= 0.0f)
+		{
+			return false;
+		}
+		ndcX = pointer.Position.X / m_TargetSize.X * 2.0f - 1.0f;
+		ndcY = 1.0f - pointer.Position.Y / m_TargetSize.Y * 2.0f;
+		return true;
+	}
+
 	void UISystem::ProcessInput(Scene* scene, InputManager& input)
 	{
 		if (scene != m_LastScene)

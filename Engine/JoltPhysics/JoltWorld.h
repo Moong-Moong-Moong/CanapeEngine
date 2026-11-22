@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "JoltPhysics/JoltRuntime.h"
@@ -34,6 +35,8 @@ namespace Canape
         // call before ApplyWater so a woken body floats on this Step.
         void AddImpulse(PhysicsBodyId id, const Vector3& impulse);
         void AddImpulseAt(PhysicsBodyId id, const Vector3& impulse, const Vector3& worldPoint);
+        // Places a dynamic or kinematic body at the pose at once, at rest and awake. A no-op for a static body.
+        void SetPose(PhysicsBodyId id, const PhysicsPose& pose);
         // Sets the velocity that brings a kinematic body to the pose over the next Step, which must use the same dt.
         // A no-op for any other body.
         void MoveKinematic(PhysicsBodyId id, const PhysicsPose& target, float dt);
@@ -61,6 +64,16 @@ namespace Canape
 
         // Moving bodies whose shape overlaps the box, sleeping ones included, in creation order.
         PhysicsBodyIds QueryBox(const Vector3& center, const Vector3& halfExtent) const;
+
+        struct RayHit
+        {
+            PhysicsBodyId body{};
+            float distance = 0.0f;
+            Vector3 point{};
+        };
+        // The nearest body of any motion that the ray from origin along direction (normalized) hits within
+        // maxDistance; empty when nothing is hit or the input is not usable.
+        std::optional<RayHit> CastRay(const Vector3& origin, const Vector3& direction, float maxDistance) const;
 
     private:
         struct Impl;
