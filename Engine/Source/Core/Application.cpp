@@ -38,6 +38,7 @@ namespace Canape
         m_InputManager(std::make_unique<InputManager>()),
         m_Renderer(std::make_unique<Renderer>()),
         m_AssetManager(std::make_unique<AssetManager>(m_Renderer->GetRegistry())),
+        m_AudioSystem(std::make_unique<AudioSystem>()),
         m_PhysicsRuntime(std::make_unique<JoltRuntime>()),
         m_Commands(std::make_unique<CommandRegistry>()),
         m_UISystem(std::make_unique<UISystem>()),
@@ -115,6 +116,8 @@ namespace Canape
             m_Commands->ExecutePending();
 
             m_SceneManager->Update(m_RunSceneScripts);
+            // 씬 스크립트가 도는 동안에만 소리를 낸다(에디터 편집 중에는 모두 멈춤).
+            m_AudioSystem->Update(m_SceneManager->GetActiveScene(), m_RunSceneScripts);
 
             {
                 FrameScope frame(*m_Simulator);

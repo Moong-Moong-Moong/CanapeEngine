@@ -1,0 +1,1223 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "LeverPuzzle",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LeverPuzzle",
+                    "id": 82,
+                    "properties": {
+                        "enabled": true,
+                        "bigStone": 48,
+                        "smallStone": 53,
+                        "target": 60,
+                        "carryCenter": 68,
+                        "viewCamera": 70,
+                        "idleMaterial": "Content/Materials/M_TiltMazeZoneIdle.mat",
+                        "activeMaterial": "Content/Materials/M_TiltMazeZoneActive.mat",
+                        "pickLift": 0.4,
+                        "verticalSpeed": 3,
+                        "minCarryHeight": 0.5,
+                        "maxCarryHeight": 10,
+                        "carryRadius": 8,
+                        "moveSpeed": 4,
+                        "liftSpeed": 6,
+                        "targetMargin": 0.6,
+                        "offscreenResetTime": 3,
+                        "lostDepth": 20
+                    }
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Ground",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3,
+                            "Y": -0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 40,
+                            "Y": 1,
+                            "Z": 16
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "FulcrumRock",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1.1749999999999998,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 2.3499999999999996,
+                            "Z": 1.4
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_LeverRock.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "name": "Lever",
+            "active": false,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.8,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.24740395925452294,
+                            "W": 0.9689124217106447
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 15,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "HingeComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "axis": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 1
+                        },
+                        "minAngle": -0.1,
+                        "maxAngle": 1.1,
+                        "maxFrictionTorque": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "LeverLog",
+            "active": false,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.25,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.7071067811865475,
+                            "W": 0.7071067811865476
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 6.5,
+                            "Z": 0.6
+                        },
+                        "parent": 13
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeTrunk.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "LeverLip",
+            "active": false,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 4.4,
+                            "Y": 0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.2,
+                            "Y": 0.4,
+                            "Z": 0.7
+                        },
+                        "parent": 13
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeTrunk.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 24,
+            "name": "Tree",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 3.9491215285066774,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "LeverTree",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "trunk": 31,
+                        "pivot": 29,
+                        "leaves": 34,
+                        "lever": 12,
+                        "hitMaterial": "Content/Materials/M_LeverTreeHit.mat",
+                        "hitsToFell": 3,
+                        "flashTime": 0.15,
+                        "fallAxis": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 1
+                        },
+                        "fallAngle": 61.35211024345884,
+                        "fallAcceleration": 3,
+                        "fallStartAngle": 3,
+                        "playerName": "Player",
+                        "animatorName": "Knight",
+                        "hitRadius": 2.5,
+                        "hitMoment": 0.35
+                    }
+                }
+            ]
+        },
+        {
+            "id": 26,
+            "name": "Stump",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.32129253814054315,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.7,
+                            "Y": 0.6425850762810863,
+                            "Z": 0.7
+                        },
+                        "parent": 25
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeTrunk.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 29,
+            "name": "Pivot",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 30,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.6425850762810863,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 25
+                    }
+                }
+            ]
+        },
+        {
+            "id": 31,
+            "name": "Trunk",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 32,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3.25,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 6.5,
+                            "Z": 0.6
+                        },
+                        "parent": 30
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeTrunk.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 34,
+            "name": "Leaves",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 35,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 30
+                    }
+                }
+            ]
+        },
+        {
+            "id": 36,
+            "name": "Leaf_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 37,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 7,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 2.6,
+                            "Y": 2.6,
+                            "Z": 2.6
+                        },
+                        "parent": 35
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 38,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeLeaves.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 39,
+            "name": "Leaf_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 40,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.7,
+                            "Y": 6.2,
+                            "Z": 0.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.8,
+                            "Y": 1.8,
+                            "Z": 1.8
+                        },
+                        "parent": 35
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeLeaves.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 42,
+            "name": "Leaf_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 43,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6,
+                            "Y": 6.4,
+                            "Z": -0.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.9,
+                            "Y": 1.9,
+                            "Z": 1.9
+                        },
+                        "parent": 35
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 44,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_LeverTreeLeaves.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 46,
+            "name": "Stones",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 48,
+            "name": "BigStone",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5,
+                            "Y": 0.6,
+                            "Z": 3
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.2,
+                            "Y": 1.2,
+                            "Z": 1.2
+                        },
+                        "parent": 47
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 100,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": true,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 52,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_LeverStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 53,
+            "name": "SmallStone",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 54,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5,
+                            "Y": 0.25,
+                            "Z": -3
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 0.5,
+                            "Z": 0.5
+                        },
+                        "parent": 47
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 2,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": true,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_LeverStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 58,
+            "name": "Target",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -17,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 60,
+            "name": "Board",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.4,
+                            "Y": 4,
+                            "Z": 4
+                        },
+                        "parent": 59
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.8,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 63,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 64,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeZoneIdle.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 65,
+            "name": "Post",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.3,
+                            "Y": 1,
+                            "Z": 0.3
+                        },
+                        "parent": 59
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 67,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_LeverRock.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 68,
+            "name": "CarryCenter",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.5,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 70,
+            "name": "PuzzleCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 71,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 13,
+                            "Y": 6.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0.08617463914053185,
+                            "Y": -0.70183611446619,
+                            "Z": 0.08617463914053183,
+                            "W": 0.7018361144661901
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 72,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 73,
+            "name": "Console",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 74,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 8,
+                            "Y": 0,
+                            "Z": 6.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "LeverConsole",
+                    "id": 81,
+                    "properties": {
+                        "enabled": true,
+                        "puzzle": 1,
+                        "puzzleCamera": 70,
+                        "playerName": "Player",
+                        "interactRadius": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 75,
+            "name": "Pedestal",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 76,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 1,
+                            "Z": 0.6
+                        },
+                        "parent": 74
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 77,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 78,
+            "name": "Tablet",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 79,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1.05,
+                            "Z": 0.05
+                        },
+                        "localRotation": {
+                            "X": 0.25881904510252074,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 0.9659258262890683
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.06,
+                            "Z": 0.55
+                        },
+                        "parent": 74
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 80,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBoard.mat"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

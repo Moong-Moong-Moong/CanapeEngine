@@ -79,7 +79,7 @@ exit /b 0</Command>
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;CANAPE_GAME_CONTENT_DIR="$(ProjectDir.Replace('\','/'))Content/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -137,6 +137,20 @@ exit /b 0</Command>
     <ClInclude Include="Source\MoveSample\PlayerCamera.h" />
     <ClInclude Include="Source\MoveSample\AttackState.h" />
     <ClInclude Include="Source\Scripts\Camera\BackViewCamera.h" />
+    <ClInclude Include="Source\MiniZeldaSample\TiltMazePuzzle.h" />
+    <ClInclude Include="Source\MiniZeldaSample\TiltMazeConsole.h" />
+    <ClInclude Include="Source\MiniZeldaSample\LeverTree.h" />
+    <ClInclude Include="Source\MiniZeldaSample\LeverPuzzle.h" />
+    <ClInclude Include="Source\MiniZeldaSample\LeverConsole.h" />
+    <ClInclude Include="Source\MiniZeldaSample\MarbleRun.h" />
+    <ClInclude Include="Source\MiniZeldaSample\MarbleConsole.h" />
+    <ClInclude Include="Source\MiniZeldaSample\AncientGate.h" />
+    <ClInclude Include="Source\MiniZeldaSample\PuzzleControlsHud.h" />
+    <ClInclude Include="Source\MiniZeldaSample\DevMode.h" />
+    <ClInclude Include="Source\MiniZeldaSample\FootstepAudio.h" />
+    <ClInclude Include="Source\MiniZeldaSample\RandomIntervalSound.h" />
+    <ClInclude Include="Source\MiniZeldaSample\PuzzleLightBeam.h" />
+    <ClInclude Include="Source\MiniZeldaSample\DemoFlow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
@@ -159,6 +173,20 @@ exit /b 0</Command>
     <ClCompile Include="Source\Puzzle\PuzzleDirector.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleGoal.cpp" />
     <ClCompile Include="Source\Puzzle\PuzzleLane.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\TiltMazePuzzle.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\TiltMazeConsole.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\LeverTree.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\LeverPuzzle.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\LeverConsole.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\MarbleRun.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\MarbleConsole.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\AncientGate.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\PuzzleControlsHud.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\DevMode.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\FootstepAudio.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\RandomIntervalSound.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\PuzzleLightBeam.cpp" />
+    <ClCompile Include="Source\MiniZeldaSample\DemoFlow.cpp" />
     <ClCompile Include="Source\State\Grounded.cpp" />
     <ClCompile Include="Source\State\hi.cpp" />
     <ClCompile Include="Source\State\hello.cpp" />

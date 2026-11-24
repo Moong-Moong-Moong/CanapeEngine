@@ -57,6 +57,10 @@ namespace Canape
         float restitution = 0.0f;
         float linearDamping = 0.05f;
         float angularDamping = 0.05f;
+        // Sweeps the body between steps so a small, fast body cannot pass through thin walls (Jolt LinearCast).
+        bool continuousCollision = false;
+        // False keeps the body simulated while it rests, so a slight tilt under it always moves it.
+        bool allowSleeping = true;
     };
 
     // Mass, friction, restitution and damping must be finite and 0 or more.
@@ -72,8 +76,11 @@ namespace Canape
     inline constexpr bool SameBits(const PhysicsBodySettings& a, const PhysicsBodySettings& b)
     {
         // Binding every member makes a new setting a compile error here until it is compared.
-        const auto& [motion, mass, friction, restitution, linearDamping, angularDamping] = a;
+        const auto& [motion, mass, friction, restitution, linearDamping, angularDamping, continuousCollision,
+            allowSleeping] = a;
         return motion == b.motion
+            && continuousCollision == b.continuousCollision
+            && allowSleeping == b.allowSleeping
             && SameBits(mass, b.mass)
             && SameBits(friction, b.friction)
             && SameBits(restitution, b.restitution)

@@ -1,4 +1,5 @@
 #include "Core/Reflection/Reflection.h"
+#include "Audio/AudioSourceComponent.h"
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Input/InputManager.h"
@@ -183,6 +184,17 @@ namespace Canape
 				.property("endDistance", &FogComponent::GetEndDistance, &FogComponent::SetEndDistance)
 				.property("density", &FogComponent::GetDensity, &FogComponent::SetDensity);
 
+			registration::class_<AudioSourceComponent>("AudioSourceComponent")
+				.constructor<>()(policy::ctor::as_raw_ptr)
+				.property("clip", &AudioSourceComponent::GetClip, &AudioSourceComponent::SetClip)
+				.property("volume", &AudioSourceComponent::GetVolume, &AudioSourceComponent::SetVolume)
+				.property("pitch", &AudioSourceComponent::GetPitch, &AudioSourceComponent::SetPitch)
+				.property("loop", &AudioSourceComponent::GetLoop, &AudioSourceComponent::SetLoop)
+				.property("playOnStart", &AudioSourceComponent::GetPlayOnStart, &AudioSourceComponent::SetPlayOnStart)
+				.property("spatial", &AudioSourceComponent::GetSpatial, &AudioSourceComponent::SetSpatial)
+				.property("minDistance", &AudioSourceComponent::GetMinDistance, &AudioSourceComponent::SetMinDistance)
+				.property("maxDistance", &AudioSourceComponent::GetMaxDistance, &AudioSourceComponent::SetMaxDistance);
+
 			registration::class_<SkyboxComponent>("SkyboxComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("cubemap", &SkyboxComponent::GetCubemapPath, &SkyboxComponent::SetCubemapPath)
@@ -210,7 +222,8 @@ namespace Canape
 			registration::class_<AnimatorComponent>("AnimatorComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("clip", &AnimatorComponent::GetClipPath, &AnimatorComponent::SetClipPath)
-				.property("rootMotion", &AnimatorComponent::GetRootMotion, &AnimatorComponent::SetRootMotion);
+				.property("rootMotion", &AnimatorComponent::GetRootMotion, &AnimatorComponent::SetRootMotion)
+				.property("preloadClips", &AnimatorComponent::GetPreloadClips, &AnimatorComponent::SetPreloadClips);
 
 			registration::class_<ScriptComponent>("ScriptComponent");
 
@@ -221,7 +234,9 @@ namespace Canape
 				.property("friction", &RigidBodyComponent::GetFriction, &RigidBodyComponent::SetFriction)
 				.property("restitution", &RigidBodyComponent::GetRestitution, &RigidBodyComponent::SetRestitution)
 				.property("linearDamping", &RigidBodyComponent::GetLinearDamping, &RigidBodyComponent::SetLinearDamping)
-				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping);
+				.property("angularDamping", &RigidBodyComponent::GetAngularDamping, &RigidBodyComponent::SetAngularDamping)
+				.property("continuousCollision", &RigidBodyComponent::GetContinuousCollision, &RigidBodyComponent::SetContinuousCollision)
+				.property("allowSleeping", &RigidBodyComponent::GetAllowSleeping, &RigidBodyComponent::SetAllowSleeping);
 
 			registration::class_<HingeComponent>("HingeComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)

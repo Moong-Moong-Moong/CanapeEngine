@@ -48,6 +48,14 @@ namespace Canape
 		}
 	}
 
+	void RigidBodyComponent::Teleport(const PhysicsPose& worldPose)
+	{
+		if (auto* physics = FindPhysics(*this))
+		{
+			physics->Teleport(*this, worldPose);
+		}
+	}
+
 	Vector3 RigidBodyComponent::GetVelocityAt(const Vector3& worldPoint) const
 	{
 		if (const auto* physics = FindPhysics(*this))

@@ -1,0 +1,1475 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "TiltMazePuzzle",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "TiltMazePuzzle",
+                    "id": 102,
+                    "properties": {
+                        "enabled": true,
+                        "board": 3,
+                        "ballA": 78,
+                        "ballB": 83,
+                        "zoneA": 70,
+                        "zoneB": 73,
+                        "fallZone": 88,
+                        "idleMaterial": "Content/Materials/M_TiltMazeZoneIdle.mat",
+                        "activeMaterial": "Content/Materials/M_TiltMazeZoneActive.mat",
+                        "maxTilt": 12,
+                        "tiltSpeed": 20,
+                        "tiltAcceleration": 30,
+                        "zoneHeight": 2,
+                        "keyboardControl": false,
+                        "keyboardTiltRate": 30
+                    }
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Board",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 7.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": -0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 20,
+                            "Y": 1,
+                            "Z": 20
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBoard.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Walls",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "name": "Wall_01",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.75,
+                            "Z": -10
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 20.5,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "name": "Wall_02",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 17,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -3.75,
+                            "Y": 0.75,
+                            "Z": 10
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 13,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "Wall_03",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 7.5,
+                            "Y": 0.75,
+                            "Z": 10
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 5.5,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 24,
+            "name": "Wall_04",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -10,
+                            "Y": 0.75,
+                            "Z": -3.75
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 13
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "Wall_05",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -10,
+                            "Y": 0.75,
+                            "Z": 7.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 5.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 30,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 32,
+            "name": "Wall_06",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 10,
+                            "Y": 0.75,
+                            "Z": -8.75
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 3
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 35,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 36,
+            "name": "Wall_07",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 37,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 10,
+                            "Y": 0.75,
+                            "Z": 2.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 15.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 38,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 40,
+            "name": "Wall_08",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.75,
+                            "Z": -5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 15.5,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 42,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 43,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 44,
+            "name": "Wall_09",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6.25,
+                            "Y": 0.75,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 8,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 46,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 48,
+            "name": "Wall_10",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5,
+                            "Y": 0.75,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 5.5,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 52,
+            "name": "Wall_11",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 53,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.25,
+                            "Y": 0.75,
+                            "Z": 5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 13,
+                            "Y": 1.5,
+                            "Z": 0.5
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 54,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 56,
+            "name": "Wall_12",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.75,
+                            "Z": -1.25
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 8
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 58,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 60,
+            "name": "Wall_13",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 7.5,
+                            "Y": 0.75,
+                            "Z": 1.25
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 8
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 63,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 64,
+            "name": "Wall_14",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 65,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -5,
+                            "Y": 0.75,
+                            "Z": 6.25
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 1.5,
+                            "Z": 3
+                        },
+                        "parent": 11
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 67,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 68,
+            "name": "Zones",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 70,
+            "name": "ZoneA",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 71,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -7.5,
+                            "Y": 0.05499999999999999,
+                            "Z": 7.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 2.5,
+                            "Y": 0.1,
+                            "Z": 2.5
+                        },
+                        "parent": 69
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 72,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeZoneIdle.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 73,
+            "name": "ZoneB",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 74,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 5,
+                            "Y": 0.05499999999999999,
+                            "Z": -2.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 2.5,
+                            "Y": 0.1,
+                            "Z": 2.5
+                        },
+                        "parent": 69
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 75,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeZoneIdle.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 76,
+            "name": "Balls",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 77,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 78,
+            "name": "BallA",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 79,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.25,
+                            "Y": 8.200000000000001,
+                            "Z": -7.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.2,
+                            "Y": 1.2,
+                            "Z": 1.2
+                        },
+                        "parent": 77
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 80,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 0.2,
+                        "friction": 0.4,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.1,
+                        "continuousCollision": true,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "SphereColliderComponent",
+                    "id": 81,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "radius": 0.5
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 82,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 83,
+            "name": "BallB",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 84,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6.25,
+                            "Y": 8.200000000000001,
+                            "Z": 7.5
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.2,
+                            "Y": 1.2,
+                            "Z": 1.2
+                        },
+                        "parent": 77
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 85,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 0.2,
+                        "friction": 0.4,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.1,
+                        "continuousCollision": true,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "SphereColliderComponent",
+                    "id": 86,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "radius": 0.5
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 87,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 88,
+            "name": "FallZone",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 89,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.25,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 60,
+                            "Y": 5.5,
+                            "Z": 60
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 90,
+            "name": "PuzzleCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 91,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 32.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0.7071067811865475,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 0.7071067811865476
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 92,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 93,
+            "name": "Console",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 94,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -11.2
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "TiltMazeConsole",
+                    "id": 101,
+                    "properties": {
+                        "enabled": true,
+                        "puzzle": 1,
+                        "puzzleCamera": 90,
+                        "playerName": "Player",
+                        "interactRadius": 2,
+                        "mouseSensitivity": 0.08
+                    }
+                }
+            ]
+        },
+        {
+            "id": 95,
+            "name": "Pedestal",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 96,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 1,
+                            "Z": 0.6
+                        },
+                        "parent": 94
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 97,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 98,
+            "name": "Tablet",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 99,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1.05,
+                            "Z": -0.05
+                        },
+                        "localRotation": {
+                            "X": -0.25881904510252074,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 0.9659258262890683
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.06,
+                            "Z": 0.55
+                        },
+                        "parent": 94
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 100,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBoard.mat"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

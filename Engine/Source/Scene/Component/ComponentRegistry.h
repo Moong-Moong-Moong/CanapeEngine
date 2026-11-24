@@ -21,6 +21,7 @@ namespace Canape
 	class ParticleEffectComponent;
 	class AnimatorComponent;
 	class UICanvasComponent;
+	class AudioSourceComponent;
 
 	//***** Scene 이 순회할 특정 컴포넌트 목록을 보관
 	class ComponentRegistry final
@@ -54,6 +55,7 @@ namespace Canape
 		std::span<ParticleEffectComponent* const> GetParticleEffects() const { return m_particleEffects; }
 		std::span<AnimatorComponent* const> GetAnimators() const { return m_animators; }
 		std::span<UICanvasComponent* const> GetUICanvases() const { return m_uiCanvases; }
+		std::span<AudioSourceComponent* const> GetAudioSources() const { return m_audioSources; }
 		std::vector<Component*> GetPendingRemove() const { return m_pendingRemove; }
 
 
@@ -73,6 +75,7 @@ namespace Canape
 		std::vector<ParticleEffectComponent*> m_particleEffects;
 		std::vector<AnimatorComponent*> m_animators;
 		std::vector<UICanvasComponent*> m_uiCanvases;
+		std::vector<AudioSourceComponent*> m_audioSources;
 
 		std::vector<Component*> m_pendingAdd;
 		std::vector<Component*> m_pendingRemove;

@@ -12,6 +12,7 @@
     },
     "imguizmo",
     "joltphysics",
+    "miniaudio",
     "nlohmann-json",
     "rttr",
     "rapidjson",

@@ -2,6 +2,8 @@
 
 #include "Asset/Mesh/FbxImporter.h"
 #include "Asset/AssetManager.h"
+#include "Audio/AudioSourceComponent.h"
+#include "Audio/AudioSystem.h"
 #include "Core/Application.h"
 #include "Core/Console/CommandRegistry.h"
 #include "Core/Reflection/Reflection.h"

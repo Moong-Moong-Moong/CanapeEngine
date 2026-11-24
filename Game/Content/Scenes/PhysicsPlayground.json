@@ -37,6 +37,7 @@
                     "id": 3,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Plane",
                         "materials": [
                             "Content/Materials/M_PlaygroundFloor.mat"
@@ -122,7 +123,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -180,7 +183,9 @@
                         "friction": 0.6,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -202,6 +207,7 @@
                     "id": 24,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -249,7 +255,9 @@
                         "friction": 0.6,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -271,6 +279,7 @@
                     "id": 29,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -318,7 +327,9 @@
                         "friction": 0.0,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -340,6 +351,7 @@
                     "id": 34,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -466,7 +478,9 @@
                         "friction": 0.6,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -563,6 +577,7 @@
                     "id": 41,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -651,7 +666,9 @@
                         "friction": 0.0,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -673,6 +690,7 @@
                     "id": 46,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -720,7 +738,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -742,6 +762,7 @@
                     "id": 51,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -789,7 +810,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -811,6 +834,7 @@
                     "id": 56,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -858,7 +882,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -880,6 +906,7 @@
                     "id": 199,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -927,7 +954,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -949,6 +978,7 @@
                     "id": 204,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -996,7 +1026,9 @@
                         "friction": 0.6,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1014,6 +1046,7 @@
                     "id": 61,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Sphere",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -1099,7 +1132,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1157,7 +1192,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1374,6 +1411,7 @@
                     "id": 75,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1430,6 +1468,7 @@
                     "id": 79,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1486,6 +1525,7 @@
                     "id": 83,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1542,6 +1582,7 @@
                     "id": 87,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1598,6 +1639,7 @@
                     "id": 91,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1654,6 +1696,7 @@
                     "id": 95,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -1742,7 +1785,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1764,6 +1809,7 @@
                     "id": 100,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -1811,7 +1857,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1833,6 +1881,7 @@
                     "id": 105,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -1880,7 +1929,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1902,6 +1953,7 @@
                     "id": 110,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -1949,7 +2001,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -1971,6 +2025,7 @@
                     "id": 115,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -2018,7 +2073,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2040,6 +2097,7 @@
                     "id": 120,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -2087,7 +2145,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.5
+                        "angularDamping": 0.5,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2105,6 +2165,7 @@
                     "id": 125,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Sphere",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -2190,7 +2251,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2248,7 +2311,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2516,6 +2581,7 @@
                     "id": 138,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -2572,6 +2638,7 @@
                     "id": 142,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -2628,6 +2695,7 @@
                     "id": 146,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -2684,6 +2752,7 @@
                     "id": 150,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -2772,7 +2841,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2794,6 +2865,7 @@
                     "id": 155,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -2841,7 +2913,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2863,6 +2937,7 @@
                     "id": 160,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -2910,7 +2985,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -2932,6 +3009,7 @@
                     "id": 165,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -2979,7 +3057,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3001,6 +3081,7 @@
                     "id": 215,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3048,7 +3129,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3070,6 +3153,7 @@
                     "id": 220,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3117,7 +3201,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.5
+                        "angularDamping": 0.5,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3135,6 +3221,7 @@
                     "id": 170,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Sphere",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -3220,7 +3307,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3278,7 +3367,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3300,6 +3391,7 @@
                     "id": 230,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -3347,7 +3439,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3369,6 +3463,7 @@
                     "id": 235,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -3416,7 +3511,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3438,6 +3535,7 @@
                     "id": 240,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -3485,7 +3583,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.0,
-                        "angularDamping": 0.5
+                        "angularDamping": 0.5,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3548,6 +3648,7 @@
                     "id": 248,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleRod.mat"
@@ -3595,7 +3696,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.0,
-                        "angularDamping": 0.5
+                        "angularDamping": 0.5,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3613,6 +3716,7 @@
                     "id": 253,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Sphere",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -3701,7 +3805,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3723,6 +3829,7 @@
                     "id": 261,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3770,7 +3877,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3792,6 +3901,7 @@
                     "id": 266,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3839,7 +3949,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3861,6 +3973,7 @@
                     "id": 271,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3908,7 +4021,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3930,6 +4045,7 @@
                     "id": 276,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -3977,7 +4093,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -3999,6 +4117,7 @@
                     "id": 281,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -4084,7 +4203,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4142,7 +4263,9 @@
                         "friction": 0.8,
                         "restitution": 0.0,
                         "linearDamping": 0.0,
-                        "angularDamping": 0.0
+                        "angularDamping": 0.0,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4210,6 +4333,7 @@
                     "id": 294,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleLever.mat"
@@ -4257,7 +4381,9 @@
                         "friction": 0.8,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4279,6 +4405,7 @@
                     "id": 299,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -4326,7 +4453,9 @@
                         "friction": 0.8,
                         "restitution": 0.0,
                         "linearDamping": 0.0,
-                        "angularDamping": 0.0
+                        "angularDamping": 0.0,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4348,6 +4477,7 @@
                     "id": 304,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWeight.mat"
@@ -4395,7 +4525,9 @@
                         "friction": 0.8,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4417,6 +4549,7 @@
                     "id": 309,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -4594,7 +4727,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4616,6 +4751,7 @@
                     "id": 315,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -4663,7 +4799,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4685,6 +4823,7 @@
                     "id": 320,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -4732,7 +4871,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4754,6 +4895,7 @@
                     "id": 325,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -4842,7 +4984,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4864,6 +5008,7 @@
                     "id": 333,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -4911,7 +5056,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -4933,6 +5080,7 @@
                     "id": 338,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -4980,7 +5128,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5002,6 +5152,7 @@
                     "id": 343,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -5049,7 +5200,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5071,6 +5224,7 @@
                     "id": 348,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -5118,7 +5272,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5140,6 +5296,7 @@
                     "id": 353,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -5225,7 +5382,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5283,7 +5442,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5305,6 +5466,7 @@
                     "id": 363,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -5352,7 +5514,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5374,6 +5538,7 @@
                     "id": 368,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -5421,7 +5586,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5443,6 +5610,7 @@
                     "id": 373,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -5490,7 +5658,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5512,6 +5682,7 @@
                     "id": 378,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -5559,7 +5730,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5581,6 +5754,7 @@
                     "id": 383,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWall.mat"
@@ -5628,7 +5802,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5646,6 +5822,7 @@
                     "id": 388,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Sphere",
                         "materials": [
                             "Content/Materials/M_PuzzlePayload.mat"
@@ -5693,7 +5870,9 @@
                         "friction": 0.0,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5715,6 +5894,7 @@
                     "id": 393,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleMover.mat"
@@ -5921,7 +6101,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -5943,6 +6125,7 @@
                     "id": 402,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -5990,7 +6173,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -6012,6 +6197,7 @@
                     "id": 407,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -6059,7 +6245,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -6081,6 +6269,7 @@
                     "id": 412,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -6128,7 +6317,9 @@
                         "friction": 0.5,
                         "restitution": 0.0,
                         "linearDamping": 0.05,
-                        "angularDamping": 0.05
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
                     }
                 },
                 {
@@ -6150,6 +6341,7 @@
                     "id": 417,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleGoal.mat"
@@ -6238,6 +6430,7 @@
                     "id": 423,
                     "properties": {
                         "enabled": true,
+                        "visible": true,
                         "mesh": "Builtin/Cube",
                         "materials": [
                             "Content/Materials/M_PuzzleWater.mat"
@@ -6329,7 +6522,8 @@
                         "range": 10.0,
                         "innerAngle": 0.35,
                         "outerAngle": 0.52,
-                        "castShadow": true
+                        "castShadow": true,
+                        "proxyVisible": true
                     }
                 }
             ]
@@ -6427,7 +6621,8 @@
                         "enabled": true,
                         "fieldOfView": 60.0,
                         "nearClip": 0.05,
-                        "farClip": 100.0
+                        "farClip": 100.0,
+                        "proxyVisible": true
                     }
                 }
             ]

@@ -82,61 +82,103 @@ namespace Canape
 		}
 	}
 
+	AnimatorComponent::ClipBinding* AnimatorComponent::FindOrLoad(const std::string& clipPath)
+	{
+		auto found = m_Bindings.find(clipPath);
+		if (found != m_Bindings.end() && found->second.clip.IsValid())
+		{
+			return &found->second;
+		}
+
+		GameObject* gameObject = GetOwnerObject();
+		if (!gameObject || clipPath.empty())
+		{
+			return nullptr;
+		}
+
+		AssetManager& assets = Application::Get().GetAssetManager();
+		ClipBinding& binding = m_Bindings[clipPath];
+		binding.clip = assets.GetAnimationClipHandle(clipPath, MakeOwnerInfo(*gameObject));
+		binding.targets.clear();
+		return assets.GetAnimationClip(binding.clip) ? &binding : nullptr;
+	}
+
 	bool AnimatorComponent::SetClip(const std::string& clipPath)
 	{
 		if (m_ClipPath == clipPath) return true;
 
 		m_ClipPath = clipPath;
 		m_Time = 0.0f;
-		m_Targets.clear();
 		m_LastKeys.clear();
+		// 미리 로드해 둔 클립이면 로드도 바인딩도 하지 않는다.
+		m_Current = FindOrLoad(clipPath);
+		return m_Current != nullptr;
+	}
 
-		GameObject* gameObject = GetOwnerObject();
-		if (!gameObject)
-		{
-			m_Clip.Reset();
-			return false;
-		}
-
+	void AnimatorComponent::PreloadClips()
+	{
+		m_Preloaded = true;
 		AssetManager& assets = Application::Get().GetAssetManager();
-		m_Clip = assets.GetAnimationClipHandle(clipPath, MakeOwnerInfo(*gameObject));
-		return assets.GetAnimationClip(m_Clip) != nullptr;
+		auto prepare = [&](const std::string& path)
+		{
+			ClipBinding* binding = FindOrLoad(path);
+			const AnimationClipAsset* clip = binding ? assets.GetAnimationClip(binding->clip) : nullptr;
+			if (clip && binding->targets.size() != clip->GetTracks().size())
+			{
+				Bind(*clip, binding->targets);
+			}
+		};
+		for (const std::string& path : m_PreloadClips)
+		{
+			prepare(path);
+		}
+		prepare(m_ClipPath);
+		// SetClip이 계층이 다 만들어지기 전(역직렬화 중)에 불렸을 수 있으니 현재 클립 포인터를 다시 잡는다.
+		m_Current = FindOrLoad(m_ClipPath);
 	}
 
 	float AnimatorComponent::GetDuration() const
 	{
-		const AnimationClipAsset* clip = Application::Get().GetAssetManager().GetAnimationClip(m_Clip);
+		const AnimationClipAsset* clip = m_Current ? Application::Get().GetAssetManager().GetAnimationClip(m_Current->clip) : nullptr;
 		return clip ? clip->GetDuration() : 0.0f;
 	}
 
-	void AnimatorComponent::Bind(const AnimationClipAsset& clip) // track
+	void AnimatorComponent::Bind(const AnimationClipAsset& clip, std::vector<TrackTarget>& targets) // track
 	{
 		const std::vector<AnimationTrack>& tracks = clip.GetTracks();
-		m_Targets.assign(tracks.size(), TrackTarget{});
-		m_LastKeys.assign(tracks.size(), 0);
+		targets.assign(tracks.size(), TrackTarget{});
 
 		TransformComponent* root = GetTransform();
 		for (size_t i = 0; i < tracks.size(); ++i)
 		{
 			const std::string& path = tracks[i].targetPath;
-			m_Targets[i].transform = FindByPath(root, path);
-			m_Targets[i].isTranslationRoot =
+			targets[i].transform = FindByPath(root, path);
+			targets[i].isTranslationRoot =
 				tracks[i].property == AnimationProperty::Translation && std::count(path.begin(), path.end(), '/') == 1;
 		}
 	}
 
 	void AnimatorComponent::ApplyKeyFrame(float deltaTime)
 	{
-		const AnimationClipAsset* clip = Application::Get().GetAssetManager().GetAnimationClip(m_Clip);
+		if (!m_Preloaded)
+		{
+			PreloadClips();
+		}
+		const AnimationClipAsset* clip = m_Current ? Application::Get().GetAssetManager().GetAnimationClip(m_Current->clip) : nullptr;
 		if (!clip)
 		{
 			return;
 		}
 
 		const std::vector<AnimationTrack>& tracks = clip->GetTracks();
-		if (m_Targets.size() != tracks.size())
+		std::vector<TrackTarget>& targets = m_Current->targets;
+		if (targets.size() != tracks.size())
 		{
-			Bind(*clip);
+			Bind(*clip, targets);
+		}
+		if (m_LastKeys.size() != tracks.size())
+		{
+			m_LastKeys.assign(tracks.size(), 0);
 		}
 
 		const float duration = clip->GetDuration();
@@ -170,7 +212,7 @@ namespace Canape
 		for (size_t i = 0; i < tracks.size(); ++i)
 		{
 			const AnimationTrack& track = tracks[i];
-			TransformComponent* target = m_Targets[i].transform;
+			TransformComponent* target = targets[i].transform;
 			const uint32_t keyCount = track.GetKeyCount();
 			if (!target || keyCount == 0) // 타겟 본이 없거나 키 카운트가 0이면
 			{
@@ -195,7 +237,7 @@ namespace Canape
 			case AnimationProperty::Translation:
 			{
 				Vector3 position = Lerp(ReadVector3(track.values, key), ReadVector3(track.values, next), s);
-				if (!m_rootMotion && m_Targets[i].isTranslationRoot)
+				if (!m_rootMotion && targets[i].isTranslationRoot)
 				{
 					const TransformComponent* parent = target->GetParent();
 					const Vector3 up = parent ? parent->GetWorldRotation().Inverse().Rotate(Vector3::Up).Normalized() : Vector3::Up;

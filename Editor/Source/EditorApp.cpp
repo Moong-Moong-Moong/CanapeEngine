@@ -11,6 +11,7 @@
 
 #include <Windows.h>
 #include <commdlg.h>
+#include <shellapi.h>
 #include <d3d11.h>
 
 #include <filesystem>
@@ -98,6 +99,12 @@ void EditorApp::OnInit()
 
     GetSceneManager().SetSceneDirectory(EditorUtils::GetSceneDirectory().string() + "/");
 
+    if (RunCommandLineImports())
+    {
+        m_QuitAfterCommandLine = true; // Run()이 시작된 뒤 첫 프레임에 종료한다
+        return;
+    }
+
     const std::filesystem::path defaultScene = EditorUtils::GetSceneDirectory() / "SampleScene.json";
     std::error_code error;
     if (std::filesystem::exists(defaultScene, error))
@@ -110,8 +117,74 @@ void EditorApp::OnInit()
     }
 }
 
+bool EditorApp::RunCommandLineImports()
+{
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!argv)
+    {
+        return false;
+    }
+
+    std::string log;
+    std::filesystem::path logFile;
+    bool any = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        const std::wstring arg = argv[i];
+        if (arg == L"--import-log" && i + 1 < argc)
+        {
+            logFile = argv[++i];
+            continue;
+        }
+        if (arg != L"--import-gltf" || i + 2 >= argc)
+        {
+            continue;
+        }
+
+        const std::filesystem::path source = argv[++i];
+        std::filesystem::path target = argv[++i];
+        if (target.is_relative())
+        {
+            target = EditorUtils::GetGameDirectory() / target;
+        }
+        GltfImportWindow::Options options;
+        while (i + 1 < argc && std::wstring(argv[i + 1]).rfind(L"--", 0) == 0 && std::wstring(argv[i + 1]) != L"--import-gltf"
+            && std::wstring(argv[i + 1]) != L"--import-log")
+        {
+            const std::wstring flag = argv[++i];
+            if (flag == L"--static") options.staticModel = true;
+            else if (flag == L"--skeleton-model") options.skeletonModel = true;
+            else if (flag == L"--skeleton") options.skeleton = true;
+            else if (flag == L"--anim") options.animationClip = true;
+        }
+
+        any = true;
+        const std::string result = GltfImportWindow::Import(EditorUtils::ToUtf8(source), target, options);
+        log += EditorUtils::ToUtf8(source) + " -> " + EditorUtils::ToUtf8(target) + "\n" + result;
+        CN_LOG_RUNTIME("Import", EditorUtils::ToUtf8(source), ": ", result);
+    }
+    LocalFree(argv);
+
+    if (any && !logFile.empty())
+    {
+        FILE* file = nullptr;
+        if (_wfopen_s(&file, logFile.c_str(), L"wb") == 0 && file)
+        {
+            fwrite(log.data(), 1, log.size(), file);
+            fclose(file);
+        }
+    }
+    return any;
+}
+
 void EditorApp::OnUpdate(float deltaTime)
 {
+    if (m_QuitAfterCommandLine)
+    {
+        Quit(); // 이번 프레임은 평소처럼 마치고 루프를 빠져나간다
+    }
+
     const std::string pendingScene = m_Context.TakePendingOpenScene();
     if (!pendingScene.empty() && ConfirmDiscardChanges())
     {

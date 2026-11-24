@@ -1,0 +1,1182 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "AncientGate",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "AncientGate",
+                    "id": 80,
+                    "properties": {
+                        "enabled": true,
+                        "puzzle1Name": "TiltMazePuzzle",
+                        "puzzle2Name": "LeverPuzzle",
+                        "puzzle3Name": "MarbleRun",
+                        "fire1": 43,
+                        "fire2": 57,
+                        "fire3": 71,
+                        "torchCamera1": 46,
+                        "torchCamera2": 60,
+                        "torchCamera3": 74,
+                        "gateCamera": 77,
+                        "leftPivot": 23,
+                        "rightPivot": 28,
+                        "playerName": "Player",
+                        "solveDelay": 2,
+                        "torchLookTime": 0.8,
+                        "torchHoldTime": 2,
+                        "gateLookTime": 1,
+                        "doorOpenTime": 3,
+                        "doorOpenAngle": 90,
+                        "gateHoldTime": 1.5,
+                        "shakeAmplitude": 0.08,
+                        "shakeFrequency": 18
+                    }
+                },
+                {
+                    "type": "DevMode",
+                    "id": 81,
+                    "properties": {
+                        "enabled": true,
+                        "puzzle1Name": "TiltMazePuzzle",
+                        "puzzle2Name": "LeverPuzzle",
+                        "puzzle3Name": "MarbleRun",
+                        "gateName": "AncientGate",
+                        "tapCount": 5,
+                        "tapWindow": 1.5
+                    }
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Gate",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Base",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.15,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 6.4,
+                            "Y": 0.3,
+                            "Z": 2.6
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 7,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "name": "PillarLeft",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2,
+                            "Y": 2.9,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 5.2,
+                            "Z": 1.3
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "name": "PillarRight",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 12,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2,
+                            "Y": 2.9,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 5.2,
+                            "Z": 1.3
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Lintel",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 6,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 5.6,
+                            "Y": 1,
+                            "Z": 1.6
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 16,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Capstone",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 6.8,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 3,
+                            "Y": 0.6,
+                            "Z": 1.4
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateStone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "name": "Darkness",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.55,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 2.9,
+                            "Y": 4.4,
+                            "Z": 0.1
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 22,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateDark.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 23,
+            "name": "LeftPivot",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.5,
+                            "Y": 0.3,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 25,
+            "name": "LeftDoor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.75,
+                            "Y": 2.25,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.48,
+                            "Y": 4.5,
+                            "Z": 0.3
+                        },
+                        "parent": 24
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 27,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateDoor.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "RightPivot",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.5,
+                            "Y": 0.3,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 30,
+            "name": "RightDoor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.75,
+                            "Y": 2.25,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1.48,
+                            "Y": 4.5,
+                            "Z": 0.3
+                        },
+                        "parent": 29
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 32,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_GateDoor.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 33,
+            "name": "Torches",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 35,
+            "name": "Torch_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 36,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -6,
+                            "Y": 0,
+                            "Z": 4
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 34
+                    }
+                }
+            ]
+        },
+        {
+            "id": 37,
+            "name": "Pole",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 38,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.25,
+                            "Y": 2,
+                            "Z": 0.25
+                        },
+                        "parent": 36
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 39,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchWood.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 40,
+            "name": "Bowl",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 41,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.25,
+                            "Z": 0.8
+                        },
+                        "parent": 36
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 42,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchBowl.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 43,
+            "name": "Fire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 44,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.35,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": false,
+                        "effect": "Content/Effects/BlueFire.effect"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 46,
+            "name": "TorchCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.6625609418811,
+                            "Y": 3.25,
+                            "Z": -1.775040627920733
+                        },
+                        "localRotation": {
+                            "X": 0.09475435014661766,
+                            "Y": -0.46912503392722943,
+                            "Z": 0.05071098924455448,
+                            "W": 0.8765681440942893
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 48,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 45,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 49,
+            "name": "Torch_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 6,
+                            "Y": 0,
+                            "Z": 4
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 34
+                    }
+                }
+            ]
+        },
+        {
+            "id": 51,
+            "name": "Pole",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 52,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.25,
+                            "Y": 2,
+                            "Z": 0.25
+                        },
+                        "parent": 50
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 53,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchWood.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 54,
+            "name": "Bowl",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.25,
+                            "Z": 0.8
+                        },
+                        "parent": 50
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchBowl.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 57,
+            "name": "Fire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 58,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.35,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 50
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": false,
+                        "effect": "Content/Effects/BlueFire.effect"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 60,
+            "name": "TorchCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.6625609418811,
+                            "Y": 3.25,
+                            "Z": -1.775040627920733
+                        },
+                        "localRotation": {
+                            "X": 0.09475435014661766,
+                            "Y": 0.46912503392722943,
+                            "Z": -0.05071098924455448,
+                            "W": 0.8765681440942893
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 50
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 45,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 63,
+            "name": "Torch_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 64,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -7
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 34
+                    }
+                }
+            ]
+        },
+        {
+            "id": 65,
+            "name": "Pole",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.25,
+                            "Y": 2,
+                            "Z": 0.25
+                        },
+                        "parent": 64
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 67,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchWood.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 68,
+            "name": "Bowl",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.25,
+                            "Z": 0.8
+                        },
+                        "parent": 64
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 70,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cylinder",
+                        "materials": [
+                            "Content/Materials/M_TorchBowl.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 71,
+            "name": "Fire",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 72,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 2.35,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 64
+                    }
+                },
+                {
+                    "type": "ParticleEffectComponent",
+                    "id": 73,
+                    "properties": {
+                        "enabled": false,
+                        "effect": "Content/Effects/BlueFire.effect"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 74,
+            "name": "TorchCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 75,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3.25,
+                            "Z": 3.2
+                        },
+                        "localRotation": {
+                            "X": 6.5806938168854226e-18,
+                            "Y": 0.9942082320611366,
+                            "Z": -0.10747088583364865,
+                            "W": 6.0877696453981e-17
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 64
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 76,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 45,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 77,
+            "name": "GateCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 78,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3,
+                            "Z": 11
+                        },
+                        "localRotation": {
+                            "X": 8.3475366666536e-19,
+                            "Y": 0.9999070723098172,
+                            "Z": -0.013632561931269457,
+                            "W": 6.122664977745093e-17
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 79,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 50,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        }
+    ]
+}

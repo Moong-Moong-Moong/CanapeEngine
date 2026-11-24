@@ -570,13 +570,15 @@ namespace Canape
 		Matrix4& parentTM,
 		std::vector<StaticVertex>& vertices,
 		std::vector<uint32_t>& indices,
-		std::vector<SubMesh>& subMeshes
+		std::vector<SubMesh>& subMeshes,
+		bool includeNodeTransform,
+		bool recurse
 	)
 	{
 		Value& doc = cNglTF.m_doc;
 
 		//*** 노드 로컬 tm 행렬
-		Matrix4 TRS = GetNodeTRS(node) * parentTM; // 우리 엔진은 행벡터 규약을 사용
+		Matrix4 TRS = includeNodeTransform ? GetNodeTRS(node) * parentTM : parentTM; // 우리 엔진은 행벡터 규약을 사용
 
 		//*** 행렬식: 음수면 노드에 미러링(음수 스케일)이 있음 → 와인딩 판단용
 		float det = DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(TRS.ToXM()));
@@ -735,7 +737,7 @@ namespace Canape
 		}
 
 		//***** 자식노드로 재귀
-		if (node.HasMember("children"))
+		if (recurse && node.HasMember("children"))
 		{
 			for (Value& child : node["children"].GetArray())
 			{
@@ -752,6 +754,26 @@ namespace Canape
 				);
 			}
 		}
+	}
+
+	std::unique_ptr<MeshAsset> CNglTFImporter::LoadNodeMeshAsset(CNglTF& cNglTF, uint32_t nodeIndex)
+	{
+		Value& doc = cNglTF.m_doc;
+		if (!doc.HasMember("nodes") || nodeIndex >= doc["nodes"].Size() || !doc["nodes"][nodeIndex].HasMember("mesh"))
+			return nullptr;
+
+		std::vector<MaterialData> materialSlots;
+		LoadMaterials(cNglTF, materialSlots);
+
+		std::vector<StaticVertex> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<SubMesh> subMeshes;
+		Matrix4 identity = Matrix4::Identity; // 노드 오브젝트의 Transform이 노드 TRS를 맡는다
+		LoadNodeMesh(cNglTF, doc["nodes"][nodeIndex], identity, vertices, indices, subMeshes, false, false);
+		if (vertices.empty())
+			return nullptr;
+
+		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes), std::move(materialSlots));
 	}
 
 	std::unique_ptr<MeshAsset> CNglTFImporter::LoadSkinnedMeshAsset(CNglTF& cNglTF, uint32_t skinIndex)
@@ -1046,6 +1068,22 @@ namespace Canape
 			nodeObjects[i] = scene.GetGameObject(scene.AddGameObject(nodeName));
 
 			TransformComponent* transform = nodeObjects[i]->GetTransform();
+			if (node.HasMember("matrix"))
+			{
+				// matrix 노드(Sketchfab 루트의 축 변환·스케일 등): TRS로 분해해서 같은 좌표 변환(X 반전)을 적용한다.
+				DirectX::XMVECTOR scale, rotation, translation;
+				if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, GetNodeTRS(node).ToXM()))
+				{
+					DirectX::XMFLOAT3 t, s;
+					DirectX::XMFLOAT4 r;
+					DirectX::XMStoreFloat3(&t, translation);
+					DirectX::XMStoreFloat3(&s, scale);
+					DirectX::XMStoreFloat4(&r, rotation);
+					transform->SetPosition({ -t.x, t.y, t.z });
+					transform->SetRotation({ r.x, -r.y, -r.z, r.w });
+					transform->SetScale({ s.x, s.y, s.z });
+				}
+			}
 			if (node.HasMember("translation"))
 			{
 				Value& t = node["translation"];
@@ -1102,21 +1140,35 @@ namespace Canape
 		return SceneSerializer::SavePrefab(*top, ToUtf8((ToPath(targetDir) / (modelName + "_Skeleton.prefab")).generic_u8string()));
 	}
 
-	bool CNglTFImporter::ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	namespace
+	{
+		// Sketchfab 모델은 파일 이름이 모두 scene.gltf라서, 그럴 때는 폴더 이름을 모델 이름으로 쓴다.
+		std::string ModelNameOf(const std::filesystem::path& gltf)
+		{
+			const std::string stem = ToUtf8(gltf.stem().u8string());
+			if (stem == "scene" && gltf.has_parent_path() && !gltf.parent_path().filename().empty())
+				return ToUtf8(gltf.parent_path().filename().u8string());
+			return stem;
+		}
+	}
+
+	std::string CNglTFImporter::CopyGltfFiles(const std::string& gltfPath, const std::string& targetDir)
 	{
 		const std::filesystem::path source = ToPath(gltfPath);
 		const std::filesystem::path target = ToPath(targetDir);
-		const std::filesystem::path copiedGltf = target / source.filename();
 
 		CNglTF sourceGltf;
 		if (!ReadglTF(gltfPath, sourceGltf))
-			return false;
+			return {};
 
 		std::vector<std::filesystem::path> files = { source.filename() };
-		for (Value& buffer : sourceGltf.m_doc["buffers"].GetArray())
+		if (sourceGltf.m_doc.HasMember("buffers"))
 		{
-			if (buffer.HasMember("uri"))
-				files.push_back(ToPath(buffer["uri"].GetString()));
+			for (Value& buffer : sourceGltf.m_doc["buffers"].GetArray())
+			{
+				if (buffer.HasMember("uri"))
+					files.push_back(ToPath(buffer["uri"].GetString()));
+			}
 		}
 		if (sourceGltf.m_doc.HasMember("images"))
 		{
@@ -1138,15 +1190,23 @@ namespace Canape
 			std::filesystem::create_directories(to.parent_path(), error);
 			std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, error);
 		}
+		return ToUtf8((target / source.filename()).generic_u8string());
+	}
 
-		const std::string copiedPath = ToUtf8(copiedGltf.generic_u8string());
+	bool CNglTFImporter::ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	{
+		const std::filesystem::path target = ToPath(targetDir);
+		const std::string copiedPath = CopyGltfFiles(gltfPath, targetDir);
+		if (copiedPath.empty())
+			return false;
+
 		CNglTF cNglTF;
 		if (!ReadglTF(copiedPath, cNglTF))
 			return false;
 
 		Value& doc = cNglTF.m_doc;
 		const std::string assetPath = AssetManager::ToAssetPath(copiedPath);
-		const std::string modelName = ToUtf8(source.stem().u8string());
+		const std::string modelName = ModelNameOf(ToPath(gltfPath));
 
 		Scene scene(modelName);
 		std::vector<GameObject*> nodeObjects;
@@ -1156,9 +1216,20 @@ namespace Canape
 			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
 		}
 
+		Value& nodes = doc["nodes"];
 		const uint32_t skinCount = doc.HasMember("skins") ? doc["skins"].Size() : 0u;
 		for (uint32_t i = 0; i < skinCount; i++)
 		{
+			// 이 스킨을 쓰는 메쉬가 없으면(조인트만 있고 메쉬는 노드에 붙은 강체인 경우) 스킨 렌더러를 만들지 않는다.
+			bool used = false;
+			for (Value& node : nodes.GetArray())
+			{
+				if (node.HasMember("mesh") && node.HasMember("skin") && node["skin"].GetUint() == i)
+					used = true;
+			}
+			if (!used)
+				continue;
+
 			Value& skin = doc["skins"][i];
 			const std::string skinName = skin.HasMember("name") ? skin["name"].GetString() : "Skin_" + std::to_string(i);
 
@@ -1187,7 +1258,32 @@ namespace Canape
 			renderer->SetSkeleton(skeletonRoot);
 		}
 
+		// 노드에 붙은 일반 메쉬: 그 노드 오브젝트에서 노드 로컬 메쉬로 그린다. 노드가 애니메이션되면 메쉬도 같이 움직인다.
+		for (uint32_t i = 0; i < nodes.Size(); i++)
+		{
+			if (!nodeObjects[i] || !nodes[i].HasMember("mesh") || nodes[i].HasMember("skin"))
+				continue;
+			MeshRendererComponent* renderer = nodeObjects[i]->AddComponent<MeshRendererComponent>();
+			renderer->SetMesh(assetPath + "#node" + std::to_string(i));
+		}
+
 		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_SkeletonModel.prefab")).generic_u8string()));
+	}
+
+	bool CNglTFImporter::ImportStaticModel(const std::string& gltfPath, const std::string& targetDir)
+	{
+		const std::filesystem::path target = ToPath(targetDir);
+		const std::string copiedPath = CopyGltfFiles(gltfPath, targetDir);
+		if (copiedPath.empty())
+			return false;
+
+		const std::string modelName = ModelNameOf(ToPath(gltfPath));
+		Scene scene(modelName);
+		GameObject* top = scene.GetGameObject(scene.AddGameObject(modelName));
+		MeshRendererComponent* renderer = top->AddComponent<MeshRendererComponent>();
+		renderer->SetMesh(AssetManager::ToAssetPath(copiedPath));
+
+		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_StaticModel.prefab")).generic_u8string()));
 	}
 
 

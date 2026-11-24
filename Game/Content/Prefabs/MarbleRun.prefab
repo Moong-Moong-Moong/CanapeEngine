@@ -1,0 +1,4249 @@
+{
+    "version": 1,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "MarbleRun",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "MarbleRun",
+                    "id": 293,
+                    "properties": {
+                        "enabled": true,
+                        "ball": 273,
+                        "bridges": 37,
+                        "deathZones": 39,
+                        "goal": 278,
+                        "startPoint": 271,
+                        "followCamera": 281,
+                        "idleMaterial": "Content/Materials/M_TiltMazeZoneIdle.mat",
+                        "activeMaterial": "Content/Materials/M_TiltMazeZoneActive.mat",
+                        "slideDistance": 0.5,
+                        "slideSpeed": 5,
+                        "releaseDelay": 1,
+                        "failDelay": 0.8,
+                        "goalHeight": 0.4,
+                        "cameraDistance": 3,
+                        "cameraHeight": 0.3,
+                        "cameraSharpness": 5
+                    }
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Machine",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 4,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Cabinet",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Back",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3.5,
+                            "Z": -0.205
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 4.6000000000000005,
+                            "Y": 7,
+                            "Z": 0.05
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 9,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.1,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 11,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "name": "LeftWall",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 13,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -2.25,
+                            "Y": 3.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.1,
+                            "Y": 7,
+                            "Z": 0.45999999999999996
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 14,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 15,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 16,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleCabinet.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "name": "RightWall",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 18,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 2.25,
+                            "Y": 3.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.1,
+                            "Y": 7,
+                            "Z": 0.45999999999999996
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 19,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 20,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 21,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleCabinet.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 22,
+            "name": "Floor",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 23,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 4.6000000000000005,
+                            "Y": 0.1,
+                            "Z": 0.45999999999999996
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 24,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 25,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 26,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleCabinet.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 27,
+            "name": "Top",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 28,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 7.1,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 4.800000000000001,
+                            "Y": 0.2,
+                            "Z": 0.6599999999999999
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 29,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleCabinet.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 30,
+            "name": "Glass",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 31,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3.5,
+                            "Z": 0.205
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 4.4,
+                            "Y": 7,
+                            "Z": 0.05
+                        },
+                        "parent": 6
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 32,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.1,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 33,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 34,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleGlass.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 35,
+            "name": "Tracks",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 36,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 37,
+            "name": "Bridges",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 38,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 39,
+            "name": "DeathZones",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 40,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 41,
+            "name": "Level_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 42,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                }
+            ]
+        },
+        {
+            "id": 43,
+            "name": "Segment_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 44,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.85,
+                            "Y": 5.425301363962023,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.7021645389379778,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 42
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 45,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 46,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 47,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 48,
+            "name": "Segment_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 49,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.7250000000000001,
+                            "Y": 5.336761943784328,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.3510822694689888,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 42
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 50,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 51,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 52,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 53,
+            "name": "Segment_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 54,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.22499999999999964,
+                            "Y": 5.26199532230094,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.351082269468989,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 42
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 55,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 56,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 57,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 58,
+            "name": "Segment_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 59,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.3250000000000002,
+                            "Y": 5.17542344479386,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6520099290138374,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 42
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 60,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 61,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 62,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 63,
+            "name": "Bridge_L1_G1_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 64,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 5.374145254526022,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.621917163059352,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 65,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 66,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 67,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 68,
+            "name": "DeathZone_L1_G1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 69,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 5.074299864450164,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 70,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 71,
+            "name": "Bridge_L1_G2_B",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 72,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.25000000000000044,
+                            "Y": 5.299378633042634,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593517,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 73,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 74,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 75,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeB.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 76,
+            "name": "DeathZone_L1_G2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 77,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.2500000000000002,
+                            "Y": 4.999533242966776,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 78,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 79,
+            "name": "Bridge_L1_G3_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 80,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 5.2246120115592465,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593511,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 81,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 82,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 83,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 84,
+            "name": "DeathZone_L1_G3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 85,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 4.924766621483388,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 86,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 87,
+            "name": "Level_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 88,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                }
+            ]
+        },
+        {
+            "id": 89,
+            "name": "Segment_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 90,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.85,
+                            "Y": 4.325301363962024,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.7021645389379778,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 88
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 91,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 92,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 93,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 94,
+            "name": "Segment_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 95,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.7250000000000001,
+                            "Y": 4.2367619437843285,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.3510822694689888,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 88
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 96,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 97,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 98,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 99,
+            "name": "Segment_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 100,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.22499999999999964,
+                            "Y": 4.161995322300941,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.351082269468989,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 88
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 101,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 102,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 103,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 104,
+            "name": "Segment_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 105,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.3250000000000002,
+                            "Y": 4.07542344479386,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6520099290138374,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 88
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 106,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 107,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 108,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 109,
+            "name": "Bridge_L2_G1_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 110,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.2000000000000002,
+                            "Y": 4.274145254526022,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.621917163059352,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 111,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 112,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 113,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 114,
+            "name": "DeathZone_L2_G1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 115,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.2000000000000002,
+                            "Y": 3.9742998644501637,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 116,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 117,
+            "name": "Bridge_L2_G2_B",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 118,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.25000000000000044,
+                            "Y": 4.199378633042635,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593517,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 119,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 120,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 121,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeB.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 122,
+            "name": "DeathZone_L2_G2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 123,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.2500000000000002,
+                            "Y": 3.899533242966776,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 124,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 125,
+            "name": "Bridge_L2_G3_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 126,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6999999999999997,
+                            "Y": 4.124612011559247,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593511,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 127,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 128,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 129,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 130,
+            "name": "DeathZone_L2_G3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 131,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6999999999999997,
+                            "Y": 3.824766621483388,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 132,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 133,
+            "name": "Level_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 134,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                }
+            ]
+        },
+        {
+            "id": 135,
+            "name": "Segment_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 136,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.85,
+                            "Y": 3.2253013639620236,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.7021645389379778,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 134
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 137,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 138,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 139,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 140,
+            "name": "Segment_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 141,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.7250000000000001,
+                            "Y": 3.1367619437843275,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.3510822694689888,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 134
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 142,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 143,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 144,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 145,
+            "name": "Segment_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 146,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.22499999999999964,
+                            "Y": 3.06199532230094,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.351082269468989,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 134
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 147,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 148,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 149,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 150,
+            "name": "Segment_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 151,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.3250000000000002,
+                            "Y": 2.9754234447938597,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6520099290138374,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 134
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 152,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 153,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 154,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 155,
+            "name": "Bridge_L3_G1_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 156,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 3.1741452545260214,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.621917163059352,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 157,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 158,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 159,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 160,
+            "name": "DeathZone_L3_G1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 161,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 2.8742998644501627,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 162,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 163,
+            "name": "Bridge_L3_G2_B",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 164,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.25000000000000044,
+                            "Y": 3.099378633042634,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593517,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 165,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 166,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 167,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeB.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 168,
+            "name": "DeathZone_L3_G2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 169,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.2500000000000002,
+                            "Y": 2.7995332429667754,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 170,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 171,
+            "name": "Bridge_L3_G3_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 172,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 3.0246120115592463,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593511,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 173,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 174,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 175,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 176,
+            "name": "DeathZone_L3_G3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 177,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 2.7247666214833877,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 178,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 179,
+            "name": "Level_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 180,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                }
+            ]
+        },
+        {
+            "id": 181,
+            "name": "Segment_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 182,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.85,
+                            "Y": 2.1253013639620235,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.7021645389379778,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 180
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 183,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 184,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 185,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 186,
+            "name": "Segment_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 187,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.7250000000000001,
+                            "Y": 2.0367619437843274,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.3510822694689888,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 180
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 188,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 189,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 190,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 191,
+            "name": "Segment_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 192,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.22499999999999964,
+                            "Y": 1.9619953223009403,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.351082269468989,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 180
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 193,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 194,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 195,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 196,
+            "name": "Segment_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 197,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.3250000000000002,
+                            "Y": 1.87542344479386,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6520099290138374,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 180
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 198,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 199,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 200,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 201,
+            "name": "Bridge_L4_G1_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 202,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.2000000000000002,
+                            "Y": 2.0741452545260213,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.621917163059352,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 203,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 204,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 205,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 206,
+            "name": "DeathZone_L4_G1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 207,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.2000000000000002,
+                            "Y": 1.7742998644501626,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 208,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 209,
+            "name": "Bridge_L4_G2_B",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 210,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.25000000000000044,
+                            "Y": 1.9993786330426342,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593517,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 211,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 212,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 213,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeB.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 214,
+            "name": "DeathZone_L4_G2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 215,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.2500000000000002,
+                            "Y": 1.6995332429667753,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 216,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 217,
+            "name": "Bridge_L4_G3_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 218,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6999999999999997,
+                            "Y": 1.9246120115592464,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593511,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 219,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 220,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 221,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 222,
+            "name": "DeathZone_L4_G3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 223,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.6999999999999997,
+                            "Y": 1.6247666214833876,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 224,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 225,
+            "name": "Level_5",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 226,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 36
+                    }
+                }
+            ]
+        },
+        {
+            "id": 227,
+            "name": "Segment_1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 228,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.85,
+                            "Y": 1.0253013639620234,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.7021645389379778,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 226
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 229,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 230,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 231,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 232,
+            "name": "Segment_2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 233,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.7250000000000001,
+                            "Y": 0.9367619437843278,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.3510822694689888,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 226
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 234,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 235,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 236,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 237,
+            "name": "Segment_3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 238,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.22499999999999964,
+                            "Y": 0.8619953223009402,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.351082269468989,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 226
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 239,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 240,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 241,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 242,
+            "name": "Segment_4",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 243,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.3250000000000002,
+                            "Y": 0.7754234447938599,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6520099290138374,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 226
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 244,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Static",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 245,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 246,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleTrack.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 247,
+            "name": "Bridge_L5_G1_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 248,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 0.9741452545260214,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.621917163059352,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 249,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 250,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 251,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 252,
+            "name": "DeathZone_L5_G1",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 253,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.2000000000000002,
+                            "Y": 0.6742998644501627,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 254,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 255,
+            "name": "Bridge_L5_G2_B",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 256,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.25000000000000044,
+                            "Y": 0.8993786330426339,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593517,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 257,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 258,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 259,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeB.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 260,
+            "name": "DeathZone_L5_G2",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 261,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -0.2500000000000002,
+                            "Y": 0.5995332429667752,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 262,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 263,
+            "name": "Bridge_L5_G3_A",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 264,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 0.8246120115592463,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": -0.03925981575906861,
+                            "W": 0.9992290362407229
+                        },
+                        "localScale": {
+                            "X": 0.6219171630593511,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 38
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 265,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Kinematic",
+                        "mass": 0,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.05,
+                        "angularDamping": 0.05,
+                        "continuousCollision": false,
+                        "allowSleeping": true
+                    }
+                },
+                {
+                    "type": "BoxColliderComponent",
+                    "id": 266,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "size": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        }
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 267,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleBridgeA.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 268,
+            "name": "DeathZone_L5_G3",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 269,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.6999999999999997,
+                            "Y": 0.5247666214833877,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.58,
+                            "Y": 0.3,
+                            "Z": 0.36
+                        },
+                        "parent": 40
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 270,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_MarbleDeathZone.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 271,
+            "name": "StartPoint",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 272,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.9000000000000001,
+                            "Y": 6.0030015712747815,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                }
+            ]
+        },
+        {
+            "id": 273,
+            "name": "Ball",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 274,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": -1.9000000000000001,
+                            "Y": 6.0030015712747815,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.24,
+                            "Y": 0.24,
+                            "Z": 0.24
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "RigidBodyComponent",
+                    "id": 275,
+                    "properties": {
+                        "enabled": true,
+                        "motion": "Dynamic",
+                        "mass": 0.5,
+                        "friction": 0.5,
+                        "restitution": 0,
+                        "linearDamping": 0.2,
+                        "angularDamping": 0.05,
+                        "continuousCollision": true,
+                        "allowSleeping": false
+                    }
+                },
+                {
+                    "type": "SphereColliderComponent",
+                    "id": 276,
+                    "properties": {
+                        "enabled": true,
+                        "overrideFriction": false,
+                        "friction": 0.2,
+                        "radius": 0.5
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 277,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Sphere",
+                        "materials": [
+                            "Content/Materials/M_MarbleBall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 278,
+            "name": "Goal",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 279,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 1.9250000000000003,
+                            "Y": 0.2,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.5,
+                            "Y": 0.1,
+                            "Z": 0.36
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 280,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeZoneIdle.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 281,
+            "name": "FollowCamera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 282,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 3.5,
+                            "Z": 3
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 1,
+                            "Z": 0,
+                            "W": 6.123233995736766e-17
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 4
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 283,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 50,
+                        "nearClip": 0.1,
+                        "farClip": 150,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 284,
+            "name": "Console",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 285,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 2.2
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 1,
+                            "Y": 1,
+                            "Z": 1
+                        },
+                        "parent": 2
+                    }
+                },
+                {
+                    "type": "MarbleConsole",
+                    "id": 292,
+                    "properties": {
+                        "enabled": true,
+                        "puzzle": 1,
+                        "followCamera": 281,
+                        "playerName": "Player",
+                        "interactRadius": 2
+                    }
+                }
+            ]
+        },
+        {
+            "id": 286,
+            "name": "Pedestal",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 287,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 0.5,
+                            "Z": 0
+                        },
+                        "localRotation": {
+                            "X": 0,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 1
+                        },
+                        "localScale": {
+                            "X": 0.6,
+                            "Y": 1,
+                            "Z": 0.6
+                        },
+                        "parent": 285
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 288,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeWall.mat"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": 289,
+            "name": "Tablet",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 290,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0,
+                            "Y": 1.05,
+                            "Z": 0.05
+                        },
+                        "localRotation": {
+                            "X": 0.25881904510252074,
+                            "Y": 0,
+                            "Z": 0,
+                            "W": 0.9659258262890683
+                        },
+                        "localScale": {
+                            "X": 0.8,
+                            "Y": 0.06,
+                            "Z": 0.55
+                        },
+                        "parent": 285
+                    }
+                },
+                {
+                    "type": "MeshRendererComponent",
+                    "id": 291,
+                    "properties": {
+                        "enabled": true,
+                        "visible": true,
+                        "mesh": "Builtin/Cube",
+                        "materials": [
+                            "Content/Materials/M_TiltMazeBoard.mat"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

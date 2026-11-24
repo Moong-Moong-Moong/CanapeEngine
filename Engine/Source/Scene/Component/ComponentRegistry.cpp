@@ -1,4 +1,5 @@
 #include "Scene/Component/ComponentRegistry.h"
+#include "Audio/AudioSourceComponent.h"
 #include "Physics/HingeComponent.h"
 #include "Physics/RigidBodyComponent.h"
 #include "Physics/WaterVolumeComponent.h"
@@ -92,6 +93,11 @@ namespace Canape
 				m_cameras.push_back(camera);
 			}
 
+			if (AudioSourceComponent* audio = dynamic_cast<AudioSourceComponent*>(component))
+			{
+				m_audioSources.push_back(audio);
+			}
+
 			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))
 			{
 				m_fogs.push_back(fog);
@@ -172,6 +178,11 @@ namespace Canape
 			if (CameraComponent* camera = dynamic_cast<CameraComponent*>(component))
 			{
 				std::erase(m_cameras, camera);
+			}
+
+			if (AudioSourceComponent* audio = dynamic_cast<AudioSourceComponent*>(component))
+			{
+				std::erase(m_audioSources, audio);
 			}
 
 			if (FogComponent* fog = dynamic_cast<FogComponent*>(component))

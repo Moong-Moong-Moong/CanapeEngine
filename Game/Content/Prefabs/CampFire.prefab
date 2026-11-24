@@ -29,6 +29,21 @@
                         },
                         "parent": 0
                     }
+                },
+                {
+                    "type": "AudioSourceComponent",
+                    "id": 93,
+                    "properties": {
+                        "enabled": true,
+                        "clip": "Content/Audio/CampfireLoop.mp3",
+                        "volume": 0.9,
+                        "pitch": 1,
+                        "loop": true,
+                        "playOnStart": true,
+                        "spatial": true,
+                        "minDistance": 1.5,
+                        "maxDistance": 10
+                    }
                 }
             ]
         },
