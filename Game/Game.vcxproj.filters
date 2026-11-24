@@ -120,6 +120,9 @@
     <ClInclude Include="Source\Scripts\RendererSample.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scripts\RenderingBenchmarkController.h">
+      <Filter>Source\Scripts</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Scripts\GarbageCollector.h">
       <Filter>Source\Scripts</Filter>
     </ClInclude>
@@ -231,6 +234,9 @@
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\RendererSample.cpp">
+      <Filter>Source\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scripts\RenderingBenchmarkController.cpp">
       <Filter>Source\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scripts\GarbageCollector.cpp">

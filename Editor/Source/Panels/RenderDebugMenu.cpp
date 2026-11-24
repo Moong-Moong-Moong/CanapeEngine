@@ -269,12 +269,25 @@ void RenderDebugMenu::DrawStats(Renderer& renderer, const RendererDebugSettings&
     if (ImGui::Checkbox("GPU Timings", &captureGpuTimings))
     {
         renderer.SetGpuTimingCapture(captureGpuTimings);
+        m_LastStatsRefreshTime = -1.0;
     }
 
-    const RendererDebugStats stats = renderer.GetDebugStats();
+    const double now = ImGui::GetTime();
+    if (m_LastStatsRefreshTime < 0.0 || now - m_LastStatsRefreshTime >= 1.0)
+    {
+        m_DisplayedStats = renderer.GetDebugStats();
+        m_DisplayedFps = ImGui::GetIO().Framerate;
+        m_LastStatsRefreshTime = now;
+    }
+
+    const RendererDebugStats& stats = m_DisplayedStats;
+    ImGui::Text("Editor FPS  %.1f", m_DisplayedFps);
+    ImGui::Text("Render Items  %u", stats.renderItems);
+    ImGui::Text("Point Lights  %u", stats.pointLights);
+    ImGui::Text("Scene MSAA   %ux", stats.sceneSamples);
     ImGui::Text("Draw Calls  %u", stats.drawCalls);
     ImGui::Text("Triangles   %llu", static_cast<unsigned long long>(stats.triangleCount));
-    if (!settings.captureGpuTimings)
+    if (!captureGpuTimings)
     {
         ImGui::TextDisabled("GPU         off");
     }

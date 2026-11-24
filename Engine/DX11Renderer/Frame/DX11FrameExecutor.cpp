@@ -459,11 +459,17 @@ namespace Canape
 #endif
 
             const auto prepared = ScenePreparation::PrepareScene(scene, Resources, LastError);
+#if CANAPE_RENDER_DEBUG
+            CurrentStats.renderItems += static_cast<uint32_t>(prepared.Draws.size());
+#endif
             EnsureSceneIBL(scene.skybox.cubemap, prepared.Skybox.Texture);
             ViewData = prepared.View;
             SceneData = prepared.Scene;
             ViewDirty = SceneDirty = true;
             const auto lighting = ResolveLighting(scene.lights, true);
+#if CANAPE_RENDER_DEBUG
+            CurrentStats.pointLights = lighting.Lights.LocalCount;
+#endif
             ConstantBuffers::UploadLighting(*Context.Get(), GetSceneBuffers(), lighting);
             UploadPendingConstants();
             if (lighting.ShadowActive) RenderShadowPass(prepared);

@@ -113,6 +113,7 @@ exit /b 0</Command>
     <ClInclude Include="Source\Scripts\SwellRider.h" />
     <ClInclude Include="Source\Scripts\FlyCamera.h" />
     <ClInclude Include="Source\Scripts\RendererSample.h" />
+    <ClInclude Include="Source\Scripts\RenderingBenchmarkController.h" />
     <ClInclude Include="Source\Puzzle\GoalCup.h" />
     <ClInclude Include="Source\Puzzle\GoalZone.h" />
     <ClInclude Include="Source\Puzzle\HingeRelease.h" />
@@ -166,6 +167,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\Scripts\SwellRider.cpp" />
     <ClCompile Include="Source\Scripts\FlyCamera.cpp" />
     <ClCompile Include="Source\Scripts\RendererSample.cpp" />
+    <ClCompile Include="Source\Scripts\RenderingBenchmarkController.cpp" />
     <ClCompile Include="Source\Puzzle\GoalCup.cpp" />
     <ClCompile Include="Source\Puzzle\GoalZone.cpp" />
     <ClCompile Include="Source\Puzzle\HingeRelease.cpp" />
