@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <optional>
 #include <vector>
 
@@ -49,7 +50,16 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
         m_PickPending = false;
         if (scene && !playing)
         {
-            if (GameObject* picked = ScenePicking::FindOwnerOfComponent(*scene, pickedId))
+            GameObject* picked = ScenePicking::FindOwnerOfComponent(*scene, pickedId);
+            if (m_PickAdditive)
+            {
+                // Ctrl+click adds or removes the picked object; Ctrl+click on empty space keeps the selection.
+                if (picked)
+                {
+                    context.ToggleSelect(picked);
+                }
+            }
+            else if (picked)
             {
                 context.Select(picked);
             }
@@ -73,8 +83,16 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     selectionStyle.Color = { 1.0f, 0.55f, 0.1f };
     selectionStyle.Thickness = 2;
     selectionStyle.Opacity = 1.0f;
-    renderer.SetSelectionOutline(selected && m_ShowSelectionOutline ? ScenePicking::SelectableComponentIds(*selected)
-        : std::vector<uint64_t>{}, selectionStyle);
+    std::vector<uint64_t> outlineIds;
+    if (scene && !playing && m_ShowSelectionOutline)
+    {
+        for (GameObject* gameObject : context.GetSelectedObjects(scene))
+        {
+            const std::vector<uint64_t> ids = ScenePicking::SelectableComponentIds(*gameObject);
+            outlineIds.insert(outlineIds.end(), ids.begin(), ids.end());
+        }
+    }
+    renderer.SetSelectionOutline(std::move(outlineIds), selectionStyle);
 
     PlayRequest request = PlayRequest::None;
     if (visible)
@@ -136,14 +154,19 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
                 DrawSelectionBounds(*selected, view, min, max);
             }
             m_SnapPreview.reset();
+            const Matrix4 worldBefore = selected ? selected->GetTransform()->GetLocalToWorldMatrix() : Matrix4::Identity;
+            const Vector3 scaleBefore = selected ? selected->GetTransform()->GetScale() : Vector3::One;
             DrawGizmo(selected, view, min, max);
             UpdateVertexHandle(selected, view, min, max, hovered);
             if (selected && (m_GizmoDragging || m_VertexDragging))
             {
+                ApplyToOtherSelected(context, *selected, worldBefore, scaleBefore);
                 const char* verb = m_VertexDragging ? "Snap"
                     : m_GizmoOperation == GizmoOperation::Rotate ? "Rotate"
                     : m_GizmoOperation == GizmoOperation::Scale ? "Scale" : "Move";
-                context.SetUndoLabel(std::string(verb) + " " + selected->GetName());
+                const size_t count = context.GetSelectionCount();
+                context.SetUndoLabel(std::string(verb) + " "
+                    + (count > 1 ? std::to_string(count) + " Objects" : selected->GetName()));
             }
             DrawSnapOverlay(view, min, max);
 
@@ -169,6 +192,70 @@ void SceneViewPanel::RequestPick(Renderer& renderer, uint32_t x, uint32_t y)
 {
     renderer.RequestPick(x, y);
     m_PickPending = true;
+    m_PickAdditive = ImGui::GetIO().KeyCtrl;
+}
+
+void SceneViewPanel::ApplyToOtherSelected(EditorContext& context, GameObject& primary, const Matrix4& worldBefore,
+    const Vector3& scaleBefore)
+{
+    if (context.GetSelectionCount() < 2 || !primary.GetScene())
+    {
+        return;
+    }
+    TransformComponent* primaryTransform = primary.GetTransform();
+    const Matrix4 worldAfter = primaryTransform->GetLocalToWorldMatrix();
+    if (std::memcmp(worldBefore.Data(), worldAfter.Data(), sizeof(float) * 16) == 0)
+    {
+        return;
+    }
+
+    // Top-most selected objects only (children follow their parents), and never the primary's own ancestors or
+    // descendants: those already move with it.
+    std::vector<TransformComponent*> others;
+    for (GameObject* gameObject : context.GetSelectedRoots(primary.GetScene()))
+    {
+        TransformComponent* transform = gameObject->GetTransform();
+        if (gameObject != &primary && !transform->IsChildOf(primaryTransform) && !primaryTransform->IsChildOf(transform))
+        {
+            others.push_back(transform);
+        }
+    }
+    if (others.empty())
+    {
+        return;
+    }
+
+    if (m_GizmoOperation == GizmoOperation::Scale && !m_VertexDragging)
+    {
+        // Scale: every object scales along its own axes by the same factor as the primary.
+        const Vector3 scaleAfter = primaryTransform->GetScale();
+        const auto ratio = [](float after, float before) { return std::fabs(before) > 1e-6f ? after / before : 1.0f; };
+        const Vector3 factor{ ratio(scaleAfter.X, scaleBefore.X), ratio(scaleAfter.Y, scaleBefore.Y), ratio(scaleAfter.Z, scaleBefore.Z) };
+        for (TransformComponent* transform : others)
+        {
+            const Vector3 scale = transform->GetScale();
+            transform->SetScale({ scale.X * factor.X, scale.Y * factor.Y, scale.Z * factor.Z });
+        }
+        return;
+    }
+
+    // Move / rotate / snap: the primary's world change (a translation, or a rotation about its pivot) applied to each.
+    const Matrix4 delta = worldBefore.Inverse() * worldAfter;
+    for (TransformComponent* transform : others)
+    {
+        Matrix4 world = transform->GetLocalToWorldMatrix() * delta;
+        if (const TransformComponent* parent = transform->GetParent())
+        {
+            world = world * parent->GetWorldToLocalMatrix();
+        }
+        DirectX::XMVECTOR scale, rotation, translation;
+        if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, world.ToXM()))
+        {
+            transform->SetPosition(Vector3::FromXM(translation));
+            transform->SetRotation(Quaternion::FromXM(rotation).Normalized());
+            transform->SetScale(Vector3::FromXM(scale));
+        }
+    }
 }
 
 void SceneViewPanel::RequestPickAt(Renderer& renderer, float u, float v)

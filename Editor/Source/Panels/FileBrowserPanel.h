@@ -48,6 +48,9 @@ private:
     void DrawEntryMenu(EditorContext& context, const std::filesystem::path& path, bool directory);
     void DrawFolderMenuItems(EditorContext& context, const std::filesystem::path& folder, bool showRename);
     void DrawMoveHereItem(EditorContext& context, const std::filesystem::path& folder, const char* label);
+    // Makes the last item accept the files / folders being dragged in this browser and move them into `folder`.
+    void DrawMoveDropTarget(const std::filesystem::path& folder);
+    void DrawBatchPopup(EditorContext& context);
     void DrawNewSourcePopup();
     void DrawDeleteSourcePopup(EditorContext& context);
     void DrawPlanPopup(EditorContext& context);
@@ -67,8 +70,8 @@ private:
     void RenameTrace(const char* event) const;
     void CommitRename(EditorContext& context);
     void CancelRename();
-    void BeginMove(const std::filesystem::path& path);
-    void MoveTo(EditorContext& context, const std::filesystem::path& folder);
+    void BeginMove(std::vector<std::filesystem::path> paths);
+    void MoveTo(EditorContext& context, std::vector<std::filesystem::path> sources, const std::filesystem::path& folder);
     void ShowReferences(const std::filesystem::path& path);
 
     // Copy / paste / duplicate of files and folders under Content. Pasting next to an existing name adds " (n)".
@@ -78,8 +81,33 @@ private:
     void DuplicateAsset(EditorContext& context, const std::filesystem::path& path);
     void DrawPasteItem(EditorContext& context, const std::filesystem::path& folder, const char* label);
     void RequestDelete(EditorContext& context, const std::filesystem::path& path);
+    void RequestDeletePaths(EditorContext& context, const std::vector<std::filesystem::path>& paths);
     void RequestPlan(EditorContext& context, const std::function<RefactorPlan()>& build, bool needsScene);
-    void ApplyPlan(EditorContext& context, const RefactorPlan& plan, bool sceneChecked);
+    bool ApplyPlan(EditorContext& context, const RefactorPlan& plan, bool sceneChecked);
+    std::string OpenSceneDeleteError(EditorContext& context, const std::string& assetPath) const;
+
+    // Multi-selection in the content list: Ctrl+click toggles, Shift+click selects a range, Ctrl+A selects all.
+    // Holds files and folders of m_CurrentDirectory; the inspector shows the primary file (EditorContext's asset).
+    bool IsSelected(const std::filesystem::path& path) const;
+    void SetSelection(EditorContext& context, std::vector<std::filesystem::path> paths, const std::filesystem::path& primary);
+    void HandleEntryClick(EditorContext& context, const std::filesystem::path& path);
+    void SyncSelection(EditorContext& context);
+    std::filesystem::path GetPrimarySelection(const EditorContext& context) const;
+    // The selection when `path` is part of a multi-selection, otherwise just `path`; only items under Content.
+    std::vector<std::filesystem::path> GetActionTargets(const std::filesystem::path& path) const;
+
+    // Moves / deletes of several items: one confirmation listing all of them, then each is planned and applied in turn.
+    struct BatchRequest
+    {
+        bool deleting = false;
+        std::string targetFolder; // game-relative, moves only
+        std::vector<std::string> assets;
+        std::vector<RefactorPlan> preview; // planned when requested; re-planned item by item when applied
+        bool sceneChecked = false;
+    };
+    void RequestBatch(EditorContext& context, bool deleting, const std::vector<std::filesystem::path>& paths,
+        const std::filesystem::path& folder);
+    void ApplyBatch(EditorContext& context, const BatchRequest& request);
 
     std::filesystem::path m_CurrentDirectory;
 
@@ -100,9 +128,19 @@ private:
     std::filesystem::path m_RenameArmedPath;
     double m_RenameArmTime = 0.0;
 
-    std::filesystem::path m_MoveSource;
+    std::vector<std::filesystem::path> m_MoveSources;
     std::filesystem::path m_CopySource;
-    std::filesystem::path m_SelectedFolder;
+
+    std::vector<std::filesystem::path> m_Selection;
+    std::filesystem::path m_SelectionAnchor;
+    std::filesystem::path m_SyncedAsset;                // EditorContext's asset as last seen, to notice outside changes
+    std::vector<std::filesystem::path> m_VisibleEntries; // content list order (last frame), for Shift ranges and Ctrl+A
+    std::vector<std::filesystem::path> m_DragSources;    // what a drag started in this browser carries
+    std::vector<std::filesystem::path> m_DropMoveSources;
+    std::filesystem::path m_DropMoveTarget;
+
+    std::optional<BatchRequest> m_PendingBatch;
+    bool m_OpenBatchPopup = false;
     float m_GridIconSize = 0.0f; // live slider value, saved to EditorSettings when the drag ends
 
     std::optional<RefactorPlan> m_PendingPlan;

@@ -9,6 +9,8 @@ namespace EditorUtils
 {
     inline constexpr char kGameObjectPayload[] = "CANAPE_GAMEOBJECT";
     inline constexpr char kAssetPathPayload[] = "CANAPE_ASSET_PATH";
+    // A folder dragged inside the content browser (game-relative path). Files use kAssetPathPayload.
+    inline constexpr char kContentFolderPayload[] = "CANAPE_CONTENT_FOLDER";
 
     Canape::Vector3 QuaternionToEuler(const Canape::Quaternion& rotation);
     Canape::Quaternion EulerToQuaternion(const Canape::Vector3& degrees);
