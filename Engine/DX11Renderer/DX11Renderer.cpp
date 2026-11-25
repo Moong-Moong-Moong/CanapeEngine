@@ -429,6 +429,17 @@ namespace Canape
         return m_Impl->EditorGridEnabled;
     }
 
+    void DX11Renderer::SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible)
+    {
+        const uint8_t bit = static_cast<uint8_t>(1u << static_cast<uint32_t>(plane));
+        m_Impl->GridPlaneMask = visible ? (m_Impl->GridPlaneMask | bit) : (m_Impl->GridPlaneMask & ~bit);
+    }
+
+    bool DX11Renderer::IsEditorGridPlaneVisible(EditorGridPlane plane) const
+    {
+        return (m_Impl->GridPlaneMask & (1u << static_cast<uint32_t>(plane))) != 0;
+    }
+
     void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
     {
         m_Impl->AfterOpaqueCallback = std::move(callback);

@@ -380,6 +380,16 @@ namespace Canape
         return m_DX11->IsEditorGridEnabled();
     }
 
+    void Renderer::SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible)
+    {
+        m_DX11->SetEditorGridPlaneVisible(plane, visible);
+    }
+
+    bool Renderer::IsEditorGridPlaneVisible(EditorGridPlane plane) const
+    {
+        return m_DX11->IsEditorGridPlaneVisible(plane);
+    }
+
     void* Renderer::GetNativeDevice() const
     {
         return m_DX11->GetNativeDevice();

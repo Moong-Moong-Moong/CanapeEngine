@@ -216,7 +216,7 @@ namespace Canape::ShaderConstants
         float CellSize = 1.0f;
         float MajorEvery = 10.0f;
         float Extent = 150.0f;
-        float Padding = 0.0f;
+        uint32_t Plane = 0;
     };
     static_assert(sizeof(EditorGridConstants) == 16);
 

@@ -40,7 +40,7 @@
                         "fieldOfView": 60.0,
                         "nearClip": 0.1,
                         "farClip": 150.0,
-                        "proxyVisible": false
+                        "proxyVisible": true
                     }
                 }
             ]
@@ -97,7 +97,7 @@
         },
         {
             "id": 7,
-            "name": "GameObject",
+            "name": "Dragon",
             "active": true,
             "components": [
                 {

@@ -299,13 +299,19 @@ namespace Canape
 
     void DX11Renderer::Impl::DrawEditorGrid()
     {
-        if (!EditorGridEnabled) return;
-        ConstantBuffers::Upload(*Context.Get(), EditorGridBuffer.Get(), SC::EditorGridConstants{});
+        if (!EditorGridEnabled || GridPlaneMask == 0) return;
         RendererDebugStats* stats = nullptr;
 #if CANAPE_RENDER_DEBUG
         stats = &CurrentStats;
 #endif
-        EditorGridPass::Execute(*Context.Get(), Pipelines, EditorGridBuffer.Get(), GetMainTargets(), stats);
+        for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)
+        {
+            if ((GridPlaneMask & (1u << plane)) == 0) continue;
+            SC::EditorGridConstants constants{};
+            constants.Plane = plane;
+            ConstantBuffers::Upload(*Context.Get(), EditorGridBuffer.Get(), constants);
+            EditorGridPass::Execute(*Context.Get(), Pipelines, EditorGridBuffer.Get(), GetMainTargets(), stats);
+        }
     }
 
     void DX11Renderer::Impl::ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)

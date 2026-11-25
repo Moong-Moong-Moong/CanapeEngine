@@ -27,6 +27,10 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     ui.SetPointerViewport({}, false);
 
     renderer.SetEditorGridEnabled(visible && !playing && m_ShowGrid);
+    for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)
+    {
+        renderer.SetEditorGridPlaneVisible(static_cast<EditorGridPlane>(plane), m_GridPlanes[plane]);
+    }
 
     PlayRequest request = PlayRequest::None;
     if (visible)
@@ -103,6 +107,17 @@ void SceneViewPanel::DrawGizmoToolbar()
     if (gridOn) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
     if (ImGui::Button("Grid")) m_ShowGrid = !m_ShowGrid;
     if (gridOn) ImGui::PopStyleColor();
+    const char* planeLabels[EditorGridPlaneCount] = { "XZ", "XY", "ZY" };
+    ImGui::BeginDisabled(!m_ShowGrid);
+    for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)
+    {
+        ImGui::SameLine();
+        const bool planeOn = m_GridPlanes[plane];
+        if (planeOn) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (ImGui::Button(planeLabels[plane])) m_GridPlanes[plane] = !m_GridPlanes[plane];
+        if (planeOn) ImGui::PopStyleColor();
+    }
+    ImGui::EndDisabled();
 }
 
 void SceneViewPanel::HandleGizmoShortcuts(bool hovered)

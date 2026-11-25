@@ -4,6 +4,7 @@
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
+#include "DX11Renderer/Data/EditorGridPlane.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
@@ -60,6 +61,8 @@ namespace Canape
         void SetOverlay(std::function<void()> overlay);
         void SetEditorGridEnabled(bool enabled);
         bool IsEditorGridEnabled() const;
+        void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);
+        bool IsEditorGridPlaneVisible(EditorGridPlane plane) const;
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;

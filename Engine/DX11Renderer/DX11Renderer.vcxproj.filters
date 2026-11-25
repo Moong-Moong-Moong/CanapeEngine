@@ -57,6 +57,9 @@
     <ClInclude Include="Data\RendererDebugSettings.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\EditorGridPlane.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\RendererDebugStats.h">
       <Filter>Source\Data</Filter>
     </ClInclude>

@@ -63,6 +63,7 @@ namespace Canape
         std::function<void()> AfterTransparentCallback;
         std::function<void()> MirrorCallback;
         bool EditorGridEnabled = false;
+        uint8_t GridPlaneMask = 1u << static_cast<uint32_t>(EditorGridPlane::XZ);
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;
