@@ -3,6 +3,8 @@
 #include "Asset/Mesh/MeshSerializer.h"
 #include "CNDebug/DebugLog.h"
 
+#include <nlohmann/json.hpp>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
@@ -140,6 +142,22 @@ void FileBrowserPanel::Draw(EditorContext& context)
         {
             m_MoveSource.clear();
             m_Message = "Move cancelled.";
+        }
+        const ImGuiIO& io = ImGui::GetIO();
+        if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt)
+        {
+            if (ImGui::IsKeyPressed(ImGuiKey_C, false) && CanEdit(selected))
+            {
+                CopyAsset(selected);
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_D, false) && CanEdit(selected))
+            {
+                DuplicateAsset(context, selected);
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_V, false) && !m_CopySource.empty())
+            {
+                PasteInto(context, m_CurrentDirectory);
+            }
         }
     }
     if (!m_RenameArmedPath.empty() && ImGui::GetTime() - m_RenameArmTime > ImGui::GetIO().MouseDoubleClickTime)
@@ -389,6 +407,11 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             ImGui::Separator();
             DrawMoveHereItem(context, m_CurrentDirectory, "Move Here");
         }
+        if (!m_CopySource.empty())
+        {
+            ImGui::Separator();
+            DrawPasteItem(context, m_CurrentDirectory, "Paste");
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Show in Explorer"))
         {
@@ -432,6 +455,14 @@ void FileBrowserPanel::DrawEntryMenu(EditorContext& context, const fs::path& pat
         if (ImGui::MenuItem("Rename", directory ? nullptr : "F2"))
         {
             BeginRename(path);
+        }
+        if (ImGui::MenuItem("Copy", directory ? nullptr : "Ctrl+C"))
+        {
+            CopyAsset(path);
+        }
+        if (ImGui::MenuItem("Duplicate", directory ? nullptr : "Ctrl+D"))
+        {
+            DuplicateAsset(context, path);
         }
         if (ImGui::MenuItem("Move"))
         {
@@ -497,6 +528,11 @@ void FileBrowserPanel::DrawFolderMenuItems(EditorContext& context, const fs::pat
         drawn = true;
         DrawMoveHereItem(context, folder, showRename ? "Move Here" : "Move Into This Folder");
     }
+    if (!m_CopySource.empty())
+    {
+        drawn = true;
+        DrawPasteItem(context, folder, showRename ? "Paste" : "Paste Into This Folder");
+    }
     if (showRename && CanEdit(folder))
     {
         if (drawn)
@@ -508,6 +544,14 @@ void FileBrowserPanel::DrawFolderMenuItems(EditorContext& context, const fs::pat
         {
             m_CurrentDirectory = folder.parent_path();
             BeginRename(folder);
+        }
+        if (ImGui::MenuItem("Copy"))
+        {
+            CopyAsset(folder);
+        }
+        if (ImGui::MenuItem("Duplicate"))
+        {
+            DuplicateAsset(context, folder);
         }
         if (ImGui::MenuItem("Move"))
         {
@@ -1250,4 +1294,176 @@ void FileBrowserPanel::DrawMissingWindow(EditorContext& context)
         }
     }
     ImGui::End();
+}
+
+namespace
+{
+    // "Name.ext" -> "Name (1).ext", "Name (1).ext" -> "Name (2).ext", until the name is free in `folder`.
+    fs::path MakeUniqueCopyPath(const fs::path& folder, const fs::path& source, bool directory)
+    {
+        std::error_code error;
+        fs::path target = folder / source.filename();
+        if (!fs::exists(target, error))
+        {
+            return target;
+        }
+
+        std::string stem = EditorUtils::ToUtf8(directory ? source.filename() : source.stem());
+        const std::string extension = directory ? std::string() : EditorUtils::ToUtf8(source.extension());
+        if (const size_t open = stem.rfind(" ("); open != std::string::npos && stem.back() == ')' && open + 2 < stem.size() - 1
+            && std::all_of(stem.begin() + open + 2, stem.end() - 1, [](char c) { return c >= '0' && c <= '9'; }))
+        {
+            stem.erase(open);
+        }
+        for (int index = 1;; ++index)
+        {
+            target = folder / EditorUtils::FromUtf8(stem + " (" + std::to_string(index) + ")" + extension);
+            if (!fs::exists(target, error))
+            {
+                return target;
+            }
+        }
+    }
+
+    // Buffer / image files a .gltf references by a plain sibling file name (the same rule moves and deletes use).
+    std::vector<std::string> GltfSiblingFiles(const fs::path& gltfPath)
+    {
+        std::vector<std::string> files;
+        std::string text;
+        if (!AssetPaths::ReadText(gltfPath, text))
+        {
+            return files;
+        }
+        const nlohmann::json gltf = nlohmann::json::parse(text, nullptr, false);
+        if (gltf.is_discarded() || !gltf.is_object())
+        {
+            return files;
+        }
+        for (const char* section : { "buffers", "images" })
+        {
+            const auto found = gltf.find(section);
+            if (found == gltf.end() || !found->is_array())
+            {
+                continue;
+            }
+            for (const nlohmann::json& item : *found)
+            {
+                const std::string uri = item.is_object() ? item.value("uri", std::string()) : std::string();
+                if (!uri.empty() && !uri.starts_with("data:") && uri.find_first_of("/\\:") == std::string::npos)
+                {
+                    files.push_back(uri);
+                }
+            }
+        }
+        return files;
+    }
+}
+
+void FileBrowserPanel::CopyAsset(const fs::path& path)
+{
+    if (!CanEdit(path))
+    {
+        return;
+    }
+    m_CopySource = path;
+    m_Message = "Copied " + ToAssetPath(path) + ". Ctrl+V or right-click > Paste to place it.";
+}
+
+std::string FileBrowserPanel::ValidatePaste(const fs::path& folder) const
+{
+    std::error_code error;
+    if (m_CopySource.empty() || !fs::exists(m_CopySource, error))
+    {
+        return "The copied item no longer exists.";
+    }
+    if (!CanCreateIn(folder))
+    {
+        return "Paste is only allowed under Content.";
+    }
+    if (fs::is_directory(m_CopySource, error))
+    {
+        const fs::path source = m_CopySource.lexically_normal();
+        const fs::path target = folder.lexically_normal();
+        const fs::path relative = target.lexically_relative(source);
+        if (!relative.empty() && *relative.begin() != "..")
+        {
+            return "A folder cannot be pasted into itself.";
+        }
+    }
+    return {};
+}
+
+void FileBrowserPanel::DrawPasteItem(EditorContext& context, const fs::path& folder, const char* label)
+{
+    const std::string error = ValidatePaste(folder);
+    if (ImGui::MenuItem(label, "Ctrl+V", false, error.empty()))
+    {
+        PasteInto(context, folder);
+    }
+    if (!error.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    {
+        ImGui::SetTooltip("%s", error.c_str());
+    }
+}
+
+void FileBrowserPanel::PasteInto(EditorContext& context, const fs::path& folder)
+{
+    if (const std::string reason = ValidatePaste(folder); !reason.empty())
+    {
+        m_Message = "Cannot paste: " + reason;
+        return;
+    }
+
+    std::error_code error;
+    const bool directory = fs::is_directory(m_CopySource, error);
+    const fs::path target = MakeUniqueCopyPath(folder, m_CopySource, directory);
+    if (directory)
+    {
+        fs::copy(m_CopySource, target, fs::copy_options::recursive, error);
+    }
+    else
+    {
+        fs::copy_file(m_CopySource, target, fs::copy_options::none, error);
+    }
+    if (error)
+    {
+        m_Message = "Failed to copy " + ToAssetPath(m_CopySource) + ": " + error.message();
+        return;
+    }
+
+    // A .gltf pasted into another folder needs its .bin / textures next to it; existing files there are kept.
+    std::string note;
+    if (!directory && EditorUtils::ToUtf8(target.extension()) == ".gltf" && folder.lexically_normal() != m_CopySource.parent_path().lexically_normal())
+    {
+        for (const std::string& file : GltfSiblingFiles(m_CopySource))
+        {
+            const fs::path from = m_CopySource.parent_path() / EditorUtils::FromUtf8(file);
+            const fs::path to = folder / EditorUtils::FromUtf8(file);
+            std::error_code companionError;
+            if (fs::exists(from, companionError) && !fs::exists(to, companionError))
+            {
+                fs::copy_file(from, to, fs::copy_options::none, companionError);
+                note += companionError ? " (failed to copy " + file + ")" : " (+" + file + ")";
+            }
+        }
+    }
+
+    m_Message = "Pasted " + ToAssetPath(target) + note;
+    if (!directory)
+    {
+        context.SelectAsset(target);
+    }
+}
+
+void FileBrowserPanel::DuplicateAsset(EditorContext& context, const fs::path& path)
+{
+    if (!CanEdit(path))
+    {
+        return;
+    }
+    // Duplicate leaves the clipboard as it was.
+    const fs::path previous = m_CopySource;
+    m_CopySource = path;
+    PasteInto(context, path.parent_path());
+    m_CopySource = previous;
 }

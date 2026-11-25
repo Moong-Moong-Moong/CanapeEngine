@@ -64,6 +64,13 @@ private:
     void BeginMove(const std::filesystem::path& path);
     void MoveTo(EditorContext& context, const std::filesystem::path& folder);
     void ShowReferences(const std::filesystem::path& path);
+
+    // Copy / paste / duplicate of files and folders under Content. Pasting next to an existing name adds " (n)".
+    void CopyAsset(const std::filesystem::path& path);
+    std::string ValidatePaste(const std::filesystem::path& folder) const;
+    void PasteInto(EditorContext& context, const std::filesystem::path& folder);
+    void DuplicateAsset(EditorContext& context, const std::filesystem::path& path);
+    void DrawPasteItem(EditorContext& context, const std::filesystem::path& folder, const char* label);
     void RequestDelete(EditorContext& context, const std::filesystem::path& path);
     void RequestPlan(EditorContext& context, const std::function<RefactorPlan()>& build, bool needsScene);
     void ApplyPlan(EditorContext& context, const RefactorPlan& plan, bool sceneChecked);
@@ -88,6 +95,7 @@ private:
     double m_RenameArmTime = 0.0;
 
     std::filesystem::path m_MoveSource;
+    std::filesystem::path m_CopySource;
 
     std::optional<RefactorPlan> m_PendingPlan;
     bool m_PendingSceneChecked = false;

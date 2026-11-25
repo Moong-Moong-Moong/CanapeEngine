@@ -586,4 +586,26 @@ namespace Canape
 		}
 		return rootObject;
 	}
+
+	std::string SceneSerializer::SaveTreeToString(GameObject& root)
+	{
+		Scene* scene = root.GetScene();
+		return scene ? SceneWriter(*scene).WriteTree(root).dump() : std::string();
+	}
+
+	GameObject* SceneSerializer::InstantiateFromString(Scene& scene, const std::string& text, TransformComponent* parent)
+	{
+		const Json root = Json::parse(text, nullptr, false);
+		if (root.is_discarded() || !root.is_object() || root.value("version", 0) != kSceneFormatVersion)
+		{
+			return nullptr;
+		}
+
+		GameObject* rootObject = SceneReader().ReadInto(scene, root);
+		if (rootObject && parent)
+		{
+			rootObject->GetTransform()->SetParent(parent);
+		}
+		return rootObject;
+	}
 }

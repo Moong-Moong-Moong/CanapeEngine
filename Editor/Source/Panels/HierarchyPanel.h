@@ -30,6 +30,18 @@ private:
 
     void BeginRename(const Canape::GameObject& gameObject);
 
+    // Copy / paste / duplicate. The clipboard holds the copied tree in prefab format, so it survives deleting the
+    // original and works across scenes.
+    struct PasteRequest
+    {
+        bool pending = false;
+        uint64_t parentId = 0; // 0 = scene root
+    };
+    void CopyToClipboard(Canape::GameObject& gameObject);
+    Canape::GameObject* PasteClipboard(Canape::Scene& scene, Canape::GameObject* parent);
+    static std::string MakeUniqueName(Canape::Scene& scene, const Canape::GameObject& created);
+    bool HasClipboard() const { return !m_Clipboard.empty(); }
+
     Reparent m_Reparent;
     uint64_t m_SavePrefabId = 0;
     std::string m_InstantiatePrefab;
@@ -45,4 +57,12 @@ private:
     uint64_t m_RenamingId = 0;
     std::string m_RenameBuffer;
     bool m_RenameFocus = false;
+
+    std::string m_Clipboard;
+    Canape::Matrix4 m_ClipboardWorld = Canape::Matrix4::Identity;
+    uint64_t m_ClipboardParentId = 0;
+    std::string m_ClipboardSceneKey; // object ids only mean the same thing inside the scene they were copied from
+    uint64_t m_CopyId = 0;
+    uint64_t m_DuplicateId = 0;
+    PasteRequest m_Paste;
 };

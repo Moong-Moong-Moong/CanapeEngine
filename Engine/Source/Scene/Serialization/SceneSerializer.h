@@ -20,5 +20,10 @@ namespace Canape
 
 		static bool SavePrefab(GameObject& root, const std::string& path);
 		static GameObject* InstantiatePrefab(Scene& scene, const std::string& path, TransformComponent* parent = nullptr);
+
+		// Same format as a prefab, kept in memory (editor copy / paste / duplicate).
+		// References to objects outside the copied tree are cleared in the instantiated copy.
+		static std::string SaveTreeToString(GameObject& root);
+		static GameObject* InstantiateFromString(Scene& scene, const std::string& text, TransformComponent* parent = nullptr);
 	};
 }
