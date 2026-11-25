@@ -1,5 +1,6 @@
 #include "Panels/InspectorPanel.h"
 #include "EditorUtils.h"
+#include "Icons/EditorIcons.h"
 #include "Simulation/SimulationScene.h"
 #include "Scene/Component/RenderableComponent.h"
 
@@ -197,12 +198,26 @@ void InspectorPanel::Draw(EditorContext& context, Scene* scene)
     }
 
     ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(gameObject->GetId())));
+    ImGui::BeginGroup();
     DrawGameObjectHeader(*gameObject);
+    ImGui::EndGroup();
+    // A group reports the state of the widget inside it that is being edited (or just finished).
+    if (ImGui::IsItemActive() || ImGui::IsItemDeactivated())
+    {
+        context.SetUndoLabel("Edit " + gameObject->GetName());
+    }
 
     Component* removeRequest = nullptr;
     for (Component* component : gameObject->GetAllComponents())
     {
+        ImGui::BeginGroup();
         DrawComponent(context, *scene, *component, removeRequest);
+        ImGui::EndGroup();
+        if (ImGui::IsItemActive() || ImGui::IsItemDeactivated())
+        {
+            context.SetUndoLabel("Edit " + rttr::instance(component).get_derived_type().get_name().to_string()
+                + " on " + gameObject->GetName());
+        }
     }
 
     ImGui::Spacing();
@@ -212,9 +227,14 @@ void InspectorPanel::Draw(EditorContext& context, Scene* scene)
 
     if (removeRequest)
     {
+        m_UndoLabel = "Remove " + rttr::instance(removeRequest).get_derived_type().get_name().to_string();
         gameObject->RemoveComponent(removeRequest);
     }
     DrawTogglePopup(*scene);
+    if (!m_UndoLabel.empty())
+    {
+        context.SetUndoLabel(std::exchange(m_UndoLabel, {}));
+    }
     ImGui::End();
 }
 
@@ -238,6 +258,7 @@ void InspectorPanel::RequestToggle(GameObject& gameObject, Component* component,
 
 void InspectorPanel::ApplyToggle(GameObject& gameObject, bool includeChildren)
 {
+    m_UndoLabel = std::string(m_Toggle.visibility ? "Set Visible on " : "Set Active on ") + gameObject.GetName();
     if (!m_Toggle.visibility)
     {
         gameObject.SetActive(m_Toggle.value);
@@ -348,7 +369,9 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
     auto* meshRenderer = dynamic_cast<MeshRendererComponent*>(&component);
 
     ImGui::PushID(&component);
-    const bool open = ImGui::CollapsingHeader(type.get_name().data(), ImGuiTreeNodeFlags_DefaultOpen);
+    const std::string header = EditorIcons::GetLabelPadding() + type.get_name().to_string() + "##ComponentHeader";
+    const bool open = ImGui::CollapsingHeader(header.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+    EditorIcons::DrawOnTreeNodeLabel(EditorIcons::Get().GetComponent(type.get_raw_type()), true);
 
     if (!isTransform && ImGui::BeginPopupContextItem())
     {
@@ -478,6 +501,7 @@ void InspectorPanel::DrawAddComponent(Scene& scene, GameObject& gameObject)
         if (ImGui::MenuItem(type.get_name().data()))
         {
             AddComponentOfType(scene, gameObject, type);
+            m_UndoLabel = "Add " + type.get_name().to_string();
         }
     }
     ImGui::EndPopup();
@@ -525,6 +549,7 @@ void InspectorPanel::AcceptScriptDrop(Scene& scene, GameObject& gameObject)
         }
         else
         {
+            m_UndoLabel = "Add " + className;
             m_ScriptDropMessage.clear();
         }
     }

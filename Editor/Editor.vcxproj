@@ -110,6 +110,10 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
     <ClInclude Include="Source\Panels\SceneViewPanel.h" />
     <ClInclude Include="Source\Panels\StateMachineInspector.h" />
+    <ClInclude Include="Source\EditorSettings.h" />
+    <ClInclude Include="Source\Undo\UndoHistory.h" />
+    <ClInclude Include="Source\Icons\EditorIcons.h" />
+    <ClInclude Include="Source\Panels\EditorSettingsWindow.h" />
     <ClInclude Include="Source\Snapping\SceneSnapper.h" />
     <ClInclude Include="Source\Snapping\SnapMath.h" />
   </ItemGroup>
@@ -130,6 +134,10 @@ exit /b 0</Command>
     <ClCompile Include="Source\Panels\RenderDebugMenu.cpp" />
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp" />
     <ClCompile Include="Source\Panels\StateMachineInspector.cpp" />
+    <ClCompile Include="Source\EditorSettings.cpp" />
+    <ClCompile Include="Source\Undo\UndoHistory.cpp" />
+    <ClCompile Include="Source\Icons\EditorIcons.cpp" />
+    <ClCompile Include="Source\Panels\EditorSettingsWindow.cpp" />
     <ClCompile Include="Source\Snapping\SceneSnapper.cpp" />
     <ClCompile Include="Source\Snapping\SnapMath.cpp" />
   </ItemGroup>

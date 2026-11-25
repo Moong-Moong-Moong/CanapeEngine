@@ -22,6 +22,8 @@ private:
     };
 
     void DrawNode(EditorContext& context, Canape::GameObject& gameObject);
+    void RequestDelete(const Canape::GameObject& gameObject);
+    void DrawDeleteConfirm(Canape::Scene& scene);
     void DrawSearchResults(EditorContext& context, Canape::Scene& scene);
     void DrawItemInteractions(EditorContext& context, Canape::GameObject& gameObject);
     void DrawRename(Canape::GameObject& gameObject);
@@ -48,6 +50,8 @@ private:
     uint64_t m_InstantiateParentId = 0;
     uint64_t m_PressedId = 0;
     uint64_t m_DeleteId = 0;
+    uint64_t m_ConfirmDeleteId = 0;
+    bool m_OpenDeleteConfirm = false;
     uint64_t m_CreateParentId = 0;
     bool m_CreateRequested = false;
 
@@ -56,6 +60,7 @@ private:
 
     uint64_t m_RenamingId = 0;
     std::string m_RenameBuffer;
+    std::string m_UndoLabel; // set by edits made where the context is not at hand (rename)
     bool m_RenameFocus = false;
 
     std::string m_Clipboard;

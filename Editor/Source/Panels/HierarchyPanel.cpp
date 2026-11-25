@@ -1,5 +1,6 @@
 #include "Panels/HierarchyPanel.h"
 #include "EditorUtils.h"
+#include "Icons/EditorIcons.h"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -80,6 +81,10 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
         {
             BeginRename(*selected);
         }
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && selected)
+        {
+            RequestDelete(*selected);
+        }
         if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)
         {
             if (ImGui::IsKeyPressed(ImGuiKey_C, false) && selected)
@@ -125,6 +130,11 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
         m_PressedId = 0;
     }
 
+    DrawDeleteConfirm(*scene);
+    if (!m_UndoLabel.empty())
+    {
+        context.SetUndoLabel(std::exchange(m_UndoLabel, {}));
+    }
     ApplyPendingActions(context, *scene);
     ImGui::End();
 }
@@ -149,8 +159,14 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
     }
+    // Every row reserves exactly one arrow's width (no extra frame padding), with or without children,
+    // so a row never shifts when it gains or loses children.
+    const std::string padding = EditorIcons::GetLabelPadding();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, ImGui::GetStyle().FramePadding.y));
     const bool open = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uintptr_t>(gameObject.GetId())),
-        flags, "%s", renaming ? "" : gameObject.GetName().c_str());
+        flags, "%s%s", padding.c_str(), renaming ? "" : gameObject.GetName().c_str());
+    EditorIcons::DrawOnTreeNodeLabel(EditorIcons::Get().GetGameObject(), false);
+    ImGui::PopStyleVar();
     if (!gameObject.IsActive())
     {
         ImGui::PopStyleColor();
@@ -176,6 +192,61 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
     }
 }
 
+void HierarchyPanel::RequestDelete(const GameObject& gameObject)
+{
+    m_ConfirmDeleteId = gameObject.GetId();
+    m_OpenDeleteConfirm = true;
+}
+
+void HierarchyPanel::DrawDeleteConfirm(Scene& scene)
+{
+    constexpr const char* kPopup = "Delete GameObject?";
+    if (m_OpenDeleteConfirm)
+    {
+        ImGui::OpenPopup(kPopup);
+        m_OpenDeleteConfirm = false;
+    }
+    if (!ImGui::BeginPopupModal(kPopup, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+
+    GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_ConfirmDeleteId));
+    if (!target)
+    {
+        m_ConfirmDeleteId = 0;
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+
+    std::vector<GameObject*> subtree;
+    CollectSubtree(*target->GetTransform(), subtree);
+    ImGui::Text("Delete \"%s\"?", target->GetName().c_str());
+    if (subtree.size() > 1)
+    {
+        ImGui::Text("%zu child object(s) will be deleted with it.", subtree.size() - 1);
+    }
+    ImGui::TextDisabled("Ctrl+Z restores it.");
+    ImGui::Separator();
+
+    const bool confirm = ImGui::Button("Delete", ImVec2(100.0f, 0.0f))
+        || ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
+    ImGui::SameLine();
+    const bool cancel = ImGui::Button("Cancel", ImVec2(100.0f, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+    ImGui::TextDisabled("Enter: delete   Esc: cancel");
+    if (confirm)
+    {
+        m_DeleteId = m_ConfirmDeleteId;
+    }
+    if (confirm || cancel)
+    {
+        m_ConfirmDeleteId = 0;
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
 void HierarchyPanel::DrawSearchResults(EditorContext& context, Scene& scene)
 {
     const std::string query = ToLower(m_Search);
@@ -196,7 +267,10 @@ void HierarchyPanel::DrawSearchResults(EditorContext& context, Scene& scene)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         }
-        ImGui::Selectable(renaming ? "##Row" : gameObject->GetName().c_str(), selected, ImGuiSelectableFlags_AllowOverlap);
+        const ImVec2 labelStart = ImGui::GetCursorScreenPos();
+        const std::string label = EditorIcons::GetLabelPadding() + (renaming ? std::string() : gameObject->GetName()) + "##Row";
+        ImGui::Selectable(label.c_str(), selected, ImGuiSelectableFlags_AllowOverlap);
+        EditorIcons::DrawAtLabelStart(EditorIcons::Get().GetGameObject(), labelStart);
         if (!gameObject->IsActive())
         {
             ImGui::PopStyleColor();
@@ -303,9 +377,9 @@ void HierarchyPanel::DrawItemInteractions(EditorContext& context, GameObject& ga
             m_SavePrefabId = gameObject.GetId();
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Delete"))
+        if (ImGui::MenuItem("Delete", "Del"))
         {
-            m_DeleteId = gameObject.GetId();
+            RequestDelete(gameObject);
         }
         ImGui::EndPopup();
     }
@@ -336,6 +410,7 @@ void HierarchyPanel::DrawRename(GameObject& gameObject)
         const std::string name = first == std::string::npos ? std::string() : m_RenameBuffer.substr(first, last - first + 1);
         if (!name.empty() && name != gameObject.GetName() && !ImGui::IsKeyPressed(ImGuiKey_Escape, false))
         {
+            m_UndoLabel = "Rename " + gameObject.GetName();
             gameObject.SetName(name);
         }
         m_RenamingId = 0;
@@ -395,6 +470,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
         if (child && (parent || m_Reparent.parentId == 0))
         {
             EditorUtils::SetParentKeepWorld(child->GetTransform(), parent ? parent->GetTransform() : nullptr);
+            context.SetUndoLabel("Reparent " + child->GetName());
         }
         m_Reparent = {};
     }
@@ -408,6 +484,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
             created->GetTransform()->SetParent(parent->GetTransform());
         }
         context.Select(created);
+        context.SetUndoLabel("Create GameObject");
         m_CreateRequested = false;
         m_CreateParentId = 0;
     }
@@ -430,6 +507,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
         if (GameObject* created = SceneSerializer::InstantiatePrefab(scene, EditorUtils::ToUtf8(file), parent ? parent->GetTransform() : nullptr))
         {
             context.Select(created);
+            context.SetUndoLabel("Instantiate " + created->GetName());
         }
         m_InstantiatePrefab.clear();
         m_InstantiateParentId = 0;
@@ -458,6 +536,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
             if (GameObject* created = PasteClipboard(scene, parent ? parent->GetOwnerObject() : nullptr))
             {
                 context.Select(created);
+                context.SetUndoLabel("Duplicate " + target->GetName());
             }
             m_Clipboard = previousClipboard;
             m_ClipboardWorld = previousWorld;
@@ -475,6 +554,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
             if (GameObject* created = PasteClipboard(scene, parent))
             {
                 context.Select(created);
+                context.SetUndoLabel("Paste " + created->GetName());
             }
         }
         m_Paste = {};
@@ -484,6 +564,7 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
     {
         if (GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_DeleteId)))
         {
+            context.SetUndoLabel("Delete " + target->GetName());
             std::vector<GameObject*> subtree;
             CollectSubtree(*target->GetTransform(), subtree);
             for (GameObject* gameObject : subtree)

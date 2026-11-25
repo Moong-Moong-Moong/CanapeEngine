@@ -5,6 +5,8 @@
 #include "EditorContext.h"
 #include "Panels/GltfImportWindow.h"
 
+#include <imgui.h>
+
 #include <filesystem>
 #include <functional>
 #include <optional>
@@ -38,7 +40,11 @@ private:
     };
 
     void DrawDirectoryTree(EditorContext& context, const std::filesystem::path& directory);
+    void DrawContentsHeader();
     void DrawDirectoryContents(EditorContext& context);
+    void DrawViewOptions();
+    // One grid cell: large icon with the name centred under it. Returns true when clicked.
+    static bool DrawGridCell(ImTextureID icon, const std::string& label, bool selected, float width, float height, float iconSize);
     void DrawEntryMenu(EditorContext& context, const std::filesystem::path& path, bool directory);
     void DrawFolderMenuItems(EditorContext& context, const std::filesystem::path& folder, bool showRename);
     void DrawMoveHereItem(EditorContext& context, const std::filesystem::path& folder, const char* label);
@@ -96,6 +102,8 @@ private:
 
     std::filesystem::path m_MoveSource;
     std::filesystem::path m_CopySource;
+    std::filesystem::path m_SelectedFolder;
+    float m_GridIconSize = 0.0f; // live slider value, saved to EditorSettings when the drag ends
 
     std::optional<RefactorPlan> m_PendingPlan;
     bool m_PendingSceneChecked = false;

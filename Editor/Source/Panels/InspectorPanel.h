@@ -62,6 +62,7 @@ private:
 
     uint64_t m_ScriptDropObjectId = 0;
     std::string m_ScriptDropMessage;
+    std::string m_UndoLabel; // name for the undo step of an add / remove / toggle made this frame
 
     std::filesystem::path m_MaterialFile;
     std::unordered_map<std::string, Canape::MaterialData> m_MaterialCache;

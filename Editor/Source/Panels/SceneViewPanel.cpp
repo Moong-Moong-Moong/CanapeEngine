@@ -138,6 +138,13 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
             m_SnapPreview.reset();
             DrawGizmo(selected, view, min, max);
             UpdateVertexHandle(selected, view, min, max, hovered);
+            if (selected && (m_GizmoDragging || m_VertexDragging))
+            {
+                const char* verb = m_VertexDragging ? "Snap"
+                    : m_GizmoOperation == GizmoOperation::Rotate ? "Rotate"
+                    : m_GizmoOperation == GizmoOperation::Scale ? "Scale" : "Move";
+                context.SetUndoLabel(std::string(verb) + " " + selected->GetName());
+            }
             DrawSnapOverlay(view, min, max);
 
             const bool overGizmo = selected && (ImGuizmo::IsOver() || ImGuizmo::IsUsing());

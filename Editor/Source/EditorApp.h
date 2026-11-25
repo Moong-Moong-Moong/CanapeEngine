@@ -3,10 +3,12 @@
 #include "EditorContext.h"
 #include "EditorProxyMeshes.h"
 #include "Panels/DebugConsolePanel.h"
+#include "Panels/EditorSettingsWindow.h"
 #include "Panels/FileBrowserPanel.h"
 #include "Panels/HierarchyPanel.h"
 #include "Panels/InspectorPanel.h"
 #include "Panels/SceneViewPanel.h"
+#include "Undo/UndoHistory.h"
 
 #include <string>
 
@@ -46,6 +48,16 @@ private:
     void StartPlay();
     void StopPlay();
 
+    // Undo: the scene is snapshotted whenever an interaction ends (mouse release, key press, widget deactivation)
+    // and a step is recorded when it differs from the last snapshot. Undo / redo reload a stored snapshot.
+    void UpdateUndo();
+    void CommitUndoIfChanged(Canape::Scene& scene);
+    bool CanUseUndo();
+    void PerformUndo();
+    void PerformRedo();
+    void ApplyUndoSnapshot(const std::string& text, uint64_t selectionId);
+    uint64_t GetSelectedId(Canape::Scene* scene) const;
+
     // 명령줄 임포트: Editor.exe --import-gltf <원본.gltf> <대상 폴더(Game 기준)> [--static] [--skeleton-model]
     //   [--skeleton] [--anim] (여러 번 반복 가능), [--import-log <파일>]. 임포트만 하고 종료한다.
     // 임포트가 하나라도 있으면 true.
@@ -59,6 +71,7 @@ private:
     SceneViewPanel m_SceneView;
     FileBrowserPanel m_FileBrowser;
     DebugConsolePanel m_DebugConsole;
+    EditorSettingsWindow m_SettingsWindow;
     EditorProxyMeshes m_ProxyMeshes;
 
     Canape::Scene* m_LastScene = nullptr;
@@ -71,6 +84,16 @@ private:
     bool m_RestoringFromRefactor = false;
     bool m_ResetLayout = false;
     bool m_ShowDemoWindow = false;
+    std::string m_PendingFocusWindow;
+
+    UndoHistory m_Undo;
+    Canape::Scene* m_UndoScene = nullptr;
+    std::string m_UndoBaseline;
+    uint64_t m_FrameStartSelection = 0;
+    bool m_UndoWasItemActive = false;
+    // Set when the active scene is about to be replaced by an undo / redo / play restore,
+    // so the history survives the scene pointer change.
+    bool m_KeepUndoHistory = false;
     bool m_QuitAfterCommandLine = false;
     std::vector<std::pair<int, std::string>> m_DeferredCommands;
     std::string m_CommandLog;

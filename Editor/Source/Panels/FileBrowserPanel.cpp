@@ -2,6 +2,8 @@
 #include "EditorUtils.h"
 #include "Asset/Mesh/MeshSerializer.h"
 #include "CNDebug/DebugLog.h"
+#include "EditorSettings.h"
+#include "Icons/EditorIcons.h"
 
 #include <nlohmann/json.hpp>
 
@@ -129,10 +131,16 @@ void FileBrowserPanel::Draw(EditorContext& context)
     const bool focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
     if (focused && m_RenamingPath.empty() && !ImGui::GetIO().WantTextInput)
     {
-        const fs::path& selected = context.GetSelectedAsset();
+        std::error_code existsError;
+        if (!m_SelectedFolder.empty() && (m_SelectedFolder.parent_path() != m_CurrentDirectory || !fs::exists(m_SelectedFolder, existsError)))
+        {
+            m_SelectedFolder.clear();
+        }
+        // The selected folder (content list only) or the selected asset.
+        const fs::path selected = !m_SelectedFolder.empty() ? m_SelectedFolder : context.GetSelectedAsset();
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false) && CanEdit(selected) && selected.parent_path() == m_CurrentDirectory)
         {
-            BeginRename(context.GetSelectedAsset());
+            BeginRename(selected);
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && CanEdit(selected) && selected.parent_path() == m_CurrentDirectory)
         {
@@ -184,6 +192,8 @@ void FileBrowserPanel::Draw(EditorContext& context)
         ImGui::EndChild();
 
         ImGui::TableSetColumnIndex(1);
+        // The path bar stays put; only the file list below it scrolls.
+        DrawContentsHeader();
         if (ImGui::BeginChild("##DirectoryContents"))
         {
             DrawDirectoryContents(context);
@@ -241,7 +251,7 @@ void FileBrowserPanel::DrawDirectoryTree(EditorContext& context, const fs::path&
     }
 }
 
-void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
+void FileBrowserPanel::DrawContentsHeader()
 {
     const fs::path& root = EditorUtils::GetGameDirectory();
     const std::string location = EditorUtils::ToGameRelativePath(m_CurrentDirectory);
@@ -251,9 +261,14 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
     {
         m_CurrentDirectory = m_CurrentDirectory.parent_path();
     }
+    if (m_GridIconSize <= 0.0f)
+    {
+        m_GridIconSize = EditorSettings::Get().GetContentBrowserGridSize();
+    }
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::TextUnformatted(location == "." ? "Game" : ("Game/" + location).c_str());
+    DrawViewOptions();
     if (!m_MoveSource.empty())
     {
         ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Moving: %s", ToAssetPath(m_MoveSource).c_str());
@@ -269,20 +284,52 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
         ImGui::TextWrapped("%s", m_Message.c_str());
     }
     ImGui::Separator();
+}
+
+void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
+{
+    EditorIcons& icons = EditorIcons::Get();
+    const bool grid = EditorSettings::Get().IsContentBrowserGrid();
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float iconSize = m_GridIconSize;
+    const float cellWidth = iconSize + 16.0f;
+    const float cellHeight = iconSize + ImGui::GetTextLineHeight() + 12.0f;
+    const int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x + style.ItemSpacing.x)
+        / (cellWidth + style.ItemSpacing.x)));
 
     fs::path nextDirectory;
     bool renameRowDrawn = false;
+    int cellIndex = 0;
     for (const Entry& entry : ListDirectory(m_CurrentDirectory, false))
     {
+        if (grid && cellIndex++ % columns != 0)
+        {
+            ImGui::SameLine();
+        }
+        ImGui::PushID(entry.name.c_str());
+        const ImTextureID icon = icons.GetFile(entry.path, entry.directory);
+
         if (entry.path == m_RenamingPath)
         {
             renameRowDrawn = true;
+            if (grid)
+            {
+                ImGui::BeginGroup();
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (cellWidth - iconSize) * 0.5f);
+                ImGui::Image(icon, ImVec2(iconSize, iconSize));
+                ImGui::SetNextItemWidth(cellWidth);
+            }
+            else
+            {
+                ImGui::Image(icon, ImVec2(EditorIcons::GetInlineSize(), EditorIcons::GetInlineSize()));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+            }
             if (m_RenameFocus)
             {
                 ImGui::SetKeyboardFocusHere();
                 m_RenameFocus = false;
             }
-            ImGui::SetNextItemWidth(-FLT_MIN);
             const bool submitted = ImGui::InputText("##Rename", &m_RenameBuffer,
                 ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
             RenameTrace(submitted ? "submitted" : ImGui::IsItemDeactivated() ? "deactivated" : "frame");
@@ -294,31 +341,55 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             {
                 CancelRename();
             }
+            if (grid)
+            {
+                ImGui::EndGroup();
+            }
+            ImGui::PopID();
             continue;
         }
 
-        std::string label = entry.directory ? entry.name + "/" : entry.name;
+        std::string label = entry.name;
         if (entry.path == m_MoveSource)
         {
             label += "  (moving)";
         }
-        if (entry.directory)
+        const bool selected = entry.directory ? m_SelectedFolder == entry.path : context.GetSelectedAsset() == entry.path;
+        bool clicked = false;
+        if (grid)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.8f, 0.4f, 1.0f));
+            clicked = DrawGridCell(icon, label, selected, cellWidth, cellHeight, iconSize);
         }
-        const bool selected = !entry.directory && context.GetSelectedAsset() == entry.path;
-        if (ImGui::Selectable(label.c_str(), selected, ImGuiSelectableFlags_AllowDoubleClick) && !entry.directory)
+        else
+        {
+            if (entry.directory)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.8f, 0.4f, 1.0f));
+            }
+            const ImVec2 labelStart = ImGui::GetCursorScreenPos();
+            clicked = ImGui::Selectable((EditorIcons::GetLabelPadding() + label).c_str(), selected, ImGuiSelectableFlags_AllowDoubleClick);
+            EditorIcons::DrawAtLabelStart(icon, labelStart);
+            if (entry.directory)
+            {
+                ImGui::PopStyleColor();
+            }
+        }
+
+        if (clicked && entry.directory)
+        {
+            // Folders are selected here only (not in the inspector) so Delete / F2 / Ctrl+C / Ctrl+D can act on them.
+            m_SelectedFolder = entry.path;
+            context.SelectAsset({});
+        }
+        else if (clicked)
         {
             if (selected && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && CanEdit(entry.path))
             {
                 m_RenameArmedPath = entry.path;
                 m_RenameArmTime = ImGui::GetTime();
             }
+            m_SelectedFolder.clear();
             context.SelectAsset(entry.path);
-        }
-        if (entry.directory)
-        {
-            ImGui::PopStyleColor();
         }
 
         if (!entry.directory && ImGui::BeginDragDropSource())
@@ -350,8 +421,13 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
 
         if (!entry.directory && IsSceneFile(entry.path) && ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("Double-click to open scene");
+            ImGui::SetTooltip("%s\nDouble-click to open scene", entry.name.c_str());
         }
+        else if (grid && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+        {
+            ImGui::SetTooltip("%s", entry.name.c_str());
+        }
+        ImGui::PopID();
     }
 
     if (!m_RenamingPath.empty() && !renameRowDrawn)
@@ -1466,4 +1542,79 @@ void FileBrowserPanel::DuplicateAsset(EditorContext& context, const fs::path& pa
     m_CopySource = path;
     PasteInto(context, path.parent_path());
     m_CopySource = previous;
+}
+
+void FileBrowserPanel::DrawViewOptions()
+{
+    EditorSettings& settings = EditorSettings::Get();
+    const bool grid = settings.IsContentBrowserGrid();
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float sliderWidth = 90.0f;
+    const float buttonsWidth = ImGui::CalcTextSize("List").x + ImGui::CalcTextSize("Grid").x + style.FramePadding.x * 4.0f
+        + style.ItemSpacing.x + (grid ? sliderWidth + style.ItemSpacing.x : 0.0f);
+    // Right-aligned in the remaining width (the header sits in a table column, so absolute x positions do not apply).
+    ImGui::SameLine();
+    const float spare = ImGui::GetContentRegionAvail().x - buttonsWidth;
+    if (spare > 0.0f)
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + spare);
+    }
+
+    const auto modeButton = [&](const char* label, bool gridMode)
+    {
+        const bool active = grid == gridMode;
+        if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (ImGui::Button(label)) settings.SetContentBrowserGrid(gridMode);
+        if (active) ImGui::PopStyleColor();
+    };
+    modeButton("List", false);
+    ImGui::SameLine();
+    modeButton("Grid", true);
+    if (grid)
+    {
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(sliderWidth);
+        ImGui::SliderFloat("##IconSize", &m_GridIconSize, 40.0f, 160.0f, "%.0f px");
+        if (ImGui::IsItemDeactivatedAfterEdit())
+        {
+            settings.SetContentBrowserGridSize(m_GridIconSize);
+        }
+    }
+}
+
+bool FileBrowserPanel::DrawGridCell(ImTextureID icon, const std::string& label, bool selected, float width, float height, float iconSize)
+{
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    const bool clicked = ImGui::Selectable("##Cell", selected, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(width, height));
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    if (icon)
+    {
+        const ImVec2 iconMin(pos.x + (width - iconSize) * 0.5f, pos.y + 4.0f);
+        drawList->AddImage(icon, iconMin, ImVec2(iconMin.x + iconSize, iconMin.y + iconSize));
+    }
+
+    // Names that do not fit are cut with "..."; the full name is in the tooltip.
+    std::string text = label;
+    const float maxWidth = width - 4.0f;
+    if (ImGui::CalcTextSize(text.c_str()).x > maxWidth)
+    {
+        while (!text.empty() && ImGui::CalcTextSize((text + "...").c_str()).x > maxWidth)
+        {
+            // Drop exactly one UTF-8 code point: its continuation bytes, then its lead byte.
+            while (!text.empty() && (static_cast<unsigned char>(text.back()) & 0xC0) == 0x80)
+            {
+                text.pop_back();
+            }
+            if (!text.empty())
+            {
+                text.pop_back();
+            }
+        }
+        text += "...";
+    }
+    const float textWidth = ImGui::CalcTextSize(text.c_str()).x;
+    drawList->AddText(ImVec2(pos.x + (width - textWidth) * 0.5f, pos.y + iconSize + 8.0f),
+        ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
+    return clicked;
 }

@@ -440,3 +440,6 @@ FodyWeavers.xsd
 # Model assets
 /Game/Content/Models/*
 !/Game/Content/Models/.gitkeep
+
+# Per-user editor settings (Tools > Editor Settings)
+Editor/Config/EditorSettings.json

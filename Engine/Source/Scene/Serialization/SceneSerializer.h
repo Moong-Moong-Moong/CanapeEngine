@@ -17,6 +17,8 @@ namespace Canape
 		static bool Save(Scene& scene, const std::string& path);
 		static std::string SaveToString(Scene& scene);
 		static std::unique_ptr<Scene> Load(const std::string& path, JoltRuntime* physicsRuntime = nullptr, Session* simulationSession = nullptr);
+		// Same as Load, from text produced by SaveToString (editor undo). Object ids are kept.
+		static std::unique_ptr<Scene> LoadFromString(const std::string& text, JoltRuntime* physicsRuntime = nullptr, Session* simulationSession = nullptr);
 
 		static bool SavePrefab(GameObject& root, const std::string& path);
 		static GameObject* InstantiatePrefab(Scene& scene, const std::string& path, TransformComponent* parent = nullptr);
