@@ -32,8 +32,6 @@ namespace Canape
 	class CNglTFImporter
 	{
 	public:
-		// glTF, bin 파일을 읽고 cNglTF 데이터를 채운다.
-		// bin 파일은 glTF와 같은 디렉토리에 있고, 파일 이름은 glTF의 buffers[0].uri를 따른다.
 		bool ReadglTF(std::string filePath, CNglTF& cNglTF);
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
 		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);

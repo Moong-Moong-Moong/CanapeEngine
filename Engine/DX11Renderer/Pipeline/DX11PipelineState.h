@@ -52,8 +52,15 @@ namespace Canape
         DX11PipelineSelection ResolveUI(bool multisampledDepth = false) const;
         bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
         bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler && UIPixelShaderMS; }
+        DX11PipelineSelection ResolveEditorGrid() const;
+        bool EditorGridAvailable() const { return EditorGridVertexShader && EditorGridPixelShader && EditorGridRasterizerState && EditorGridDepthState; }
 
     private:
+        bool InitializeEditorGrid(ID3D11Device* device, std::string& error);
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> EditorGridVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> EditorGridPixelShader;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> EditorGridRasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> EditorGridDepthState;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineMaskPixelShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineCompositePixelShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> OutlineCompositeMSAAPixelShader;

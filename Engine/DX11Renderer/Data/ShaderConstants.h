@@ -210,6 +210,16 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(PostProcessConstants, DebugViewEnabled) == 8);
     static_assert(offsetof(PostProcessConstants, Padding) == 12);
 
+    inline constexpr uint32_t EditorGridSlot = 12;
+    struct alignas(16) EditorGridConstants
+    {
+        float CellSize = 1.0f;
+        float MajorEvery = 10.0f;
+        float Extent = 150.0f;
+        float Padding = 0.0f;
+    };
+    static_assert(sizeof(EditorGridConstants) == 16);
+
     struct alignas(16) SceneConstants
     {
         Vector3 AmbientColor{ 1.0f, 1.0f, 1.0f };

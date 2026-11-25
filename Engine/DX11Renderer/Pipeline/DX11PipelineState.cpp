@@ -415,7 +415,57 @@ namespace Canape
         // UI is optional for the same reason; the UI pass is skipped while unavailable.
         std::string uiError;
         if (!InitializeUI(device, uiError)) CN_LOG_RENDERER("UI", uiError);
+        std::string gridError;
+        if (!InitializeEditorGrid(device, gridError)) CN_LOG_RENDERER("EditorGrid", gridError);
         return true;
+    }
+
+    bool DX11PipelineState::InitializeEditorGrid(ID3D11Device* device, std::string& error)
+    {
+        DX11PipelineState pending;
+        ComPtr<ID3DBlob> bytecode;
+        if (!CompileShaderFile(L"Shaders/EditorGrid.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.EditorGridVertexShader);
+        if (FAILED(result)) { error = HResultMessage("CreateVertexShader(editor grid)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/EditorGrid.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.EditorGridPixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(editor grid)", result); return false; }
+
+        D3D11_RASTERIZER_DESC rasterizerDesc{};
+        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+        rasterizerDesc.CullMode = D3D11_CULL_NONE;
+        rasterizerDesc.DepthClipEnable = TRUE;
+        rasterizerDesc.MultisampleEnable = TRUE;
+        rasterizerDesc.SlopeScaledDepthBias = -1.0f;
+        result = device->CreateRasterizerState(&rasterizerDesc, &pending.EditorGridRasterizerState);
+        if (FAILED(result)) { error = HResultMessage("CreateRasterizerState(editor grid)", result); return false; }
+
+        D3D11_DEPTH_STENCIL_DESC depthDesc{};
+        depthDesc.DepthEnable = TRUE;
+        depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        depthDesc.StencilEnable = FALSE;
+        result = device->CreateDepthStencilState(&depthDesc, &pending.EditorGridDepthState);
+        if (FAILED(result)) { error = HResultMessage("CreateDepthStencilState(editor grid)", result); return false; }
+
+        EditorGridVertexShader = std::move(pending.EditorGridVertexShader);
+        EditorGridPixelShader = std::move(pending.EditorGridPixelShader);
+        EditorGridRasterizerState = std::move(pending.EditorGridRasterizerState);
+        EditorGridDepthState = std::move(pending.EditorGridDepthState);
+        error.clear();
+        return true;
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveEditorGrid() const
+    {
+        return {
+            EditorGridVertexShader.Get(), EditorGridPixelShader.Get(), nullptr,
+            EditorGridRasterizerState.Get(), TransparentBlendState.Get(), EditorGridDepthState.Get(), LinearSampler.Get()
+        };
     }
 
     bool DX11PipelineState::InitializeUI(ID3D11Device* device, std::string& error)

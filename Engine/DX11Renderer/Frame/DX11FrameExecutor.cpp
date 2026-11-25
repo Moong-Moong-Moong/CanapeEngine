@@ -2,6 +2,7 @@
 #include "DX11Renderer/Pass/DX11ShadowPass.h"
 #include "DX11Renderer/Pass/DX11MainPass.h"
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
+#include "DX11Renderer/Pass/DX11EditorGridPass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
 #include "DX11Renderer/Pass/DX11OutlinePass.h"
 #include "CNDebug/DebugLog.h"
@@ -296,6 +297,17 @@ namespace Canape
             { SkyboxVertexBuffer.Get(), SkyboxIndexBuffer.Get(), SkyboxViewBuffer.Get() }, GetMainTargets(), stats);
     }
 
+    void DX11Renderer::Impl::DrawEditorGrid()
+    {
+        if (!EditorGridEnabled) return;
+        ConstantBuffers::Upload(*Context.Get(), EditorGridBuffer.Get(), SC::EditorGridConstants{});
+        RendererDebugStats* stats = nullptr;
+#if CANAPE_RENDER_DEBUG
+        stats = &CurrentStats;
+#endif
+        EditorGridPass::Execute(*Context.Get(), Pipelines, EditorGridBuffer.Get(), GetMainTargets(), stats);
+    }
+
     void DX11Renderer::Impl::ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
     {
         // Future HDR effects that need their own textures/passes run here, before SDR conversion.
@@ -483,6 +495,7 @@ namespace Canape
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);
             if (AfterTransparentCallback) AfterTransparentCallback();
+            DrawEditorGrid();
             OutlineMaskReady = false;
             OutlineStyleCount = OutlineMaxThickness = 0;
             if (!prepared.OutlineDraws.empty() && EnsureOutlineResources() && UploadOutlineStyles(prepared))

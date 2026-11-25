@@ -62,6 +62,7 @@ namespace Canape
         std::function<void()> AfterOpaqueCallback;
         std::function<void()> AfterTransparentCallback;
         std::function<void()> MirrorCallback;
+        bool EditorGridEnabled = false;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;
@@ -163,6 +164,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
         ComPtr<ID3D11Buffer> PostProcessBuffer;
+        ComPtr<ID3D11Buffer> EditorGridBuffer;
         DX11UIBuffers UIBuffers;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;
@@ -192,6 +194,7 @@ namespace Canape
         void BindSharedConstants();
         void BindPipeline(const DX11PipelineSelection& pipeline);
         void DrawSkybox(const PreparedSkybox& skybox);
+        void DrawEditorGrid();
         void SetPostProcessSettings(const PostProcessSettings& settings);
         void ResolveSceneColor();
         void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);

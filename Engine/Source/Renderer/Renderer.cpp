@@ -370,6 +370,16 @@ namespace Canape
         m_DX11->SetOverlay(std::move(overlay));
     }
 
+    void Renderer::SetEditorGridEnabled(bool enabled)
+    {
+        m_DX11->SetEditorGridEnabled(enabled);
+    }
+
+    bool Renderer::IsEditorGridEnabled() const
+    {
+        return m_DX11->IsEditorGridEnabled();
+    }
+
     void* Renderer::GetNativeDevice() const
     {
         return m_DX11->GetNativeDevice();

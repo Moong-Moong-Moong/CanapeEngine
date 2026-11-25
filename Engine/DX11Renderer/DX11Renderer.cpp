@@ -419,6 +419,16 @@ namespace Canape
         m_Impl->Overlay = std::move(overlay);
     }
 
+    void DX11Renderer::SetEditorGridEnabled(bool enabled)
+    {
+        m_Impl->EditorGridEnabled = enabled;
+    }
+
+    bool DX11Renderer::IsEditorGridEnabled() const
+    {
+        return m_Impl->EditorGridEnabled;
+    }
+
     void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
     {
         m_Impl->AfterOpaqueCallback = std::move(callback);

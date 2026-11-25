@@ -58,6 +58,8 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        void SetEditorGridEnabled(bool enabled);
+        bool IsEditorGridEnabled() const;
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;

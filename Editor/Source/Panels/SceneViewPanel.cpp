@@ -26,6 +26,8 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     // Hidden scene view: game UI gets no pointer.
     ui.SetPointerViewport({}, false);
 
+    renderer.SetEditorGridEnabled(visible && !playing && m_ShowGrid);
+
     PlayRequest request = PlayRequest::None;
     if (visible)
     {
@@ -70,7 +72,7 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
             renderer.SetViewOverride(view);
             ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, max.y - ImGui::GetTextLineHeight() - 6.0f),
                 IM_COL32(255, 255, 255, 160),
-                "W/E/R: move/rotate/scale  T: local/world  RMB: look  WASD/QE: move  Wheel: speed");
+                "W/E/R: move/rotate/scale  T: local/world  G: grid  RMB: look  WASD/QE: move  Wheel: speed");
 
             DrawGizmo(context.GetSelected(scene), view, min, max);
         }
@@ -96,6 +98,11 @@ void SceneViewPanel::DrawGizmoToolbar()
     {
         m_GizmoLocal = !m_GizmoLocal;
     }
+    ImGui::SameLine();
+    const bool gridOn = m_ShowGrid;
+    if (gridOn) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+    if (ImGui::Button("Grid")) m_ShowGrid = !m_ShowGrid;
+    if (gridOn) ImGui::PopStyleColor();
 }
 
 void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
@@ -109,6 +116,7 @@ void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
     if (ImGui::IsKeyPressed(ImGuiKey_E, false)) m_GizmoOperation = GizmoOperation::Rotate;
     if (ImGui::IsKeyPressed(ImGuiKey_R, false)) m_GizmoOperation = GizmoOperation::Scale;
     if (ImGui::IsKeyPressed(ImGuiKey_T, false)) m_GizmoLocal = !m_GizmoLocal;
+    if (ImGui::IsKeyPressed(ImGuiKey_G, false)) m_ShowGrid = !m_ShowGrid;
 }
 
 void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, const ImVec2& min, const ImVec2& max)

@@ -36,6 +36,7 @@ private:
 
     GizmoOperation m_GizmoOperation = GizmoOperation::Translate;
     bool m_GizmoLocal = false;
+    bool m_ShowGrid = true;
 
     RenderDebugMenu m_RenderDebugMenu;
     Canape::Vector3 m_Position{ 0.0f, 3.0f, -10.0f };

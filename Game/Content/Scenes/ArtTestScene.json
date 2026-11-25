@@ -1,0 +1,161 @@
+{
+    "version": 1,
+    "name": "ArtTestScene",
+    "mainCamera": 3,
+    "gameObjects": [
+        {
+            "id": 1,
+            "name": "Main Camera",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 2,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 3.117827,
+                            "Z": -10.0
+                        },
+                        "localRotation": {
+                            "X": 0.1305262,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 0.9914449
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "CameraComponent",
+                    "id": 3,
+                    "properties": {
+                        "enabled": true,
+                        "fieldOfView": 60.0,
+                        "nearClip": 0.1,
+                        "farClip": 150.0,
+                        "proxyVisible": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Directional Light",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 5,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 3.5438318,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.39454818,
+                            "Y": -0.32479164,
+                            "Z": 0.15145285,
+                            "W": 0.8461112
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                },
+                {
+                    "type": "LightComponent",
+                    "id": 6,
+                    "properties": {
+                        "enabled": true,
+                        "type": "Directional",
+                        "color": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "intensity": 1.0,
+                        "range": 10.0,
+                        "innerAngle": 0.35,
+                        "outerAngle": 0.52,
+                        "castShadow": true,
+                        "proxyVisible": true
+                    }
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "name": "GameObject",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 8,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 0
+                    }
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "name": "GameObject",
+            "active": true,
+            "components": [
+                {
+                    "type": "TransformComponent",
+                    "id": 10,
+                    "properties": {
+                        "enabled": true,
+                        "localPosition": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0
+                        },
+                        "localRotation": {
+                            "X": 0.0,
+                            "Y": 0.0,
+                            "Z": 0.0,
+                            "W": 1.0
+                        },
+                        "localScale": {
+                            "X": 1.0,
+                            "Y": 1.0,
+                            "Z": 1.0
+                        },
+                        "parent": 8
+                    }
+                }
+            ]
+        }
+    ]
+}
