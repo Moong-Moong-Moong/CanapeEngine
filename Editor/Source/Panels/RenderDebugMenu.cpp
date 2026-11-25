@@ -49,7 +49,7 @@ float RenderDebugMenu::GetButtonWidth() const
     return ImGui::CalcTextSize(kButtonLabel).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 }
 
-void RenderDebugMenu::Draw(Renderer& renderer)
+void RenderDebugMenu::Draw(Renderer& renderer, float buttonScale)
 {
     const bool active = renderer.GetDebugSettings().enabled;
     if (active)
@@ -57,10 +57,15 @@ void RenderDebugMenu::Draw(Renderer& renderer)
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.35f, 0.1f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.45f, 0.15f, 1.0f));
     }
+    const ImGuiStyle& style = ImGui::GetStyle();
+    ImGui::PushFont(nullptr, style.FontSizeBase * buttonScale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x * buttonScale, style.FramePadding.y * buttonScale));
     if (ImGui::Button(kButtonLabel))
     {
         ImGui::OpenPopup(kPopupId);
     }
+    ImGui::PopStyleVar();
+    ImGui::PopFont();
     if (active)
     {
         ImGui::PopStyleColor(2);

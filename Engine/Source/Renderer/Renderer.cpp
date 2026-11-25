@@ -408,6 +408,16 @@ namespace Canape
         return m_DX11->IsEditorGridPlaneVisible(plane);
     }
 
+    void Renderer::SetEditorGridCellSize(float cellSize)
+    {
+        m_DX11->SetEditorGridCellSize(cellSize);
+    }
+
+    float Renderer::GetEditorGridCellSize() const
+    {
+        return m_DX11->GetEditorGridCellSize();
+    }
+
     void* Renderer::GetNativeDevice() const
     {
         return m_DX11->GetNativeDevice();

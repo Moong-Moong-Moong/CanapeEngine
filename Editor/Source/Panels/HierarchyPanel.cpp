@@ -217,7 +217,8 @@ void HierarchyPanel::DrawItemInteractions(EditorContext& context, GameObject& ga
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
     {
         context.Select(&gameObject);
-        BeginRename(gameObject);
+        context.RequestFocus(gameObject.GetId());
+        m_PressedId = 0;
     }
 
     if (ImGui::BeginDragDropSource())

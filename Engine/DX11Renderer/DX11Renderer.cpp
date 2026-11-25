@@ -460,6 +460,16 @@ namespace Canape
         return (m_Impl->GridPlaneMask & (1u << static_cast<uint32_t>(plane))) != 0;
     }
 
+    void DX11Renderer::SetEditorGridCellSize(float cellSize)
+    {
+        m_Impl->GridCellSize = cellSize > 0.0f ? cellSize : 1.0f;
+    }
+
+    float DX11Renderer::GetEditorGridCellSize() const
+    {
+        return m_Impl->GridCellSize;
+    }
+
     void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
     {
         m_Impl->AfterOpaqueCallback = std::move(callback);

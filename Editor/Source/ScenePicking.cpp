@@ -36,32 +36,33 @@ namespace ScenePicking
             }
         }
 
-        MeshBounds PosedBounds(const SkinnedMeshRendererComponent& renderer, const MeshAsset& mesh)
+    }
+
+    MeshBounds PosedBounds(const SkinnedMeshRendererComponent& renderer, const MeshAsset& mesh)
+    {
+        MeshBounds world;
+        const std::vector<TransformComponent*>& bones = renderer.GetBones();
+        const std::vector<MeshBounds>& local = mesh.GetBoneBounds();
+        if (bones.size() != local.size())
         {
-            MeshBounds world;
-            const std::vector<TransformComponent*>& bones = renderer.GetBones();
-            const std::vector<MeshBounds>& local = mesh.GetBoneBounds();
-            if (bones.size() != local.size())
-            {
-                return world;
-            }
-            for (size_t bone = 0; bone < bones.size(); ++bone)
-            {
-                if (!bones[bone] || !local[bone].IsValid())
-                {
-                    continue;
-                }
-                const Matrix4 boneWorld = bones[bone]->GetLocalToWorldMatrix();
-                for (int corner = 0; corner < 8; ++corner)
-                {
-                    const Vector3 point{ (corner & 1) ? local[bone].Max.X : local[bone].Min.X,
-                        (corner & 2) ? local[bone].Max.Y : local[bone].Min.Y,
-                        (corner & 4) ? local[bone].Max.Z : local[bone].Min.Z };
-                    world.Add(boneWorld.TransformPoint(point));
-                }
-            }
             return world;
         }
+        for (size_t bone = 0; bone < bones.size(); ++bone)
+        {
+            if (!bones[bone] || !local[bone].IsValid())
+            {
+                continue;
+            }
+            const Matrix4 boneWorld = bones[bone]->GetLocalToWorldMatrix();
+            for (int corner = 0; corner < 8; ++corner)
+            {
+                const Vector3 point{ (corner & 1) ? local[bone].Max.X : local[bone].Min.X,
+                    (corner & 2) ? local[bone].Max.Y : local[bone].Min.Y,
+                    (corner & 4) ? local[bone].Max.Z : local[bone].Min.Z };
+                world.Add(boneWorld.TransformPoint(point));
+            }
+        }
+        return world;
     }
 
     std::vector<OrientedBox> SelectionBounds(GameObject& gameObject)

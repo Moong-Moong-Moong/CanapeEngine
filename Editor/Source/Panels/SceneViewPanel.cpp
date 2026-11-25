@@ -5,7 +5,11 @@
 #include <ImGuizmo.h>
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
+#include <cstdio>
+#include <optional>
+#include <vector>
 
 using namespace Canape;
 
@@ -15,6 +19,11 @@ namespace
     constexpr float kFastMultiplier = 3.0f;
     constexpr float kNearClip = 0.1f;
     constexpr float kFarClip = 2000.0f;
+    constexpr float kFocusDuration = 0.3f;
+    constexpr float kFocusPadding = 1.2f;
+    constexpr float kMinFocusRadius = 0.5f;
+    constexpr float kLocalButtonWidth = 52.0f;
+    constexpr float kSnapButtonWidth = 118.0f;
 }
 
 SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* scene, Renderer& renderer, UISystem& ui,
@@ -28,6 +37,7 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     ui.SetPointerViewport({}, false);
 
     renderer.SetEditorGridEnabled(visible && !playing && m_ShowGrid);
+    renderer.SetEditorGridCellSize(m_GridCellSize);
     for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)
     {
         renderer.SetEditorGridPlaneVisible(static_cast<EditorGridPlane>(plane), m_GridPlanes[plane]);
@@ -47,6 +57,14 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
             {
                 context.ClearSelection();
             }
+        }
+    }
+
+    if (const uint64_t focusId = context.TakeFocusRequest(); focusId != 0 && scene && !playing)
+    {
+        if (GameObject* target = scene->GetGameObject(scene->FindGameObjectById(focusId)))
+        {
+            FocusOn(*target);
         }
     }
 
@@ -88,6 +106,11 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
         if (playing)
         {
             m_Navigating = false;
+            m_Focusing = false;
+            m_VertexDragging = false;
+            m_GizmoDragging = false;
+            m_SnapPreview.reset();
+            m_HoverSourceVertex.reset();
             renderer.ClearViewOverride();
             ImGui::GetWindowDrawList()->AddRect(min, max, IM_COL32(80, 200, 120, 255), 0.0f, 0, 2.0f);
             ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, min.y + 6.0f), IM_COL32(80, 200, 120, 255),
@@ -97,21 +120,29 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
         {
             const bool hovered = ImGui::IsItemHovered();
             UpdateCamera(hovered, deltaTime);
+            UpdateFocus(deltaTime);
             HandleGizmoShortcuts(hovered);
+            m_VertexKeyHeld = !m_Navigating && !ImGui::GetIO().WantTextInput && ImGui::IsKeyDown(ImGuiKey_V)
+                && (hovered || m_GizmoDragging || m_VertexDragging);
             const RenderView view = BuildView(static_cast<float>(width) / static_cast<float>(height));
             renderer.SetViewOverride(view);
             ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, max.y - ImGui::GetTextLineHeight() - 6.0f),
                 IM_COL32(255, 255, 255, 160),
-                "W/E/R: move/rotate/scale  T: local/world  G: grid  RMB: look  WASD/QE: move  Wheel: speed");
+                "W/E/R: move/rotate/scale  T: local/world  G: grid  V(hold): vertex snap  Ctrl(hold): grid snap  "
+                "RMB: look  WASD/QE: move  Wheel: speed");
 
             if (selected && m_ShowBounds)
             {
                 DrawSelectionBounds(*selected, view, min, max);
             }
+            m_SnapPreview.reset();
             DrawGizmo(selected, view, min, max);
+            UpdateVertexHandle(selected, view, min, max, hovered);
+            DrawSnapOverlay(view, min, max);
 
             const bool overGizmo = selected && (ImGuizmo::IsOver() || ImGuizmo::IsUsing());
-            if (hovered && !m_Navigating && !overGizmo && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            const bool overVertexHandle = m_VertexDragging || m_HoverSourceVertex.has_value();
+            if (hovered && !m_Navigating && !overGizmo && !overVertexHandle && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 const ImVec2 mouse = ImGui::GetMousePos();
                 const float x = mouse.x - min.x;
@@ -179,7 +210,19 @@ void SceneViewPanel::DrawSelectionBounds(GameObject& selected, const RenderView&
     drawList->PopClipRect();
 }
 
-void SceneViewPanel::DrawGizmoToolbar()
+float SceneViewPanel::GetGizmoToolbarWidth()
+{
+    // Must match the buttons DrawGizmoToolbar draws.
+    const ImGuiStyle& style = ImGui::GetStyle();
+    float width = kLocalButtonWidth + kSnapButtonWidth;
+    for (const char* label : { "Move", "Rotate", "Scale", "Grid", "XZ", "XY", "ZY", "Outline", "Bounds" })
+    {
+        width += ImGui::CalcTextSize(label).x + style.FramePadding.x * 2.0f;
+    }
+    return width + style.ItemSpacing.x * 10.0f;
+}
+
+void SceneViewPanel::DrawGizmoToolbar(float scale)
 {
     const auto modeButton = [this](const char* label, GizmoOperation operation)
     {
@@ -192,7 +235,7 @@ void SceneViewPanel::DrawGizmoToolbar()
     modeButton("Move", GizmoOperation::Translate);
     modeButton("Rotate", GizmoOperation::Rotate);
     modeButton("Scale", GizmoOperation::Scale);
-    if (ImGui::Button(m_GizmoLocal ? "Local" : "World", ImVec2(52.0f, 0.0f)))
+    if (ImGui::Button(m_GizmoLocal ? "Local" : "World", ImVec2(kLocalButtonWidth * scale, 0.0f)))
     {
         m_GizmoLocal = !m_GizmoLocal;
     }
@@ -223,6 +266,57 @@ void SceneViewPanel::DrawGizmoToolbar()
     };
     toggleButton("Outline", m_ShowSelectionOutline);
     toggleButton("Bounds", m_ShowBounds);
+
+    ImGui::SameLine();
+    char label[48];
+    std::snprintf(label, sizeof(label), "Snap: %s%s##SnapSettings", GetSnapModeName(m_SnapMode), m_GridSnap ? "+Grid" : "");
+    const bool snapOn = m_SnapMode != SnapMode::Off || m_GridSnap;
+    if (snapOn) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+    if (ImGui::Button(label, ImVec2(kSnapButtonWidth * scale, 0.0f)))
+    {
+        // Opened after the toolbar pops its scaled font, so the popup keeps the normal size.
+        m_OpenSnapPopup = true;
+        m_SnapPopupPos = ImVec2(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + 2.0f);
+    }
+    if (snapOn) ImGui::PopStyleColor();
+}
+
+void SceneViewPanel::DrawSnapPopup()
+{
+    constexpr const char* kPopupId = "##SnapSettingsPopup";
+    if (m_OpenSnapPopup)
+    {
+        m_OpenSnapPopup = false;
+        ImGui::OpenPopup(kPopupId);
+        ImGui::SetNextWindowPos(m_SnapPopupPos);
+    }
+    if (!ImGui::BeginPopup(kPopupId))
+    {
+        return;
+    }
+
+    ImGui::SeparatorText("Surface snap (move)");
+    for (SnapMode mode : { SnapMode::Off, SnapMode::Vertex, SnapMode::Edge, SnapMode::Face })
+    {
+        if (mode != SnapMode::Off) ImGui::SameLine();
+        if (ImGui::RadioButton(GetSnapModeName(mode), m_SnapMode == mode)) m_SnapMode = mode;
+    }
+    ImGui::BeginDisabled(m_SnapMode != SnapMode::Face);
+    ImGui::Checkbox("Align up axis to surface normal", &m_AlignToSurface);
+    ImGui::EndDisabled();
+    ImGui::TextDisabled("Hold V for vertex snap in any mode.");
+    ImGui::TextDisabled("Vertex/Edge: drag from a vertex of the selection (white box)\nor drag the move gizmo to snap its pivot.");
+
+    ImGui::SeparatorText("Grid snap");
+    ImGui::Checkbox("Snap to grid", &m_GridSnap);
+    ImGui::SetNextItemWidth(120.0f);
+    ImGui::DragFloat("Cell size", &m_GridCellSize, 0.01f, 0.01f, 100.0f, "%.2f m", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetNextItemWidth(120.0f);
+    ImGui::DragFloat("Rotate step", &m_RotateSnap, 0.5f, 1.0f, 90.0f, "%.1f deg", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SetNextItemWidth(120.0f);
+    ImGui::DragFloat("Scale step", &m_ScaleSnap, 0.01f, 0.01f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::TextDisabled("Hold Ctrl to toggle grid snap while dragging.\nThe scene grid uses the same cell size.");
+    ImGui::EndPopup();
 }
 
 void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
@@ -243,6 +337,7 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
 {
     if (!selected)
     {
+        m_GizmoDragging = false;
         return;
     }
 
@@ -253,25 +348,86 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
     TransformComponent* transform = selected->GetTransform();
     Matrix4 world = transform->GetLocalToWorldMatrix();
 
+    const bool gridSnap = IsGridSnapActive();
     ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
-    float snapStep[3] = { 0.5f, 0.5f, 0.5f };
+    float snapStep[3] = { 0.0f, 0.0f, 0.0f };
+    const float* snap = nullptr; // translation snaps to the absolute world grid below, not relative to the drag start
     if (m_GizmoOperation == GizmoOperation::Rotate)
     {
         operation = ImGuizmo::ROTATE;
-        snapStep[0] = snapStep[1] = snapStep[2] = 15.0f;
+        snapStep[0] = snapStep[1] = snapStep[2] = m_RotateSnap;
+        snap = gridSnap ? snapStep : nullptr;
     }
     else if (m_GizmoOperation == GizmoOperation::Scale)
     {
         operation = ImGuizmo::SCALE;
-        snapStep[0] = snapStep[1] = snapStep[2] = 0.1f;
+        snapStep[0] = snapStep[1] = snapStep[2] = m_ScaleSnap;
+        snap = gridSnap ? snapStep : nullptr;
     }
     // Scale is always applied in the object's own axes.
     const ImGuizmo::MODE mode = (m_GizmoLocal || operation == ImGuizmo::SCALE) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
-    const bool snap = ImGui::GetIO().KeyCtrl;
 
     // Engine matrices are row-major with row vectors (translation in the last row), the layout ImGuizmo expects.
-    if (ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), operation, mode, world.Data(), nullptr,
-        snap ? snapStep : nullptr))
+    const bool changed = ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), operation, mode, world.Data(), nullptr, snap);
+    const bool dragging = ImGuizmo::IsUsing();
+    if (dragging && !m_GizmoDragging)
+    {
+        m_DragStartPosition = transform->GetWorldPosition();
+        m_DragStartRotation = transform->GetWorldRotation();
+    }
+    m_GizmoDragging = dragging;
+
+    if (m_GizmoOperation == GizmoOperation::Translate)
+    {
+        if (!dragging || m_VertexDragging)
+        {
+            return;
+        }
+        // ImGuizmo recomputes the dragged position from the mouse ray every frame, so overriding it here never accumulates.
+        Vector3 position = world.GetTranslation();
+        const SnapMode snapMode = GetEffectiveSnapMode();
+        std::optional<Quaternion> rotation;
+        if (m_AlignToSurface && snapMode == SnapMode::Face)
+        {
+            rotation = m_DragStartRotation;
+        }
+
+        std::optional<SnapTarget> target;
+        if (snapMode != SnapMode::Off && selected->GetScene())
+        {
+            target = m_Snapper.FindTarget(*selected->GetScene(), snapMode, MakeSnapQuery(view, min, max, selected));
+        }
+        if (target)
+        {
+            m_SnapPreview = target;
+            if (snapMode == SnapMode::Face)
+            {
+                if (rotation)
+                {
+                    rotation = SnapMath::RotationBetween(m_DragStartRotation.Rotate(Vector3::Up).Normalized(), target->normal)
+                        * m_DragStartRotation;
+                }
+                position = target->position
+                    + target->normal * SurfaceRestOffset(*selected, rotation.value_or(transform->GetWorldRotation()), target->normal);
+            }
+            else
+            {
+                position = target->position;
+            }
+        }
+        else if (gridSnap)
+        {
+            position = SnapMath::SnapMovedAxesToGrid(position, m_DragStartPosition, m_GridCellSize);
+        }
+        else if (!changed && !rotation)
+        {
+            return;
+        }
+        SetWorldPose(*transform, position, rotation ? &*rotation : nullptr);
+        return;
+    }
+
+    if (changed)
     {
         // The gizmo edits the world matrix; bring it back into the parent's space.
         Matrix4 local = world;
@@ -294,32 +450,238 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
     }
 }
 
+SnapMode SceneViewPanel::GetEffectiveSnapMode() const
+{
+    return m_VertexKeyHeld ? SnapMode::Vertex : m_SnapMode;
+}
+
+bool SceneViewPanel::IsGridSnapActive() const
+{
+    // Holding Ctrl flips the grid snap setting for the current drag.
+    return m_GridSnap != ImGui::GetIO().KeyCtrl;
+}
+
+SceneSnapper::Query SceneViewPanel::MakeSnapQuery(const RenderView& view, const ImVec2& min, const ImVec2& max,
+    const GameObject* exclude) const
+{
+    const ImVec2 mouse = ImGui::GetMousePos();
+    SceneSnapper::Query query;
+    query.viewProjection = view.view * view.projection;
+    query.rect = { min.x, min.y, max.x - min.x, max.y - min.y };
+    query.mouse = { mouse.x, mouse.y };
+    query.ray = SnapMath::ScreenRay(query.viewProjection, query.rect, mouse.x, mouse.y);
+    query.exclude = exclude;
+    return query;
+}
+
+float SceneViewPanel::SurfaceRestOffset(GameObject& target, const Quaternion& newRotation, const Vector3& normal) const
+{
+    // Distance from the pivot to the object's lowest point along the normal once it has the new rotation.
+    const TransformComponent* transform = target.GetTransform();
+    const Vector3 pivot = transform->GetWorldPosition();
+    const Quaternion delta = newRotation * transform->GetWorldRotation().Inverse();
+    std::vector<Vector3> points;
+    for (const ScenePicking::OrientedBox& box : ScenePicking::SelectionBounds(target))
+    {
+        for (int corner = 0; corner < 8; ++corner)
+        {
+            const Vector3 local{ (corner & 1) ? box.max.X : box.min.X, (corner & 2) ? box.max.Y : box.min.Y,
+                (corner & 4) ? box.max.Z : box.min.Z };
+            points.push_back(delta.Rotate(box.toWorld.TransformPoint(local) - pivot));
+        }
+    }
+    return -SnapMath::MinExtentAlong(points, Vector3{}, normal);
+}
+
+void SceneViewPanel::SetWorldPose(TransformComponent& transform, const Vector3& position, const Quaternion* rotation)
+{
+    const TransformComponent* parent = transform.GetParent();
+    const Matrix4 parentInverse = parent ? parent->GetLocalToWorldMatrix().Inverse() : Matrix4::Identity;
+    if (rotation)
+    {
+        DirectX::XMVECTOR scale, currentRotation, translation;
+        if (DirectX::XMMatrixDecompose(&scale, &currentRotation, &translation, transform.GetLocalToWorldMatrix().ToXM()))
+        {
+            const Matrix4 local = Matrix4::TRS(position, *rotation, Vector3::FromXM(scale)) * parentInverse;
+            DirectX::XMVECTOR localScale, localRotation, localTranslation;
+            if (DirectX::XMMatrixDecompose(&localScale, &localRotation, &localTranslation, local.ToXM()))
+            {
+                transform.SetRotation(Quaternion::FromXM(localRotation).Normalized());
+            }
+        }
+    }
+    transform.SetPosition(parentInverse.TransformPoint(position));
+}
+
+void SceneViewPanel::UpdateVertexHandle(GameObject* selected, const RenderView& view, const ImVec2& min, const ImVec2& max,
+    bool hovered)
+{
+    constexpr float kHandleRadius = 10.0f;
+    m_HoverSourceVertex.reset();
+    if (!selected || !selected->GetScene() || m_Navigating)
+    {
+        m_VertexDragging = false;
+        return;
+    }
+
+    if (m_VertexDragging)
+    {
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            m_VertexDragging = false;
+            return;
+        }
+        const SceneSnapper::Query query = MakeSnapQuery(view, min, max, selected);
+        Vector3 target;
+        if (const std::optional<SnapTarget> snapped = m_Snapper.FindTarget(*selected->GetScene(), m_VertexDragMode, query))
+        {
+            m_SnapPreview = snapped;
+            target = snapped->position;
+        }
+        else
+        {
+            // Nothing to snap to: the grabbed vertex follows the cursor on the camera-facing plane through it.
+            const Vector3 forward = GetRotation().Rotate(Vector3::Forward);
+            const float denominator = Vector3::Dot(query.ray.direction, forward);
+            if (std::abs(denominator) < 1e-5f)
+            {
+                return;
+            }
+            const float t = Vector3::Dot(m_VertexDragSource - query.ray.origin, forward) / denominator;
+            if (t <= 0.0f)
+            {
+                return;
+            }
+            target = query.ray.origin + query.ray.direction * t;
+        }
+        SetWorldPose(*selected->GetTransform(), m_VertexDragStartPosition + (target - m_VertexDragSource), nullptr);
+        m_HoverSourceVertex = target;
+        return;
+    }
+
+    const SnapMode mode = GetEffectiveSnapMode();
+    if ((mode != SnapMode::Vertex && mode != SnapMode::Edge) || !hovered || ImGuizmo::IsOver() || ImGuizmo::IsUsing())
+    {
+        return;
+    }
+    m_HoverSourceVertex = m_Snapper.FindNearestVertex(*selected, MakeSnapQuery(view, min, max, nullptr), kHandleRadius);
+    if (m_HoverSourceVertex && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        m_VertexDragging = true;
+        m_VertexDragMode = mode;
+        m_VertexDragSource = *m_HoverSourceVertex;
+        m_VertexDragStartPosition = selected->GetTransform()->GetWorldPosition();
+    }
+}
+
+void SceneViewPanel::DrawSnapOverlay(const RenderView& view, const ImVec2& min, const ImVec2& max)
+{
+    if (!m_SnapPreview && !m_HoverSourceVertex)
+    {
+        return;
+    }
+    const Matrix4 viewProjection = view.view * view.projection;
+    const SnapMath::ScreenRect rect{ min.x, min.y, max.x - min.x, max.y - min.y };
+    const auto toScreen = [&](const Vector3& world) -> std::optional<ImVec2>
+    {
+        if (const std::optional<Vector2> screen = SnapMath::WorldToScreen(viewProjection, rect, world))
+        {
+            return ImVec2(screen->X, screen->Y);
+        }
+        return std::nullopt;
+    };
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->PushClipRect(min, max, true);
+
+    if (m_SnapPreview)
+    {
+        ImU32 color = IM_COL32(80, 220, 255, 255);
+        if (m_SnapPreview->mode == SnapMode::Edge) color = IM_COL32(255, 210, 60, 255);
+        if (m_SnapPreview->mode == SnapMode::Face) color = IM_COL32(120, 255, 120, 255);
+
+        if (m_SnapPreview->hasEdge)
+        {
+            const std::optional<ImVec2> a = toScreen(m_SnapPreview->edgeA);
+            const std::optional<ImVec2> b = toScreen(m_SnapPreview->edgeB);
+            if (a && b)
+            {
+                drawList->AddLine(*a, *b, color, 3.0f);
+            }
+        }
+        if (const std::optional<ImVec2> point = toScreen(m_SnapPreview->position))
+        {
+            if (m_SnapPreview->mode == SnapMode::Face)
+            {
+                if (const std::optional<ImVec2> tip = toScreen(m_SnapPreview->position + m_SnapPreview->normal * 0.5f))
+                {
+                    drawList->AddLine(*point, *tip, color, 2.0f);
+                }
+                drawList->AddCircle(*point, 7.0f, color, 0, 2.0f);
+            }
+            else
+            {
+                drawList->AddCircleFilled(*point, 5.0f, color);
+                drawList->AddCircle(*point, 8.0f, IM_COL32(0, 0, 0, 200), 0, 1.5f);
+            }
+        }
+    }
+
+    if (m_HoverSourceVertex)
+    {
+        if (const std::optional<ImVec2> point = toScreen(*m_HoverSourceVertex))
+        {
+            constexpr float kHalf = 6.0f;
+            drawList->AddRect(ImVec2(point->x - kHalf, point->y - kHalf), ImVec2(point->x + kHalf, point->y + kHalf),
+                IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
+        }
+    }
+    drawList->PopClipRect();
+}
+
 SceneViewPanel::PlayRequest SceneViewPanel::DrawToolbar(Renderer& renderer, bool playing)
 {
     constexpr float kButtonWidth = 64.0f;
-    constexpr float kRightMargin = 6.0f;
+    constexpr float kMargin = 6.0f;
+    constexpr float kMinScale = 0.35f;
     const ImGuiStyle& style = ImGui::GetStyle();
-    const float toolbarWidth = kButtonWidth * 2.0f + style.ItemSpacing.x;
-    const float toolbarY = ImGui::GetCursorPosY() + style.FramePadding.y;
+    const ImVec2 framePadding = style.FramePadding;
+    const ImVec2 itemSpacing = style.ItemSpacing;
     const float contentWidth = ImGui::GetWindowContentRegionMax().x;
+    const float startX = ImGui::GetCursorPosX();
+    const float startY = ImGui::GetCursorPosY();
 
-    ImGui::SetCursorPos(ImVec2(contentWidth - m_RenderDebugMenu.GetButtonWidth() - kRightMargin, toolbarY));
-    m_RenderDebugMenu.Draw(renderer);
+    // Natural (unscaled) widths of the three groups: gizmo settings on the left, Play/Stop centred,
+    // render debug menu on the right. A narrow window shrinks every button by the same factor so the
+    // groups keep their left / centre / right placement on one row instead of overlapping.
+    const float gizmoWidth = playing ? 0.0f : GetGizmoToolbarWidth();
+    const float playWidth = kButtonWidth * 2.0f + itemSpacing.x;
+    const float debugWidth = m_RenderDebugMenu.GetButtonWidth();
+    const float sideWidth = kMargin + std::max(gizmoWidth, debugWidth) + itemSpacing.x * 2.0f;
+    const float scale = std::clamp(contentWidth / (sideWidth * 2.0f + playWidth), kMinScale, 1.0f);
+
+    const float margin = kMargin * scale;
+    const float toolbarY = startY + framePadding.y * scale;
+
+    ImGui::PushFont(nullptr, style.FontSizeBase * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(framePadding.x * scale, framePadding.y * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(itemSpacing.x * scale, itemSpacing.y * scale));
+    const float rowHeight = ImGui::GetFrameHeightWithSpacing();
 
     if (!playing)
     {
-        ImGui::SetCursorPos(ImVec2(kRightMargin, toolbarY));
-        DrawGizmoToolbar();
+        ImGui::SetCursorPos(ImVec2(margin, toolbarY));
+        DrawGizmoToolbar(scale);
     }
 
-    ImGui::SetCursorPos(ImVec2(std::max((contentWidth - toolbarWidth) * 0.5f, 0.0f), toolbarY));
-
     PlayRequest request = PlayRequest::None;
+    const float buttonWidth = kButtonWidth * scale;
+    ImGui::SetCursorPos(ImVec2(std::max((contentWidth - playWidth * scale) * 0.5f, 0.0f), toolbarY));
 
     ImGui::BeginDisabled(playing);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.45f, 0.25f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.6f, 0.3f, 1.0f));
-    if (ImGui::Button("Play", ImVec2(kButtonWidth, 0.0f)))
+    if (ImGui::Button("Play", ImVec2(buttonWidth, 0.0f)))
     {
         request = PlayRequest::Play;
     }
@@ -331,14 +693,22 @@ SceneViewPanel::PlayRequest SceneViewPanel::DrawToolbar(Renderer& renderer, bool
     ImGui::BeginDisabled(!playing);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.2f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.65f, 0.25f, 0.25f, 1.0f));
-    if (ImGui::Button("Stop", ImVec2(kButtonWidth, 0.0f)))
+    if (ImGui::Button("Stop", ImVec2(buttonWidth, 0.0f)))
     {
         request = PlayRequest::Stop;
     }
     ImGui::PopStyleColor(2);
     ImGui::EndDisabled();
 
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + style.FramePadding.y);
+    ImGui::PopStyleVar(2);
+    ImGui::PopFont();
+    DrawSnapPopup();
+
+    // The debug menu scales only its button; its popup keeps the normal size.
+    ImGui::SetCursorPos(ImVec2(std::max(contentWidth - debugWidth * scale - margin, 0.0f), toolbarY));
+    m_RenderDebugMenu.Draw(renderer, scale);
+
+    ImGui::SetCursorPos(ImVec2(startX, toolbarY + rowHeight + framePadding.y * scale));
     return request;
 }
 
@@ -356,6 +726,62 @@ void SceneViewPanel::FrameMainCamera(Scene* scene)
     m_Yaw = Math::ToDegrees(std::atan2(forward.X, forward.Z));
     m_Pitch = Math::ToDegrees(std::asin(std::clamp(-forward.Y, -1.0f, 1.0f)));
     m_FieldOfView = camera->GetFieldOfView();
+}
+
+void SceneViewPanel::FocusOn(GameObject& target)
+{
+    // World-space bounds of everything the selection outline covers (meshes in the subtree, or a proxy box).
+    Vector3 boundsMin{ FLT_MAX, FLT_MAX, FLT_MAX };
+    Vector3 boundsMax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    for (const ScenePicking::OrientedBox& box : ScenePicking::SelectionBounds(target))
+    {
+        for (int corner = 0; corner < 8; ++corner)
+        {
+            const Vector3 local{ (corner & 1) ? box.max.X : box.min.X, (corner & 2) ? box.max.Y : box.min.Y,
+                (corner & 4) ? box.max.Z : box.min.Z };
+            const Vector3 world = box.toWorld.TransformPoint(local);
+            boundsMin = { std::min(boundsMin.X, world.X), std::min(boundsMin.Y, world.Y), std::min(boundsMin.Z, world.Z) };
+            boundsMax = { std::max(boundsMax.X, world.X), std::max(boundsMax.Y, world.Y), std::max(boundsMax.Z, world.Z) };
+        }
+    }
+    if (boundsMin.X > boundsMax.X)
+    {
+        boundsMin = boundsMax = target.GetTransform()->GetWorldPosition();
+    }
+
+    const Vector3 center = (boundsMin + boundsMax) * 0.5f;
+    const float radius = std::max((boundsMax - boundsMin).Length() * 0.5f, kMinFocusRadius);
+    // Keep the current view direction and back off until the bounding sphere fits the vertical field of view.
+    const float distance = radius / std::sin(Math::ToRadians(m_FieldOfView) * 0.5f) * kFocusPadding;
+    const Vector3 forward = GetRotation().Rotate(Vector3::Forward);
+
+    m_FocusFrom = m_Position;
+    m_FocusTo = center - forward * distance;
+    m_FocusElapsed = 0.0f;
+    m_Focusing = true;
+}
+
+void SceneViewPanel::UpdateFocus(float deltaTime)
+{
+    if (!m_Focusing)
+    {
+        return;
+    }
+    // Flying the camera by hand takes over from the focus animation.
+    if (m_Navigating)
+    {
+        m_Focusing = false;
+        return;
+    }
+
+    m_FocusElapsed += deltaTime;
+    const float t = std::clamp(m_FocusElapsed / kFocusDuration, 0.0f, 1.0f);
+    const float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+    m_Position = m_FocusFrom + (m_FocusTo - m_FocusFrom) * eased;
+    if (t >= 1.0f)
+    {
+        m_Focusing = false;
+    }
 }
 
 void SceneViewPanel::UpdateCamera(bool hovered, float deltaTime)

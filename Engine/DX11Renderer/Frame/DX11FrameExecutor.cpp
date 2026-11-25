@@ -431,6 +431,7 @@ namespace Canape
             if ((GridPlaneMask & (1u << plane)) == 0) continue;
             SC::EditorGridConstants constants{};
             constants.Plane = plane;
+            constants.CellSize = GridCellSize;
             ConstantBuffers::Upload(*Context.Get(), EditorGridBuffer.Get(), constants);
             EditorGridPass::Execute(*Context.Get(), Pipelines, EditorGridBuffer.Get(), GetMainTargets(), stats);
         }

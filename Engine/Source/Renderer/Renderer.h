@@ -68,6 +68,8 @@ namespace Canape
         bool IsEditorGridEnabled() const;
         void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);
         bool IsEditorGridPlaneVisible(EditorGridPlane plane) const;
+        void SetEditorGridCellSize(float cellSize);
+        float GetEditorGridCellSize() const;
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;

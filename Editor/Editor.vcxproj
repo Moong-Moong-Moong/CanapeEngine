@@ -110,6 +110,8 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
     <ClInclude Include="Source\Panels\SceneViewPanel.h" />
     <ClInclude Include="Source\Panels\StateMachineInspector.h" />
+    <ClInclude Include="Source\Snapping\SceneSnapper.h" />
+    <ClInclude Include="Source\Snapping\SnapMath.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Assets\AssetRefactor.cpp" />
@@ -128,6 +130,8 @@ exit /b 0</Command>
     <ClCompile Include="Source\Panels\RenderDebugMenu.cpp" />
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp" />
     <ClCompile Include="Source\Panels\StateMachineInspector.cpp" />
+    <ClCompile Include="Source\Snapping\SceneSnapper.cpp" />
+    <ClCompile Include="Source\Snapping\SnapMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <!-- Every game source except the game's own entry point and application. -->

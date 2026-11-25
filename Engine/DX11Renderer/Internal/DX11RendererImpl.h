@@ -82,6 +82,7 @@ namespace Canape
         uint64_t PickResult = 0;
         bool EditorGridEnabled = false;
         uint8_t GridPlaneMask = 1u << static_cast<uint32_t>(EditorGridPlane::XZ);
+        float GridCellSize = 1.0f;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;

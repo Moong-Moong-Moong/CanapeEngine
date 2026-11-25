@@ -40,6 +40,9 @@
     <Filter Include="Source\Assets">
       <UniqueIdentifier>{5ACDCD49-05AA-423B-92CD-496783D27E93}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Snapping">
+      <UniqueIdentifier>{7B3E2F41-9C6D-4E8A-B1F2-3D5A6C7E8F90}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Assets\AssetRefactor.h">
@@ -86,6 +89,12 @@
     </ClInclude>
     <ClInclude Include="Source\Panels\StateMachineInspector.h">
       <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Snapping\SceneSnapper.h">
+      <Filter>Source\Snapping</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Snapping\SnapMath.h">
+      <Filter>Source\Snapping</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -223,6 +232,12 @@
     </ClCompile>
     <ClCompile Include="Source\Panels\StateMachineInspector.cpp">
       <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Snapping\SceneSnapper.cpp">
+      <Filter>Source\Snapping</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Snapping\SnapMath.cpp">
+      <Filter>Source\Snapping</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

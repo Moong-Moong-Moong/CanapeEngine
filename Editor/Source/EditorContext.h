@@ -15,6 +15,10 @@ public:
     void ClearSelection() { m_SelectedId = 0; }
     uint64_t GetSelectedId() const { return m_SelectedId; }
 
+    // Asks the scene view to move its camera in front of the object (hierarchy double-click).
+    void RequestFocus(uint64_t gameObjectId) { m_PendingFocusId = gameObjectId; }
+    uint64_t TakeFocusRequest() { return std::exchange(m_PendingFocusId, 0); }
+
     const std::filesystem::path& GetSelectedAsset() const { return m_SelectedAsset; }
     void SelectAsset(std::filesystem::path path);
 
@@ -26,6 +30,7 @@ public:
 
 private:
     uint64_t m_SelectedId = 0;
+    uint64_t m_PendingFocusId = 0;
     std::filesystem::path m_SelectedAsset;
     std::string m_ScenePath;
     std::string m_PendingOpenScene;
