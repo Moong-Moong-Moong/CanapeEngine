@@ -1,5 +1,6 @@
 #include "Panels/FileBrowserPanel.h"
 #include "EditorUtils.h"
+#include "Asset/Mesh/MeshSerializer.h"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -66,6 +67,26 @@ namespace
     {
         const fs::path extension = path.extension();
         return extension == ".h" || extension == ".hpp" || extension == ".cpp" || extension == ".inl";
+    }
+
+    bool IsMeshSourceFile(const fs::path& path)
+    {
+        std::string extension = EditorUtils::ToUtf8(path.extension());
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+            [](char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; });
+        return extension == ".gltf" || extension == ".fbx";
+    }
+
+    fs::path CnmeshPathFor(const fs::path& source)
+    {
+        fs::path stem = source.stem();
+        if (stem == "scene" && !source.parent_path().filename().empty())
+        {
+            stem = source.parent_path().filename();
+        }
+        fs::path target = source.parent_path() / stem;
+        target += Canape::MeshSerializer::StaticExtension;
+        return target;
     }
 
     // "Source" or "Source/..." relative to the game folder, or empty when the folder is outside Game/Source.
@@ -205,6 +226,19 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             {
                 m_DeleteSource = entry.path.parent_path() / entry.path.stem();
                 m_OpenDeleteSource = true;
+            }
+            ImGui::EndPopup();
+        }
+
+        if (!entry.directory && IsMeshSourceFile(entry.path) && ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem("Convert to .cnmesh"))
+            {
+                const std::string source = EditorUtils::ToGameRelativePath(entry.path);
+                const std::string target = EditorUtils::ToGameRelativePath(CnmeshPathFor(entry.path));
+                m_Message = Canape::Application::Get().GetAssetManager().ExportMesh(source, target)
+                    ? "Converted " + source + " -> " + target
+                    : "Failed to convert " + source + " (see log)";
             }
             ImGui::EndPopup();
         }

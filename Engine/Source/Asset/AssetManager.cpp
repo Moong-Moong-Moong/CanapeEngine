@@ -1,6 +1,7 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
+#include "Asset/Mesh/MeshSerializer.h"
 #include "Asset/Importer/glTF/CNglTFImporter.h"
 #include "Asset/Mesh/PrimitiveMeshes.h"
 #include "Asset/Texture/CubemapImporter.h"
@@ -342,6 +343,7 @@ namespace Canape
 			MeshAssetId skinId = FindMesh(skinKey);
 			if (!skinId.IsValid())
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				std::unique_ptr<MeshAsset> mesh;
@@ -384,6 +386,7 @@ namespace Canape
 			MeshAssetId nodeId = FindMesh(nodeKey);
 			if (!nodeId.IsValid())
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				std::unique_ptr<MeshAsset> mesh;
@@ -434,6 +437,32 @@ namespace Canape
 		return FindAsset(m_MeshesById, handle);
 	}
 
+	bool AssetManager::ExportMesh(const std::string& sourcePath, const std::string& targetPath)
+	{
+		if (!MeshSerializer::IsStaticMeshPath(targetPath) && !MeshSerializer::IsSkinnedMeshPath(targetPath))
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 내보내기 실패 : 대상 확장자는 ", MeshSerializer::StaticExtension, " 또는 ",
+				MeshSerializer::SkinnedExtension, " 이어야 함, ", targetPath);
+			return false;
+		}
+
+		const MeshAssetHandle handle = GetMeshHandle(sourcePath, { "", "Console", "mesh.export" });
+		const MeshAsset* mesh = GetMesh(handle);
+		if (!mesh)
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 내보내기 실패 : 원본 메쉬를 불러올 수 없음, ", sourcePath);
+			return false;
+		}
+
+		const std::filesystem::path file = GetAssetFile(targetPath);
+		if (!MeshSerializer::Save(*mesh, ToUtf8(file.generic_u8string())))
+		{
+			return false;
+		}
+		CN_LOG_RUNTIME("Asset", "메쉬 내보내기 : ", sourcePath, " -> ", ToAssetPath(ToUtf8(file.generic_u8string())));
+		return true;
+	}
+
 	MeshAssetId AssetManager::FindMesh(const std::string& pathKey) const
 	{
 		return FindAssetId(m_MeshIdByPath, pathKey);
@@ -453,13 +482,20 @@ namespace Canape
 		else
 		{
 			const std::string extension = GetLowerExtension(filePath);
-			if (extension == ".fbx")
+			if (extension == MeshSerializer::StaticExtension || extension == MeshSerializer::SkinnedExtension)
 			{
+				mesh = MeshSerializer::Load(filePath);
+			}
+
+			else if (extension == ".fbx")
+			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (FBX 런타임 로드) : ", path);
 				mesh = FbxImporter::LoadMesh(filePath);
 			}
 
 			else if (extension == ".gltf")
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				if (glTFImporter.ReadglTF(filePath, cnglTF))

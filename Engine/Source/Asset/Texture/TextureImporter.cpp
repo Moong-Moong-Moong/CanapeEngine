@@ -53,12 +53,16 @@ namespace Canape
 		// WIC CopyPixels uses 32-bit row pitch and total byte count.
 		if (width == 0 || height == 0 || uint64_t(width) * height > UINT32_MAX / 4)
 			return fail("Validate image size", E_INVALIDARG);
+
 		ComPtr<IWICFormatConverter> converter;
 		result = factory->CreateFormatConverter(&converter);
 		if (FAILED(result)) return fail("Create RGBA converter", result);
 		result = converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone,
 			nullptr, 0.0, WICBitmapPaletteTypeCustom);
 		if (FAILED(result)) return fail("Convert image to RGBA8", result);
+
+
+
 		std::vector<uint8_t> pixels(size_t(width) * height * 4);
 		result = converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data());
 		if (FAILED(result)) return fail("Copy image pixels", result);

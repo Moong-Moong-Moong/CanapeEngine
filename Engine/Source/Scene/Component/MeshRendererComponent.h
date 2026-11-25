@@ -42,6 +42,9 @@ namespace Canape
 		const std::vector<std::string>& GetMaterialNames() const { return m_MaterialNames; }
 		void SetMaterialNames(const std::vector<std::string>& names);
 
+	protected:
+		virtual bool AcceptsSkinnedMesh() const { return false; }
+
 	private:
 		void LoadDefaultMaterials();
 

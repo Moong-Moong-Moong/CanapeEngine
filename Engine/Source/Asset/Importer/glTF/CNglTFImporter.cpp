@@ -14,6 +14,8 @@
 #include "Scene/Component/SkinnedMeshRendererComponent.h"
 #include "Scene/Component/AnimatorComponent.h"
 #include "Scene/Serialization/SceneSerializer.h"
+#include "Asset/Mesh/MeshSerializer.h"
+#include "CNDebug/DebugLog.h"
 
 using namespace rapidjson;
 
@@ -1150,6 +1152,42 @@ namespace Canape
 				return ToUtf8(gltf.parent_path().filename().u8string());
 			return stem;
 		}
+
+		std::string SanitizeFileName(const std::string& name)
+		{
+			std::string result;
+			result.reserve(name.size());
+			for (const char c : name)
+			{
+				const bool invalid = static_cast<unsigned char>(c) < 0x20 || std::strchr("<>:\"/\\|?* ", c) != nullptr;
+				result += invalid ? '_' : c;
+			}
+			return result.empty() ? std::string("Mesh") : result;
+		}
+
+		std::string UniqueStem(const std::string& stem, std::vector<std::string>& used)
+		{
+			const auto lower = [](std::string text)
+			{
+				std::transform(text.begin(), text.end(), text.begin(),
+					[](char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; });
+				return text;
+			};
+			std::string candidate = stem;
+			for (int suffix = 1; std::find(used.begin(), used.end(), lower(candidate)) != used.end(); ++suffix)
+				candidate = stem + "_" + std::to_string(suffix);
+			used.push_back(lower(candidate));
+			return candidate;
+		}
+
+		std::string SaveMeshFile(const MeshAsset& mesh, const std::filesystem::path& targetDir, const std::string& stem)
+		{
+			AssetManager::WriteDefaultMaterialFiles(mesh);
+			const std::string file = ToUtf8((targetDir / ToPath(stem + MeshSerializer::ExtensionFor(mesh))).generic_u8string());
+			if (!MeshSerializer::Save(mesh, file))
+				return {};
+			return AssetManager::ToAssetPath(file);
+		}
 	}
 
 	std::string CNglTFImporter::CopyGltfFiles(const std::string& gltfPath, const std::string& targetDir)
@@ -1205,8 +1243,8 @@ namespace Canape
 			return false;
 
 		Value& doc = cNglTF.m_doc;
-		const std::string assetPath = AssetManager::ToAssetPath(copiedPath);
 		const std::string modelName = ModelNameOf(ToPath(gltfPath));
+		std::vector<std::string> usedStems;
 
 		Scene scene(modelName);
 		std::vector<GameObject*> nodeObjects;
@@ -1253,8 +1291,19 @@ namespace Canape
 			GameObject* meshObject = scene.GetGameObject(scene.AddGameObject(skinName));
 			meshObject->GetTransform()->SetParent(top->GetTransform());
 
+			const std::unique_ptr<MeshAsset> skinMesh = LoadSkinnedMeshAsset(cNglTF, i);
+			if (!skinMesh || skinMesh->GetVertexFormat() != VertexFormat::Skinned)
+			{
+				CN_LOG_RUNTIME("Import", "스킨 메쉬 변환 실패 : ", skinName);
+				return false;
+			}
+			const std::string skinMeshPath = SaveMeshFile(*skinMesh, target,
+				UniqueStem(SanitizeFileName(modelName + "_" + skinName), usedStems));
+			if (skinMeshPath.empty())
+				return false;
+
 			SkinnedMeshRendererComponent* renderer = meshObject->AddComponent<SkinnedMeshRendererComponent>();
-			renderer->SetMesh(assetPath + "#skin" + std::to_string(i));
+			renderer->SetMesh(skinMeshPath);
 			renderer->SetSkeleton(skeletonRoot);
 		}
 
@@ -1263,8 +1312,19 @@ namespace Canape
 		{
 			if (!nodeObjects[i] || !nodes[i].HasMember("mesh") || nodes[i].HasMember("skin"))
 				continue;
+			const std::unique_ptr<MeshAsset> nodeMesh = LoadNodeMeshAsset(cNglTF, i);
+			if (!nodeMesh)
+			{
+				CN_LOG_RUNTIME("Import", "노드 메쉬가 비어 있어 건너뜀 : ", nodeObjects[i]->GetName());
+				continue;
+			}
+			const std::string nodeName = nodes[i].HasMember("name") ? nodes[i]["name"].GetString() : "Node_" + std::to_string(i);
+			const std::string nodeMeshPath = SaveMeshFile(*nodeMesh, target,
+				UniqueStem(SanitizeFileName(modelName + "_" + nodeName), usedStems));
+			if (nodeMeshPath.empty())
+				return false;
 			MeshRendererComponent* renderer = nodeObjects[i]->AddComponent<MeshRendererComponent>();
-			renderer->SetMesh(assetPath + "#node" + std::to_string(i));
+			renderer->SetMesh(nodeMeshPath);
 		}
 
 		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_SkeletonModel.prefab")).generic_u8string()));
@@ -1277,11 +1337,25 @@ namespace Canape
 		if (copiedPath.empty())
 			return false;
 
+		CNglTF cNglTF;
+		if (!ReadglTF(copiedPath, cNglTF))
+			return false;
+		const std::unique_ptr<MeshAsset> mesh = LoadMeshAsset(cNglTF);
+		if (!mesh || mesh->GetVertexCount() == 0)
+		{
+			CN_LOG_RUNTIME("Import", "정적 모델에 메쉬가 없음 : ", gltfPath);
+			return false;
+		}
+
 		const std::string modelName = ModelNameOf(ToPath(gltfPath));
+		const std::string meshPath = SaveMeshFile(*mesh, target, SanitizeFileName(modelName));
+		if (meshPath.empty())
+			return false;
+
 		Scene scene(modelName);
 		GameObject* top = scene.GetGameObject(scene.AddGameObject(modelName));
 		MeshRendererComponent* renderer = top->AddComponent<MeshRendererComponent>();
-		renderer->SetMesh(AssetManager::ToAssetPath(copiedPath));
+		renderer->SetMesh(meshPath);
 
 		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_StaticModel.prefab")).generic_u8string()));
 	}

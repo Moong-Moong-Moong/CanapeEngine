@@ -137,6 +137,14 @@ bool EditorApp::RunCommandLineImports()
             logFile = argv[++i];
             continue;
         }
+        if (arg == L"--exec" && i + 1 < argc)
+        {
+            const std::string line = EditorUtils::ToUtf8(std::filesystem::path(argv[++i]));
+            any = true;
+            GetCommands().Execute(line);
+            log += "exec: " + line + "\n";
+            continue;
+        }
         if (arg != L"--import-gltf" || i + 2 >= argc)
         {
             continue;
@@ -150,7 +158,7 @@ bool EditorApp::RunCommandLineImports()
         }
         GltfImportWindow::Options options;
         while (i + 1 < argc && std::wstring(argv[i + 1]).rfind(L"--", 0) == 0 && std::wstring(argv[i + 1]) != L"--import-gltf"
-            && std::wstring(argv[i + 1]) != L"--import-log")
+            && std::wstring(argv[i + 1]) != L"--import-log" && std::wstring(argv[i + 1]) != L"--exec")
         {
             const std::wstring flag = argv[++i];
             if (flag == L"--static") options.staticModel = true;

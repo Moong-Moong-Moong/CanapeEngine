@@ -87,6 +87,7 @@
     <ClInclude Include="Source\Asset\Importer\glTF\CNglTFImporter.h" />
     <ClInclude Include="Source\Asset\Material\MaterialData.h" />
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h" />
+    <ClInclude Include="Source\Asset\Mesh\MeshSerializer.h" />
     <ClInclude Include="Source\Asset\Mesh\FbxImporter.h" />
     <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h" />
     <ClInclude Include="Source\Asset\Material\MaterialAsset.h" />
@@ -188,6 +189,7 @@
     <ClCompile Include="Source\Scene\Component\AnimatorComponent.cpp" />
     <ClCompile Include="Source\Scene\Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp" />
+    <ClCompile Include="Source\Asset\Mesh\MeshSerializer.cpp" />
     <ClCompile Include="Source\Asset\Mesh\FbxImporter.cpp" />
     <ClCompile Include="Source\Asset\Mesh\PrimitiveMeshes.cpp" />
     <ClCompile Include="Source\Asset\Texture\TextureImporter.cpp" />
