@@ -29,6 +29,8 @@ namespace Canape
 	class GameObject;
 	class Scene;
 
+	// 잘못된 glTF 데이터는 assert나 범위 밖 읽기 대신 CNDebug("Import")에 원인을 출력하고,
+	// 각 함수가 실패 값(false / nullptr / 빈 목록)을 돌려준다.
 	class CNglTFImporter
 	{
 	public:
@@ -60,9 +62,12 @@ namespace Canape
 			std::vector<uint32_t>& indices,
 			std::vector<SubMesh>& subMeshes,
 			bool includeNodeTransform = true, // false면 노드 자신의 TRS를 적용하지 않는다(노드 로컬 공간)
-			bool recurse = true               // false면 자식 노드로 내려가지 않는다
+			bool recurse = true,              // false면 자식 노드로 내려가지 않는다
+			size_t materialCount = 0,         // primitive.material 범위 검사용 머터리얼 슬롯 개수
+			uint32_t depth = 0                // 노드 계층 순환 검사용 재귀 깊이
 		);
 
 	};
-	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out);
+	// 잘못된 노드 인덱스나 계층 순환이 있으면 std::runtime_error를 던진다(호출하는 임포터 함수가 잡아서 로그로 출력).
+	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out, uint32_t depth = 0);
 }
