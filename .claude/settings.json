@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "understand-anything": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Egonex-AI/Understand-Anything.git"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "understand-anything@understand-anything": true
+  }
+}
