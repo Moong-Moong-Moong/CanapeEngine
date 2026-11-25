@@ -9,6 +9,7 @@
 #include "Scene/GameObject/GameObject.h"
 #include "Scene/Scene.h"
 #include "UI/UICanvasComponent.h"
+#include "UI/UIButton.h"
 #include "UI/UIImage.h"
 #include "UI/UIText.h"
 
@@ -31,6 +32,7 @@ RTTR_REGISTRATION
         .property("pointLevel", &RenderingBenchmarkController::m_PointLevel)
         .property("drawLevel", &RenderingBenchmarkController::m_DrawLevel)
         .property("polygonLevel", &RenderingBenchmarkController::m_PolygonLevel)
+        .property("polygonInstanceLevel", &RenderingBenchmarkController::m_PolygonInstanceLevel)
         .property("submeshLevel", &RenderingBenchmarkController::m_SubmeshLevel)
         .property("pointRange", &RenderingBenchmarkController::m_PointRange)
         .property("pointIntensity", &RenderingBenchmarkController::m_PointIntensity)
@@ -40,8 +42,9 @@ RTTR_REGISTRATION
 namespace
 {
     constexpr std::array<int, 10> kPointCounts{ 0, 4, 8, 16, 24, 32, 40, 48, 56, 64 };
-    constexpr std::array<int, 5> kDrawCounts{ 100, 500, 1000, 2000, 5000 };
+    constexpr std::array<int, 9> kInstanceCounts{ 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000 };
     constexpr std::array<int, 4> kSubmeshCounts{ 1, 2, 4, 8 };
+    constexpr std::array<int, 4> kPolygonTriangles{ 1024, 10000, 50000, 100000 };
     constexpr std::array<const char*, 4> kCubeMeshes{
         "Builtin/Cube",
         "Content/Models/RenderingBenchmark/CubeSplit2.gltf",
@@ -67,10 +70,39 @@ namespace
         }
         return "Unknown";
     }
+
+    UIText* AddLabel(UIElement& parent, const std::string& name, const std::string& text,
+        const Vector2& position, const Vector2& size, float fontSize = 16.0f)
+    {
+        auto* label = parent.AddChild<UIText>(name);
+        label->SetPosition(position);
+        label->SetSize(size);
+        label->SetFontSize(fontSize);
+        label->SetText(text);
+        label->SetVerticalAlign(UITextAlign::Center);
+        return label;
+    }
+
+    UIButton* AddButton(UIElement& parent, const std::string& name, const std::string& text,
+        const Vector2& position, const Vector2& size, std::function<void()> onClicked)
+    {
+        auto* button = parent.AddChild<UIButton>(name);
+        button->SetPosition(position);
+        button->SetSize(size);
+        button->SetColor({ 46, 61, 82, 255 });
+        button->OnClicked = std::move(onClicked);
+        auto* label = AddLabel(*button, name + "Label", text, {}, size);
+        label->SetHorizontalAlign(UITextAlign::Center);
+        return button;
+    }
 }
 
 void RenderingBenchmarkController::Start()
 {
+    InputManager& input = Application::Get().GetInputManager();
+    m_PreviousCursorRequested = input.IsCursorRequested();
+    input.SetCursorRequested(true);
+
     Renderer& renderer = Application::Get().GetRenderer();
     m_PreviousGpuTimingCapture = renderer.GetDebugSettings().captureGpuTimings;
     renderer.SetGpuTimingCapture(true);
@@ -99,16 +131,138 @@ void RenderingBenchmarkController::Start()
     UIElement& root = m_HudCanvas->GetRoot();
     auto* background = root.AddChild<UIImage>("BenchmarkBackground");
     background->SetPosition({ 12.0f, 12.0f });
-    background->SetSize({ 600.0f, 217.0f });
+    background->SetSize({ 804.0f, 252.0f });
     background->SetColor({ 8, 12, 18, 205 });
     m_HudText = root.AddChild<UIText>("BenchmarkStats");
     m_HudText->SetPosition({ 22.0f, 16.0f });
-    m_HudText->SetSize({ 580.0f, 210.0f });
-    m_HudText->SetFontSize(17.0f);
+    m_HudText->SetSize({ 784.0f, 240.0f });
+    m_HudText->SetFontSize(16.0f);
     m_HudText->SetText("Building benchmark...");
 
+    BuildControls();
     ApplySettings();
+    for (auto& refresh : m_ControlRefreshers) refresh();
     RefreshHud(0.0f);
+}
+
+void RenderingBenchmarkController::BuildControls()
+{
+    UIElement& root = m_HudCanvas->GetRoot();
+    auto* panel = root.AddChild<UIImage>("BenchmarkControls");
+    panel->SetAnchor({ 1.0f, 0.0f });
+    panel->SetPivot({ 1.0f, 0.0f });
+    panel->SetPosition({ -12.0f, 12.0f });
+    panel->SetSize({ 420.0f, 656.0f });
+    panel->SetColor({ 8, 12, 18, 235 });
+    panel->SetHitTestable(true);
+    AddLabel(*panel, "ControlsTitle", "STRESS TEST", { 16.0f, 12.0f }, { 388.0f, 28.0f }, 20.0f);
+
+    const std::array<Mode, 3> modes{ Mode::PointLights, Mode::DrawCalls, Mode::Polygons };
+    const std::array<const char*, 3> names{ "Light", "Draw Call", "Mesh" };
+    for (size_t i = 0; i < modes.size(); ++i)
+    {
+        const Mode mode = modes[i];
+        auto* button = AddButton(*panel, std::format("Mode{}", i), names[i],
+            { 16.0f + static_cast<float>(i) * 132.0f, 48.0f }, { 124.0f, 34.0f },
+            [this, mode] { m_Mode = mode; });
+        m_ControlRefreshers.push_back([this, button, mode, shown = -1]() mutable
+        {
+            const int selected = m_Mode == mode ? 1 : 0;
+            if (shown == selected) return;
+            shown = selected;
+            button->SetColor(selected ? UIColor{ 40, 121, 166, 255 } : UIColor{ 46, 61, 82, 255 });
+        });
+    }
+
+    // Bind directly to the same fields used by Inspector and keyboard controls.
+    // Only changed values rebuild text, keeping idle control updates inexpensive.
+    const auto addLevel = [this, panel](const char* name, const char* title, float y,
+        std::function<int&()> getLevel, std::vector<int> presets)
+    {
+        auto* label = AddLabel(*panel, std::string(name) + "Value", "", { 16.0f, y }, { 292.0f, 34.0f });
+        auto* minus = AddButton(*panel, std::string(name) + "Minus", "-", { 316.0f, y }, { 40.0f, 34.0f },
+            [getLevel] { --getLevel(); });
+        auto* plus = AddButton(*panel, std::string(name) + "Plus", "+", { 364.0f, y }, { 40.0f, 34.0f },
+            [getLevel] { ++getLevel(); });
+        m_ControlRefreshers.push_back([getLevel, presets = std::move(presets), title,
+            label, minus, plus, shown = -1]() mutable
+        {
+            if (shown == getLevel()) return;
+            shown = getLevel();
+            label->SetText(std::format("{}: {} (L{})", title, presets[shown], shown));
+            minus->SetInteractable(shown > 0);
+            plus->SetInteractable(shown + 1 < static_cast<int>(presets.size()));
+        });
+    };
+    addLevel("PointLevel", "Point lights", 100.0f, [this]() -> int& { return m_PointLevel; },
+        { kPointCounts.begin(), kPointCounts.end() });
+    addLevel("DrawLevel", "Mesh instances", 144.0f,
+        [this]() -> int& { return m_Mode == Mode::Polygons ? m_PolygonInstanceLevel : m_DrawLevel; },
+        { kInstanceCounts.begin(), kInstanceCounts.end() });
+    addLevel("SubmeshLevel", "Submeshes / mesh", 188.0f, [this]() -> int& { return m_SubmeshLevel; },
+        { kSubmeshCounts.begin(), kSubmeshCounts.end() });
+    addLevel("PolygonLevel", "Triangles / mesh", 232.0f, [this]() -> int& { return m_PolygonLevel; },
+        { kPolygonTriangles.begin(), kPolygonTriangles.end() });
+
+    const auto addFloat = [this, panel](const char* name, const char* title, float y,
+        float& value, float minimum, float maximum)
+    {
+        auto* label = AddLabel(*panel, std::string(name) + "Value", "", { 16.0f, y }, { 388.0f, 26.0f });
+        const std::array<float, 4> steps{ -1.0f, -0.1f, 0.1f, 1.0f };
+        std::array<UIButton*, 4> buttons{};
+        for (size_t i = 0; i < steps.size(); ++i)
+        {
+            const float step = steps[i];
+            buttons[i] = AddButton(*panel, std::format("{}Step{}", name, i), std::format("{:+.1f}", step),
+                { 16.0f + static_cast<float>(i) * 100.0f, y + 28.0f }, { 88.0f, 30.0f },
+                [target = &value, step, minimum, maximum]
+                { *target = std::clamp(*target + step, minimum, maximum); });
+        }
+        m_ControlRefreshers.push_back([target = &value, title, label, buttons, minimum, maximum,
+            shown = -1.0f]() mutable
+        {
+            if (shown == *target) return;
+            shown = *target;
+            label->SetText(std::format("{}: {:.2f}  [{:.1f} - {:.1f}]", title, shown, minimum, maximum));
+            buttons[0]->SetInteractable(shown > minimum);
+            buttons[1]->SetInteractable(shown > minimum);
+            buttons[2]->SetInteractable(shown < maximum);
+            buttons[3]->SetInteractable(shown < maximum);
+        });
+    };
+    addFloat("PointRange", "Light range", 284.0f, m_PointRange, 0.1f, 30.0f);
+    addFloat("PointIntensity", "Light intensity", 354.0f, m_PointIntensity, 0.0f, 20.0f);
+
+    auto* layout = AddButton(*panel, "PointLayout", "", { 16.0f, 430.0f }, { 388.0f, 34.0f },
+        [this] { m_Concentrated = !m_Concentrated; });
+    auto* layoutLabel = layout->Find<UIText>("PointLayoutLabel");
+    m_ControlRefreshers.push_back([this, layoutLabel, shown = -1]() mutable
+    {
+        const int concentrated = m_Concentrated ? 1 : 0;
+        if (shown == concentrated) return;
+        shown = concentrated;
+        layoutLabel->SetText(m_Concentrated ? "Light layout: Concentrated" : "Light layout: Distributed");
+    });
+
+    auto* shadow = AddButton(*panel, "SunShadow", "", { 16.0f, 476.0f }, { 388.0f, 34.0f },
+        [this] { if (m_Sun) m_Sun->SetCastShadow(!m_Sun->GetCastShadow()); });
+    shadow->SetInteractable(m_Sun != nullptr);
+    auto* shadowLabel = shadow->Find<UIText>("SunShadowLabel");
+    m_ControlRefreshers.push_back([this, shadowLabel, shown = -1]() mutable
+    {
+        const int enabled = m_Sun && m_Sun->GetCastShadow() ? 1 : 0;
+        if (shown == enabled) return;
+        shown = enabled;
+        shadowLabel->SetText(!m_Sun ? "Directional shadows: unavailable"
+            : enabled ? "Directional shadows: ON" : "Directional shadows: OFF");
+    });
+
+    auto* help = AddLabel(*panel, "ControlsHelp",
+        "Draw Call: instances + submeshes.\nMesh: instances + triangles (up to 100k instances).\nF1/F2/F3: mode. Mesh Up/Down: instance count.",
+        { 16.0f, 524.0f }, { 388.0f, 72.0f }, 14.0f);
+    help->SetWrap(true);
+    AddButton(*panel, "HideBenchmarkUI", "Hide all UI (H to restore)", { 16.0f, 606.0f }, { 388.0f, 34.0f },
+        [this] { m_HudVisible = false; m_HudCanvas->SetEnabled(false); });
 }
 
 void RenderingBenchmarkController::HandleInput()
@@ -126,6 +280,11 @@ void RenderingBenchmarkController::HandleInput()
         if (input.IsKeyPressed(Key::Up)) ++m_SubmeshLevel;
         if (input.IsKeyPressed(Key::Down)) --m_SubmeshLevel;
     }
+    else if (m_Mode == Mode::Polygons)
+    {
+        if (input.IsKeyPressed(Key::Up)) ++m_PolygonInstanceLevel;
+        if (input.IsKeyPressed(Key::Down)) --m_PolygonInstanceLevel;
+    }
     if (input.IsKeyPressed(Key::L)) m_Concentrated = !m_Concentrated;
     if (input.IsKeyPressed(Key::H))
     {
@@ -138,11 +297,19 @@ void RenderingBenchmarkController::Update()
 {
     HandleInput();
     ApplySettings();
+    if (m_HudVisible)
+    {
+        // Fit the smaller axis using the last rendered viewport, including Editor Scene View.
+        const UIRect& viewport = m_HudCanvas->GetRoot().GetLayoutRect();
+        m_HudCanvas->SetMatchWidthOrHeight(viewport.Width / 1280.0f < viewport.Height / 720.0f ? 0.0f : 1.0f);
+        for (auto& refresh : m_ControlRefreshers) refresh();
+    }
     RefreshHud(Time::UnscaledDeltaTime());
 }
 
 void RenderingBenchmarkController::OnDestroy()
 {
+    Application::Get().GetInputManager().SetCursorRequested(m_PreviousCursorRequested);
     ClearGenerated();
     if (m_Sun)
     {
@@ -249,7 +416,7 @@ void RenderingBenchmarkController::SyncPointLights()
 void RenderingBenchmarkController::BuildDrawCalls()
 {
     const char* path = kCubeMeshes[m_SubmeshLevel];
-    m_TargetMeshCount = static_cast<uint32_t>(kDrawCounts[m_DrawLevel]);
+    m_TargetMeshCount = static_cast<uint32_t>(kInstanceCounts[m_DrawLevel]);
     AssetManager& assets = Application::Get().GetAssetManager();
     const MeshAssetHandle meshHandle = assets.GetMeshHandle(path,
         { "StressTest", "Benchmark Controller", "RenderingBenchmarkController" });
@@ -261,14 +428,22 @@ void RenderingBenchmarkController::BuildDrawCalls()
         return;
     }
     m_TrianglesPerMesh = mesh->GetIndexCount() / 3;
+    // Preserve the original grid through 5k. Subdivide it for larger populations;
+    // simply extending the old modulo-5000 loop would stack identical cubes.
+    const uint32_t factor = static_cast<uint32_t>(std::ceil(std::sqrt(
+        std::max(1.0f, static_cast<float>(m_TargetMeshCount) / 5000.0f))));
+    const uint32_t columns = 100u * factor;
+    const uint32_t rows = 50u * factor;
+    const float spacing = 0.22f / static_cast<float>(factor);
+    const float scale = 0.14f / static_cast<float>(factor);
+    m_Meshes.reserve(m_TargetMeshCount);
     for (uint32_t i = 0; i < m_TargetMeshCount; ++i)
     {
-        // Multiplication by a value coprime to 5000 spreads each prefix over the same fixed grid.
-        const uint32_t cell = (i * 1973u) % 5000u;
-        const float x = (static_cast<float>(cell % 100u) - 49.5f) * 0.22f;
-        const float y = (static_cast<float>(cell / 100u) - 24.5f) * 0.22f;
+        const uint32_t cell = (i * 1973u) % (columns * rows);
+        const float x = (static_cast<float>(cell % columns) - (static_cast<float>(columns) - 1.0f) * 0.5f) * spacing;
+        const float y = (static_cast<float>(cell / columns) - (static_cast<float>(rows) - 1.0f) * 0.5f) * spacing;
         GameObject* object = AddMesh(std::format("Benchmark Cube {}", i), path, kObjectMaterial,
-            CameraPlane(x, y, 22.0f), { 0.14f, 0.14f, 0.14f });
+            CameraPlane(x, y, 22.0f), { scale, scale, scale });
         if (!object) break;
     }
 }
@@ -276,7 +451,7 @@ void RenderingBenchmarkController::BuildDrawCalls()
 void RenderingBenchmarkController::BuildPolygons()
 {
     const char* path = kSphereMeshes[m_PolygonLevel];
-    m_TargetMeshCount = 100;
+    m_TargetMeshCount = static_cast<uint32_t>(kInstanceCounts[m_PolygonInstanceLevel]);
     AssetManager& assets = Application::Get().GetAssetManager();
     const MeshAssetHandle meshHandle = assets.GetMeshHandle(path,
         { "StressTest", "Benchmark Controller", "RenderingBenchmarkController" });
@@ -287,12 +462,20 @@ void RenderingBenchmarkController::BuildPolygons()
         return;
     }
     m_TrianglesPerMesh = mesh->GetIndexCount() / 3;
-    for (int i = 0; i < 100; ++i)
+    const uint32_t factor = static_cast<uint32_t>(std::ceil(std::sqrt(
+        static_cast<float>(m_TargetMeshCount) / 100.0f)));
+    const uint32_t columns = 10u * factor;
+    const float spacing = 1.75f / static_cast<float>(factor);
+    const float scale = 1.0f / static_cast<float>(factor);
+    m_Meshes.reserve(m_TargetMeshCount);
+    for (uint32_t i = 0; i < m_TargetMeshCount; ++i)
     {
-        const float x = (static_cast<float>(i % 10) - 4.5f) * 1.75f;
-        const float y = (static_cast<float>(i / 10) - 4.5f) * 1.75f;
+        // Keep the original 100-sphere baseline; spread larger populations across the grid.
+        const uint32_t cell = factor == 1u ? i : (i * 1973u) % (columns * columns);
+        const float x = (static_cast<float>(cell % columns) - (static_cast<float>(columns) - 1.0f) * 0.5f) * spacing;
+        const float y = (static_cast<float>(cell / columns) - (static_cast<float>(columns) - 1.0f) * 0.5f) * spacing;
         GameObject* object = AddMesh(std::format("Benchmark Polygon Sphere {}", i), path, kObjectMaterial,
-            CameraPlane(x, y, 20.0f), { 1.0f, 1.0f, 1.0f });
+            CameraPlane(x, y, 20.0f), { scale, scale, scale });
         if (!object) break;
     }
 }
@@ -300,7 +483,8 @@ void RenderingBenchmarkController::BuildPolygons()
 void RenderingBenchmarkController::ApplySettings()
 {
     m_PointLevel = std::clamp(m_PointLevel, 0, static_cast<int>(kPointCounts.size()) - 1);
-    m_DrawLevel = std::clamp(m_DrawLevel, 0, static_cast<int>(kDrawCounts.size()) - 1);
+    m_DrawLevel = std::clamp(m_DrawLevel, 0, static_cast<int>(kInstanceCounts.size()) - 1);
+    m_PolygonInstanceLevel = std::clamp(m_PolygonInstanceLevel, 0, static_cast<int>(kInstanceCounts.size()) - 1);
     m_PolygonLevel = std::clamp(m_PolygonLevel, 0, static_cast<int>(kSphereMeshes.size()) - 1);
     m_SubmeshLevel = std::clamp(m_SubmeshLevel, 0, static_cast<int>(kSubmeshCounts.size()) - 1);
     if (!std::isfinite(m_PointRange)) m_PointRange = 2.8f;
@@ -313,11 +497,13 @@ void RenderingBenchmarkController::ApplySettings()
         : m_Mode == Mode::DrawCalls ? m_DrawLevel : m_PolygonLevel;
     const bool levelChanged = m_ActiveLevel != level;
     const bool splitChanged = m_Mode == Mode::DrawCalls && m_ActiveSubmeshLevel != m_SubmeshLevel;
+    const bool instancesChanged = m_Mode == Mode::Polygons && m_ActiveInstanceLevel != m_PolygonInstanceLevel;
     const bool lightChanged = m_Mode == Mode::PointLights && (m_ActiveRange != m_PointRange
         || m_ActiveIntensity != m_PointIntensity || m_ActiveConcentrated != m_Concentrated);
-    if (!modeChanged && !levelChanged && !splitChanged && !lightChanged) return;
+    const bool shadowChanged = m_Sun && m_ActiveSunShadow != m_Sun->GetCastShadow();
+    if (!modeChanged && !levelChanged && !splitChanged && !instancesChanged && !lightChanged && !shadowChanged) return;
 
-    if (modeChanged || (m_Mode != Mode::PointLights && (levelChanged || splitChanged)))
+    if (modeChanged || (m_Mode != Mode::PointLights && (levelChanged || splitChanged || instancesChanged)))
     {
         // Pending-destroy objects are inactive immediately; newly added components enter the registry next frame.
         ClearGenerated();
@@ -331,9 +517,11 @@ void RenderingBenchmarkController::ApplySettings()
     m_ActiveMode = m_Mode;
     m_ActiveLevel = level;
     m_ActiveSubmeshLevel = m_SubmeshLevel;
+    m_ActiveInstanceLevel = m_PolygonInstanceLevel;
     m_ActiveRange = m_PointRange;
     m_ActiveIntensity = m_PointIntensity;
     m_ActiveConcentrated = m_Concentrated;
+    m_ActiveSunShadow = m_Sun && m_Sun->GetCastShadow();
     m_WarmupRemaining = 2.0f;
     m_SampleElapsed = 0.0f;
     m_SampleFrames = 0;
@@ -378,16 +566,20 @@ void RenderingBenchmarkController::RefreshHud(float elapsed)
     const std::string state = !m_Error.empty() ? m_Error
         : m_WarmupRemaining > 0.0f ? "Warming up (ignore measurements)" : "Ready";
     m_HudText->SetText(std::format(
-        "{}  level {}  |  F1/F2/F3 mode, Left/Right level\n"
-        "FPS {:.1f}  Frame {:.2f} ms  |  {}\n"
+        "{}  level {}\n"
+        "FPS {:.1f}  Frame {:.2f} ms\n{}\n"
         "Meshes placed {}/{}  RenderItems {}  Submeshes/mesh {}\n"
-        "Draw Calls {}  Triangles {}  Mesh triangles {}\n"
-        "Point Lights requested {}  renderer accepted {}  range {:.1f}  intensity {:.1f}\n"
-        "Layout {}  MSAA {}x  |  Up/Down split, L layout, H HUD\n{}",
+        "Draw Calls {}  Triangles {}\n"
+        "Mesh triangles {} x {} = {}\n"
+        "Point Lights requested {}  renderer accepted {}\n"
+        "Range {:.2f}  Intensity {:.2f}  Layout {}\n"
+        "MSAA {}x  Directional shadows {}  |  H: hide / show all UI\n{}",
         ModeName(m_Mode), level, m_LastFps, m_LastFrameMs, gpu,
         m_Meshes.size(), m_TargetMeshCount, stats.renderItems,
         m_Mode == Mode::DrawCalls ? kSubmeshCounts[m_SubmeshLevel] : 1,
-        stats.drawCalls, stats.triangleCount, m_TrianglesPerMesh,
+        stats.drawCalls, stats.triangleCount, m_TrianglesPerMesh, m_Meshes.size(),
+        static_cast<uint64_t>(m_TrianglesPerMesh) * m_Meshes.size(),
         requestedLights, stats.pointLights, m_PointRange, m_PointIntensity,
-        m_Concentrated ? "concentrated" : "distributed", stats.sceneSamples, state));
+        m_Concentrated ? "concentrated" : "distributed", stats.sceneSamples,
+        m_Sun && m_Sun->GetCastShadow() ? "ON" : "OFF", state));
 }

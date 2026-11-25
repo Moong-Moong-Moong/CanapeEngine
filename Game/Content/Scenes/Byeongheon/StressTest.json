@@ -120,6 +120,7 @@
                         "pointLevel": 0,
                         "drawLevel": 0,
                         "polygonLevel": 0,
+                        "polygonInstanceLevel": 0,
                         "submeshLevel": 0,
                         "pointRange": 2.8,
                         "pointIntensity": 4.0,

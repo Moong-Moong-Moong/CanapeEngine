@@ -3,6 +3,7 @@
 #include <Engine.h>
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,7 @@ protected:
     void OnDestroy() override;
 
 private:
+    void BuildControls();
     void HandleInput();
     void ApplySettings();
     void ClearGenerated();
@@ -39,6 +41,7 @@ private:
     int m_PointLevel = 0;
     int m_DrawLevel = 0;
     int m_PolygonLevel = 0;
+    int m_PolygonInstanceLevel = 0;
     int m_SubmeshLevel = 0;
     float m_PointRange = 2.8f;
     float m_PointIntensity = 4.0f;
@@ -47,11 +50,14 @@ private:
     Mode m_ActiveMode = Mode::PointLights;
     int m_ActiveLevel = -1;
     int m_ActiveSubmeshLevel = -1;
+    int m_ActiveInstanceLevel = -1;
     float m_ActiveRange = -1.0f;
     float m_ActiveIntensity = -1.0f;
     bool m_ActiveConcentrated = false;
+    bool m_ActiveSunShadow = false;
     bool m_ModeBuilt = false;
     bool m_PreviousGpuTimingCapture = false;
+    bool m_PreviousCursorRequested = false;
     bool m_HudVisible = true;
     uint32_t m_TrianglesPerMesh = 0;
     uint32_t m_TargetMeshCount = 0;
@@ -60,6 +66,7 @@ private:
     std::vector<Handle<Canape::GameObject>> m_Lights;
     Canape::UICanvasComponent* m_HudCanvas = nullptr;
     Canape::UIText* m_HudText = nullptr;
+    std::vector<std::function<void()>> m_ControlRefreshers;
     Canape::LightComponent* m_Sun = nullptr;
     float m_OriginalSunIntensity = 1.0f;
     bool m_OriginalSunShadow = false;
