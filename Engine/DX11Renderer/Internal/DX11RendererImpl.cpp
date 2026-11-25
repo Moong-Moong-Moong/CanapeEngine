@@ -125,6 +125,9 @@ namespace Canape
         DepthTexture.Reset();
         DepthStencilView.Reset();
         ReleaseOutlineResources();
+        Pick = {};
+        PickTable.clear();
+        PickRequested = PickReadbackPending = PickResultReady = false;
         OutlineMaskBuffer.Reset();
         OutlineCompositeBuffer.Reset();
         OutlineStyleView.Reset();

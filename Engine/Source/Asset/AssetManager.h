@@ -50,6 +50,8 @@ namespace Canape
 
 		//***** Release
 		size_t ReleaseUnusedAssets();
+		size_t RemapAssetPaths(const std::string& fromPath, const std::string& toPath, bool directory);
+		size_t ForgetAssetPaths(const std::string& path, bool directory);
 
 		//***** Mesh
 		MeshAssetHandle GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner);

@@ -37,8 +37,17 @@
     <Filter Include="Source\Panels">
       <UniqueIdentifier>{8ED2EFE8-15A5-2EB6-0837-4C91DC6CE8A5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Assets">
+      <UniqueIdentifier>{5ACDCD49-05AA-423B-92CD-496783D27E93}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Assets\AssetRefactor.h">
+      <Filter>Source\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Assets\ReferenceIndex.h">
+      <Filter>Source\Assets</Filter>
+    </ClInclude>
     <ClInclude Include="Source\EditorApp.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -46,6 +55,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\EditorProxyMeshes.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ScenePicking.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\EditorUtils.h">
@@ -173,6 +185,9 @@
     <ClCompile Include="Source\EditorProxyMeshes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ScenePicking.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Source\EditorUtils.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -181,6 +196,12 @@
     </ClCompile>
     <ClCompile Include="Source\Panels\DebugConsolePanel.cpp">
       <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Assets\AssetRefactor.cpp">
+      <Filter>Source\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Assets\ReferenceIndex.cpp">
+      <Filter>Source\Assets</Filter>
     </ClCompile>
     <ClCompile Include="Source\Panels\FileBrowserPanel.cpp">
       <Filter>Source\Panels</Filter>

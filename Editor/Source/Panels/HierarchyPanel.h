@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class HierarchyPanel
 {
@@ -21,8 +22,13 @@ private:
     };
 
     void DrawNode(EditorContext& context, Canape::GameObject& gameObject);
+    void DrawSearchResults(EditorContext& context, Canape::Scene& scene);
+    void DrawItemInteractions(EditorContext& context, Canape::GameObject& gameObject);
+    void DrawRename(Canape::GameObject& gameObject);
     void DrawBackground(EditorContext& context);
     void ApplyPendingActions(EditorContext& context, Canape::Scene& scene);
+
+    void BeginRename(const Canape::GameObject& gameObject);
 
     Reparent m_Reparent;
     uint64_t m_SavePrefabId = 0;
@@ -32,4 +38,11 @@ private:
     uint64_t m_DeleteId = 0;
     uint64_t m_CreateParentId = 0;
     bool m_CreateRequested = false;
+
+    std::string m_Search;
+    std::string m_SceneKey;
+
+    uint64_t m_RenamingId = 0;
+    std::string m_RenameBuffer;
+    bool m_RenameFocus = false;
 };

@@ -1,4 +1,5 @@
 #include "Panels/SceneViewPanel.h"
+#include "ScenePicking.h"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -31,6 +32,31 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     {
         renderer.SetEditorGridPlaneVisible(static_cast<EditorGridPlane>(plane), m_GridPlanes[plane]);
     }
+
+    uint64_t pickedId = 0;
+    if (renderer.TakePickResult(pickedId) && m_PickPending)
+    {
+        m_PickPending = false;
+        if (scene && !playing)
+        {
+            if (GameObject* picked = ScenePicking::FindOwnerOfComponent(*scene, pickedId))
+            {
+                context.Select(picked);
+            }
+            else
+            {
+                context.ClearSelection();
+            }
+        }
+    }
+
+    GameObject* selected = scene && !playing ? context.GetSelected(scene) : nullptr;
+    OutlineStyle selectionStyle;
+    selectionStyle.Color = { 1.0f, 0.55f, 0.1f };
+    selectionStyle.Thickness = 2;
+    selectionStyle.Opacity = 1.0f;
+    renderer.SetSelectionOutline(selected && m_ShowSelectionOutline ? ScenePicking::SelectableComponentIds(*selected)
+        : std::vector<uint64_t>{}, selectionStyle);
 
     PlayRequest request = PlayRequest::None;
     if (visible)
@@ -78,11 +104,79 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
                 IM_COL32(255, 255, 255, 160),
                 "W/E/R: move/rotate/scale  T: local/world  G: grid  RMB: look  WASD/QE: move  Wheel: speed");
 
-            DrawGizmo(context.GetSelected(scene), view, min, max);
+            if (selected && m_ShowBounds)
+            {
+                DrawSelectionBounds(*selected, view, min, max);
+            }
+            DrawGizmo(selected, view, min, max);
+
+            const bool overGizmo = selected && (ImGuizmo::IsOver() || ImGuizmo::IsUsing());
+            if (hovered && !m_Navigating && !overGizmo && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                const ImVec2 mouse = ImGui::GetMousePos();
+                const float x = mouse.x - min.x;
+                const float y = mouse.y - min.y;
+                if (x >= 0.0f && y >= 0.0f && x < static_cast<float>(width) && y < static_cast<float>(height))
+                {
+                    RequestPick(renderer, static_cast<uint32_t>(x), static_cast<uint32_t>(y));
+                }
+            }
         }
     }
     ImGui::End();
     return request;
+}
+
+void SceneViewPanel::RequestPick(Renderer& renderer, uint32_t x, uint32_t y)
+{
+    renderer.RequestPick(x, y);
+    m_PickPending = true;
+}
+
+void SceneViewPanel::RequestPickAt(Renderer& renderer, float u, float v)
+{
+    const uint32_t width = renderer.GetWidth();
+    const uint32_t height = renderer.GetHeight();
+    RequestPick(renderer, static_cast<uint32_t>(std::clamp(u, 0.0f, 0.999f) * width),
+        static_cast<uint32_t>(std::clamp(v, 0.0f, 0.999f) * height));
+}
+
+void SceneViewPanel::DrawSelectionBounds(GameObject& selected, const RenderView& view, const ImVec2& min, const ImVec2& max)
+{
+    const Matrix4 viewProjection = view.view * view.projection;
+    const float width = max.x - min.x;
+    const float height = max.y - min.y;
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->PushClipRect(min, max, true);
+
+    constexpr int kEdges[12][2] = { { 0, 1 }, { 1, 3 }, { 3, 2 }, { 2, 0 }, { 4, 5 }, { 5, 7 }, { 7, 6 }, { 6, 4 },
+        { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 } };
+    for (const ScenePicking::OrientedBox& box : ScenePicking::SelectionBounds(selected))
+    {
+        ImVec2 screen[8];
+        bool inFront[8];
+        for (int corner = 0; corner < 8; ++corner)
+        {
+            const Vector3 local{ (corner & 1) ? box.max.X : box.min.X, (corner & 2) ? box.max.Y : box.min.Y,
+                (corner & 4) ? box.max.Z : box.min.Z };
+            const Vector3 world = box.toWorld.TransformPoint(local);
+            const DirectX::XMVECTOR clip = DirectX::XMVector4Transform(
+                DirectX::XMVectorSet(world.X, world.Y, world.Z, 1.0f), viewProjection.ToXM());
+            const float w = DirectX::XMVectorGetW(clip);
+            inFront[corner] = w > 1e-4f;
+            const float invW = inFront[corner] ? 1.0f / w : 0.0f;
+            screen[corner] = ImVec2(min.x + (DirectX::XMVectorGetX(clip) * invW * 0.5f + 0.5f) * width,
+                min.y + (0.5f - DirectX::XMVectorGetY(clip) * invW * 0.5f) * height);
+        }
+        for (const auto& edge : kEdges)
+        {
+            if (inFront[edge[0]] && inFront[edge[1]])
+            {
+                drawList->AddLine(screen[edge[0]], screen[edge[1]], IM_COL32(255, 170, 40, 220), 1.5f);
+            }
+        }
+    }
+    drawList->PopClipRect();
 }
 
 void SceneViewPanel::DrawGizmoToolbar()
@@ -118,6 +212,17 @@ void SceneViewPanel::DrawGizmoToolbar()
         if (planeOn) ImGui::PopStyleColor();
     }
     ImGui::EndDisabled();
+
+    const auto toggleButton = [](const char* label, bool& value)
+    {
+        ImGui::SameLine();
+        const bool on = value;
+        if (on) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (ImGui::Button(label)) value = !value;
+        if (on) ImGui::PopStyleColor();
+    };
+    toggleButton("Outline", m_ShowSelectionOutline);
+    toggleButton("Bounds", m_ShowBounds);
 }
 
 void SceneViewPanel::HandleGizmoShortcuts(bool hovered)

@@ -462,6 +462,15 @@ namespace EditorUtils
         return true;
     }
 
+    void ShowInExplorer(const std::filesystem::path& path)
+    {
+        const std::filesystem::path target = std::filesystem::path(path).lexically_normal().make_preferred();
+        std::error_code error;
+        const bool exists = std::filesystem::exists(target, error);
+        const std::wstring arguments = exists ? L"/select," + Quote(target.wstring()) : Quote(target.parent_path().wstring());
+        ShellExecuteW(nullptr, L"open", L"explorer.exe", arguments.c_str(), nullptr, SW_SHOWNORMAL);
+    }
+
     void OpenInVisualStudio(const std::filesystem::path& file)
     {
         const std::filesystem::path solution = (GetGameDirectory() / ".." / "Canape.slnx").lexically_normal();

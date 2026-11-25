@@ -460,6 +460,15 @@ namespace Canape
         return true;
     }
 
+    DX11PipelineSelection DX11PipelineState::ResolvePickId(VertexFormat vertexFormat) const
+    {
+        auto pipeline = Resolve(vertexFormat, AlphaMode::Opaque);
+        pipeline.PS = OutlineMaskPixelShader.Get();
+        pipeline.Depth = OpaqueDepthState.Get();
+        pipeline.Blend = OpaqueBlendState.Get();
+        return pipeline;
+    }
+
     DX11PipelineSelection DX11PipelineState::ResolveEditorGrid() const
     {
         return {

@@ -1,6 +1,7 @@
 #include "Panels/InspectorPanel.h"
 #include "EditorUtils.h"
 #include "Simulation/SimulationScene.h"
+#include "Scene/Component/RenderableComponent.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -15,6 +16,32 @@ using namespace Canape;
 namespace
 {
     constexpr float kLabelColumnWidth = 0.4f;
+
+    void CollectDescendants(const TransformComponent& transform, std::vector<GameObject*>& result)
+    {
+        for (TransformComponent* child : transform.GetChildren())
+        {
+            GameObject* childObject = child->GetOwnerObject();
+            if (childObject && !childObject->IsPendingDestroy())
+            {
+                result.push_back(childObject);
+                CollectDescendants(*child, result);
+            }
+        }
+    }
+
+    std::vector<RenderableComponent*> GetRenderables(const GameObject& gameObject)
+    {
+        std::vector<RenderableComponent*> renderables;
+        for (Component* component : gameObject.GetAllComponents())
+        {
+            if (auto* renderable = dynamic_cast<RenderableComponent*>(component))
+            {
+                renderables.push_back(renderable);
+            }
+        }
+        return renderables;
+    }
 
     template <typename T>
     bool DragInteger(rttr::variant& value, ImGuiDataType dataType)
@@ -187,7 +214,110 @@ void InspectorPanel::Draw(EditorContext& context, Scene* scene)
     {
         gameObject->RemoveComponent(removeRequest);
     }
+    DrawTogglePopup(*scene);
     ImGui::End();
+}
+
+void InspectorPanel::RequestToggle(GameObject& gameObject, Component* component, bool visibility, bool value)
+{
+    std::vector<GameObject*> descendants;
+    CollectDescendants(*gameObject.GetTransform(), descendants);
+    if (visibility)
+    {
+        std::erase_if(descendants, [](const GameObject* descendant) { return GetRenderables(*descendant).empty(); });
+    }
+
+    m_Toggle = { gameObject.GetId(), component ? static_cast<uint64_t>(component->GetId()) : 0u, visibility, value, descendants.size() };
+    if (descendants.empty())
+    {
+        ApplyToggle(gameObject, false);
+        return;
+    }
+    m_OpenTogglePopup = true;
+}
+
+void InspectorPanel::ApplyToggle(GameObject& gameObject, bool includeChildren)
+{
+    if (!m_Toggle.visibility)
+    {
+        gameObject.SetActive(m_Toggle.value);
+    }
+    else
+    {
+        for (Component* component : gameObject.GetAllComponents())
+        {
+            if (static_cast<uint64_t>(component->GetId()) == m_Toggle.componentId)
+            {
+                if (auto* renderable = dynamic_cast<RenderableComponent*>(component))
+                {
+                    renderable->SetVisible(m_Toggle.value);
+                }
+            }
+        }
+    }
+
+    if (!includeChildren)
+    {
+        return;
+    }
+    std::vector<GameObject*> descendants;
+    CollectDescendants(*gameObject.GetTransform(), descendants);
+    for (GameObject* descendant : descendants)
+    {
+        if (!m_Toggle.visibility)
+        {
+            descendant->SetActive(m_Toggle.value);
+            continue;
+        }
+        for (RenderableComponent* renderable : GetRenderables(*descendant))
+        {
+            renderable->SetVisible(m_Toggle.value);
+        }
+    }
+}
+
+void InspectorPanel::DrawTogglePopup(Scene& scene)
+{
+    constexpr const char* kPopup = "Apply To Children";
+    if (m_OpenTogglePopup)
+    {
+        ImGui::OpenPopup(kPopup);
+        m_OpenTogglePopup = false;
+    }
+    if (!ImGui::BeginPopupModal(kPopup, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+
+    GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_Toggle.objectId));
+    if (!target)
+    {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+
+    const char* what = m_Toggle.visibility ? "visible" : "active";
+    ImGui::Text("Set %s %s on \"%s\".", what, m_Toggle.value ? "ON" : "OFF", target->GetName().c_str());
+    ImGui::Text("Apply it to all %zu child object(s) as well?", m_Toggle.affected);
+    ImGui::Spacing();
+    if (ImGui::Button("Include Children"))
+    {
+        ApplyToggle(*target, true);
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("This Object Only"))
+    {
+        ApplyToggle(*target, false);
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+    {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
 }
 
 void InspectorPanel::DrawGameObjectHeader(GameObject& gameObject)
@@ -195,7 +325,7 @@ void InspectorPanel::DrawGameObjectHeader(GameObject& gameObject)
     bool active = gameObject.IsActive();
     if (ImGui::Checkbox("##Active", &active))
     {
-        gameObject.SetActive(active);
+        RequestToggle(gameObject, nullptr, false, active);
     }
     ImGui::SameLine();
 
@@ -262,7 +392,15 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
             }
             if (changed && !readOnly)
             {
-                property.set_value(instance, value);
+                GameObject* owner = component.GetOwnerObject();
+                if (name == "visible" && owner && dynamic_cast<RenderableComponent*>(&component) && value.is_type<bool>())
+                {
+                    RequestToggle(*owner, &component, true, value.get_value<bool>());
+                }
+                else
+                {
+                    property.set_value(instance, value);
+                }
             }
 
             ImGui::EndDisabled();

@@ -13,11 +13,16 @@
 
 using namespace Canape;
 
-void GltfImportWindow::Open(const std::filesystem::path& targetDirectory)
+void GltfImportWindow::Open(const std::filesystem::path& targetDirectory, const std::filesystem::path& sourceFile)
 {
     m_TargetDirectory = targetDirectory;
+    if (!sourceFile.empty())
+    {
+        m_SourcePath = EditorUtils::ToUtf8(sourceFile);
+    }
     m_Message.clear();
     m_Open = true;
+    ImGui::SetWindowFocus(kName);
 }
 
 void GltfImportWindow::Draw()

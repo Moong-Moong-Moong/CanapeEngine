@@ -127,6 +127,15 @@ namespace Canape
 			}
 
 			size_t Remaining() const { return m_Data.size() - m_Offset; }
+			size_t Offset() const { return m_Offset; }
+
+			bool Skip(uint64_t count, size_t elementSize)
+			{
+				if (count > Remaining() / elementSize)
+					return false;
+				m_Offset += static_cast<size_t>(count) * elementSize;
+				return true;
+			}
 
 		private:
 			bool Bytes(void* destination, size_t size)
@@ -155,6 +164,109 @@ namespace Canape
 			file.seekg(0);
 			return data.empty() || file.read(reinterpret_cast<char*>(data.data()), size).good();
 		}
+
+		bool WriteFileAtomic(const std::filesystem::path& filePath, std::span<const uint8_t> data)
+		{
+			std::error_code error;
+			if (filePath.has_parent_path())
+				std::filesystem::create_directories(filePath.parent_path(), error);
+
+			std::filesystem::path tempPath = filePath;
+			tempPath += ".tmp";
+			{
+				std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
+				if (!file || !file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size())))
+				{
+					std::filesystem::remove(tempPath, error);
+					return false;
+				}
+			}
+
+			std::filesystem::rename(tempPath, filePath, error);
+			if (error)
+			{
+				std::filesystem::remove(tempPath, error);
+				return false;
+			}
+			return true;
+		}
+
+		bool FindMaterialSlotSection(const std::vector<uint8_t>& data, size_t& slotOffset, uint32_t& slotCount)
+		{
+			Reader reader(data);
+			FileHeader header{};
+			if (!reader.Value(header) || std::memcmp(header.magic, kMagic, sizeof(kMagic)) != 0 || header.version != MeshSerializer::Version)
+				return false;
+			const bool skinned = header.vertexFormat == kFormatSkinned;
+			if (!skinned && header.vertexFormat != kFormatStatic)
+				return false;
+			if (header.vertexStride != (skinned ? sizeof(SkinnedVertex) : sizeof(StaticVertex)))
+				return false;
+			if (!reader.Skip(header.subMeshCount, sizeof(SubMesh))
+				|| !reader.Skip(header.vertexCount, header.vertexStride)
+				|| !reader.Skip(header.indexCount, sizeof(uint32_t))
+				|| !reader.Skip(header.boneCount, sizeof(Matrix4)))
+				return false;
+			std::string ignored;
+			for (uint32_t bone = 0; bone < header.boneCount; ++bone)
+			{
+				if (!reader.String(ignored))
+					return false;
+			}
+			slotOffset = reader.Offset();
+			slotCount = header.materialSlotCount;
+			return true;
+		}
+	}
+
+	bool MeshSerializer::ReadMaterialSlots(const std::string& path, std::vector<std::string>& slots)
+	{
+		std::vector<uint8_t> data;
+		size_t slotOffset = 0;
+		uint32_t slotCount = 0;
+		if (!ReadFile(ToPath(path), data) || !FindMaterialSlotSection(data, slotOffset, slotCount))
+			return false;
+
+		Reader reader(std::span<const uint8_t>(data).subspan(slotOffset));
+		std::vector<std::string> result(slotCount);
+		for (std::string& slot : result)
+		{
+			if (!reader.String(slot))
+				return false;
+		}
+		if (reader.Remaining() != 0)
+			return false;
+		slots = std::move(result);
+		return true;
+	}
+
+	bool MeshSerializer::WriteMaterialSlots(const std::string& path, const std::vector<std::string>& slots)
+	{
+		std::vector<uint8_t> data;
+		size_t slotOffset = 0;
+		uint32_t slotCount = 0;
+		if (!ReadFile(ToPath(path), data) || !FindMaterialSlotSection(data, slotOffset, slotCount))
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 슬롯 저장 실패 : cnmesh 형식이 아님, ", path);
+			return false;
+		}
+		if (slotCount != slots.size())
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 슬롯 저장 실패 : 슬롯 개수 불일치, ", path);
+			return false;
+		}
+
+		Writer writer;
+		for (const std::string& slot : slots)
+			writer.String(slot);
+		data.resize(slotOffset);
+		data.insert(data.end(), writer.Data().begin(), writer.Data().end());
+		if (!WriteFileAtomic(ToPath(path), data))
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 슬롯 저장 실패 : 파일 쓰기 오류, ", path);
+			return false;
+		}
+		return true;
 	}
 
 	bool MeshSerializer::IsStaticMeshPath(const std::string& path)
@@ -215,29 +327,9 @@ namespace Canape
 		for (const MaterialData& slot : mesh.GetMaterialSlots())
 			writer.String(slot.name);
 
-		const std::filesystem::path filePath = ToPath(path);
-		std::error_code error;
-		if (filePath.has_parent_path())
-			std::filesystem::create_directories(filePath.parent_path(), error);
-
-		std::filesystem::path tempPath = filePath;
-		tempPath += ".tmp";
+		if (!WriteFileAtomic(ToPath(path), writer.Data()))
 		{
-			std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
-			const std::vector<uint8_t>& data = writer.Data();
-			if (!file || !file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size())))
-			{
-				CN_LOG_RUNTIME("Asset", "메쉬 저장 실패 : 파일 쓰기 오류, ", path);
-				std::filesystem::remove(tempPath, error);
-				return false;
-			}
-		}
-
-		std::filesystem::rename(tempPath, filePath, error);
-		if (error)
-		{
-			CN_LOG_RUNTIME("Asset", "메쉬 저장 실패 : 파일 교체 오류, ", path);
-			std::filesystem::remove(tempPath, error);
+			CN_LOG_RUNTIME("Asset", "메쉬 저장 실패 : 파일 쓰기 오류, ", path);
 			return false;
 		}
 		return true;
@@ -252,7 +344,7 @@ namespace Canape
 			return nullptr;
 		}
 
-		const auto fail = [&path](const char* reason) -> std::unique_ptr<MeshAsset>
+		const auto fail = [&path]([[maybe_unused]] const char* reason) -> std::unique_ptr<MeshAsset>
 		{
 			CN_LOG_RUNTIME("Asset", "메쉬 로드 실패 : ", reason, ", ", path);
 			return nullptr;

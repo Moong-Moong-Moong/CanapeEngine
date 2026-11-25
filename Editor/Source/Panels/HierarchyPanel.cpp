@@ -2,6 +2,7 @@
 #include "EditorUtils.h"
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -19,6 +20,24 @@ namespace
             CollectSubtree(*child, result);
         }
         result.push_back(transform.GetOwnerObject());
+    }
+
+    std::string ToLower(std::string text)
+    {
+        std::transform(text.begin(), text.end(), text.begin(),
+            [](char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; });
+        return text;
+    }
+
+    std::string ParentPath(const GameObject& gameObject)
+    {
+        std::string path;
+        for (const TransformComponent* parent = gameObject.GetTransform()->GetParent(); parent; parent = parent->GetParent())
+        {
+            const GameObject* owner = parent->GetOwnerObject();
+            path = (owner ? owner->GetName() : std::string("?")) + (path.empty() ? "" : "/" + path);
+        }
+        return path;
     }
 }
 
@@ -38,18 +57,46 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
     }
 
     const std::string& scenePath = context.GetScenePath();
+    const std::string sceneKey = scenePath.empty() ? "untitled:" + scene->GetName() : scenePath;
+    if (sceneKey != m_SceneKey)
+    {
+        m_SceneKey = sceneKey;
+        ImGui::GetStateStorage()->Clear();
+        m_RenamingId = 0;
+    }
+
     const std::string sceneName = scenePath.empty()
         ? scene->GetName()
         : EditorUtils::ToUtf8(std::filesystem::path(scenePath).stem());
     ImGui::TextUnformatted(sceneName.c_str());
+
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputTextWithHint("##Search", "Search", &m_Search);
+
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && m_RenamingId == 0 && !ImGui::GetIO().WantTextInput
+        && ImGui::IsKeyPressed(ImGuiKey_F2, false))
+    {
+        if (const GameObject* selected = context.GetSelected(scene))
+        {
+            BeginRename(*selected);
+        }
+    }
+
     ImGui::Separator();
 
-    for (GameObject* gameObject : scene->GetAllGameObjects())
+    if (m_Search.empty())
     {
-        if (!gameObject->IsPendingDestroy() && !gameObject->GetTransform()->GetParent())
+        for (GameObject* gameObject : scene->GetAllGameObjects())
         {
-            DrawNode(context, *gameObject);
+            if (!gameObject->IsPendingDestroy() && !gameObject->GetTransform()->GetParent())
+            {
+                DrawNode(context, *gameObject);
+            }
         }
+    }
+    else
+    {
+        DrawSearchResults(context, *scene);
     }
 
     DrawBackground(context);
@@ -68,9 +115,9 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
 {
     const TransformComponent* transform = gameObject.GetTransform();
     const bool selected = context.GetSelected(gameObject.GetScene()) == &gameObject;
+    const bool renaming = m_RenamingId == gameObject.GetId();
 
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
-        | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
     if (selected)
     {
         flags |= ImGuiTreeNodeFlags_Selected;
@@ -85,15 +132,92 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
     }
     const bool open = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uintptr_t>(gameObject.GetId())),
-        flags, "%s", gameObject.GetName().c_str());
+        flags, "%s", renaming ? "" : gameObject.GetName().c_str());
     if (!gameObject.IsActive())
     {
         ImGui::PopStyleColor();
     }
 
+    DrawItemInteractions(context, gameObject);
+    if (renaming)
+    {
+        DrawRename(gameObject);
+    }
+
+    if (open)
+    {
+        for (TransformComponent* child : transform->GetChildren())
+        {
+            GameObject* childObject = child->GetOwnerObject();
+            if (childObject && !childObject->IsPendingDestroy())
+            {
+                DrawNode(context, *childObject);
+            }
+        }
+        ImGui::TreePop();
+    }
+}
+
+void HierarchyPanel::DrawSearchResults(EditorContext& context, Scene& scene)
+{
+    const std::string query = ToLower(m_Search);
+    size_t matches = 0;
+    for (GameObject* gameObject : scene.GetAllGameObjects())
+    {
+        if (gameObject->IsPendingDestroy() || ToLower(gameObject->GetName()).find(query) == std::string::npos)
+        {
+            continue;
+        }
+        ++matches;
+
+        ImGui::PushID(reinterpret_cast<void*>(static_cast<uintptr_t>(gameObject->GetId())));
+        const bool selected = context.GetSelected(&scene) == gameObject;
+        const bool renaming = m_RenamingId == gameObject->GetId();
+
+        if (!gameObject->IsActive())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        }
+        ImGui::Selectable(renaming ? "##Row" : gameObject->GetName().c_str(), selected, ImGuiSelectableFlags_AllowOverlap);
+        if (!gameObject->IsActive())
+        {
+            ImGui::PopStyleColor();
+        }
+        const std::string parentPath = ParentPath(*gameObject);
+        if (!parentPath.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+        {
+            ImGui::SetTooltip("%s", (parentPath + "/" + gameObject->GetName()).c_str());
+        }
+
+        DrawItemInteractions(context, *gameObject);
+        if (renaming)
+        {
+            DrawRename(*gameObject);
+        }
+        else if (!parentPath.empty())
+        {
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", parentPath.c_str());
+        }
+        ImGui::PopID();
+    }
+
+    if (matches == 0)
+    {
+        ImGui::TextDisabled("No objects match \"%s\"", m_Search.c_str());
+    }
+}
+
+void HierarchyPanel::DrawItemInteractions(EditorContext& context, GameObject& gameObject)
+{
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
     {
         m_PressedId = gameObject.GetId();
+    }
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
+    {
+        context.Select(&gameObject);
+        BeginRename(gameObject);
     }
 
     if (ImGui::BeginDragDropSource())
@@ -125,6 +249,11 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
 
     if (ImGui::BeginPopupContextItem())
     {
+        if (ImGui::MenuItem("Rename", "F2"))
+        {
+            context.Select(&gameObject);
+            BeginRename(gameObject);
+        }
         if (ImGui::MenuItem("Create Child"))
         {
             m_CreateRequested = true;
@@ -134,24 +263,44 @@ void HierarchyPanel::DrawNode(EditorContext& context, GameObject& gameObject)
         {
             m_SavePrefabId = gameObject.GetId();
         }
+        ImGui::Separator();
         if (ImGui::MenuItem("Delete"))
         {
             m_DeleteId = gameObject.GetId();
         }
         ImGui::EndPopup();
     }
+}
 
-    if (open)
+void HierarchyPanel::BeginRename(const GameObject& gameObject)
+{
+    m_RenamingId = gameObject.GetId();
+    m_RenameBuffer = gameObject.GetName();
+    m_RenameFocus = true;
+    m_PressedId = 0;
+}
+
+void HierarchyPanel::DrawRename(GameObject& gameObject)
+{
+    ImGui::SameLine();
+    if (m_RenameFocus)
     {
-        for (TransformComponent* child : transform->GetChildren())
+        ImGui::SetKeyboardFocusHere();
+        m_RenameFocus = false;
+    }
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputText("##RenameObject", &m_RenameBuffer, ImGuiInputTextFlags_AutoSelectAll);
+    if (ImGui::IsItemDeactivated())
+    {
+        const size_t first = m_RenameBuffer.find_first_not_of(" \t");
+        const size_t last = m_RenameBuffer.find_last_not_of(" \t");
+        const std::string name = first == std::string::npos ? std::string() : m_RenameBuffer.substr(first, last - first + 1);
+        if (!name.empty() && name != gameObject.GetName() && !ImGui::IsKeyPressed(ImGuiKey_Escape, false))
         {
-            GameObject* childObject = child->GetOwnerObject();
-            if (childObject && !childObject->IsPendingDestroy())
-            {
-                DrawNode(context, *childObject);
-            }
+            gameObject.SetName(name);
         }
-        ImGui::TreePop();
+        m_RenamingId = 0;
+        m_RenameBuffer.clear();
     }
 }
 

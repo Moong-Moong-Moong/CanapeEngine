@@ -22,6 +22,7 @@ public:
     PlayRequest Draw(EditorContext& context, Canape::Scene* scene, Canape::Renderer& renderer, Canape::UISystem& ui,
         float deltaTime, bool playing);
     void FrameMainCamera(Canape::Scene* scene);
+    void RequestPickAt(Canape::Renderer& renderer, float u, float v);
 
 private:
     enum class GizmoOperation { Translate, Rotate, Scale };
@@ -30,6 +31,8 @@ private:
     void DrawGizmoToolbar();
     void HandleGizmoShortcuts(bool hovered);
     void DrawGizmo(Canape::GameObject* selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
+    void DrawSelectionBounds(Canape::GameObject& selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
+    void RequestPick(Canape::Renderer& renderer, uint32_t x, uint32_t y);
     void UpdateCamera(bool hovered, float deltaTime);
     Canape::Quaternion GetRotation() const;
     Canape::RenderView BuildView(float aspectRatio) const;
@@ -37,6 +40,9 @@ private:
     GizmoOperation m_GizmoOperation = GizmoOperation::Translate;
     bool m_GizmoLocal = false;
     bool m_ShowGrid = true;
+    bool m_ShowSelectionOutline = true;
+    bool m_ShowBounds = true;
+    bool m_PickPending = false;
     bool m_GridPlanes[Canape::EditorGridPlaneCount] = { true, false, false };
 
     RenderDebugMenu m_RenderDebugMenu;

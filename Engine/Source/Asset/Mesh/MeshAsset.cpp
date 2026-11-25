@@ -45,6 +45,36 @@ namespace Canape
 			throw std::invalid_argument(error);
 		if (m_SubMeshes.empty())
 			m_SubMeshes.push_back({ 0, static_cast<uint32_t>(m_Indices.size()), 0, 0 });
+		ComputeBounds();
+	}
+
+	void MeshAsset::ComputeBounds()
+	{
+		m_Bounds = {};
+		m_BoneBounds.assign(m_InverseBindMatrices.size(), MeshBounds{});
+		if (m_Format != VertexFormat::Skinned)
+		{
+			for (const StaticVertex& vertex : m_Vertices)
+				m_Bounds.Add(vertex.Position);
+			return;
+		}
+
+		for (const SkinnedVertex& vertex : m_SkinnedVertices)
+		{
+			m_Bounds.Add(vertex.Position);
+			int strongest = -1;
+			for (int k = 0; k < 4; ++k)
+			{
+				if (vertex.Weights[k] > 0.0f && vertex.Joints[k] < m_InverseBindMatrices.size()
+					&& (strongest < 0 || vertex.Weights[k] > vertex.Weights[strongest]))
+					strongest = k;
+			}
+			if (strongest >= 0)
+			{
+				const uint16_t joint = vertex.Joints[strongest];
+				m_BoneBounds[joint].Add(m_InverseBindMatrices[joint].TransformPoint(vertex.Position));
+			}
+		}
 	}
 
 	MeshAssetId MeshAsset::AllocateAssetId()

@@ -414,6 +414,7 @@ namespace Canape::ScenePreparation
             uint64_t objectId, bool outlineEnabled, const OutlineStyle& submittedStyle)
         {
             const size_t index = result.Draws.size();
+            draw.ObjectId = objectId;
             const AlphaMode alpha = draw.Material.Description.alphaMode;
             const auto style = SanitizeOutlineStyle(submittedStyle);
             if (outlineEnabled && style.Opacity > 0.0f && objectId != 0 && alpha != AlphaMode::Transparent)

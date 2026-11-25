@@ -99,6 +99,8 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        void RequestPick(uint32_t x, uint32_t y);
+        bool TakePickResult(uint64_t& objectId);
         void SetEditorGridEnabled(bool enabled);
         bool IsEditorGridEnabled() const;
         void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);

@@ -37,6 +37,169 @@ namespace Canape
 			return AssetManager::ToAssetPath(ToUtf8(full.generic_u8string()));
 		}
 
+		int HexValue(char c)
+		{
+			if (c >= '0' && c <= '9') return c - '0';
+			if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+			if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+			return -1;
+		}
+
+		std::string PercentDecode(const std::string& text)
+		{
+			std::string result;
+			result.reserve(text.size());
+			for (size_t i = 0; i < text.size(); ++i)
+			{
+				if (text[i] == '%' && i + 2 < text.size() && HexValue(text[i + 1]) >= 0 && HexValue(text[i + 2]) >= 0)
+				{
+					result += static_cast<char>(HexValue(text[i + 1]) * 16 + HexValue(text[i + 2]));
+					i += 2;
+				}
+				else
+				{
+					result += text[i];
+				}
+			}
+			return result;
+		}
+
+		std::string SafeFileName(const std::string& name)
+		{
+			std::string result;
+			result.reserve(name.size());
+			for (const char c : name)
+			{
+				const bool invalid = static_cast<unsigned char>(c) < 0x20 || std::strchr("<>:\"/\\|?*", c) != nullptr;
+				result += invalid ? '_' : c;
+			}
+			while (!result.empty() && (result.back() == ' ' || result.back() == '.'))
+				result.pop_back();
+			return result.empty() ? std::string("Unnamed") : result;
+		}
+
+		bool DecodeBase64(std::string_view text, std::vector<uint8_t>& bytes)
+		{
+			bytes.clear();
+			uint32_t accumulator = 0;
+			int bits = 0;
+			for (const char c : text)
+			{
+				int value = -1;
+				if (c >= 'A' && c <= 'Z') value = c - 'A';
+				else if (c >= 'a' && c <= 'z') value = c - 'a' + 26;
+				else if (c >= '0' && c <= '9') value = c - '0' + 52;
+				else if (c == '+' || c == '-') value = 62;
+				else if (c == '/' || c == '_') value = 63;
+				else if (c == '=' || c == '\r' || c == '\n' || c == ' ') continue;
+				else return false;
+				accumulator = (accumulator << 6) | static_cast<uint32_t>(value);
+				bits += 6;
+				if (bits >= 8)
+				{
+					bits -= 8;
+					bytes.push_back(static_cast<uint8_t>((accumulator >> bits) & 0xFF));
+				}
+			}
+			return !bytes.empty();
+		}
+
+		bool IsLocalRelativeUri(const std::string& decoded)
+		{
+			if (decoded.empty() || decoded.starts_with("data:"))
+				return false;
+			const std::filesystem::path path = ToPath(decoded);
+			if (path.has_root_name() || path.has_root_directory())
+				return false;
+			for (const std::filesystem::path& part : path.lexically_normal())
+			{
+				if (part == "..")
+					return false;
+			}
+			return true;
+		}
+
+		std::string ImageExtension(const Value& image)
+		{
+			std::string mime;
+			if (image.HasMember("mimeType") && image["mimeType"].IsString())
+				mime = image["mimeType"].GetString();
+			else if (image.HasMember("uri") && image["uri"].IsString())
+			{
+				const std::string uri = image["uri"].GetString();
+				if (uri.starts_with("data:"))
+					mime = uri.substr(5, uri.find(';') == std::string::npos ? 0 : uri.find(';') - 5);
+			}
+			if (mime == "image/jpeg") return ".jpg";
+			if (mime == "image/webp") return ".webp";
+			if (mime == "image/ktx2") return ".ktx2";
+			return ".png";
+		}
+
+		std::string ImageRelativePath(Value& doc, uint32_t imageIndex, const std::string& gltfStem)
+		{
+			Value& image = doc["images"][imageIndex];
+			if (image.HasMember("uri") && image["uri"].IsString())
+			{
+				const std::string decoded = PercentDecode(image["uri"].GetString());
+				if (IsLocalRelativeUri(decoded))
+					return ToUtf8(ToPath(decoded).lexically_normal().generic_u8string());
+				if (!decoded.starts_with("data:"))
+					return "textures/" + SafeFileName(ToUtf8(ToPath(decoded).filename().u8string()));
+			}
+
+			const std::string extension = ImageExtension(image);
+			std::string name = image.HasMember("name") && image["name"].IsString() && image["name"].GetStringLength() > 0
+				? std::string(image["name"].GetString())
+				: gltfStem + "_image" + std::to_string(imageIndex);
+			name = SafeFileName(name);
+			if (!ToUtf8(ToPath(name).extension().u8string()).empty())
+				name = ToUtf8(ToPath(name).stem().u8string());
+			return "textures/" + name + extension;
+		}
+
+		std::string TextureAssetPath(CNglTF& cNglTF, Value& textureInfo)
+		{
+			Value& doc = cNglTF.m_doc;
+			if (!textureInfo.HasMember("index") || !doc.HasMember("textures") || !doc.HasMember("images"))
+				return {};
+			const uint32_t textureIndex = textureInfo["index"].GetUint();
+			if (textureIndex >= doc["textures"].Size() || !doc["textures"][textureIndex].HasMember("source"))
+				return {};
+			const uint32_t imageIndex = doc["textures"][textureIndex]["source"].GetUint();
+			if (imageIndex >= doc["images"].Size())
+				return {};
+			const std::string stem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
+			return MakeAssetPath(cNglTF.m_filePath, ImageRelativePath(doc, imageIndex, stem));
+		}
+
+		bool ReadEmbeddedImage(CNglTF& cNglTF, uint32_t imageIndex, std::vector<uint8_t>& bytes)
+		{
+			Value& doc = cNglTF.m_doc;
+			Value& image = doc["images"][imageIndex];
+			if (image.HasMember("uri") && image["uri"].IsString())
+			{
+				const std::string uri = image["uri"].GetString();
+				const size_t comma = uri.find(',');
+				return uri.starts_with("data:") && comma != std::string::npos
+					&& DecodeBase64(std::string_view(uri).substr(comma + 1), bytes);
+			}
+			if (!image.HasMember("bufferView") || !doc.HasMember("bufferViews"))
+				return false;
+			const uint32_t viewIndex = image["bufferView"].GetUint();
+			if (viewIndex >= doc["bufferViews"].Size())
+				return false;
+			Value& view = doc["bufferViews"][viewIndex];
+			if (view.HasMember("buffer") && view["buffer"].GetUint() != 0)
+				return false;
+			const size_t offset = view.HasMember("byteOffset") ? view["byteOffset"].GetUint() : 0u;
+			const size_t length = view["byteLength"].GetUint();
+			if (offset > cNglTF.m_bin.size() || length > cNglTF.m_bin.size() - offset)
+				return false;
+			bytes.assign(cNglTF.m_bin.begin() + offset, cNglTF.m_bin.begin() + offset + length);
+			return !bytes.empty();
+		}
+
 		// accessor가 가리키는 데이터의 bin 내 시작 위치 = bufferView.byteOffset + accessor.byteOffset (둘 다 생략 시 0)
 		size_t GetAccessorDataOffset(Value& bufferViews, Value& accessor)
 		{
@@ -135,7 +298,10 @@ namespace Canape
 
 
 		//***** bin 경로 결정: glTF와 같은 디렉토리 + buffers[0].uri (파일 이름)
-		const std::filesystem::path binPath = ToPath(filePath).parent_path() / ToPath(cNglTF.m_doc["buffers"][0]["uri"].GetString());
+		if (cNglTF.m_doc.HasParseError() || !cNglTF.m_doc.IsObject() || !cNglTF.m_doc.HasMember("buffers")
+			|| !cNglTF.m_doc["buffers"].IsArray() || cNglTF.m_doc["buffers"].Empty() || !cNglTF.m_doc["buffers"][0].HasMember("uri"))
+			return false;
+		const std::filesystem::path binPath = ToPath(filePath).parent_path() / ToPath(PercentDecode(cNglTF.m_doc["buffers"][0]["uri"].GetString()));
 		const std::u8string binPathU8 = binPath.generic_u8string();
 		cNglTF.m_filePath = filePath;
 		cNglTF.m_binFIlePath = std::string(binPathU8.begin(), binPathU8.end());
@@ -242,16 +408,7 @@ namespace Canape
 	}
 	std::unique_ptr<TextureAsset> CNglTFImporter::LoadTextureAsset(CNglTF& cNglTF)
 	{
-		Value& doc = cNglTF.m_doc;
-		Value& textures = doc["textures"];
-		Value& images = doc["images"];
-
-		for (Value& texture : textures.GetArray())
-		{
-			uint32_t sourceIndex = texture["source"].GetUint();
-			images[sourceIndex]["uri"].GetString();
-		}
-
+		(void)cNglTF;
 		return std::unique_ptr<TextureAsset>();
 	}
 
@@ -414,7 +571,7 @@ namespace Canape
 			//* 머터리얼 이름이 있다면 사용, 없다면 glTF 파일 이름 + Material_i 사용
 			if (material.HasMember("name"))
 			{
-				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, std::string(material["name"].GetString()) + ".mat");
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, SafeFileName(material["name"].GetString()) + ".mat");
 			}
 			else
 			{
@@ -468,40 +625,30 @@ namespace Canape
 				//* baseColorTexture
 				if (pbrMetallicRoughness.HasMember("baseColorTexture"))
 				{
-					uint32_t baseIndex = material["pbrMetallicRoughness"]["baseColorTexture"]["index"].GetUint();
-					uint32_t sourceIndex = doc["textures"][baseIndex]["source"].GetUint();
-					materialSlots[i].baseColorTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+					materialSlots[i].baseColorTexture = TextureAssetPath(cNglTF, material["pbrMetallicRoughness"]["baseColorTexture"]);
 				}
 
 				//* metallicRoughnessTexture
 				if (pbrMetallicRoughness.HasMember("metallicRoughnessTexture"))
 				{
-					uint32_t metallicRoughnessIndex = material["pbrMetallicRoughness"]["metallicRoughnessTexture"]["index"].GetUint();
-					uint32_t sourceIndex = doc["textures"][metallicRoughnessIndex]["source"].GetUint();
-					materialSlots[i].metallicRoughnessTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+					materialSlots[i].metallicRoughnessTexture = TextureAssetPath(cNglTF, material["pbrMetallicRoughness"]["metallicRoughnessTexture"]);
 				}
 			}
 
 			if (material.HasMember("normalTexture"))
 			{
-				uint32_t normalIndex = material["normalTexture"]["index"].GetUint();
-				uint32_t sourceIndex = doc["textures"][normalIndex]["source"].GetUint();
-				materialSlots[i].normalTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+				materialSlots[i].normalTexture = TextureAssetPath(cNglTF, material["normalTexture"]);
 			}
 
 			if (material.HasMember("occlusionTexture"))
 			{
-				uint32_t occlusionIndex = material["occlusionTexture"]["index"].GetUint();
-				uint32_t sourceIndex = doc["textures"][occlusionIndex]["source"].GetUint();
-				materialSlots[i].occlusionTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+				materialSlots[i].occlusionTexture = TextureAssetPath(cNglTF, material["occlusionTexture"]);
 			}
 
 
 			if (material.HasMember("emissiveTexture"))
 			{
-				uint32_t emissiveIndex = material["emissiveTexture"]["index"].GetUint();
-				uint32_t sourceIndex = doc["textures"][emissiveIndex]["source"].GetUint();
-				materialSlots[i].emissiveTexture = MakeAssetPath(cNglTF.m_filePath, doc["images"][sourceIndex]["uri"].GetString()); // glTF 파일과 같은 경로에 텍스처가 있다고 가정하고 경로지정
+				materialSlots[i].emissiveTexture = TextureAssetPath(cNglTF, material["emissiveTexture"]);
 			}
 		}
 
@@ -1190,43 +1337,60 @@ namespace Canape
 		}
 	}
 
-	std::string CNglTFImporter::CopyGltfFiles(const std::string& gltfPath, const std::string& targetDir)
+	std::string CNglTFImporter::CopyGltfTextures(const std::string& gltfPath, const std::string& targetDir, CNglTF& sourceGltf)
 	{
 		const std::filesystem::path source = ToPath(gltfPath);
 		const std::filesystem::path target = ToPath(targetDir);
 
-		CNglTF sourceGltf;
 		if (!ReadglTF(gltfPath, sourceGltf))
 			return {};
 
-		std::vector<std::filesystem::path> files = { source.filename() };
-		if (sourceGltf.m_doc.HasMember("buffers"))
-		{
-			for (Value& buffer : sourceGltf.m_doc["buffers"].GetArray())
-			{
-				if (buffer.HasMember("uri"))
-					files.push_back(ToPath(buffer["uri"].GetString()));
-			}
-		}
-		if (sourceGltf.m_doc.HasMember("images"))
-		{
-			for (Value& image : sourceGltf.m_doc["images"].GetArray())
-			{
-				if (image.HasMember("uri"))
-					files.push_back(ToPath(image["uri"].GetString()));
-			}
-		}
+		std::vector<std::pair<std::filesystem::path, std::filesystem::path>> copies;
+		Value& doc = sourceGltf.m_doc;
 
 		std::error_code error;
 		std::filesystem::create_directories(target, error);
-		for (const std::filesystem::path& file : files)
+		const std::string stem = ToUtf8(source.stem().u8string());
+		const uint32_t imageCount = doc.HasMember("images") ? doc["images"].Size() : 0u;
+		for (uint32_t i = 0; i < imageCount; ++i)
 		{
-			const std::filesystem::path from = source.parent_path() / file;
-			const std::filesystem::path to = target / file;
+			const std::filesystem::path to = (target / ToPath(ImageRelativePath(doc, i, stem))).lexically_normal();
+			Value& image = doc["images"][i];
+			const std::string uri = image.HasMember("uri") && image["uri"].IsString() ? image["uri"].GetString() : std::string();
+			if (!uri.empty() && !uri.starts_with("data:"))
+			{
+				const std::filesystem::path decoded = ToPath(PercentDecode(uri));
+				const std::filesystem::path from = (decoded.is_absolute() ? decoded : source.parent_path() / decoded).lexically_normal();
+				if (std::filesystem::exists(from, error))
+					copies.emplace_back(from, to);
+				else
+					CN_LOG_RUNTIME("Import", "glTF 텍스처 파일 없음 : ", ToUtf8(from.generic_u8string()));
+				continue;
+			}
+
+			std::vector<uint8_t> bytes;
+			if (!ReadEmbeddedImage(sourceGltf, i, bytes))
+			{
+				CN_LOG_RUNTIME("Import", "glTF 내장 텍스처를 읽을 수 없음 : image ", i);
+				continue;
+			}
+			std::filesystem::create_directories(to.parent_path(), error);
+			FILE* file = nullptr;
+			if (_wfopen_s(&file, to.c_str(), L"wb") == 0 && file)
+			{
+				std::fwrite(bytes.data(), 1, bytes.size(), file);
+				std::fclose(file);
+			}
+		}
+
+		for (const auto& [from, to] : copies)
+		{
 			if (std::filesystem::equivalent(from, to, error))
 				continue;
 			std::filesystem::create_directories(to.parent_path(), error);
 			std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, error);
+			if (error)
+				CN_LOG_RUNTIME("Import", "파일 복사 실패 : ", ToUtf8(from.generic_u8string()), " -> ", ToUtf8(to.generic_u8string()));
 		}
 		return ToUtf8((target / source.filename()).generic_u8string());
 	}
@@ -1234,13 +1398,11 @@ namespace Canape
 	bool CNglTFImporter::ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
 	{
 		const std::filesystem::path target = ToPath(targetDir);
-		const std::string copiedPath = CopyGltfFiles(gltfPath, targetDir);
-		if (copiedPath.empty())
-			return false;
-
 		CNglTF cNglTF;
-		if (!ReadglTF(copiedPath, cNglTF))
+		const std::string mappedPath = CopyGltfTextures(gltfPath, targetDir, cNglTF);
+		if (mappedPath.empty())
 			return false;
+		cNglTF.m_filePath = mappedPath;
 
 		Value& doc = cNglTF.m_doc;
 		const std::string modelName = ModelNameOf(ToPath(gltfPath));
@@ -1333,13 +1495,11 @@ namespace Canape
 	bool CNglTFImporter::ImportStaticModel(const std::string& gltfPath, const std::string& targetDir)
 	{
 		const std::filesystem::path target = ToPath(targetDir);
-		const std::string copiedPath = CopyGltfFiles(gltfPath, targetDir);
-		if (copiedPath.empty())
-			return false;
-
 		CNglTF cNglTF;
-		if (!ReadglTF(copiedPath, cNglTF))
+		const std::string mappedPath = CopyGltfTextures(gltfPath, targetDir, cNglTF);
+		if (mappedPath.empty())
 			return false;
+		cNglTF.m_filePath = mappedPath;
 		const std::unique_ptr<MeshAsset> mesh = LoadMeshAsset(cNglTF);
 		if (!mesh || mesh->GetVertexCount() == 0)
 		{

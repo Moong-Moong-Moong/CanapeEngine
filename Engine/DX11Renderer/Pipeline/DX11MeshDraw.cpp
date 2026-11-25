@@ -88,6 +88,19 @@ namespace Canape::MeshDraw
         SubmitGeometry(draw, context);
     }
 
+    void SubmitPickId(const PreparedMeshDraw& draw, MeshDrawContext& context, ID3D11Buffer* maskBuffer, uint32_t pickId)
+    {
+        UploadAndBindSkinning(draw, context);
+        UploadAndBindObject(draw, context);
+        UploadAndBindMaterial(draw, context);
+        ShaderConstants::OutlineMaskConstants constants{};
+        constants.MaskId = pickId;
+        ConstantBuffers::Upload(context.Context, maskBuffer, constants);
+        context.Context.PSSetConstantBuffers(ShaderConstants::OutlineSlot, 1, &maskBuffer);
+        RenderBindings::BindPipeline(context.Context, context.Pipelines.ResolvePickId(draw.Mesh->Format));
+        SubmitGeometry(draw, context);
+    }
+
     void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context)
     {
         UploadAndBindSkinning(draw, context);

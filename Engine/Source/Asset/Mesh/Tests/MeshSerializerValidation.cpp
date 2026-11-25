@@ -234,6 +234,29 @@ namespace
 	}
 }
 
+namespace
+{
+	void TestMaterialSlotRewrite(const std::filesystem::path& dir)
+	{
+		const std::string path = Utf8(dir / "skinned.cnskmesh");
+		const auto source = MeshSerializer::Load(path);
+		std::vector<std::string> slots;
+		Require(MeshSerializer::ReadMaterialSlots(path, slots) && slots == std::vector<std::string>{ "Content/Models/Knight/Body.mat" }, "read slots");
+
+		Require(!MeshSerializer::WriteMaterialSlots(path, {}), "slot count change rejected");
+		Require(MeshSerializer::WriteMaterialSlots(path, { "Content/Models/\xEB\x82\x98\xEB\xAC\xB4/Longer Name.mat" }), "write slots");
+		const auto loaded = MeshSerializer::Load(path);
+		Require(loaded && loaded->GetMaterialSlots()[0].name == "Content/Models/\xEB\x82\x98\xEB\xAC\xB4/Longer Name.mat", "rewritten slot loads");
+		Require(loaded && source && SameBytes(source->GetSkinnedVertices(), loaded->GetSkinnedVertices())
+			&& source->GetBonePaths() == loaded->GetBonePaths(), "geometry and bones kept");
+
+		std::vector<uint8_t> data = ReadAll(dir / "skinned.cnskmesh");
+		data.resize(data.size() - 1);
+		WriteAll(dir / "truncated.cnskmesh", data);
+		Require(!MeshSerializer::ReadMaterialSlots(Utf8(dir / "truncated.cnskmesh"), slots), "truncated slots rejected");
+	}
+}
+
 int main(int argc, char** argv)
 {
 	const std::filesystem::path dir = argc > 1 ? std::filesystem::path(argv[1]) : std::filesystem::temp_directory_path() / "MeshSerializerValidation";
@@ -246,6 +269,7 @@ int main(int argc, char** argv)
 	TestMismatchedBonesRejected(dir);
 	TestCorruptFilesRejected(dir);
 	TestExtensionRules(dir);
+	TestMaterialSlotRewrite(dir);
 
 	if (g_Failures == 0)
 	{

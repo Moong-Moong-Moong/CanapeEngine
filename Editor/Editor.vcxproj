@@ -95,9 +95,12 @@ exit /b 0</Command>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Assets\AssetRefactor.h" />
+    <ClInclude Include="Source\Assets\ReferenceIndex.h" />
     <ClInclude Include="Source\EditorApp.h" />
     <ClInclude Include="Source\EditorContext.h" />
     <ClInclude Include="Source\EditorProxyMeshes.h" />
+    <ClInclude Include="Source\ScenePicking.h" />
     <ClInclude Include="Source\EditorUtils.h" />
     <ClInclude Include="Source\Panels\DebugConsolePanel.h" />
     <ClInclude Include="Source\Panels\FileBrowserPanel.h" />
@@ -109,9 +112,12 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\StateMachineInspector.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Assets\AssetRefactor.cpp" />
+    <ClCompile Include="Source\Assets\ReferenceIndex.cpp" />
     <ClCompile Include="Source\EditorApp.cpp" />
     <ClCompile Include="Source\EditorContext.cpp" />
     <ClCompile Include="Source\EditorProxyMeshes.cpp" />
+    <ClCompile Include="Source\ScenePicking.cpp" />
     <ClCompile Include="Source\EditorUtils.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Panels\DebugConsolePanel.cpp" />

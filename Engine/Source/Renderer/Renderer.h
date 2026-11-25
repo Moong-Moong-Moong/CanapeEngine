@@ -18,7 +18,9 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace Canape
 {
@@ -59,6 +61,9 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        void RequestPick(uint32_t x, uint32_t y);
+        bool TakePickResult(uint64_t& objectId);
+        void SetSelectionOutline(std::vector<uint64_t> objectIds, const OutlineStyle& style);
         void SetEditorGridEnabled(bool enabled);
         bool IsEditorGridEnabled() const;
         void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);
@@ -130,6 +135,8 @@ namespace Canape
         ShadowFilterSettings m_ShadowFilterSettings{};
 
         std::function<void(Scene&, Renderer&)> m_EditorSubmit;
+        std::unordered_set<uint64_t> m_SelectionOutline;
+        OutlineStyle m_SelectionStyle{};
 
         void ApplyDebugSettings();
         void ApplyShadowFilterSettings();

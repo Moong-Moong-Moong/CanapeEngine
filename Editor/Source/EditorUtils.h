@@ -27,4 +27,5 @@ namespace EditorUtils
     bool RunTool(const std::string& script, const std::wstring& arguments, std::string& error);
     // Opens the file in the running Visual Studio, or opens the solution with it, or falls back to the default program.
     void OpenInVisualStudio(const std::filesystem::path& file);
+    void ShowInExplorer(const std::filesystem::path& path);
 }

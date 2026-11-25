@@ -419,6 +419,26 @@ namespace Canape
         m_Impl->Overlay = std::move(overlay);
     }
 
+    void DX11Renderer::RequestPick(uint32_t x, uint32_t y)
+    {
+        m_Impl->PickRequested = true;
+        m_Impl->PickX = x;
+        m_Impl->PickY = y;
+        m_Impl->PickResultReady = false;
+    }
+
+    bool DX11Renderer::TakePickResult(uint64_t& objectId)
+    {
+        m_Impl->PollPickResult();
+        if (!m_Impl->PickResultReady)
+        {
+            return false;
+        }
+        m_Impl->PickResultReady = false;
+        objectId = m_Impl->PickResult;
+        return true;
+    }
+
     void DX11Renderer::SetEditorGridEnabled(bool enabled)
     {
         m_Impl->EditorGridEnabled = enabled;

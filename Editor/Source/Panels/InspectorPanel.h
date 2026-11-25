@@ -41,6 +41,20 @@ private:
     bool DrawRotation(rttr::variant& value, const std::string& cacheKey);
     bool EditText(const char* label, std::string& value);
 
+    struct ToggleRequest
+    {
+        uint64_t objectId = 0;
+        uint64_t componentId = 0;
+        bool visibility = false;
+        bool value = false;
+        size_t affected = 0;
+    };
+    void RequestToggle(Canape::GameObject& gameObject, Canape::Component* component, bool visibility, bool value);
+    void ApplyToggle(Canape::GameObject& gameObject, bool includeChildren);
+    void DrawTogglePopup(Canape::Scene& scene);
+    ToggleRequest m_Toggle;
+    bool m_OpenTogglePopup = false;
+
     unsigned int m_ActiveTextId = 0;
     std::string m_ActiveTextBuffer;
     std::unordered_map<std::string, EulerCache> m_EulerCache;

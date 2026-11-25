@@ -44,12 +44,12 @@ namespace Canape
 		bool ImportSkeleton(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
 		// 노드 계층을 오브젝트로 만들고, 스킨 메쉬는 SkinnedMeshRenderer로, 노드에 달린 일반 메쉬는 그 노드의 MeshRenderer로 붙인다.
 		bool ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
-		// 움직이지 않는 모델: 파일을 targetDir로 복사하고, 모델 전체를 한 메쉬로 그리는 MeshRenderer 하나짜리 프리팹을 만든다.
+		// 움직이지 않는 모델: 텍스처를 targetDir로 복사하고, 모델 전체를 한 메쉬로 그리는 MeshRenderer 하나짜리 프리팹을 만든다.
 		bool ImportStaticModel(const std::string& gltfPath, const std::string& targetDir);
 
 	private:
-		// glTF와 bin, 이미지들을 targetDir로 복사하고 복사된 glTF 경로를 돌려준다(실패 시 빈 문자열).
-		std::string CopyGltfFiles(const std::string& gltfPath, const std::string& targetDir);
+		// 원본 glTF를 sourceGltf로 읽고 이미지만 targetDir로 복사한다. targetDir 기준 glTF 경로를 돌려준다(실패 시 빈 문자열).
+		std::string CopyGltfTextures(const std::string& gltfPath, const std::string& targetDir, CNglTF& sourceGltf);
 		void LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots);
 		Matrix4 GetNodeTRS(rapidjson::Value& node);
 		void LoadNodeMesh(

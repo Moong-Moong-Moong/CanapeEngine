@@ -61,6 +61,7 @@ namespace Canape
         uint32_t PaletteOffset = 0;
         uint32_t PaletteCount = 0;
         uint32_t OutlineMaskId = 0; // Dense per-scene ID; never a truncated objectId.
+        uint64_t ObjectId = 0;
     };
     struct PreparedSkybox
     {

@@ -53,6 +53,7 @@ namespace Canape
         bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
         bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler && UIPixelShaderMS; }
         DX11PipelineSelection ResolveEditorGrid() const;
+        DX11PipelineSelection ResolvePickId(VertexFormat vertexFormat) const;
         bool EditorGridAvailable() const { return EditorGridVertexShader && EditorGridPixelShader && EditorGridRasterizerState && EditorGridDepthState; }
 
     private:

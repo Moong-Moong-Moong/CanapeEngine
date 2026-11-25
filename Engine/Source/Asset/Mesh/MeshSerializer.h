@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Canape
 {
@@ -20,6 +21,8 @@ namespace Canape
 		static const char* ExtensionFor(const MeshAsset& mesh);
 
 		static bool Save(const MeshAsset& mesh, const std::string& path);
+		static bool ReadMaterialSlots(const std::string& path, std::vector<std::string>& slots);
+		static bool WriteMaterialSlots(const std::string& path, const std::vector<std::string>& slots);
 		static std::unique_ptr<MeshAsset> Load(const std::string& path);
 	};
 }

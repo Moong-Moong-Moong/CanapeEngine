@@ -36,7 +36,9 @@ private:
     bool SaveSceneAs();
     void ReplaceActiveScene(Canape::Scene* scene);
 
-    void MarkSceneSaved();
+    void OnAssetsRefactored(const RefactorPlan& plan, bool movedOnDisk, bool sceneChecked);
+    void ReloadSceneKeepingView(const std::string& path);
+    void MarkSceneSaved(Canape::Scene* scene = nullptr);
     bool HasUnsavedChanges();
     bool SavePlaySnapshot();
     bool ConfirmDiscardChanges();
@@ -48,6 +50,8 @@ private:
     //   [--skeleton] [--anim] (여러 번 반복 가능), [--import-log <파일>]. 임포트만 하고 종료한다.
     // 임포트가 하나라도 있으면 true.
     bool RunCommandLineImports();
+    void WriteCommandLog();
+    void ReportUnsavedChanges();
 
     EditorContext m_Context;
     HierarchyPanel m_Hierarchy;
@@ -64,7 +68,13 @@ private:
     uint64_t m_RestoreSelectionId = 0;
     bool m_Playing = false;
     bool m_RestoringFromPlay = false;
+    bool m_RestoringFromRefactor = false;
     bool m_ResetLayout = false;
     bool m_ShowDemoWindow = false;
     bool m_QuitAfterCommandLine = false;
+    std::vector<std::pair<int, std::string>> m_DeferredCommands;
+    std::string m_CommandLog;
+    std::filesystem::path m_CommandLogFile;
+    uint64_t m_CommandLogFirstSequence = 0;
+    int m_CommandLineFrame = 0;
 };
