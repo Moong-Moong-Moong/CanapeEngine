@@ -75,10 +75,14 @@ private:
     void ShowReferences(const std::filesystem::path& path);
 
     // Copy / paste / duplicate of files and folders under Content. Pasting next to an existing name adds " (n)".
-    void CopyAsset(const std::filesystem::path& path);
-    std::string ValidatePaste(const std::filesystem::path& folder) const;
+    // Copy / duplicate take every selected item; paste places all copied items in one folder.
+    void CopyAssets(std::vector<std::filesystem::path> paths);
+    std::string ValidatePasteSource(const std::filesystem::path& source, const std::filesystem::path& folder) const;
+    std::string ValidatePaste(const std::filesystem::path& folder) const; // empty when at least one item can be pasted
     void PasteInto(EditorContext& context, const std::filesystem::path& folder);
-    void DuplicateAsset(EditorContext& context, const std::filesystem::path& path);
+    void DuplicateAssets(EditorContext& context, std::vector<std::filesystem::path> paths);
+    // Selected items that copy / delete shortcuts act on (falls back to `selected` when nothing is selected in the list).
+    std::vector<std::filesystem::path> GetShortcutTargets(const std::filesystem::path& selected) const;
     void DrawPasteItem(EditorContext& context, const std::filesystem::path& folder, const char* label);
     void RequestDelete(EditorContext& context, const std::filesystem::path& path);
     void RequestDeletePaths(EditorContext& context, const std::vector<std::filesystem::path>& paths);
@@ -129,7 +133,7 @@ private:
     double m_RenameArmTime = 0.0;
 
     std::vector<std::filesystem::path> m_MoveSources;
-    std::filesystem::path m_CopySource;
+    std::vector<std::filesystem::path> m_CopySources;
 
     std::vector<std::filesystem::path> m_Selection;
     std::filesystem::path m_SelectionAnchor;

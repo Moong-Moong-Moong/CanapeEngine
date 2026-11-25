@@ -131,11 +131,11 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
             }
             if (ImGui::IsKeyPressed(ImGuiKey_C, false) && selected)
             {
-                m_CopyId = selected->GetId();
+                m_CopyIds = ActionTargets(context, *scene, *selected);
             }
             if (ImGui::IsKeyPressed(ImGuiKey_D, false) && selected)
             {
-                m_DuplicateId = selected->GetId();
+                m_DuplicateIds = ActionTargets(context, *scene, *selected);
             }
             if (ImGui::IsKeyPressed(ImGuiKey_V, false) && HasClipboard())
             {
@@ -489,9 +489,11 @@ void HierarchyPanel::DrawItemInteractions(EditorContext& context, GameObject& ga
             BeginRename(gameObject);
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Copy", "Ctrl+C"))
+        const size_t selectedCount = context.IsSelected(gameObject.GetId()) ? context.GetSelectionCount() : 1;
+        const std::string countSuffix = selectedCount > 1 ? " " + std::to_string(selectedCount) + " Objects" : std::string();
+        if (ImGui::MenuItem(("Copy" + countSuffix).c_str(), "Ctrl+C") && gameObject.GetScene())
         {
-            m_CopyId = gameObject.GetId();
+            m_CopyIds = ActionTargets(context, *gameObject.GetScene(), gameObject);
         }
         if (ImGui::MenuItem("Paste", "Ctrl+V", false, HasClipboard()))
         {
@@ -503,9 +505,9 @@ void HierarchyPanel::DrawItemInteractions(EditorContext& context, GameObject& ga
         {
             m_Paste = { true, gameObject.GetId() };
         }
-        if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
+        if (ImGui::MenuItem(("Duplicate" + countSuffix).c_str(), "Ctrl+D") && gameObject.GetScene())
         {
-            m_DuplicateId = gameObject.GetId();
+            m_DuplicateIds = ActionTargets(context, *gameObject.GetScene(), gameObject);
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Create Child"))
@@ -685,37 +687,56 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
         m_InstantiateParentId = 0;
     }
 
-    if (m_CopyId != 0)
+    const auto resolve = [&scene](const std::vector<uint64_t>& ids)
     {
-        if (GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_CopyId)))
+        std::vector<GameObject*> objects;
+        for (const uint64_t id : ids)
         {
-            CopyToClipboard(*target);
+            GameObject* gameObject = scene.GetGameObject(scene.FindGameObjectById(id));
+            if (gameObject && !gameObject->IsPendingDestroy())
+            {
+                objects.push_back(gameObject);
+            }
         }
-        m_CopyId = 0;
+        return objects;
+    };
+
+    if (!m_CopyIds.empty())
+    {
+        const std::vector<GameObject*> targets = resolve(m_CopyIds);
+        if (!targets.empty())
+        {
+            CopyToClipboard(targets);
+        }
+        m_CopyIds.clear();
     }
 
-    if (m_DuplicateId != 0)
+    if (!m_DuplicateIds.empty())
     {
-        // Duplicate = copy + paste next to the original, without replacing what the clipboard held.
-        if (GameObject* target = scene.GetGameObject(scene.FindGameObjectById(m_DuplicateId)))
+        // Duplicate = copy + paste each object next to its original, without touching the clipboard.
+        const std::vector<GameObject*> targets = resolve(m_DuplicateIds);
+        std::vector<ClipboardItem> items;
+        for (GameObject* target : targets)
         {
-            const std::string previousClipboard = m_Clipboard;
-            const Matrix4 previousWorld = m_ClipboardWorld;
-            const uint64_t previousParentId = m_ClipboardParentId;
-            const std::string previousSceneKey = m_ClipboardSceneKey;
-            CopyToClipboard(*target);
-            TransformComponent* parent = target->GetTransform()->GetParent();
-            if (GameObject* created = PasteClipboard(scene, parent ? parent->GetOwnerObject() : nullptr))
-            {
-                context.Select(created);
-                context.SetUndoLabel("Duplicate " + target->GetName());
-            }
-            m_Clipboard = previousClipboard;
-            m_ClipboardWorld = previousWorld;
-            m_ClipboardParentId = previousParentId;
-            m_ClipboardSceneKey = previousSceneKey;
+            items.push_back(MakeClipboardItem(*target));
         }
-        m_DuplicateId = 0;
+        std::vector<uint64_t> createdIds;
+        for (size_t i = 0; i < targets.size(); ++i)
+        {
+            TransformComponent* parent = targets[i]->GetTransform()->GetParent();
+            if (GameObject* created = PasteItem(scene, items[i], m_SceneKey, parent ? parent->GetOwnerObject() : nullptr))
+            {
+                createdIds.push_back(created->GetId());
+            }
+        }
+        if (!createdIds.empty())
+        {
+            const uint64_t primary = createdIds.back();
+            context.SetSelection(std::move(createdIds), primary);
+            context.SetUndoLabel(targets.size() == 1 ? "Duplicate " + targets.front()->GetName()
+                : "Duplicate " + std::to_string(targets.size()) + " Objects");
+        }
+        m_DuplicateIds.clear();
     }
 
     if (m_Paste.pending)
@@ -723,10 +744,23 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
         GameObject* parent = m_Paste.parentId ? scene.GetGameObject(scene.FindGameObjectById(m_Paste.parentId)) : nullptr;
         if (m_Paste.parentId == 0 || parent)
         {
-            if (GameObject* created = PasteClipboard(scene, parent))
+            // Every copied tree goes under the same parent; the pasted objects become the selection.
+            std::vector<uint64_t> createdIds;
+            std::string lastName;
+            for (const ClipboardItem& item : m_Clipboard)
             {
-                context.Select(created);
-                context.SetUndoLabel("Paste " + created->GetName());
+                if (GameObject* created = PasteItem(scene, item, m_ClipboardSceneKey, parent))
+                {
+                    createdIds.push_back(created->GetId());
+                    lastName = created->GetName();
+                }
+            }
+            if (!createdIds.empty())
+            {
+                const size_t count = createdIds.size();
+                const uint64_t primary = createdIds.back();
+                context.SetSelection(std::move(createdIds), primary);
+                context.SetUndoLabel(count == 1 ? "Paste " + lastName : "Paste " + std::to_string(count) + " Objects");
             }
         }
         m_Paste = {};
@@ -785,28 +819,56 @@ void HierarchyPanel::ApplyPendingActions(EditorContext& context, Scene& scene)
     }
 }
 
-void HierarchyPanel::CopyToClipboard(GameObject& gameObject)
+std::vector<uint64_t> HierarchyPanel::ActionTargets(EditorContext& context, Scene& scene, const GameObject& gameObject)
 {
-    m_Clipboard = SceneSerializer::SaveTreeToString(gameObject);
-    m_ClipboardWorld = gameObject.GetTransform()->GetLocalToWorldMatrix();
+    if (!context.IsSelected(gameObject.GetId()) || context.GetSelectionCount() < 2)
+    {
+        return { gameObject.GetId() };
+    }
+    // Children of selected objects are copied inside their parent's tree, so only the top-most objects are listed.
+    std::vector<GameObject*> roots = context.GetSelectedRoots(&scene);
+    SortByHierarchyOrder(scene, roots);
+    std::vector<uint64_t> ids;
+    for (const GameObject* root : roots)
+    {
+        ids.push_back(root->GetId());
+    }
+    return ids;
+}
+
+HierarchyPanel::ClipboardItem HierarchyPanel::MakeClipboardItem(GameObject& gameObject)
+{
+    ClipboardItem item;
+    item.tree = SceneSerializer::SaveTreeToString(gameObject);
+    item.world = gameObject.GetTransform()->GetLocalToWorldMatrix();
     const TransformComponent* parent = gameObject.GetTransform()->GetParent();
     const GameObject* parentObject = parent ? parent->GetOwnerObject() : nullptr;
-    m_ClipboardParentId = parentObject ? parentObject->GetId() : 0;
+    item.parentId = parentObject ? parentObject->GetId() : 0;
+    return item;
+}
+
+void HierarchyPanel::CopyToClipboard(const std::vector<GameObject*>& gameObjects)
+{
+    m_Clipboard.clear();
+    for (GameObject* gameObject : gameObjects)
+    {
+        m_Clipboard.push_back(MakeClipboardItem(*gameObject));
+    }
     m_ClipboardSceneKey = m_SceneKey;
 }
 
-GameObject* HierarchyPanel::PasteClipboard(Scene& scene, GameObject* parent)
+GameObject* HierarchyPanel::PasteItem(Scene& scene, const ClipboardItem& item, const std::string& sceneKey, GameObject* parent)
 {
-    if (m_Clipboard.empty())
+    if (item.tree.empty())
     {
         return nullptr;
     }
 
     const uint64_t parentId = parent ? parent->GetId() : 0;
-    if (parentId == m_ClipboardParentId && m_ClipboardSceneKey == m_SceneKey)
+    if (parentId == item.parentId && sceneKey == m_SceneKey)
     {
         // Same parent as the original: the serialized local transform already puts the copy on top of it.
-        GameObject* created = SceneSerializer::InstantiateFromString(scene, m_Clipboard, parent ? parent->GetTransform() : nullptr);
+        GameObject* created = SceneSerializer::InstantiateFromString(scene, item.tree, parent ? parent->GetTransform() : nullptr);
         if (created)
         {
             created->SetName(MakeUniqueName(scene, *created));
@@ -815,14 +877,14 @@ GameObject* HierarchyPanel::PasteClipboard(Scene& scene, GameObject* parent)
     }
 
     // Different parent: restore the copied world pose at the root (where local == world), then reparent keeping it.
-    GameObject* created = SceneSerializer::InstantiateFromString(scene, m_Clipboard, nullptr);
+    GameObject* created = SceneSerializer::InstantiateFromString(scene, item.tree, nullptr);
     if (!created)
     {
         return nullptr;
     }
     TransformComponent* transform = created->GetTransform();
     DirectX::XMVECTOR scale, rotation, translation;
-    if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, m_ClipboardWorld.ToXM()))
+    if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, item.world.ToXM()))
     {
         transform->SetPosition(Vector3::FromXM(translation));
         transform->SetRotation(Quaternion::FromXM(rotation).Normalized());

@@ -42,8 +42,19 @@ private:
         bool pending = false;
         uint64_t parentId = 0; // 0 = scene root
     };
-    void CopyToClipboard(Canape::GameObject& gameObject);
-    Canape::GameObject* PasteClipboard(Canape::Scene& scene, Canape::GameObject* parent);
+    // One copied object tree. Copying several objects keeps one per top-most selected object, in hierarchy order.
+    struct ClipboardItem
+    {
+        std::string tree;
+        Canape::Matrix4 world = Canape::Matrix4::Identity;
+        uint64_t parentId = 0;
+    };
+    static ClipboardItem MakeClipboardItem(Canape::GameObject& gameObject);
+    void CopyToClipboard(const std::vector<Canape::GameObject*>& gameObjects);
+    Canape::GameObject* PasteItem(Canape::Scene& scene, const ClipboardItem& item, const std::string& sceneKey,
+        Canape::GameObject* parent);
+    // The selection's top-most objects when `gameObject` is part of a multi-selection, otherwise just `gameObject`.
+    static std::vector<uint64_t> ActionTargets(EditorContext& context, Canape::Scene& scene, const Canape::GameObject& gameObject);
     static std::string MakeUniqueName(Canape::Scene& scene, const Canape::GameObject& created);
     bool HasClipboard() const { return !m_Clipboard.empty(); }
 
@@ -70,11 +81,9 @@ private:
     std::string m_UndoLabel; // set by edits made where the context is not at hand (rename)
     bool m_RenameFocus = false;
 
-    std::string m_Clipboard;
-    Canape::Matrix4 m_ClipboardWorld = Canape::Matrix4::Identity;
-    uint64_t m_ClipboardParentId = 0;
+    std::vector<ClipboardItem> m_Clipboard;
     std::string m_ClipboardSceneKey; // object ids only mean the same thing inside the scene they were copied from
-    uint64_t m_CopyId = 0;
-    uint64_t m_DuplicateId = 0;
+    std::vector<uint64_t> m_CopyIds;
+    std::vector<uint64_t> m_DuplicateIds;
     PasteRequest m_Paste;
 };
