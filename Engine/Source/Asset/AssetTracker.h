@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -40,6 +42,7 @@ namespace Canape
 		AssetRecordId AddRecord(AssetType type, uint64_t assetId, const std::string& path, const AssetOwnerInfo& owner);
 		void DeleteRecord(AssetRecordId recordId);
 		void PrintRecord(std::span<const AssetStatus> assets) const;
+		void RemapPaths(const std::function<std::optional<std::string>(const std::string&)>& remap);
 
 		size_t GetRecordCount() const { return m_Records.size(); }
 

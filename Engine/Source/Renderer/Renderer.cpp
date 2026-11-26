@@ -294,10 +294,11 @@ namespace Canape
             return;
         }
 
+        const bool selected = objectId != 0 && m_SelectionOutline.contains(objectId);
         MeshItem item;
-        item.outlineStyle = outlineStyle;
+        item.outlineStyle = selected ? m_SelectionStyle : outlineStyle;
         item.objectId = objectId;
-        item.outlineEnabled = outlineEnabled;
+        item.outlineEnabled = outlineEnabled || selected;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
@@ -320,10 +321,11 @@ namespace Canape
             return;
         }
 
+        const bool selected = objectId != 0 && m_SelectionOutline.contains(objectId);
         SkinnedMeshItem item;
-        item.outlineStyle = outlineStyle;
+        item.outlineStyle = selected ? m_SelectionStyle : outlineStyle;
         item.objectId = objectId;
-        item.outlineEnabled = outlineEnabled;
+        item.outlineEnabled = outlineEnabled || selected;
         item.mesh = meshResource;
         item.submeshIndex = submeshIndex;
         item.material = m_Registry->GetResourceId(material);
@@ -368,6 +370,52 @@ namespace Canape
     void Renderer::SetOverlay(std::function<void()> overlay)
     {
         m_DX11->SetOverlay(std::move(overlay));
+    }
+
+    void Renderer::RequestPick(uint32_t x, uint32_t y)
+    {
+        m_DX11->RequestPick(x, y);
+    }
+
+    bool Renderer::TakePickResult(uint64_t& objectId)
+    {
+        return m_DX11->TakePickResult(objectId);
+    }
+
+    void Renderer::SetSelectionOutline(std::vector<uint64_t> objectIds, const OutlineStyle& style)
+    {
+        m_SelectionOutline = std::unordered_set<uint64_t>(objectIds.begin(), objectIds.end());
+        m_SelectionStyle = style;
+    }
+
+    void Renderer::SetEditorGridEnabled(bool enabled)
+    {
+        m_DX11->SetEditorGridEnabled(enabled);
+    }
+
+    bool Renderer::IsEditorGridEnabled() const
+    {
+        return m_DX11->IsEditorGridEnabled();
+    }
+
+    void Renderer::SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible)
+    {
+        m_DX11->SetEditorGridPlaneVisible(plane, visible);
+    }
+
+    bool Renderer::IsEditorGridPlaneVisible(EditorGridPlane plane) const
+    {
+        return m_DX11->IsEditorGridPlaneVisible(plane);
+    }
+
+    void Renderer::SetEditorGridCellSize(float cellSize)
+    {
+        m_DX11->SetEditorGridCellSize(cellSize);
+    }
+
+    float Renderer::GetEditorGridCellSize() const
+    {
+        return m_DX11->GetEditorGridCellSize();
     }
 
     void* Renderer::GetNativeDevice() const

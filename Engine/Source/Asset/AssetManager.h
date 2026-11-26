@@ -50,10 +50,15 @@ namespace Canape
 
 		//***** Release
 		size_t ReleaseUnusedAssets();
+		size_t RemapAssetPaths(const std::string& fromPath, const std::string& toPath, bool directory);
+		size_t ForgetAssetPaths(const std::string& path, bool directory);
 
 		//***** Mesh
 		MeshAssetHandle GetMeshHandle(const std::string& path, const AssetOwnerInfo& owner);
 		const MeshAsset* GetMesh(const MeshAssetHandle& handle) const;
+		bool ExportMesh(const std::string& sourcePath, const std::string& targetPath);
+		// 메쉬 머티리얼 슬롯의 기본 데이터를 슬롯 경로(.mat)에 저장한다. 파일이 이미 있으면 건너뛴다.
+		static void WriteDefaultMaterialFiles(const MeshAsset& mesh);
 
 		//***** Texture
 		// 같은 파일이라도 format이 다르면 별도 에셋으로 캐시된다.
@@ -103,8 +108,6 @@ namespace Canape
 
 		MaterialAssetHandle LoadMaterialFile(const std::string& assetPath, const AssetOwnerInfo& owner);
 		MeshAssetId LoadMesh(const std::string& path, const std::string& pathKey, const std::string& filePath);
-		// 메쉬 머티리얼 슬롯의 기본 데이터를 슬롯 경로(.mat)에 저장한다. 파일이 이미 있으면 건너뛴다.
-		void WriteDefaultMaterialFiles(const MeshAsset& mesh);
 		TextureAssetId LoadTexture(const std::string& path, const std::string& pathKey, const std::string& filePath, TextureFormat format);
 		MaterialTextures LoadMaterialTextures(const std::string& materialName, const MaterialData& data, const std::string& sceneName);
 		CubemapAssetId LoadCubemap(const std::string& path, const std::string& pathKey, const std::string& filePath);

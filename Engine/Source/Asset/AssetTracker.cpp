@@ -3,6 +3,7 @@
 
 #include <iterator>
 #include <sstream>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -40,6 +41,26 @@ namespace Canape
 	void AssetTracker::DeleteRecord(AssetRecordId recordId)
 	{
 		m_Records.erase(recordId.value);
+	}
+
+	void AssetTracker::RemapPaths(const std::function<std::optional<std::string>(const std::string&)>& remap)
+	{
+		for (auto& [id, record] : m_Records)
+		{
+			if (std::optional<std::string> path = remap(record.path))
+			{
+				record.path = std::move(*path);
+			}
+
+			constexpr std::string_view materialOwner = "Material:";
+			if (record.owner.objectName.starts_with(materialOwner))
+			{
+				if (std::optional<std::string> name = remap(record.owner.objectName.substr(materialOwner.size())))
+				{
+					record.owner.objectName = std::string(materialOwner) + *name;
+				}
+			}
+		}
 	}
 
 	void AssetTracker::PrintRecord(std::span<const AssetStatus> assets) const

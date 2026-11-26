@@ -4,6 +4,7 @@
 #include "DX11Renderer/Scene/RenderScene.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
+#include "DX11Renderer/Data/EditorGridPlane.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"
 #include "DX11Renderer/Data/RendererDebugStats.h"
 #include "DX11Renderer/Data/ShadowFilterSettings.h"
@@ -17,7 +18,9 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace Canape
 {
@@ -58,6 +61,15 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        void RequestPick(uint32_t x, uint32_t y);
+        bool TakePickResult(uint64_t& objectId);
+        void SetSelectionOutline(std::vector<uint64_t> objectIds, const OutlineStyle& style);
+        void SetEditorGridEnabled(bool enabled);
+        bool IsEditorGridEnabled() const;
+        void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);
+        bool IsEditorGridPlaneVisible(EditorGridPlane plane) const;
+        void SetEditorGridCellSize(float cellSize);
+        float GetEditorGridCellSize() const;
         void* GetNativeDevice() const;
         void* GetNativeContext() const;
         void* GetSceneTexture() const;
@@ -125,6 +137,8 @@ namespace Canape
         ShadowFilterSettings m_ShadowFilterSettings{};
 
         std::function<void(Scene&, Renderer&)> m_EditorSubmit;
+        std::unordered_set<uint64_t> m_SelectionOutline;
+        OutlineStyle m_SelectionStyle{};
 
         void ApplyDebugSettings();
         void ApplyShadowFilterSettings();

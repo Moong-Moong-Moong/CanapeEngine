@@ -125,6 +125,9 @@ namespace Canape
         DepthTexture.Reset();
         DepthStencilView.Reset();
         ReleaseOutlineResources();
+        Pick = {};
+        PickTable.clear();
+        PickRequested = PickReadbackPending = PickResultReady = false;
         OutlineMaskBuffer.Reset();
         OutlineCompositeBuffer.Reset();
         OutlineStyleView.Reset();
@@ -144,6 +147,7 @@ namespace Canape
         SceneBuffer.Reset();
         LightBuffer.Reset();
         PostProcessBuffer.Reset();
+        EditorGridBuffer.Reset();
         UIBuffers = {};
         PendingUI = nullptr;
         SwapChain.Reset();
@@ -767,6 +771,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(post process constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::EditorGridConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &EditorGridBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(editor grid constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

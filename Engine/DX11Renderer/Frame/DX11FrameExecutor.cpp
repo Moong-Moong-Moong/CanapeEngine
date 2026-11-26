@@ -2,6 +2,7 @@
 #include "DX11Renderer/Pass/DX11ShadowPass.h"
 #include "DX11Renderer/Pass/DX11MainPass.h"
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
+#include "DX11Renderer/Pass/DX11EditorGridPass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
 #include "DX11Renderer/Pass/DX11OutlinePass.h"
 #include "CNDebug/DebugLog.h"
@@ -296,6 +297,146 @@ namespace Canape
             { SkyboxVertexBuffer.Get(), SkyboxIndexBuffer.Get(), SkyboxViewBuffer.Get() }, GetMainTargets(), stats);
     }
 
+    bool DX11Renderer::Impl::EnsurePickResources()
+    {
+        if (Pick.Texture && Pick.Width == Width && Pick.Height == Height)
+        {
+            return true;
+        }
+        PickResources created;
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = Width;
+        desc.Height = Height;
+        desc.MipLevels = desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R32_UINT;
+        desc.SampleDesc = { 1, 0 };
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        if (FAILED(Device->CreateTexture2D(&desc, nullptr, &created.Texture))
+            || FAILED(Device->CreateRenderTargetView(created.Texture.Get(), nullptr, &created.Target)))
+        {
+            return false;
+        }
+
+        desc.Format = DXGI_FORMAT_D32_FLOAT;
+        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        if (FAILED(Device->CreateTexture2D(&desc, nullptr, &created.DepthTexture))
+            || FAILED(Device->CreateDepthStencilView(created.DepthTexture.Get(), nullptr, &created.DepthView)))
+        {
+            return false;
+        }
+
+        desc.Width = desc.Height = 1;
+        desc.Format = DXGI_FORMAT_R32_UINT;
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        if (FAILED(Device->CreateTexture2D(&desc, nullptr, &created.Staging)))
+        {
+            return false;
+        }
+
+        D3D11_BUFFER_DESC buffer{};
+        buffer.ByteWidth = sizeof(SC::OutlineMaskConstants);
+        buffer.Usage = D3D11_USAGE_DEFAULT;
+        buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        if (FAILED(Device->CreateBuffer(&buffer, nullptr, &created.Constants)))
+        {
+            return false;
+        }
+
+        created.Width = Width;
+        created.Height = Height;
+        Pick = std::move(created);
+        PickReadbackPending = false;
+        return true;
+    }
+
+    void DX11Renderer::Impl::ExecutePickPass(const PreparedScene& scene, MeshDrawContext& draw)
+    {
+        if (!PickRequested)
+        {
+            return;
+        }
+        PickRequested = false;
+        if (PickX >= Width || PickY >= Height || !EnsurePickResources())
+        {
+            PickResult = 0;
+            PickResultReady = true;
+            return;
+        }
+
+        ID3D11DeviceContext& gpu = *Context.Get();
+        ID3D11ShaderResourceView* unbound = nullptr;
+        gpu.PSSetShaderResources(0, 1, &unbound);
+        const float background[4]{};
+        gpu.ClearRenderTargetView(Pick.Target.Get(), background);
+        gpu.ClearDepthStencilView(Pick.DepthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+        RenderBindings::BindMainTargets(gpu, { Pick.Target.Get(), Pick.DepthView.Get(), Width, Height });
+        ID3D11Buffer* view = draw.Scene.Constants.View;
+        gpu.VSSetConstantBuffers(2, 1, &view);
+
+        PickTable.clear();
+        for (const PreparedMeshDraw& meshDraw : scene.Draws)
+        {
+            if (meshDraw.ObjectId == 0)
+            {
+                continue;
+            }
+            PickTable.push_back(meshDraw.ObjectId);
+            MeshDraw::SubmitPickId(meshDraw, draw, Pick.Constants.Get(), static_cast<uint32_t>(PickTable.size()));
+        }
+
+        gpu.OMSetRenderTargets(0, nullptr, nullptr);
+        ID3D11Buffer* unboundBuffer = nullptr;
+        gpu.PSSetConstantBuffers(SC::OutlineSlot, 1, &unboundBuffer);
+        const D3D11_BOX box{ PickX, PickY, 0, PickX + 1, PickY + 1, 1 };
+        gpu.CopySubresourceRegion(Pick.Staging.Get(), 0, 0, 0, 0, Pick.Texture.Get(), 0, &box);
+        PickReadbackPending = true;
+        BindMainTargets();
+    }
+
+    void DX11Renderer::Impl::PollPickResult()
+    {
+        if (!PickReadbackPending || !Pick.Staging)
+        {
+            return;
+        }
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        const HRESULT hr = Context->Map(Pick.Staging.Get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped);
+        if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
+        {
+            return;
+        }
+        uint32_t index = 0;
+        if (SUCCEEDED(hr))
+        {
+            index = *static_cast<const uint32_t*>(mapped.pData);
+            Context->Unmap(Pick.Staging.Get(), 0);
+        }
+        PickReadbackPending = false;
+        PickResult = index > 0 && index <= PickTable.size() ? PickTable[index - 1] : 0;
+        PickResultReady = true;
+    }
+
+    void DX11Renderer::Impl::DrawEditorGrid()
+    {
+        if (!EditorGridEnabled || GridPlaneMask == 0) return;
+        RendererDebugStats* stats = nullptr;
+#if CANAPE_RENDER_DEBUG
+        stats = &CurrentStats;
+#endif
+        for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)
+        {
+            if ((GridPlaneMask & (1u << plane)) == 0) continue;
+            SC::EditorGridConstants constants{};
+            constants.Plane = plane;
+            constants.CellSize = GridCellSize;
+            ConstantBuffers::Upload(*Context.Get(), EditorGridBuffer.Get(), constants);
+            EditorGridPass::Execute(*Context.Get(), Pipelines, EditorGridBuffer.Get(), GetMainTargets(), stats);
+        }
+    }
+
     void DX11Renderer::Impl::ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height)
     {
         // Future HDR effects that need their own textures/passes run here, before SDR conversion.
@@ -483,6 +624,8 @@ namespace Canape
             DrawSkybox(prepared.Skybox);
             MainPass::DrawTransparent(prepared, draw);
             if (AfterTransparentCallback) AfterTransparentCallback();
+            ExecutePickPass(prepared, draw);
+            DrawEditorGrid();
             OutlineMaskReady = false;
             OutlineStyleCount = OutlineMaxThickness = 0;
             if (!prepared.OutlineDraws.empty() && EnsureOutlineResources() && UploadOutlineStyles(prepared))

@@ -11,7 +11,8 @@ public:
     static constexpr const char* kButtonLabel = "Render Debug";
 
     float GetButtonWidth() const;
-    void Draw(Canape::Renderer& renderer);
+    // buttonScale shrinks only the toolbar button (narrow scene view); the popup keeps its normal size.
+    void Draw(Canape::Renderer& renderer, float buttonScale = 1.0f);
 
 private:
     void DrawViewOptions(Canape::Renderer& renderer, const Canape::RendererDebugSettings& settings);

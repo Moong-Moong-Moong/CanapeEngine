@@ -20,7 +20,7 @@ private:
 
     bool EnsureAssets();
     void SubmitParts(Canape::Renderer& renderer, std::initializer_list<Part> parts, const Canape::MaterialAssetHandle& material,
-        const Canape::Matrix4& objectWorld) const;
+        const Canape::Matrix4& objectWorld, uint64_t objectId) const;
 
     Canape::MeshAssetHandle m_Cube;
     Canape::MeshAssetHandle m_Sphere;

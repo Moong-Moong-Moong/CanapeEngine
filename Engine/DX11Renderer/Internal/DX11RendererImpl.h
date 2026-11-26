@@ -62,6 +62,27 @@ namespace Canape
         std::function<void()> AfterOpaqueCallback;
         std::function<void()> AfterTransparentCallback;
         std::function<void()> MirrorCallback;
+        struct PickResources
+        {
+            ComPtr<ID3D11Texture2D> Texture;
+            ComPtr<ID3D11RenderTargetView> Target;
+            ComPtr<ID3D11Texture2D> DepthTexture;
+            ComPtr<ID3D11DepthStencilView> DepthView;
+            ComPtr<ID3D11Texture2D> Staging;
+            ComPtr<ID3D11Buffer> Constants;
+            uint32_t Width = 0;
+            uint32_t Height = 0;
+        } Pick;
+        bool PickRequested = false;
+        uint32_t PickX = 0;
+        uint32_t PickY = 0;
+        bool PickReadbackPending = false;
+        std::vector<uint64_t> PickTable;
+        bool PickResultReady = false;
+        uint64_t PickResult = 0;
+        bool EditorGridEnabled = false;
+        uint8_t GridPlaneMask = 1u << static_cast<uint32_t>(EditorGridPlane::XZ);
+        float GridCellSize = 1.0f;
         const UIDrawList* PendingUI = nullptr; // Borrowed until EndFrame.
         bool Initialized = false;
         bool FrameActive = false;
@@ -163,6 +184,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> SceneBuffer;
         ComPtr<ID3D11Buffer> LightBuffer;
         ComPtr<ID3D11Buffer> PostProcessBuffer;
+        ComPtr<ID3D11Buffer> EditorGridBuffer;
         DX11UIBuffers UIBuffers;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;
@@ -192,6 +214,10 @@ namespace Canape
         void BindSharedConstants();
         void BindPipeline(const DX11PipelineSelection& pipeline);
         void DrawSkybox(const PreparedSkybox& skybox);
+        void DrawEditorGrid();
+        bool EnsurePickResources();
+        void ExecutePickPass(const PreparedScene& scene, MeshDrawContext& draw);
+        void PollPickResult();
         void SetPostProcessSettings(const PostProcessSettings& settings);
         void ResolveSceneColor();
         void ExecutePostProcessing(ID3D11RenderTargetView* target, uint32_t width, uint32_t height);

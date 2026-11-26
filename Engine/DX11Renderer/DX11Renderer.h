@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DX11Renderer/Data/EditorGridPlane.h"
 #include "DX11Renderer/Data/MaterialDesc.h"
 #include "DX11Renderer/Data/MeshData.h"
 #include "DX11Renderer/Data/RendererDebugSettings.h"
@@ -98,6 +99,14 @@ namespace Canape
 
         void SetSceneSize(uint32_t width, uint32_t height);
         void SetOverlay(std::function<void()> overlay);
+        void RequestPick(uint32_t x, uint32_t y);
+        bool TakePickResult(uint64_t& objectId);
+        void SetEditorGridEnabled(bool enabled);
+        bool IsEditorGridEnabled() const;
+        void SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible);
+        bool IsEditorGridPlaneVisible(EditorGridPlane plane) const;
+        void SetEditorGridCellSize(float cellSize);
+        float GetEditorGridCellSize() const;
         // Called inside DrawScene with the scene targets, the viewport and the scene's shared constants bound.
         // The callee keeps the triangle-list topology, binds its own at b9-b11, t8-t10 and s8, and unbinds it.
         void SetAfterOpaqueCallback(std::function<void()>);

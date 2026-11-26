@@ -95,9 +95,12 @@ exit /b 0</Command>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Assets\AssetRefactor.h" />
+    <ClInclude Include="Source\Assets\ReferenceIndex.h" />
     <ClInclude Include="Source\EditorApp.h" />
     <ClInclude Include="Source\EditorContext.h" />
     <ClInclude Include="Source\EditorProxyMeshes.h" />
+    <ClInclude Include="Source\ScenePicking.h" />
     <ClInclude Include="Source\EditorUtils.h" />
     <ClInclude Include="Source\Panels\DebugConsolePanel.h" />
     <ClInclude Include="Source\Panels\FileBrowserPanel.h" />
@@ -107,11 +110,20 @@ exit /b 0</Command>
     <ClInclude Include="Source\Panels\RenderDebugMenu.h" />
     <ClInclude Include="Source\Panels\SceneViewPanel.h" />
     <ClInclude Include="Source\Panels\StateMachineInspector.h" />
+    <ClInclude Include="Source\EditorSettings.h" />
+    <ClInclude Include="Source\Undo\UndoHistory.h" />
+    <ClInclude Include="Source\Icons\EditorIcons.h" />
+    <ClInclude Include="Source\Panels\EditorSettingsWindow.h" />
+    <ClInclude Include="Source\Snapping\SceneSnapper.h" />
+    <ClInclude Include="Source\Snapping\SnapMath.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Assets\AssetRefactor.cpp" />
+    <ClCompile Include="Source\Assets\ReferenceIndex.cpp" />
     <ClCompile Include="Source\EditorApp.cpp" />
     <ClCompile Include="Source\EditorContext.cpp" />
     <ClCompile Include="Source\EditorProxyMeshes.cpp" />
+    <ClCompile Include="Source\ScenePicking.cpp" />
     <ClCompile Include="Source\EditorUtils.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Panels\DebugConsolePanel.cpp" />
@@ -122,6 +134,12 @@ exit /b 0</Command>
     <ClCompile Include="Source\Panels\RenderDebugMenu.cpp" />
     <ClCompile Include="Source\Panels\SceneViewPanel.cpp" />
     <ClCompile Include="Source\Panels\StateMachineInspector.cpp" />
+    <ClCompile Include="Source\EditorSettings.cpp" />
+    <ClCompile Include="Source\Undo\UndoHistory.cpp" />
+    <ClCompile Include="Source\Icons\EditorIcons.cpp" />
+    <ClCompile Include="Source\Panels\EditorSettingsWindow.cpp" />
+    <ClCompile Include="Source\Snapping\SceneSnapper.cpp" />
+    <ClCompile Include="Source\Snapping\SnapMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <!-- Every game source except the game's own entry point and application. -->

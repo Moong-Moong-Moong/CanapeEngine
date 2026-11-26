@@ -150,6 +150,9 @@
     <ClInclude Include="Source\Asset\Mesh\MeshAsset.h">
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Asset\Mesh\MeshSerializer.h">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Asset\Mesh\PrimitiveMeshes.h">
       <Filter>Source\Asset\Mesh</Filter>
     </ClInclude>
@@ -399,6 +402,9 @@
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Mesh\MeshAsset.cpp">
+      <Filter>Source\Asset\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Asset\Mesh\MeshSerializer.cpp">
       <Filter>Source\Asset\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Source\Asset\Mesh\PrimitiveMeshes.cpp">

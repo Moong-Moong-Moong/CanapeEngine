@@ -65,7 +65,7 @@ void EditorProxyMeshes::Release()
 }
 
 void EditorProxyMeshes::SubmitParts(Renderer& renderer, std::initializer_list<Part> parts, const MaterialAssetHandle& material,
-    const Matrix4& objectWorld) const
+    const Matrix4& objectWorld, uint64_t objectId) const
 {
     AssetManager& assets = Application::Get().GetAssetManager();
     const MaterialAsset* materialAsset = assets.GetMaterial(material);
@@ -74,7 +74,7 @@ void EditorProxyMeshes::SubmitParts(Renderer& renderer, std::initializer_list<Pa
     {
         if (const MeshAsset* mesh = assets.GetMesh(*part.mesh))
         {
-            renderer.AddRenderItem(mesh->GetAssetId(), 0, materialId, part.local * objectWorld, 0, false, {}, false);
+            renderer.AddRenderItem(mesh->GetAssetId(), 0, materialId, part.local * objectWorld, objectId, false, {}, false);
         }
     }
 }
@@ -98,7 +98,7 @@ void EditorProxyMeshes::Submit(Scene& scene, Renderer& renderer)
         const Matrix4 world = objectWorld(*light);
         if (light->GetType() == LightType::Point)
         {
-            SubmitParts(renderer, { { &m_Sphere, Box({ 0.5f, 0.5f, 0.5f }, {}) } }, m_LightMaterial, world);
+            SubmitParts(renderer, { { &m_Sphere, Box({ 0.5f, 0.5f, 0.5f }, {}) } }, m_LightMaterial, world, light->GetId());
         }
         else
         {
@@ -111,18 +111,20 @@ void EditorProxyMeshes::Submit(Scene& scene, Renderer& renderer)
                 { &m_Cylinder, AlongZ({ 0.36f, 0.1f, 0.36f }, 1.35f) },
                 { &m_Cylinder, AlongZ({ 0.24f, 0.1f, 0.24f }, 1.45f) },
                 { &m_Cylinder, AlongZ({ 0.12f, 0.1f, 0.12f }, 1.55f) },  // tip
-            }, m_LightMaterial, world);
+            }, m_LightMaterial, world, light->GetId());
         }
     }
 
+    const std::optional<RenderView> view = renderer.ResolveView(&scene);
     for (const CameraComponent* camera : scene.GetCameras())
     {
         if (!camera || !camera->IsProxyVisible() || !Scene::IsRunnable(camera)) continue;
+        if (view && (view->cameraPosition - camera->GetTransform()->GetWorldPosition()).Length() < 0.75f) continue;
         // Body, a lens toward +Z (where it looks) and a fin on top (its up).
         SubmitParts(renderer, {
             { &m_Cube, Box({ 0.3f, 0.3f, 0.45f }, {}) },
             { &m_Cylinder, AlongZ({ 0.22f, 0.16f, 0.22f }, 0.3f) },
             { &m_Cube, Box({ 0.06f, 0.12f, 0.2f }, { 0.0f, 0.21f, -0.05f }) },
-        }, m_CameraMaterial, objectWorld(*camera));
+        }, m_CameraMaterial, objectWorld(*camera), camera->GetId());
     }
 }

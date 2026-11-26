@@ -1,6 +1,7 @@
 ﻿#include "Asset/AssetManager.h"
 #include "Asset/Material/MaterialFile.h"
 #include "Asset/Mesh/FbxImporter.h"
+#include "Asset/Mesh/MeshSerializer.h"
 #include "Asset/Importer/glTF/CNglTFImporter.h"
 #include "Asset/Mesh/PrimitiveMeshes.h"
 #include "Asset/Texture/CubemapImporter.h"
@@ -13,6 +14,8 @@
 #include <Windows.h>
 
 #include <filesystem>
+#include <functional>
+#include <optional>
 #include <string_view>
 #include <system_error>
 #include <vector>
@@ -229,6 +232,90 @@ namespace Canape
 			}
 		}
 
+		using PathRemap = std::function<std::optional<std::string>(const std::string&)>;
+
+		std::optional<std::string> RemapPrefixed(const std::string& value, const std::string& fromLower, const std::string& to, bool directory)
+		{
+			const size_t split = value.find_first_of("#|");
+			const std::string base = value.substr(0, split);
+			const std::string suffix = split == std::string::npos ? std::string() : value.substr(split);
+			const std::string lowerBase = ToLowerAscii(base);
+			if (!directory)
+			{
+				return lowerBase == fromLower ? std::optional<std::string>(to + suffix) : std::nullopt;
+			}
+			if (!lowerBase.starts_with(fromLower + "/"))
+			{
+				return std::nullopt;
+			}
+			return to + base.substr(fromLower.size()) + suffix;
+		}
+
+		template <typename T>
+		size_t RemapCache(std::unordered_map<std::string, AssetId<T>>& idByKey, AssetMap<T>& entries,
+			const PathRemap& remapKey, const PathRemap& remapPath)
+		{
+			std::vector<std::pair<std::string, std::string>> moves;
+			for (const auto& [key, id] : idByKey)
+			{
+				if (std::optional<std::string> moved = remapKey(key))
+				{
+					moves.emplace_back(key, std::move(*moved));
+				}
+			}
+
+			size_t remapped = 0;
+			for (const auto& [oldKey, newKey] : moves)
+			{
+				if (idByKey.contains(newKey))
+				{
+					CN_LOG_RUNTIME("Asset", "에셋 경로 갱신 : 새 경로가 이미 로드되어 있어 이전 캐시를 분리함, ", newKey);
+					if (const auto entry = entries.find(idByKey[oldKey]); entry != entries.end())
+					{
+						entry->second.pathKey.clear();
+					}
+					idByKey.erase(oldKey);
+					continue;
+				}
+
+				auto node = idByKey.extract(oldKey);
+				const AssetId<T> id = node.mapped();
+				node.key() = newKey;
+				idByKey.insert(std::move(node));
+				if (const auto entry = entries.find(id); entry != entries.end())
+				{
+					entry->second.pathKey = newKey;
+					if (std::optional<std::string> path = remapPath(entry->second.path))
+					{
+						entry->second.path = std::move(*path);
+					}
+				}
+				++remapped;
+			}
+			return remapped;
+		}
+
+		template <typename T, typename Matcher>
+		size_t ForgetCache(std::unordered_map<std::string, AssetId<T>>& idByKey, AssetMap<T>& entries, const Matcher& matches)
+		{
+			size_t forgotten = 0;
+			for (auto it = idByKey.begin(); it != idByKey.end();)
+			{
+				if (!matches(it->first))
+				{
+					++it;
+					continue;
+				}
+				if (const auto entry = entries.find(it->second); entry != entries.end())
+				{
+					entry->second.pathKey.clear();
+				}
+				it = idByKey.erase(it);
+				++forgotten;
+			}
+			return forgotten;
+		}
+
 		template <typename T>
 		void AppendAssetStatuses(const AssetMap<T>& entries, AssetType type, std::vector<AssetStatus>& statuses)
 		{
@@ -342,6 +429,7 @@ namespace Canape
 			MeshAssetId skinId = FindMesh(skinKey);
 			if (!skinId.IsValid())
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				std::unique_ptr<MeshAsset> mesh;
@@ -384,6 +472,7 @@ namespace Canape
 			MeshAssetId nodeId = FindMesh(nodeKey);
 			if (!nodeId.IsValid())
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				std::unique_ptr<MeshAsset> mesh;
@@ -434,6 +523,32 @@ namespace Canape
 		return FindAsset(m_MeshesById, handle);
 	}
 
+	bool AssetManager::ExportMesh(const std::string& sourcePath, const std::string& targetPath)
+	{
+		if (!MeshSerializer::IsStaticMeshPath(targetPath) && !MeshSerializer::IsSkinnedMeshPath(targetPath))
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 내보내기 실패 : 대상 확장자는 ", MeshSerializer::StaticExtension, " 또는 ",
+				MeshSerializer::SkinnedExtension, " 이어야 함, ", targetPath);
+			return false;
+		}
+
+		const MeshAssetHandle handle = GetMeshHandle(sourcePath, { "", "Console", "mesh.export" });
+		const MeshAsset* mesh = GetMesh(handle);
+		if (!mesh)
+		{
+			CN_LOG_RUNTIME("Asset", "메쉬 내보내기 실패 : 원본 메쉬를 불러올 수 없음, ", sourcePath);
+			return false;
+		}
+
+		const std::filesystem::path file = GetAssetFile(targetPath);
+		if (!MeshSerializer::Save(*mesh, ToUtf8(file.generic_u8string())))
+		{
+			return false;
+		}
+		CN_LOG_RUNTIME("Asset", "메쉬 내보내기 : ", sourcePath, " -> ", ToAssetPath(ToUtf8(file.generic_u8string())));
+		return true;
+	}
+
 	MeshAssetId AssetManager::FindMesh(const std::string& pathKey) const
 	{
 		return FindAssetId(m_MeshIdByPath, pathKey);
@@ -453,13 +568,20 @@ namespace Canape
 		else
 		{
 			const std::string extension = GetLowerExtension(filePath);
-			if (extension == ".fbx")
+			if (extension == MeshSerializer::StaticExtension || extension == MeshSerializer::SkinnedExtension)
 			{
+				mesh = MeshSerializer::Load(filePath);
+			}
+
+			else if (extension == ".fbx")
+			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (FBX 런타임 로드) : ", path);
 				mesh = FbxImporter::LoadMesh(filePath);
 			}
 
 			else if (extension == ".gltf")
 			{
+				CN_LOG_RUNTIME("Asset", "cnmesh 변환 필요 (glTF 런타임 로드) : ", path);
 				CNglTF cnglTF;
 				CNglTFImporter glTFImporter;
 				if (glTFImporter.ReadglTF(filePath, cnglTF))
@@ -1019,6 +1141,89 @@ namespace Canape
 		AppendAssetStatuses(m_ParticleEffectsById, AssetType::ParticleEffect, statuses);
 		m_Tracker.PrintRecord(statuses);
 	}
+	size_t AssetManager::RemapAssetPaths(const std::string& fromPath, const std::string& toPath, bool directory)
+	{
+		ResolvedAssetPath from;
+		ResolvedAssetPath to;
+		if (!ResolveAssetPath(fromPath, from) || !ResolveAssetPath(toPath, to))
+		{
+			return 0;
+		}
+
+		const PathRemap remapKey = [&](const std::string& key) { return RemapPrefixed(key, from.key, to.key, directory); };
+		const std::string fromAssetLower = ToLowerAscii(from.assetPath);
+		const PathRemap remapPath = [&](const std::string& path) { return RemapPrefixed(path, fromAssetLower, to.assetPath, directory); };
+
+		size_t remapped = 0;
+		remapped += RemapCache(m_MeshIdByPath, m_MeshesById, remapKey, remapPath);
+		remapped += RemapCache(m_TextureIdByPath, m_TexturesById, remapKey, remapPath);
+		remapped += RemapCache(m_CubemapIdByPath, m_CubemapsById, remapKey, remapPath);
+		remapped += RemapCache(m_AnimationClipIdByPath, m_AnimationClipsById, remapKey, remapPath);
+		remapped += RemapCache(m_ParticleEffectIdByPath, m_ParticleEffectsById, remapKey, remapPath);
+		remapped += RemapCache(m_MaterialIdByName, m_MaterialsById, remapPath, remapPath);
+
+		size_t slots = 0;
+		for (auto& [id, entry] : m_MeshesById)
+		{
+			const std::vector<MaterialData>& materialSlots = entry.asset->GetMaterialSlots();
+			for (size_t slot = 0; slot < materialSlots.size(); ++slot)
+			{
+				if (std::optional<std::string> name = remapPath(materialSlots[slot].name))
+				{
+					entry.asset->SetMaterialSlotName(slot, std::move(*name));
+					++slots;
+				}
+			}
+		}
+		m_Tracker.RemapPaths(remapPath);
+
+		if (remapped > 0 || slots > 0)
+		{
+			CN_LOG_RUNTIME("Asset", "에셋 경로 갱신 : ", from.assetPath, " -> ", to.assetPath, ", 캐시 ", remapped, "개, 메쉬 슬롯 ", slots, "개");
+		}
+		return remapped;
+	}
+
+	size_t AssetManager::ForgetAssetPaths(const std::string& path, bool directory)
+	{
+		ResolvedAssetPath target;
+		if (!ResolveAssetPath(path, target))
+		{
+			return 0;
+		}
+
+		const std::string assetLower = ToLowerAscii(target.assetPath);
+		const auto matchesKey = [&](const std::string& key) { return RemapPrefixed(key, target.key, std::string(), directory).has_value(); };
+		const auto matchesPath = [&](const std::string& value) { return RemapPrefixed(value, assetLower, std::string(), directory).has_value(); };
+		size_t forgotten = 0;
+		forgotten += ForgetCache(m_MeshIdByPath, m_MeshesById, matchesKey);
+		forgotten += ForgetCache(m_TextureIdByPath, m_TexturesById, matchesKey);
+		forgotten += ForgetCache(m_CubemapIdByPath, m_CubemapsById, matchesKey);
+		forgotten += ForgetCache(m_AnimationClipIdByPath, m_AnimationClipsById, matchesKey);
+		forgotten += ForgetCache(m_ParticleEffectIdByPath, m_ParticleEffectsById, matchesKey);
+		forgotten += ForgetCache(m_MaterialIdByName, m_MaterialsById, matchesPath);
+
+		size_t slots = 0;
+		for (auto& [id, entry] : m_MeshesById)
+		{
+			const std::vector<MaterialData>& materialSlots = entry.asset->GetMaterialSlots();
+			for (size_t slot = 0; slot < materialSlots.size(); ++slot)
+			{
+				if (matchesPath(materialSlots[slot].name))
+				{
+					entry.asset->SetMaterialSlotName(slot, std::string());
+					++slots;
+				}
+			}
+		}
+
+		if (forgotten > 0 || slots > 0)
+		{
+			CN_LOG_RUNTIME("Asset", "삭제된 에셋 캐시 분리 : ", target.assetPath, ", 캐시 ", forgotten, "개, 메쉬 슬롯 ", slots, "개");
+		}
+		return forgotten;
+	}
+
 	size_t AssetManager::ReleaseUnusedAssets()
 	{
 		size_t released = ReleaseUnusedMeshes();

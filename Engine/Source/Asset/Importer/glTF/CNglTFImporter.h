@@ -29,11 +29,11 @@ namespace Canape
 	class GameObject;
 	class Scene;
 
+	// 잘못된 glTF 데이터는 assert나 범위 밖 읽기 대신 CNDebug("Import")에 원인을 출력하고,
+	// 각 함수가 실패 값(false / nullptr / 빈 목록)을 돌려준다.
 	class CNglTFImporter
 	{
 	public:
-		// glTF, bin 파일을 읽고 cNglTF 데이터를 채운다.
-		// bin 파일은 glTF와 같은 디렉토리에 있고, 파일 이름은 glTF의 buffers[0].uri를 따른다.
 		bool ReadglTF(std::string filePath, CNglTF& cNglTF);
 		std::unique_ptr<MeshAsset> LoadMeshAsset(CNglTF& cNglTF);
 		std::unique_ptr<TextureAsset> LoadTextureAsset(CNglTF& cNglTF);
@@ -46,12 +46,12 @@ namespace Canape
 		bool ImportSkeleton(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
 		// 노드 계층을 오브젝트로 만들고, 스킨 메쉬는 SkinnedMeshRenderer로, 노드에 달린 일반 메쉬는 그 노드의 MeshRenderer로 붙인다.
 		bool ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath = "");
-		// 움직이지 않는 모델: 파일을 targetDir로 복사하고, 모델 전체를 한 메쉬로 그리는 MeshRenderer 하나짜리 프리팹을 만든다.
+		// 움직이지 않는 모델: 텍스처를 targetDir로 복사하고, 모델 전체를 한 메쉬로 그리는 MeshRenderer 하나짜리 프리팹을 만든다.
 		bool ImportStaticModel(const std::string& gltfPath, const std::string& targetDir);
 
 	private:
-		// glTF와 bin, 이미지들을 targetDir로 복사하고 복사된 glTF 경로를 돌려준다(실패 시 빈 문자열).
-		std::string CopyGltfFiles(const std::string& gltfPath, const std::string& targetDir);
+		// 원본 glTF를 sourceGltf로 읽고 이미지만 targetDir로 복사한다. targetDir 기준 glTF 경로를 돌려준다(실패 시 빈 문자열).
+		std::string CopyGltfTextures(const std::string& gltfPath, const std::string& targetDir, CNglTF& sourceGltf);
 		void LoadMaterials(CNglTF& cNglTF, std::vector<MaterialData>& materialSlots);
 		Matrix4 GetNodeTRS(rapidjson::Value& node);
 		void LoadNodeMesh(
@@ -62,9 +62,12 @@ namespace Canape
 			std::vector<uint32_t>& indices,
 			std::vector<SubMesh>& subMeshes,
 			bool includeNodeTransform = true, // false면 노드 자신의 TRS를 적용하지 않는다(노드 로컬 공간)
-			bool recurse = true               // false면 자식 노드로 내려가지 않는다
+			bool recurse = true,              // false면 자식 노드로 내려가지 않는다
+			size_t materialCount = 0,         // primitive.material 범위 검사용 머터리얼 슬롯 개수
+			uint32_t depth = 0                // 노드 계층 순환 검사용 재귀 깊이
 		);
 
 	};
-	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out);
+	// 잘못된 노드 인덱스나 계층 순환이 있으면 std::runtime_error를 던진다(호출하는 임포터 함수가 잡아서 로그로 출력).
+	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out, uint32_t depth = 0);
 }

@@ -23,6 +23,9 @@ namespace Canape
 
         void AddRenderItem(const AssetManager& assets, Renderer& renderer) const override;  // 지금은 빈 함수
 
+    protected:
+        bool AcceptsSkinnedMesh() const override { return true; }
+
     private:
         TransformComponent* m_Skeleton = nullptr;
         std::vector<TransformComponent*> m_Bones;        // joint j → bone Transform

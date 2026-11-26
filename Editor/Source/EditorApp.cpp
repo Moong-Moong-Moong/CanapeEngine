@@ -1,5 +1,7 @@
 #include "EditorApp.h"
+#include "EditorSettings.h"
 #include "EditorUtils.h"
+#include "Icons/EditorIcons.h"
 #include "CNDebug/DebugLog.h"
 #include "Scene/Component/LightComponent.h"
 
@@ -99,6 +101,111 @@ void EditorApp::OnInit()
 
     GetSceneManager().SetSceneDirectory(EditorUtils::GetSceneDirectory().string() + "/");
 
+    m_FileBrowser.SetCallbacks({
+        [this]
+        {
+            if (m_Playing)
+            {
+                m_FileBrowser.SetMessage("Stop play mode before renaming or moving assets.");
+                return false;
+            }
+            return ConfirmDiscardChanges();
+        },
+        [this](const RefactorPlan& plan, bool movedOnDisk, bool sceneChecked) { OnAssetsRefactored(plan, movedOnDisk, sceneChecked); } });
+
+    GetCommands().Register("asset.rename", "asset.rename <asset path> <new file name>",
+        "Rename an asset under Content and update every reference to it", 2,
+        [this](const CommandArgs& args)
+        {
+            m_FileBrowser.RunRefactorCommand(m_Context, false, args.GetString(0), args.GetString(1));
+        });
+    GetCommands().Register("asset.move", "asset.move <asset path> <target folder>",
+        "Move an asset or folder under Content and update every reference to it", 2,
+        [this](const CommandArgs& args)
+        {
+            m_FileBrowser.RunRefactorCommand(m_Context, true, args.GetString(0), args.GetString(1));
+        });
+    GetCommands().Register("asset.delete", "asset.delete <asset path>",
+        "Move an asset or folder under Content to the Recycle Bin and clear every reference to it", 1,
+        [this](const CommandArgs& args) { m_FileBrowser.RunDeleteCommand(m_Context, args.GetString(0)); });
+    GetCommands().Register("editor.open", "editor.open <scene path>", "Open a scene the way the editor does", 1,
+        [this](const CommandArgs& args)
+        {
+            const std::filesystem::path path = EditorUtils::GetGameDirectory() / EditorUtils::FromUtf8(args.GetString(0));
+            OpenScene(path.lexically_normal().string());
+        });
+    GetCommands().Register("editor.dirty", "editor.dirty", "Report whether the open scene differs from its saved state", 0,
+        [this](const CommandArgs&) { ReportUnsavedChanges(); });
+    GetCommands().Register("editor.pick", "editor.pick <u 0..1> <v 0..1>", "Pick in the scene view at a normalized position", 2,
+        [this](const CommandArgs& args)
+        {
+            m_SceneView.RequestPickAt(GetRenderer(), std::stof(args.GetString(0)), std::stof(args.GetString(1)));
+        });
+    GetCommands().Register("editor.selected", "editor.selected", "Log the selected object", 0,
+        [this](const CommandArgs&)
+        {
+            const GameObject* selected = m_Context.GetSelected(GetSceneManager().GetActiveScene());
+            CN_LOG_GAME("Editor", "selected: ", selected ? selected->GetName() : std::string("(none)"));
+        });
+    GetCommands().Register("editor.select", "editor.select <object name>", "Select the first GameObject with this name", 1,
+        [this](const CommandArgs& args)
+        {
+            std::string name = args.GetString(0);
+            for (size_t i = 1; i < args.Count(); ++i) name += " " + args.GetString(i);
+            if (Scene* scene = GetSceneManager().GetActiveScene())
+            {
+                for (GameObject* gameObject : scene->GetAllGameObjects())
+                {
+                    if (!gameObject->IsPendingDestroy() && gameObject->GetName() == name)
+                    {
+                        m_Context.Select(gameObject);
+                        return;
+                    }
+                }
+            }
+            CN_LOG_GAME("Editor", "editor.select: no object named ", name);
+        });
+    GetCommands().Register("editor.focus", "editor.focus <window name>", "Bring an editor window or tab to the front", 1,
+        [this](const CommandArgs& args)
+        {
+            m_PendingFocusWindow = args.GetString(0);
+            for (size_t i = 1; i < args.Count(); ++i) m_PendingFocusWindow += " " + args.GetString(i);
+        });
+    GetCommands().Register("editor.settings", "editor.settings", "Open Tools > Editor Settings", 0,
+        [this](const CommandArgs&) { m_SettingsWindow.Open(); });
+    GetCommands().Register("editor.undo", "editor.undo", "Undo the last scene edit (Ctrl+Z)", 0,
+        [this](const CommandArgs&) { PerformUndo(); });
+    GetCommands().Register("editor.redo", "editor.redo", "Redo the last undone scene edit (Ctrl+Y)", 0,
+        [this](const CommandArgs&) { PerformRedo(); });
+    GetCommands().Register("editor.history", "editor.history", "Log the undo history", 0,
+        [this](const CommandArgs&)
+        {
+            const UndoHistory::Entry* undo = m_Undo.PeekUndo();
+            const UndoHistory::Entry* redo = m_Undo.PeekRedo();
+            CN_LOG_GAME("Editor", "undo history: ", m_Undo.GetUndoCount(), " undo / ", m_Undo.GetRedoCount(), " redo (max ",
+                m_Undo.GetLimit(), ", ", m_Undo.GetMemoryBytes() / 1024, " KB) next undo: ", undo ? undo->label : std::string("-"),
+                ", next redo: ", redo ? redo->label : std::string("-"));
+        });
+    GetCommands().Register("editor.rename", "editor.rename <new name>", "Rename the selected object as one undo step", 1,
+        [this](const CommandArgs& args)
+        {
+            Scene* scene = GetSceneManager().GetActiveScene();
+            GameObject* selected = scene ? m_Context.GetSelected(scene) : nullptr;
+            if (!selected || m_Playing || scene != m_UndoScene)
+            {
+                CN_LOG_GAME("Editor", "editor.rename: nothing selected or the scene is not ready");
+                return;
+            }
+            std::string name = args.GetString(0);
+            for (size_t i = 1; i < args.Count(); ++i) name += " " + args.GetString(i);
+            m_FrameStartSelection = selected->GetId();
+            m_Context.SetUndoLabel("Rename " + selected->GetName());
+            selected->SetName(name);
+            CommitUndoIfChanged(*scene);
+        });
+    GetCommands().Register("editor.play", "editor.play", "Enter play mode", 0, [this](const CommandArgs&) { StartPlay(); });
+    GetCommands().Register("editor.stop", "editor.stop", "Leave play mode", 0, [this](const CommandArgs&) { StopPlay(); });
+
     if (RunCommandLineImports())
     {
         m_QuitAfterCommandLine = true; // Run()이 시작된 뒤 첫 프레임에 종료한다
@@ -126,15 +233,31 @@ bool EditorApp::RunCommandLineImports()
         return false;
     }
 
-    std::string log;
-    std::filesystem::path logFile;
+    std::string& log = m_CommandLog;
     bool any = false;
+    const std::deque<Debug::LogEntry>& history = Debug::GetLogHistory();
+    m_CommandLogFirstSequence = history.empty() ? 0 : history.back().sequence + 1;
     for (int i = 1; i < argc; ++i)
     {
         const std::wstring arg = argv[i];
         if (arg == L"--import-log" && i + 1 < argc)
         {
-            logFile = argv[++i];
+            m_CommandLogFile = argv[++i];
+            continue;
+        }
+        if (arg == L"--exec" && i + 1 < argc)
+        {
+            const std::string line = EditorUtils::ToUtf8(std::filesystem::path(argv[++i]));
+            any = true;
+            GetCommands().Execute(line);
+            log += "exec: " + line + "\n";
+            continue;
+        }
+        if (arg == L"--exec-frame" && i + 2 < argc)
+        {
+            const int frame = std::max(1, _wtoi(argv[++i]));
+            m_DeferredCommands.emplace_back(frame, EditorUtils::ToUtf8(std::filesystem::path(argv[++i])));
+            any = true;
             continue;
         }
         if (arg != L"--import-gltf" || i + 2 >= argc)
@@ -150,7 +273,8 @@ bool EditorApp::RunCommandLineImports()
         }
         GltfImportWindow::Options options;
         while (i + 1 < argc && std::wstring(argv[i + 1]).rfind(L"--", 0) == 0 && std::wstring(argv[i + 1]) != L"--import-gltf"
-            && std::wstring(argv[i + 1]) != L"--import-log")
+            && std::wstring(argv[i + 1]) != L"--import-log" && std::wstring(argv[i + 1]) != L"--exec"
+            && std::wstring(argv[i + 1]) != L"--exec-frame")
         {
             const std::wstring flag = argv[++i];
             if (flag == L"--static") options.staticModel = true;
@@ -166,23 +290,93 @@ bool EditorApp::RunCommandLineImports()
     }
     LocalFree(argv);
 
-    if (any && !logFile.empty())
+    if (any && m_DeferredCommands.empty())
     {
-        FILE* file = nullptr;
-        if (_wfopen_s(&file, logFile.c_str(), L"wb") == 0 && file)
-        {
-            fwrite(log.data(), 1, log.size(), file);
-            fclose(file);
-        }
+        WriteCommandLog();
     }
     return any;
+}
+
+void EditorApp::WriteCommandLog()
+{
+    if (m_CommandLogFile.empty())
+    {
+        return;
+    }
+    for (const Debug::LogEntry& entry : Debug::GetLogHistory())
+    {
+        if (entry.sequence >= m_CommandLogFirstSequence)
+        {
+            m_CommandLog += std::string("log [") + Debug::GetTagName(entry.tag) + "/" + entry.subTag + "] " + entry.message + "\n";
+        }
+    }
+    FILE* file = nullptr;
+    if (_wfopen_s(&file, m_CommandLogFile.c_str(), L"wb") == 0 && file)
+    {
+        fwrite(m_CommandLog.data(), 1, m_CommandLog.size(), file);
+        fclose(file);
+    }
+}
+
+void EditorApp::ReportUnsavedChanges()
+{
+    Scene* scene = GetSceneManager().GetActiveScene();
+    if (!scene)
+    {
+        CN_LOG_GAME("Editor", "dirty: no active scene");
+        return;
+    }
+    const std::string current = SceneSerializer::SaveToString(*scene);
+    if (current == m_SavedSnapshot)
+    {
+        CN_LOG_GAME("Editor", "dirty: no (", current.size(), " bytes)");
+        return;
+    }
+
+    size_t at = 0;
+    while (at < current.size() && at < m_SavedSnapshot.size() && current[at] == m_SavedSnapshot[at])
+    {
+        ++at;
+    }
+    const auto lineAround = [at](const std::string& text)
+    {
+        const size_t begin = text.rfind('\n', std::min(at, text.size()) > 0 ? std::min(at, text.size()) - 1 : 0);
+        const size_t start = begin == std::string::npos ? 0 : begin + 1;
+        const size_t end = text.find('\n', at);
+        return text.substr(start, (end == std::string::npos ? text.size() : end) - start);
+    };
+    const size_t line = static_cast<size_t>(std::count(m_SavedSnapshot.begin(), m_SavedSnapshot.begin()
+        + static_cast<std::ptrdiff_t>(std::min(at, m_SavedSnapshot.size())), '\n')) + 1;
+    CN_LOG_GAME("Editor", "dirty: yes, first difference at line ", line, " | saved: ", lineAround(m_SavedSnapshot),
+        " | now: ", lineAround(current));
 }
 
 void EditorApp::OnUpdate(float deltaTime)
 {
     if (m_QuitAfterCommandLine)
     {
-        Quit(); // 이번 프레임은 평소처럼 마치고 루프를 빠져나간다
+        ++m_CommandLineFrame;
+        for (auto it = m_DeferredCommands.begin(); it != m_DeferredCommands.end();)
+        {
+            if (it->first <= m_CommandLineFrame)
+            {
+                m_CommandLog += "exec@" + std::to_string(it->first) + ": " + it->second + "\n";
+                GetCommands().Execute(it->second);
+                it = m_DeferredCommands.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        if (m_DeferredCommands.empty())
+        {
+            if (m_CommandLineFrame > 1)
+            {
+                WriteCommandLog();
+            }
+            Quit(); // 이번 프레임은 평소처럼 마치고 루프를 빠져나간다
+        }
     }
 
     const std::string pendingScene = m_Context.TakePendingOpenScene();
@@ -204,11 +398,21 @@ void EditorApp::OnUpdate(float deltaTime)
             }
             m_RestoringFromPlay = false;
         }
+        else if (m_RestoringFromRefactor)
+        {
+            if (scene)
+            {
+                m_Context.Select(scene->GetGameObject(scene->FindGameObjectById(m_RestoreSelectionId)));
+            }
+            m_RestoringFromRefactor = false;
+        }
         else if (!m_Playing)
         {
             m_SceneView.FrameMainCamera(scene);
         }
     }
+
+    m_FrameStartSelection = GetSelectedId(scene);
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -218,18 +422,25 @@ void EditorApp::OnUpdate(float deltaTime)
     HandleShortcuts();
     DrawMainMenu();
     DrawDockSpace();
+    if (!m_PendingFocusWindow.empty())
+    {
+        ImGui::SetWindowFocus(m_PendingFocusWindow.c_str());
+        m_PendingFocusWindow.clear();
+    }
 
     m_Hierarchy.Draw(m_Context, scene);
     const SceneViewPanel::PlayRequest playRequest = m_SceneView.Draw(m_Context, scene, GetRenderer(), GetUISystem(), deltaTime, m_Playing);
     m_Inspector.Draw(m_Context, scene);
     m_FileBrowser.Draw(m_Context);
     m_DebugConsole.Draw(GetCommands());
+    m_SettingsWindow.Draw();
 
     if (m_ShowDemoWindow)
     {
         ImGui::ShowDemoWindow(&m_ShowDemoWindow);
     }
 
+    UpdateUndo();
     ImGui::Render();
 
     if (playRequest == SceneViewPanel::PlayRequest::Play)
@@ -303,13 +514,34 @@ void EditorApp::InitImGui()
 
     Renderer& renderer = GetRenderer();
     ImGui_ImplWin32_Init(GetWindow().GetNativeHandle());
+    DragAcceptFiles(static_cast<HWND>(GetWindow().GetNativeHandle()), TRUE);
     ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(renderer.GetNativeDevice()),
+        static_cast<ID3D11DeviceContext*>(renderer.GetNativeContext()));
+    EditorSettings::Get().Load();
+    EditorIcons::Get().Initialize(static_cast<ID3D11Device*>(renderer.GetNativeDevice()),
         static_cast<ID3D11DeviceContext*>(renderer.GetNativeContext()));
 
     GetWindow().SetNativeMessageHandler([this](void* hwnd, uint32_t message, uint64_t wParam, int64_t lParam)
     {
         if (message == WM_CLOSE && !ConfirmDiscardChanges())
         {
+            return true;
+        }
+        if (message == WM_DROPFILES)
+        {
+            const HDROP drop = reinterpret_cast<HDROP>(wParam);
+            const UINT count = DragQueryFileW(drop, 0xFFFFFFFF, nullptr, 0);
+            std::vector<std::filesystem::path> files;
+            for (UINT index = 0; index < count; ++index)
+            {
+                const UINT length = DragQueryFileW(drop, index, nullptr, 0);
+                std::wstring file(length + 1, L'\0');
+                DragQueryFileW(drop, index, file.data(), length + 1);
+                file.resize(length);
+                files.emplace_back(std::move(file));
+            }
+            DragFinish(drop);
+            m_FileBrowser.QueueExternalDrop(std::move(files));
             return true;
         }
         return ImGui_ImplWin32_WndProcHandler(static_cast<HWND>(hwnd), message,
@@ -325,6 +557,7 @@ void EditorApp::ShutdownImGui()
     GetRenderer().SetSceneSize(0, 0);
     GetWindow().SetNativeMessageHandler(nullptr);
 
+    EditorIcons::Get().Shutdown();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
@@ -349,11 +582,34 @@ void EditorApp::DrawMainMenu()
         ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu("Edit"))
+    {
+        const UndoHistory::Entry* undo = m_Undo.PeekUndo();
+        const UndoHistory::Entry* redo = m_Undo.PeekRedo();
+        const std::string undoLabel = undo ? "Undo " + undo->label : std::string("Undo");
+        const std::string redoLabel = redo ? "Redo " + redo->label : std::string("Redo");
+        if (ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, undo && CanUseUndo())) PerformUndo();
+        if (ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, redo && CanUseUndo())) PerformRedo();
+        ImGui::Separator();
+        ImGui::TextDisabled("History: %zu undo / %zu redo (max %zu)", m_Undo.GetUndoCount(), m_Undo.GetRedoCount(), m_Undo.GetLimit());
+        if (m_Playing)
+        {
+            ImGui::TextDisabled("Undo is off while playing.");
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("View"))
     {
         if (ImGui::MenuItem("Reset Layout")) m_ResetLayout = true;
         if (ImGui::MenuItem("Frame Main Camera")) m_SceneView.FrameMainCamera(GetSceneManager().GetActiveScene());
         ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowDemoWindow);
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Tools"))
+    {
+        if (ImGui::MenuItem("Editor Settings...")) m_SettingsWindow.Open();
         ImGui::EndMenu();
     }
 
@@ -416,6 +672,142 @@ void EditorApp::HandleShortcuts()
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal)) OpenSceneDialog();
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) SaveScene();
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) SaveSceneAs();
+    // A focused text field keeps Ctrl+Z for its own text undo.
+    if (!ImGui::GetIO().WantTextInput)
+    {
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) PerformUndo();
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)
+            || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) PerformRedo();
+    }
+}
+
+uint64_t EditorApp::GetSelectedId(Scene* scene) const
+{
+    const GameObject* selected = scene ? m_Context.GetSelected(scene) : nullptr;
+    return selected ? selected->GetId() : 0;
+}
+
+void EditorApp::UpdateUndo()
+{
+    m_Undo.SetLimit(static_cast<size_t>(EditorSettings::Get().GetUndoLimit()));
+
+    const bool itemActive = ImGui::IsAnyItemActive() || ImGuizmo::IsUsing();
+    const bool deactivated = m_UndoWasItemActive && !itemActive;
+    m_UndoWasItemActive = itemActive;
+
+    if (m_Playing)
+    {
+        // Play-mode changes are thrown away when play stops, so they are never recorded.
+        m_Context.TakeUndoLabel();
+        return;
+    }
+
+    Scene* scene = GetSceneManager().GetActiveScene();
+    if (scene != m_UndoScene)
+    {
+        // New / opened / reloaded scene: start over. Undo, redo and play restore keep the history.
+        if (!m_KeepUndoHistory)
+        {
+            m_Undo.Clear();
+        }
+        m_KeepUndoHistory = false;
+        m_UndoScene = scene;
+        m_UndoBaseline = scene ? SceneSerializer::SaveToString(*scene) : std::string();
+        m_Context.TakeUndoLabel();
+        return;
+    }
+    if (!scene || m_KeepUndoHistory || itemActive)
+    {
+        return;
+    }
+
+    // An interaction ended this frame: a mouse button came up, a widget lost focus, or a key went down
+    // outside a text field (Delete, Enter in a dialog, Ctrl+V, ...).
+    bool boundary = deactivated || ImGui::IsMouseReleased(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+    if (!boundary && !ImGui::GetIO().WantTextInput)
+    {
+        for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END && !boundary; ++key)
+        {
+            boundary = ImGui::IsKeyPressed(static_cast<ImGuiKey>(key), false);
+        }
+    }
+    if (boundary)
+    {
+        CommitUndoIfChanged(*scene);
+    }
+}
+
+void EditorApp::CommitUndoIfChanged(Scene& scene)
+{
+    std::string current = SceneSerializer::SaveToString(scene);
+    std::string label = m_Context.TakeUndoLabel();
+    if (current == m_UndoBaseline)
+    {
+        return;
+    }
+    UndoHistory::Entry entry;
+    entry.label = label.empty() ? std::string("Edit Scene") : std::move(label);
+    entry.before = std::move(m_UndoBaseline);
+    entry.after = current;
+    entry.selectionBefore = m_FrameStartSelection;
+    entry.selectionAfter = GetSelectedId(&scene);
+    m_Undo.Push(std::move(entry));
+    m_UndoBaseline = std::move(current);
+}
+
+bool EditorApp::CanUseUndo()
+{
+    return !m_Playing && !m_KeepUndoHistory && m_UndoScene && m_UndoScene == GetSceneManager().GetActiveScene()
+        && !ImGui::IsAnyItemActive() && !ImGuizmo::IsUsing();
+}
+
+void EditorApp::PerformUndo()
+{
+    if (!CanUseUndo())
+    {
+        return;
+    }
+    // Anything not yet recorded becomes its own step first, so undo never skips over it.
+    CommitUndoIfChanged(*m_UndoScene);
+    if (const UndoHistory::Entry* entry = m_Undo.Undo())
+    {
+        CN_LOG_GAME("Editor", "Undo: ", entry->label);
+        ApplyUndoSnapshot(entry->before, entry->selectionBefore);
+    }
+}
+
+void EditorApp::PerformRedo()
+{
+    if (!CanUseUndo())
+    {
+        return;
+    }
+    CommitUndoIfChanged(*m_UndoScene);
+    if (const UndoHistory::Entry* entry = m_Undo.Redo())
+    {
+        CN_LOG_GAME("Editor", "Redo: ", entry->label);
+        ApplyUndoSnapshot(entry->after, entry->selectionAfter);
+    }
+}
+
+void EditorApp::ApplyUndoSnapshot(const std::string& text, uint64_t selectionId)
+{
+    SceneManager& sceneManager = GetSceneManager();
+    Scene* previous = sceneManager.GetActiveScene();
+    Scene* loaded = sceneManager.LoadSceneFromString(text);
+    if (!loaded)
+    {
+        CN_LOG_GAME("Editor", "Undo failed: could not rebuild the scene");
+        return;
+    }
+    if (previous && previous != loaded)
+    {
+        sceneManager.UnloadScene(previous);
+    }
+    // Same scene file, same object ids: keep the path, camera and selection.
+    m_KeepUndoHistory = true;
+    m_RestoreSelectionId = selectionId;
+    m_RestoringFromRefactor = true;
 }
 
 void EditorApp::NewScene()
@@ -442,7 +834,7 @@ void EditorApp::NewScene()
 
     ReplaceActiveScene(scene);
     m_Context.SetScenePath({});
-    MarkSceneSaved();
+    MarkSceneSaved(scene);
 }
 
 void EditorApp::OpenSceneDialog()
@@ -476,7 +868,7 @@ void EditorApp::OpenScene(const std::string& path)
     }
     m_Context.ClearSelection();
     m_Context.SetScenePath(path);
-    MarkSceneSaved();
+    MarkSceneSaved(loaded);
 }
 
 bool EditorApp::SaveScene()
@@ -521,9 +913,62 @@ bool EditorApp::SaveSceneAs()
     return true;
 }
 
-void EditorApp::MarkSceneSaved()
+void EditorApp::OnAssetsRefactored(const RefactorPlan& plan, bool movedOnDisk, bool sceneChecked)
 {
-    Scene* scene = GetSceneManager().GetActiveScene();
+    if (movedOnDisk && plan.DeletesOnDisk())
+    {
+        GetAssetManager().ForgetAssetPaths(plan.move.from, plan.move.directory);
+        for (const PathMove& companion : plan.companions)
+        {
+            GetAssetManager().ForgetAssetPaths(companion.from, false);
+        }
+    }
+    else if (movedOnDisk)
+    {
+        GetAssetManager().RemapAssetPaths(plan.move.from, plan.move.to, plan.move.directory);
+        for (const PathMove& companion : plan.companions)
+        {
+            GetAssetManager().RemapAssetPaths(companion.from, companion.to, false);
+        }
+    }
+
+    const std::string scenePath = m_Context.GetScenePath();
+    if (!scenePath.empty())
+    {
+        const std::filesystem::path& root = EditorUtils::GetGameDirectory();
+        const std::string relative = AssetPaths::ToGameRelative(root, std::filesystem::path(scenePath));
+        const std::string moved = movedOnDisk ? AssetRefactor::RemapGameRelative(relative, plan) : relative;
+        const std::string normalized = AssetPaths::Normalize(relative);
+        const bool edited = std::any_of(plan.files.begin(), plan.files.end(),
+            [&](const std::string& file) { return AssetPaths::Normalize(file) == normalized; });
+        if (moved != relative || edited || (sceneChecked && HasUnsavedChanges()))
+        {
+            ReloadSceneKeepingView(AssetPaths::ToAbsolute(root, moved).string());
+        }
+    }
+    GetAssetManager().ReleaseUnusedAssets();
+}
+
+void EditorApp::ReloadSceneKeepingView(const std::string& path)
+{
+    Scene* previous = GetSceneManager().GetActiveScene();
+    const GameObject* selected = m_Context.GetSelected(previous);
+    const uint64_t selectedId = selected ? selected->GetId() : 0;
+
+    OpenScene(path);
+    if (GetSceneManager().GetActiveScene() != previous)
+    {
+        m_RestoreSelectionId = selectedId;
+        m_RestoringFromRefactor = true;
+    }
+}
+
+void EditorApp::MarkSceneSaved(Scene* scene)
+{
+    if (!scene)
+    {
+        scene = GetSceneManager().GetActiveScene();
+    }
     m_SavedSnapshot = scene ? SceneSerializer::SaveToString(*scene) : std::string();
 }
 
@@ -621,12 +1066,13 @@ void EditorApp::StopPlay()
         sceneManager.UnloadScene(scene.get());
     }
 
-    if (sceneManager.LoadSceneFromFile(m_PlaySnapshotPath))
+    if (Scene* restored = sceneManager.LoadSceneFromFile(m_PlaySnapshotPath))
     {
         m_RestoringFromPlay = true;
+        m_KeepUndoHistory = true; // the restored scene is the one the edit history was recorded on
         if (wasSaved)
         {
-            MarkSceneSaved();
+            MarkSceneSaved(restored);
         }
     }
     else

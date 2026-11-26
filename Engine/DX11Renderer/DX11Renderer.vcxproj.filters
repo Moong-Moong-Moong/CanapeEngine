@@ -57,6 +57,9 @@
     <ClInclude Include="Data\RendererDebugSettings.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Data\EditorGridPlane.h">
+      <Filter>Source\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Data\RendererDebugStats.h">
       <Filter>Source\Data</Filter>
     </ClInclude>
@@ -94,6 +97,9 @@
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Pass\DX11SkyboxPass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass\DX11EditorGridPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
     <ClInclude Include="Pass\DX11FinalOutputPass.h">
@@ -168,6 +174,9 @@
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Pass\DX11SkyboxPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11EditorGridPass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp">
@@ -294,6 +303,9 @@
       <Filter>Shader\Shadow</Filter>
     </None>
     <None Include="Shader\Skybox.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\EditorGrid.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\UI.hlsl">

@@ -125,6 +125,24 @@ namespace Canape
 		return scene;
 	}
 
+	Scene* SceneManager::LoadSceneFromString(const std::string& text)
+	{
+		auto loaded = SceneSerializer::LoadFromString(text, m_PhysicsRuntime, m_SimulationSession);
+		if (!loaded)
+		{
+			return nullptr;
+		}
+
+		m_Scenes.push_back(std::move(loaded));
+		Scene* scene = m_Scenes.back().get();
+		if (!m_activeScene)
+		{
+			m_activeScene = scene;
+		}
+		SetActiveScene(scene);
+		return scene;
+	}
+
 	bool SceneManager::SaveSceneToFile(Scene& scene, const std::string& path) const
 	{
 		return SceneSerializer::Save(scene, path);

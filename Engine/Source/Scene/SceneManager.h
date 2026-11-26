@@ -40,6 +40,7 @@ namespace Canape
 		Scene* OpenScene(const std::string& name);
 
 		Scene* LoadSceneFromFile(const std::string& path);
+		Scene* LoadSceneFromString(const std::string& text);
 		bool SaveSceneToFile(Scene& scene, const std::string& path) const;
 
 		void SetSceneDirectory(std::string directory) { m_SceneDirectory = std::move(directory); }

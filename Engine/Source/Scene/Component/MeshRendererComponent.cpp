@@ -1,6 +1,8 @@
 #include "Scene/Component/MeshRendererComponent.h"
 #include "Asset/Material/MaterialAsset.h"
 #include "Asset/Mesh/MeshAsset.h"
+#include "Asset/Mesh/MeshSerializer.h"
+#include "CNDebug/DebugLog.h"
 #include "Core/Application.h"
 #include "Renderer/Renderer.h"
 #include "Scene/GameObject/GameObject.h"
@@ -68,6 +70,17 @@ namespace Canape
 		{
 			m_Mesh.Reset();
 			m_DefaultMaterials.clear();
+			return false;
+		}
+
+		if (AcceptsSkinnedMesh() && MeshSerializer::IsStaticMeshPath(path))
+		{
+			CN_LOG_RUNTIME("Asset", gameObject->GetName(), " : SkinnedMeshRenderer에는 .cnmesh를 지정할 수 없음, ", path);
+			return false;
+		}
+		if (!AcceptsSkinnedMesh() && MeshSerializer::IsSkinnedMeshPath(path))
+		{
+			CN_LOG_RUNTIME("Asset", gameObject->GetName(), " : MeshRenderer에는 .cnskmesh를 지정할 수 없음, ", path);
 			return false;
 		}
 

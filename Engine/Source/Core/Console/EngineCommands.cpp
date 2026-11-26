@@ -105,6 +105,12 @@ namespace Canape
 				{
 					application.GetAssetManager().PrintAssetRecords();
 				});
+
+			commands.Register("mesh.export", "mesh.export <원본 메쉬 경로> <대상.cnmesh|대상.cnskmesh>", "불러올 수 있는 메쉬(glTF, glTF#skin, glTF#node, FBX)를 정적은 .cnmesh, 스킨드는 .cnskmesh로 저장", 2,
+				[&application](const CommandArgs& args)
+				{
+					application.GetAssetManager().ExportMesh(args.GetString(0), args.GetString(1));
+				});
 		}
 	}
 

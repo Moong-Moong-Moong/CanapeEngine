@@ -419,6 +419,57 @@ namespace Canape
         m_Impl->Overlay = std::move(overlay);
     }
 
+    void DX11Renderer::RequestPick(uint32_t x, uint32_t y)
+    {
+        m_Impl->PickRequested = true;
+        m_Impl->PickX = x;
+        m_Impl->PickY = y;
+        m_Impl->PickResultReady = false;
+    }
+
+    bool DX11Renderer::TakePickResult(uint64_t& objectId)
+    {
+        m_Impl->PollPickResult();
+        if (!m_Impl->PickResultReady)
+        {
+            return false;
+        }
+        m_Impl->PickResultReady = false;
+        objectId = m_Impl->PickResult;
+        return true;
+    }
+
+    void DX11Renderer::SetEditorGridEnabled(bool enabled)
+    {
+        m_Impl->EditorGridEnabled = enabled;
+    }
+
+    bool DX11Renderer::IsEditorGridEnabled() const
+    {
+        return m_Impl->EditorGridEnabled;
+    }
+
+    void DX11Renderer::SetEditorGridPlaneVisible(EditorGridPlane plane, bool visible)
+    {
+        const uint8_t bit = static_cast<uint8_t>(1u << static_cast<uint32_t>(plane));
+        m_Impl->GridPlaneMask = visible ? (m_Impl->GridPlaneMask | bit) : (m_Impl->GridPlaneMask & ~bit);
+    }
+
+    bool DX11Renderer::IsEditorGridPlaneVisible(EditorGridPlane plane) const
+    {
+        return (m_Impl->GridPlaneMask & (1u << static_cast<uint32_t>(plane))) != 0;
+    }
+
+    void DX11Renderer::SetEditorGridCellSize(float cellSize)
+    {
+        m_Impl->GridCellSize = cellSize > 0.0f ? cellSize : 1.0f;
+    }
+
+    float DX11Renderer::GetEditorGridCellSize() const
+    {
+        return m_Impl->GridCellSize;
+    }
+
     void DX11Renderer::SetAfterOpaqueCallback(std::function<void()> callback)
     {
         m_Impl->AfterOpaqueCallback = std::move(callback);

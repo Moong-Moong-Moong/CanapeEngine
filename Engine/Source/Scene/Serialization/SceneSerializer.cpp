@@ -534,6 +534,17 @@ namespace Canape
 		return scene;
 	}
 
+	std::unique_ptr<Scene> SceneSerializer::LoadFromString(const std::string& text, JoltRuntime* physicsRuntime, Session* simulationSession)
+	{
+		const Json root = Json::parse(text, nullptr, false);
+		if (root.is_discarded() || !root.is_object() || root.value("version", 0) != kSceneFormatVersion)
+		{
+			CN_LOG_RUNTIME("Scene", "씬 로드 실패 : 문자열 JSON 파싱 오류");
+			return nullptr;
+		}
+		return SceneReader().Read(root, physicsRuntime, simulationSession);
+	}
+
 	bool SceneSerializer::SavePrefab(GameObject& root, const std::string& path)
 	{
 		Scene* scene = root.GetScene();
@@ -576,6 +587,28 @@ namespace Canape
 		if (root.is_discarded() || !root.is_object() || root.value("version", 0) != kSceneFormatVersion)
 		{
 			CN_LOG_RUNTIME("Scene", "프리팹 로드 실패 : JSON 파싱 오류, ", path);
+			return nullptr;
+		}
+
+		GameObject* rootObject = SceneReader().ReadInto(scene, root);
+		if (rootObject && parent)
+		{
+			rootObject->GetTransform()->SetParent(parent);
+		}
+		return rootObject;
+	}
+
+	std::string SceneSerializer::SaveTreeToString(GameObject& root)
+	{
+		Scene* scene = root.GetScene();
+		return scene ? SceneWriter(*scene).WriteTree(root).dump() : std::string();
+	}
+
+	GameObject* SceneSerializer::InstantiateFromString(Scene& scene, const std::string& text, TransformComponent* parent)
+	{
+		const Json root = Json::parse(text, nullptr, false);
+		if (root.is_discarded() || !root.is_object() || root.value("version", 0) != kSceneFormatVersion)
+		{
 			return nullptr;
 		}
 

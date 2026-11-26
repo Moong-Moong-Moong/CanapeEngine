@@ -37,8 +37,26 @@
     <Filter Include="Source\Panels">
       <UniqueIdentifier>{8ED2EFE8-15A5-2EB6-0837-4C91DC6CE8A5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Assets">
+      <UniqueIdentifier>{5ACDCD49-05AA-423B-92CD-496783D27E93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Snapping">
+      <UniqueIdentifier>{7B3E2F41-9C6D-4E8A-B1F2-3D5A6C7E8F90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Icons">
+      <UniqueIdentifier>{2C8D4E6F-1A3B-4C5D-9E7F-8A1B2C3D4E5F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Undo">
+      <UniqueIdentifier>{5E1F2A3B-6C7D-4E8F-9A0B-1C2D3E4F5A6B}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Assets\AssetRefactor.h">
+      <Filter>Source\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Assets\ReferenceIndex.h">
+      <Filter>Source\Assets</Filter>
+    </ClInclude>
     <ClInclude Include="Source\EditorApp.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -46,6 +64,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\EditorProxyMeshes.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ScenePicking.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\EditorUtils.h">
@@ -74,6 +95,24 @@
     </ClInclude>
     <ClInclude Include="Source\Panels\StateMachineInspector.h">
       <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Snapping\SceneSnapper.h">
+      <Filter>Source\Snapping</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EditorSettings.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Undo\UndoHistory.h">
+      <Filter>Source\Undo</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Icons\EditorIcons.h">
+      <Filter>Source\Icons</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Panels\EditorSettingsWindow.h">
+      <Filter>Source\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Snapping\SnapMath.h">
+      <Filter>Source\Snapping</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -173,6 +212,9 @@
     <ClCompile Include="Source\EditorProxyMeshes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ScenePicking.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Source\EditorUtils.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -181,6 +223,12 @@
     </ClCompile>
     <ClCompile Include="Source\Panels\DebugConsolePanel.cpp">
       <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Assets\AssetRefactor.cpp">
+      <Filter>Source\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Assets\ReferenceIndex.cpp">
+      <Filter>Source\Assets</Filter>
     </ClCompile>
     <ClCompile Include="Source\Panels\FileBrowserPanel.cpp">
       <Filter>Source\Panels</Filter>
@@ -202,6 +250,24 @@
     </ClCompile>
     <ClCompile Include="Source\Panels\StateMachineInspector.cpp">
       <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Snapping\SceneSnapper.cpp">
+      <Filter>Source\Snapping</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EditorSettings.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Undo\UndoHistory.cpp">
+      <Filter>Source\Undo</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Icons\EditorIcons.cpp">
+      <Filter>Source\Icons</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Panels\EditorSettingsWindow.cpp">
+      <Filter>Source\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Snapping\SnapMath.cpp">
+      <Filter>Source\Snapping</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -26,5 +26,6 @@ namespace Canape
             TransparentFace face = TransparentFace::Both);
         void SubmitShadow(const PreparedMeshDraw& draw, MeshDrawContext& context);
         void SubmitOutlineMask(const PreparedMeshDraw& draw, MeshDrawContext& context, ID3D11Buffer* maskBuffer);
+        void SubmitPickId(const PreparedMeshDraw& draw, MeshDrawContext& context, ID3D11Buffer* maskBuffer, uint32_t pickId);
     }
 }
