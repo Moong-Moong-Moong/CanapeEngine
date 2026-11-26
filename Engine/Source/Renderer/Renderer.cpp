@@ -285,6 +285,11 @@ namespace Canape
         m_DX11->EndFrame();
     }
 
+    void Renderer::AddEditorWireSphere(const EditorWireSphere& sphere)
+    {
+        m_DX11->AddEditorWireSphere(sphere);
+    }
+
     void Renderer::AddRenderItem(MeshAssetId mesh, uint32_t submeshIndex, MaterialAssetId material, const Matrix4& world,
         uint64_t objectId, bool outlineEnabled, const OutlineStyle& outlineStyle, bool castShadow)
     {

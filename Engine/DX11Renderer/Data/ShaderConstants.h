@@ -211,6 +211,18 @@ namespace Canape::ShaderConstants
     static_assert(offsetof(PostProcessConstants, Padding) == 12);
 
     inline constexpr uint32_t EditorGridSlot = 12;
+    // b12 is reused by mutually exclusive editor passes and unbound after each pass.
+    inline constexpr uint32_t EditorWireSlot = 12;
+    inline constexpr uint32_t EditorWireSegments = 64;
+    struct alignas(16) EditorWireConstants
+    {
+        Vector3 Center{};
+        float Radius = 0.0f;
+        Vector4 Color{};
+    };
+    static_assert(sizeof(EditorWireConstants) == 32);
+    static_assert(offsetof(EditorWireConstants, Color) == 16);
+
     struct alignas(16) EditorGridConstants
     {
         float CellSize = 1.0f;

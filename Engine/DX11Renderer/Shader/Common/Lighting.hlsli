@@ -24,8 +24,9 @@ float3 CalculateDirectLighting(float3 worldPosition, float3 normal)
         if (light.Type != LOCAL_LIGHT_POINT || light.Range <= 0.0f) continue;
         float3 toLight = light.Position - worldPosition;
         float distanceSquared = dot(toLight, toLight);
+        if (distanceSquared >= light.Range * light.Range) continue;
         float distanceToLight = sqrt(distanceSquared);
-        if (distanceToLight >= light.Range) continue;
+        
         // Finite at the light center and smoothly zero at the range boundary.
         float3 lightDirection = toLight * rsqrt(max(distanceSquared, 1e-12f));
         float attenuation = saturate(1.0f - distanceToLight / light.Range);
@@ -109,8 +110,8 @@ float3 EvaluatePBRPointLight(float3 worldPosition, float3 normal, float3 viewDir
     if (light.Type != LOCAL_LIGHT_POINT || light.Range <= 0.0f) return 0.0f;
     float3 toLight = light.Position - worldPosition;
     float distanceSquared = dot(toLight, toLight);
+    if (distanceSquared >= light.Range * light.Range) return 0.0f;
     float distanceToLight = sqrt(distanceSquared);
-    if (distanceToLight >= light.Range) return 0.0f;
     float3 lightDirection = toLight * rsqrt(max(distanceSquared, 1e-12f));
     float attenuation = saturate(1.0f - distanceToLight / light.Range);
     attenuation *= attenuation;

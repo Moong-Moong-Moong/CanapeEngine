@@ -82,6 +82,7 @@ namespace Canape
         uint32_t AddBonePalette(std::span<const Matrix4> palette);
         void AddSkinnedRenderItem(const SkinnedMeshItem& item);
         void AddLight(const RenderLight& light);
+        void AddEditorWireSphere(const EditorWireSphere& sphere);
         void SetFog(const RenderFog& fog);
         void SetSkybox(const RenderSkybox& skybox);
         void SetMirrorPlaneHeight(float height);

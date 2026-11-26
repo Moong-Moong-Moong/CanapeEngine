@@ -185,6 +185,7 @@ namespace Canape
         ComPtr<ID3D11Buffer> LightBuffer;
         ComPtr<ID3D11Buffer> PostProcessBuffer;
         ComPtr<ID3D11Buffer> EditorGridBuffer;
+        ComPtr<ID3D11Buffer> EditorWireBuffer;
         DX11UIBuffers UIBuffers;
 #if CANAPE_RENDER_DEBUG
         ComPtr<ID3D11Buffer> DepthDisplayBuffer;

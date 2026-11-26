@@ -102,6 +102,9 @@
     <ClInclude Include="Pass\DX11EditorGridPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
+    <ClInclude Include="Pass\DX11EditorWirePass.h">
+      <Filter>Source\Pass</Filter>
+    </ClInclude>
     <ClInclude Include="Pass\DX11FinalOutputPass.h">
       <Filter>Source\Pass</Filter>
     </ClInclude>
@@ -177,6 +180,9 @@
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Pass\DX11EditorGridPass.cpp">
+      <Filter>Source\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass\DX11EditorWirePass.cpp">
       <Filter>Source\Pass</Filter>
     </ClCompile>
     <ClCompile Include="Pass\DX11FinalOutputPass.cpp">
@@ -306,6 +312,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\EditorGrid.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\EditorWire.hlsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\UI.hlsl">

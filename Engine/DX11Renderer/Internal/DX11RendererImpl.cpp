@@ -148,6 +148,7 @@ namespace Canape
         LightBuffer.Reset();
         PostProcessBuffer.Reset();
         EditorGridBuffer.Reset();
+        EditorWireBuffer.Reset();
         UIBuffers = {};
         PendingUI = nullptr;
         SwapChain.Reset();
@@ -771,6 +772,15 @@ namespace Canape
         if (FAILED(result))
         {
             LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(post process constants)", result);
+            CN_LOG_RENDERER("Error", LastError);
+            return false;
+        }
+
+        constantBufferDesc.ByteWidth = sizeof(SC::EditorWireConstants);
+        result = Device->CreateBuffer(&constantBufferDesc, nullptr, &EditorWireBuffer);
+        if (FAILED(result))
+        {
+            LastError = RendererHResultMessage("ID3D11Device::CreateBuffer(editor wire constants)", result);
             CN_LOG_RENDERER("Error", LastError);
             return false;
         }

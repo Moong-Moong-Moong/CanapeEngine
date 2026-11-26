@@ -83,6 +83,7 @@
     <ClInclude Include="Pass\DX11UIPass.h" />
     <ClInclude Include="Pass\DX11SkyboxPass.h" />
     <ClInclude Include="Pass\DX11EditorGridPass.h" />
+    <ClInclude Include="Pass\DX11EditorWirePass.h" />
     <ClInclude Include="Pass\DX11MainPass.h" />
     <ClInclude Include="Pass\DX11OutlinePass.h" />
     <ClInclude Include="Pass\DX11ShadowPass.h" />
@@ -122,6 +123,7 @@
     <ClCompile Include="Pass\DX11UIPass.cpp" />
     <ClCompile Include="Pass\DX11SkyboxPass.cpp" />
     <ClCompile Include="Pass\DX11EditorGridPass.cpp" />
+    <ClCompile Include="Pass\DX11EditorWirePass.cpp" />
     <ClCompile Include="Pass\DX11MainPass.cpp" />
     <ClCompile Include="Pass\DX11OutlinePass.cpp" />
     <ClCompile Include="Pass\DX11ShadowPass.cpp" />
@@ -170,6 +172,7 @@
     <None Include="Shader\Shadow\ShadowSampling.hlsli" />
     <None Include="Shader\Skybox.hlsl" />
     <None Include="Shader\EditorGrid.hlsl" />
+    <None Include="Shader\EditorWire.hlsl" />
     <None Include="Shader\UI.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
