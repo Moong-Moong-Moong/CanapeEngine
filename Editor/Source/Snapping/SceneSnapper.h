@@ -44,8 +44,8 @@ public:
         Canape::Matrix4 viewProjection;
         SnapMath::ScreenRect rect;
         Canape::Vector2 mouse;
-        // This object and its children are never snap targets (the object being moved).
-        const Canape::GameObject* exclude = nullptr;
+        // These objects and their children are never snap targets (the objects being moved).
+        std::vector<const Canape::GameObject*> exclude;
     };
 
     std::optional<SnapTarget> FindTarget(Canape::Scene& scene, SnapMode mode, const Query& query);
@@ -74,7 +74,7 @@ private:
 
     void BeginFrame();
     void CollectMeshes(Canape::GameObject& gameObject, std::vector<WorldMesh>& out);
-    std::vector<WorldMesh> CollectScene(Canape::Scene& scene, const Canape::GameObject* exclude);
+    std::vector<WorldMesh> CollectScene(Canape::Scene& scene, const std::vector<const Canape::GameObject*>& exclude);
     std::vector<WorldMesh> CollectSubtree(Canape::GameObject& root);
     std::optional<SurfaceHit> Raycast(const std::vector<WorldMesh>& meshes, const SnapMath::Ray& ray) const;
     const std::vector<Canape::Vector3>& PosedVertices(const Canape::SkinnedMeshRendererComponent& renderer,

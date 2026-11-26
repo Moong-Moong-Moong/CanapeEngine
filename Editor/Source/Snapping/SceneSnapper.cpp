@@ -166,12 +166,13 @@ void SceneSnapper::CollectMeshes(GameObject& gameObject, std::vector<WorldMesh>&
     }
 }
 
-std::vector<SceneSnapper::WorldMesh> SceneSnapper::CollectScene(Scene& scene, const GameObject* exclude)
+std::vector<SceneSnapper::WorldMesh> SceneSnapper::CollectScene(Scene& scene, const std::vector<const GameObject*>& exclude)
 {
     std::vector<WorldMesh> meshes;
     for (GameObject* gameObject : scene.GetAllGameObjects())
     {
-        if (gameObject && IsActiveInHierarchy(*gameObject) && !IsInSubtree(*gameObject, exclude))
+        if (gameObject && IsActiveInHierarchy(*gameObject)
+            && std::none_of(exclude.begin(), exclude.end(), [&](const GameObject* root) { return IsInSubtree(*gameObject, root); }))
         {
             CollectMeshes(*gameObject, meshes);
         }

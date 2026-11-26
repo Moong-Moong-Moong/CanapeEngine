@@ -8,6 +8,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 class SceneViewPanel
 {
@@ -37,21 +38,25 @@ private:
     void DrawSnapPopup();
     void HandleGizmoShortcuts(bool hovered);
     void DrawGizmo(Canape::GameObject* selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
+    void GetGizmoSettings(int& operation, int& mode, float* snapStep, const float*& snap) const;
+    Canape::Matrix4 BuildMultiGizmoMatrix(EditorContext& context, Canape::Scene& scene, Canape::GameObject& primary) const;
+    void DrawMultiGizmo(EditorContext& context, Canape::GameObject& primary, const Canape::RenderView& view, const ImVec2& min,
+        const ImVec2& max);
+    void ApplyMultiDrag(Canape::Scene& scene);
 
     // Snapping: surface snap while dragging the move gizmo, and a vertex handle that drags the selection by one of its vertices.
     SnapMode GetEffectiveSnapMode() const;
     bool IsGridSnapActive() const;
     SceneSnapper::Query MakeSnapQuery(const Canape::RenderView& view, const ImVec2& min, const ImVec2& max,
-        const Canape::GameObject* exclude) const;
+        bool excludeSelection) const;
     void UpdateVertexHandle(Canape::GameObject* selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max,
         bool hovered);
     void DrawSnapOverlay(const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
     float SurfaceRestOffset(Canape::GameObject& target, const Canape::Quaternion& newRotation, const Canape::Vector3& normal) const;
     static void SetWorldPose(Canape::TransformComponent& transform, const Canape::Vector3& position,
         const Canape::Quaternion* rotation);
-    // The gizmo edits the primary selection; the rest of a multi-selection follows it by the same change.
-    void ApplyToOtherSelected(EditorContext& context, Canape::GameObject& primary, const Canape::Matrix4& worldBefore,
-        const Canape::Vector3& scaleBefore);
+    // A vertex-snap drag edits the primary selection; the rest of a multi-selection follows it by the same change.
+    void ApplyToOtherSelected(EditorContext& context, Canape::GameObject& primary, const Canape::Matrix4& worldBefore);
     void DrawSelectionBounds(Canape::GameObject& selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
     void RequestPick(Canape::Renderer& renderer, uint32_t x, uint32_t y);
     // RMB: fly (WASD/QE, wheel = speed), Alt+LMB: orbit, MMB: pan, wheel: zoom. viewportHeight scales panning.
@@ -72,6 +77,7 @@ private:
 
     GizmoOperation m_GizmoOperation = GizmoOperation::Translate;
     bool m_GizmoLocal = false;
+    bool m_PivotCenter = true;
     bool m_ShowGrid = true;
     bool m_ShowSelectionOutline = true;
     bool m_ShowBounds = true;
@@ -112,6 +118,17 @@ private:
     std::optional<SnapTarget> m_SnapPreview;
     std::optional<Canape::Vector3> m_HoverSourceVertex;
     bool m_GizmoDragging = false;
+    struct MultiDragItem
+    {
+        uint64_t id = 0;
+        Canape::Vector3 position;
+        Canape::Quaternion rotation = Canape::Quaternion::Identity;
+        Canape::Vector3 scale = Canape::Vector3::One;
+    };
+    Canape::Matrix4 m_MultiGizmo = Canape::Matrix4::Identity;
+    Canape::Matrix4 m_MultiGizmoStart = Canape::Matrix4::Identity;
+    std::vector<MultiDragItem> m_MultiDragItems;
+    std::vector<const Canape::GameObject*> m_SnapExclude;
     Canape::Vector3 m_DragStartPosition{};
     Canape::Quaternion m_DragStartRotation = Canape::Quaternion::Identity;
     bool m_VertexDragging = false;

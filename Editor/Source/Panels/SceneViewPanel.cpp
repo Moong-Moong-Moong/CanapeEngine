@@ -2,6 +2,7 @@
 #include "EditorUtils.h"
 #include "Asset/Mesh/MeshSerializer.h"
 #include "ScenePicking.h"
+#include "CNDebug/DebugLog.h"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -61,7 +62,7 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
             GameObject* picked = ScenePicking::FindOwnerOfComponent(*scene, pickedId);
             if (m_PickAdditive)
             {
-                // Ctrl+click adds or removes the picked object; Ctrl+click on empty space keeps the selection.
+                // Ctrl/Shift+click adds or removes the picked object; on empty space it keeps the selection.
                 if (picked)
                 {
                     context.ToggleSelect(picked);
@@ -172,13 +173,13 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
             {
                 FocusOn(*selected);
             }
-            m_VertexKeyHeld = !IsCameraBusy() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyDown(ImGuiKey_V)
+            m_VertexKeyHeld = !IsCameraBusy() && !ImGui::GetIO().WantTextInput && !ImGui::GetIO().KeyCtrl && ImGui::IsKeyDown(ImGuiKey_V)
                 && (hovered || m_GizmoDragging || m_VertexDragging);
             const RenderView view = BuildView(static_cast<float>(width) / static_cast<float>(height));
             renderer.SetViewOverride(view);
             ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, max.y - ImGui::GetTextLineHeight() - 6.0f),
                 IM_COL32(255, 255, 255, 160),
-                "W/E/R: move/rotate/scale  T: local/world  G: grid  V(hold): vertex snap  Ctrl(hold): grid snap  F: focus  "
+                "W/E/R: move/rotate/scale  T: local/world  Z: center/pivot  Ctrl/Shift+click: multi-select  G: grid  V(hold): vertex snap  Ctrl(hold): grid snap  F: focus  "
                 "RMB: look  WASD/QE: move  Alt+LMB: orbit  MMB: pan  Wheel: zoom  RMB+Wheel: speed");
 
             if (!m_PendingDropPath.empty() && scene)
@@ -187,20 +188,40 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
                 selected = context.GetSelected(scene);
             }
 
-            if (selected && m_ShowBounds)
+            m_SnapExclude.clear();
+            if (selected)
             {
-                DrawSelectionBounds(*selected, view, min, max);
+                for (GameObject* root : context.GetSelectedRoots(scene))
+                {
+                    m_SnapExclude.push_back(root);
+                }
+                if (m_ShowBounds)
+                {
+                    for (GameObject* gameObject : context.GetSelectedObjects(scene))
+                    {
+                        DrawSelectionBounds(*gameObject, view, min, max);
+                    }
+                }
             }
             m_SnapPreview.reset();
             // Alt+LMB orbits the camera: the gizmo must not grab that click.
             ImGuizmo::Enable(!IsCameraBusy() && !ImGui::GetIO().KeyAlt);
             const Matrix4 worldBefore = selected ? selected->GetTransform()->GetLocalToWorldMatrix() : Matrix4::Identity;
-            const Vector3 scaleBefore = selected ? selected->GetTransform()->GetScale() : Vector3::One;
-            DrawGizmo(selected, view, min, max);
+            if (selected && context.GetSelectionCount() > 1)
+            {
+                DrawMultiGizmo(context, *selected, view, min, max);
+            }
+            else
+            {
+                DrawGizmo(selected, view, min, max);
+            }
             UpdateVertexHandle(selected, view, min, max, hovered);
+            if (selected && m_VertexDragging)
+            {
+                ApplyToOtherSelected(context, *selected, worldBefore);
+            }
             if (selected && (m_GizmoDragging || m_VertexDragging))
             {
-                ApplyToOtherSelected(context, *selected, worldBefore, scaleBefore);
                 const char* verb = m_VertexDragging ? "Snap"
                     : m_GizmoOperation == GizmoOperation::Rotate ? "Rotate"
                     : m_GizmoOperation == GizmoOperation::Scale ? "Scale" : "Move";
@@ -271,7 +292,7 @@ void SceneViewPanel::PlaceDroppedAsset(EditorContext& context, Scene& scene, con
     const ImVec2& max)
 {
     const std::string assetPath = std::exchange(m_PendingDropPath, {});
-    const SceneSnapper::Query query = MakeSnapQuery(view, min, max, nullptr);
+    const SceneSnapper::Query query = MakeSnapQuery(view, min, max, false);
 
     // The surface under the mouse, else the ground plane (y = 0), else a point in front of the camera.
     Vector3 point;
@@ -307,11 +328,10 @@ void SceneViewPanel::RequestPick(Renderer& renderer, uint32_t x, uint32_t y)
 {
     renderer.RequestPick(x, y);
     m_PickPending = true;
-    m_PickAdditive = ImGui::GetIO().KeyCtrl;
+    m_PickAdditive = ImGui::GetIO().KeyCtrl || ImGui::GetIO().KeyShift;
 }
 
-void SceneViewPanel::ApplyToOtherSelected(EditorContext& context, GameObject& primary, const Matrix4& worldBefore,
-    const Vector3& scaleBefore)
+void SceneViewPanel::ApplyToOtherSelected(EditorContext& context, GameObject& primary, const Matrix4& worldBefore)
 {
     if (context.GetSelectionCount() < 2 || !primary.GetScene())
     {
@@ -340,21 +360,6 @@ void SceneViewPanel::ApplyToOtherSelected(EditorContext& context, GameObject& pr
         return;
     }
 
-    if (m_GizmoOperation == GizmoOperation::Scale && !m_VertexDragging)
-    {
-        // Scale: every object scales along its own axes by the same factor as the primary.
-        const Vector3 scaleAfter = primaryTransform->GetScale();
-        const auto ratio = [](float after, float before) { return std::fabs(before) > 1e-6f ? after / before : 1.0f; };
-        const Vector3 factor{ ratio(scaleAfter.X, scaleBefore.X), ratio(scaleAfter.Y, scaleBefore.Y), ratio(scaleAfter.Z, scaleBefore.Z) };
-        for (TransformComponent* transform : others)
-        {
-            const Vector3 scale = transform->GetScale();
-            transform->SetScale({ scale.X * factor.X, scale.Y * factor.Y, scale.Z * factor.Z });
-        }
-        return;
-    }
-
-    // Move / rotate / snap: the primary's world change (a translation, or a rotation about its pivot) applied to each.
     const Matrix4 delta = worldBefore.Inverse() * worldAfter;
     for (TransformComponent* transform : others)
     {
@@ -423,12 +428,12 @@ float SceneViewPanel::GetGizmoToolbarWidth()
 {
     // Must match the buttons DrawGizmoToolbar draws.
     const ImGuiStyle& style = ImGui::GetStyle();
-    float width = kLocalButtonWidth + kSnapButtonWidth;
+    float width = kLocalButtonWidth * 2.0f + kSnapButtonWidth;
     for (const char* label : { "Move", "Rotate", "Scale", "Grid", "XZ", "XY", "ZY", "Outline", "Bounds" })
     {
         width += ImGui::CalcTextSize(label).x + style.FramePadding.x * 2.0f;
     }
-    return width + style.ItemSpacing.x * 10.0f;
+    return width + style.ItemSpacing.x * 11.0f;
 }
 
 void SceneViewPanel::DrawGizmoToolbar(float scale)
@@ -447,6 +452,16 @@ void SceneViewPanel::DrawGizmoToolbar(float scale)
     if (ImGui::Button(m_GizmoLocal ? "Local" : "World", ImVec2(kLocalButtonWidth * scale, 0.0f)))
     {
         m_GizmoLocal = !m_GizmoLocal;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(m_PivotCenter ? "Center" : "Pivot", ImVec2(kLocalButtonWidth * scale, 0.0f)))
+    {
+        m_PivotCenter = !m_PivotCenter;
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Multi-selection gizmo (Z)\nCenter: at the middle of the selection, rotates and scales around it\n"
+            "Pivot: at the active object, each object rotates and scales around its own pivot");
     }
     ImGui::SameLine();
     const bool gridOn = m_ShowGrid;
@@ -539,6 +554,7 @@ void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
     if (ImGui::IsKeyPressed(ImGuiKey_E, false)) m_GizmoOperation = GizmoOperation::Rotate;
     if (ImGui::IsKeyPressed(ImGuiKey_R, false)) m_GizmoOperation = GizmoOperation::Scale;
     if (ImGui::IsKeyPressed(ImGuiKey_T, false)) m_GizmoLocal = !m_GizmoLocal;
+    if (ImGui::IsKeyPressed(ImGuiKey_Z, false) && !ImGui::GetIO().KeyCtrl) m_PivotCenter = !m_PivotCenter;
     if (ImGui::IsKeyPressed(ImGuiKey_G, false)) m_ShowGrid = !m_ShowGrid;
 }
 
@@ -558,26 +574,15 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
     Matrix4 world = transform->GetLocalToWorldMatrix();
 
     const bool gridSnap = IsGridSnapActive();
-    ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+    int operation = 0;
+    int mode = 0;
     float snapStep[3] = { 0.0f, 0.0f, 0.0f };
-    const float* snap = nullptr; // translation snaps to the absolute world grid below, not relative to the drag start
-    if (m_GizmoOperation == GizmoOperation::Rotate)
-    {
-        operation = ImGuizmo::ROTATE;
-        snapStep[0] = snapStep[1] = snapStep[2] = m_RotateSnap;
-        snap = gridSnap ? snapStep : nullptr;
-    }
-    else if (m_GizmoOperation == GizmoOperation::Scale)
-    {
-        operation = ImGuizmo::SCALE;
-        snapStep[0] = snapStep[1] = snapStep[2] = m_ScaleSnap;
-        snap = gridSnap ? snapStep : nullptr;
-    }
-    // Scale is always applied in the object's own axes.
-    const ImGuizmo::MODE mode = (m_GizmoLocal || operation == ImGuizmo::SCALE) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
+    const float* snap = nullptr;
+    GetGizmoSettings(operation, mode, snapStep, snap);
 
     // Engine matrices are row-major with row vectors (translation in the last row), the layout ImGuizmo expects.
-    const bool changed = ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), operation, mode, world.Data(), nullptr, snap);
+    const bool changed = ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), static_cast<ImGuizmo::OPERATION>(operation),
+        static_cast<ImGuizmo::MODE>(mode), world.Data(), nullptr, snap);
     const bool dragging = ImGuizmo::IsUsing();
     if (dragging && !m_GizmoDragging)
     {
@@ -604,7 +609,7 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
         std::optional<SnapTarget> target;
         if (snapMode != SnapMode::Off && selected->GetScene())
         {
-            target = m_Snapper.FindTarget(*selected->GetScene(), snapMode, MakeSnapQuery(view, min, max, selected));
+            target = m_Snapper.FindTarget(*selected->GetScene(), snapMode, MakeSnapQuery(view, min, max, true));
         }
         if (target)
         {
@@ -659,6 +664,169 @@ void SceneViewPanel::DrawGizmo(GameObject* selected, const RenderView& view, con
     }
 }
 
+void SceneViewPanel::GetGizmoSettings(int& operation, int& mode, float* snapStep, const float*& snap) const
+{
+    const bool gridSnap = IsGridSnapActive();
+    operation = ImGuizmo::TRANSLATE;
+    snap = nullptr;
+    if (m_GizmoOperation == GizmoOperation::Rotate)
+    {
+        operation = ImGuizmo::ROTATE;
+        snapStep[0] = snapStep[1] = snapStep[2] = m_RotateSnap;
+        snap = gridSnap ? snapStep : nullptr;
+    }
+    else if (m_GizmoOperation == GizmoOperation::Scale)
+    {
+        operation = ImGuizmo::SCALE;
+        snapStep[0] = snapStep[1] = snapStep[2] = m_ScaleSnap;
+        snap = gridSnap ? snapStep : nullptr;
+    }
+    mode = (m_GizmoLocal || operation == ImGuizmo::SCALE) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
+}
+
+Matrix4 SceneViewPanel::BuildMultiGizmoMatrix(EditorContext& context, Scene& scene, GameObject& primary) const
+{
+    const TransformComponent* primaryTransform = primary.GetTransform();
+    Vector3 position = primaryTransform->GetWorldPosition();
+    if (m_PivotCenter)
+    {
+        const std::vector<GameObject*> objects = context.GetSelectedObjects(&scene);
+        if (!objects.empty())
+        {
+            Vector3 sum = Vector3::Zero;
+            for (const GameObject* gameObject : objects)
+            {
+                sum += gameObject->GetTransform()->GetWorldPosition();
+            }
+            position = sum / static_cast<float>(objects.size());
+        }
+    }
+    const bool local = m_GizmoLocal || m_GizmoOperation == GizmoOperation::Scale;
+    return Matrix4::TRS(position, local ? primaryTransform->GetWorldRotation() : Quaternion::Identity, Vector3::One);
+}
+
+void SceneViewPanel::DrawMultiGizmo(EditorContext& context, GameObject& primary, const RenderView& view, const ImVec2& min,
+    const ImVec2& max)
+{
+    Scene* scene = primary.GetScene();
+    if (!scene)
+    {
+        m_GizmoDragging = false;
+        return;
+    }
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(min.x, min.y, max.x - min.x, max.y - min.y);
+
+    if (!m_GizmoDragging)
+    {
+        m_MultiGizmo = BuildMultiGizmoMatrix(context, *scene, primary);
+    }
+    const Matrix4 before = m_MultiGizmo;
+
+    int operation = 0;
+    int mode = 0;
+    float snapStep[3] = { 0.0f, 0.0f, 0.0f };
+    const float* snap = nullptr;
+    GetGizmoSettings(operation, mode, snapStep, snap);
+    ImGuizmo::Manipulate(view.view.Data(), view.projection.Data(), static_cast<ImGuizmo::OPERATION>(operation),
+        static_cast<ImGuizmo::MODE>(mode), m_MultiGizmo.Data(), nullptr, snap);
+
+    const bool dragging = ImGuizmo::IsUsing();
+    if (dragging && !m_GizmoDragging)
+    {
+        m_MultiGizmoStart = before;
+        m_MultiDragItems.clear();
+        for (GameObject* root : context.GetSelectedRoots(scene))
+        {
+            const TransformComponent* transform = root->GetTransform();
+            m_MultiDragItems.push_back({ root->GetId(), transform->GetWorldPosition(), transform->GetWorldRotation(),
+                transform->GetScale() });
+        }
+    }
+    m_GizmoDragging = dragging;
+    if (!dragging || m_VertexDragging)
+    {
+        return;
+    }
+
+    if (m_GizmoOperation == GizmoOperation::Translate)
+    {
+        const Vector3 start = m_MultiGizmoStart.GetTranslation();
+        Vector3 position = m_MultiGizmo.GetTranslation();
+        const SnapMode snapMode = GetEffectiveSnapMode();
+        std::optional<SnapTarget> target;
+        if (snapMode != SnapMode::Off)
+        {
+            target = m_Snapper.FindTarget(*scene, snapMode, MakeSnapQuery(view, min, max, true));
+        }
+        if (target)
+        {
+            m_SnapPreview = target;
+            position = target->position;
+        }
+        else if (IsGridSnapActive())
+        {
+            position = SnapMath::SnapMovedAxesToGrid(position, start, m_GridCellSize);
+        }
+        m_MultiGizmo.M[3][0] = position.X;
+        m_MultiGizmo.M[3][1] = position.Y;
+        m_MultiGizmo.M[3][2] = position.Z;
+    }
+    ApplyMultiDrag(*scene);
+}
+
+void SceneViewPanel::ApplyMultiDrag(Scene& scene)
+{
+    DirectX::XMVECTOR startScale, startRotation, startTranslation;
+    DirectX::XMVECTOR currentScale, currentRotation, currentTranslation;
+    if (!DirectX::XMMatrixDecompose(&startScale, &startRotation, &startTranslation, m_MultiGizmoStart.ToXM())
+        || !DirectX::XMMatrixDecompose(&currentScale, &currentRotation, &currentTranslation, m_MultiGizmo.ToXM()))
+    {
+        return;
+    }
+    const Vector3 pivot = Vector3::FromXM(startTranslation);
+    const Vector3 offset = Vector3::FromXM(currentTranslation) - pivot;
+    const Quaternion gizmoStart = Quaternion::FromXM(startRotation).Normalized();
+    const Quaternion gizmoCurrent = Quaternion::FromXM(currentRotation).Normalized();
+    const Quaternion worldDelta = (gizmoCurrent * gizmoStart.Inverse()).Normalized();
+    const Quaternion localDelta = (gizmoStart.Inverse() * gizmoCurrent).Normalized();
+    const Vector3 factor = Vector3::FromXM(currentScale) / Vector3::FromXM(startScale);
+    const Matrix4 delta = m_MultiGizmoStart.Inverse() * m_MultiGizmo;
+
+    for (const MultiDragItem& item : m_MultiDragItems)
+    {
+        GameObject* gameObject = scene.GetGameObject(scene.FindGameObjectById(item.id));
+        if (!gameObject || gameObject->IsPendingDestroy())
+        {
+            continue;
+        }
+        TransformComponent& transform = *gameObject->GetTransform();
+        switch (m_GizmoOperation)
+        {
+        case GizmoOperation::Translate:
+            SetWorldPose(transform, item.position + offset, nullptr);
+            break;
+        case GizmoOperation::Rotate:
+        {
+            const Quaternion rotation = (m_GizmoLocal && !m_PivotCenter ? item.rotation * localDelta : worldDelta * item.rotation)
+                .Normalized();
+            const Vector3 position = m_PivotCenter ? pivot + worldDelta.Rotate(item.position - pivot) : item.position;
+            SetWorldPose(transform, position, &rotation);
+            break;
+        }
+        case GizmoOperation::Scale:
+            transform.SetScale(item.scale * factor);
+            if (m_PivotCenter)
+            {
+                SetWorldPose(transform, delta.TransformPoint(item.position), nullptr);
+            }
+            break;
+        }
+    }
+}
+
 SnapMode SceneViewPanel::GetEffectiveSnapMode() const
 {
     return m_VertexKeyHeld ? SnapMode::Vertex : m_SnapMode;
@@ -671,7 +839,7 @@ bool SceneViewPanel::IsGridSnapActive() const
 }
 
 SceneSnapper::Query SceneViewPanel::MakeSnapQuery(const RenderView& view, const ImVec2& min, const ImVec2& max,
-    const GameObject* exclude) const
+    bool excludeSelection) const
 {
     const ImVec2 mouse = ImGui::GetMousePos();
     SceneSnapper::Query query;
@@ -679,7 +847,10 @@ SceneSnapper::Query SceneViewPanel::MakeSnapQuery(const RenderView& view, const 
     query.rect = { min.x, min.y, max.x - min.x, max.y - min.y };
     query.mouse = { mouse.x, mouse.y };
     query.ray = SnapMath::ScreenRay(query.viewProjection, query.rect, mouse.x, mouse.y);
-    query.exclude = exclude;
+    if (excludeSelection)
+    {
+        query.exclude = m_SnapExclude;
+    }
     return query;
 }
 
@@ -740,7 +911,7 @@ void SceneViewPanel::UpdateVertexHandle(GameObject* selected, const RenderView& 
             m_VertexDragging = false;
             return;
         }
-        const SceneSnapper::Query query = MakeSnapQuery(view, min, max, selected);
+        const SceneSnapper::Query query = MakeSnapQuery(view, min, max, true);
         Vector3 target;
         if (const std::optional<SnapTarget> snapped = m_Snapper.FindTarget(*selected->GetScene(), m_VertexDragMode, query))
         {
@@ -773,7 +944,7 @@ void SceneViewPanel::UpdateVertexHandle(GameObject* selected, const RenderView& 
     {
         return;
     }
-    m_HoverSourceVertex = m_Snapper.FindNearestVertex(*selected, MakeSnapQuery(view, min, max, nullptr), kHandleRadius);
+    m_HoverSourceVertex = m_Snapper.FindNearestVertex(*selected, MakeSnapQuery(view, min, max, false), kHandleRadius);
     if (m_HoverSourceVertex && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
     {
         m_VertexDragging = true;

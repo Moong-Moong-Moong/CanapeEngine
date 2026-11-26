@@ -1,8 +1,10 @@
 #include "Panels/HierarchyPanel.h"
 #include "EditorUtils.h"
 #include "Icons/EditorIcons.h"
+#include "Panels/SceneViewPanel.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
 #include <algorithm>
@@ -110,10 +112,15 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGui::InputTextWithHint("##Search", "Search", &m_Search);
 
-    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && m_RenamingId == 0 && !ImGui::GetIO().WantTextInput)
+    const bool hierarchyFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    const ImGuiWindow* sceneViewWindow = ImGui::FindWindowByName(SceneViewPanel::kName);
+    const ImGuiWindow* navWindow = GImGui->NavWindow;
+    const bool sceneViewFocused = sceneViewWindow && navWindow && navWindow->RootWindow == sceneViewWindow
+        && !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    if ((hierarchyFocused || sceneViewFocused) && m_RenamingId == 0 && !ImGui::GetIO().WantTextInput)
     {
         GameObject* selected = context.GetSelected(scene);
-        if (ImGui::IsKeyPressed(ImGuiKey_F2, false) && selected && context.GetSelectionCount() <= 1)
+        if (hierarchyFocused && ImGui::IsKeyPressed(ImGuiKey_F2, false) && selected && context.GetSelectionCount() <= 1)
         {
             BeginRename(*selected);
         }
@@ -123,7 +130,7 @@ void HierarchyPanel::Draw(EditorContext& context, Scene* scene)
         }
         if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)
         {
-            if (ImGui::IsKeyPressed(ImGuiKey_A, false) && !m_VisibleOrder.empty())
+            if (hierarchyFocused && ImGui::IsKeyPressed(ImGuiKey_A, false) && !m_VisibleOrder.empty())
             {
                 // Every row currently shown (expanded tree rows, or the search results).
                 const uint64_t primary = context.IsSelected(context.GetSelectedId()) ? context.GetSelectedId() : m_VisibleOrder.front();

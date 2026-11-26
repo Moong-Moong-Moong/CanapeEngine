@@ -496,12 +496,17 @@ void InspectorPanel::DrawAddComponent(Scene& scene, GameObject& gameObject)
         return lhs.get_name() < rhs.get_name();
     });
 
+    const std::string padding = EditorIcons::GetLabelPadding();
     for (const rttr::type& type : types)
     {
-        if (ImGui::MenuItem(type.get_name().data()))
+        const std::string name = type.get_name().to_string();
+        const ImVec2 labelStart = ImGui::GetCursorScreenPos();
+        const bool clicked = ImGui::MenuItem((padding + name + "##" + name).c_str());
+        EditorIcons::DrawAtLabelStart(EditorIcons::Get().GetComponent(type), labelStart);
+        if (clicked)
         {
             AddComponentOfType(scene, gameObject, type);
-            m_UndoLabel = "Add " + type.get_name().to_string();
+            m_UndoLabel = "Add " + name;
         }
     }
     ImGui::EndPopup();
