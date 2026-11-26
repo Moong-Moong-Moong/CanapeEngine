@@ -1,4 +1,6 @@
 #include "Panels/SceneViewPanel.h"
+#include "EditorUtils.h"
+#include "Asset/Mesh/MeshSerializer.h"
 #include "ScenePicking.h"
 
 #include <imgui.h>
@@ -10,6 +12,8 @@
 #include <cstdio>
 #include <cstring>
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 using namespace Canape;
@@ -25,6 +29,10 @@ namespace
     constexpr float kMinFocusRadius = 0.5f;
     constexpr float kLocalButtonWidth = 52.0f;
     constexpr float kSnapButtonWidth = 118.0f;
+    constexpr float kOrbitSensitivity = 0.3f;    // degrees per pixel
+    constexpr float kMinOrbitDistance = 0.1f;
+    constexpr float kZoomStep = 0.15f;           // fraction of the orbit distance per wheel notch
+    constexpr float kDropFallbackDistance = 10.0f;
 }
 
 SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* scene, Renderer& renderer, UISystem& ui,
@@ -124,6 +132,9 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
         if (playing)
         {
             m_Navigating = false;
+            m_Orbiting = false;
+            m_Panning = false;
+            m_PendingDropPath.clear();
             m_Focusing = false;
             m_VertexDragging = false;
             m_GizmoDragging = false;
@@ -137,23 +148,52 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
         else
         {
             const bool hovered = ImGui::IsItemHovered();
-            UpdateCamera(hovered, deltaTime);
+
+            // Prefab / mesh files dragged from the content browser. Only placeable files light the image up.
+            if (scene)
+            {
+                const ImGuiPayload* dragging = ImGui::GetDragDropPayload();
+                if (dragging && dragging->IsDataType(EditorUtils::kAssetPathPayload)
+                    && IsPlaceableAsset(std::string(static_cast<const char*>(dragging->Data), static_cast<size_t>(dragging->DataSize)))
+                    && ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(EditorUtils::kAssetPathPayload))
+                    {
+                        m_PendingDropPath.assign(static_cast<const char*>(payload->Data), static_cast<size_t>(payload->DataSize));
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+
+            UpdateCamera(hovered, deltaTime, static_cast<float>(height));
             UpdateFocus(deltaTime);
             HandleGizmoShortcuts(hovered);
-            m_VertexKeyHeld = !m_Navigating && !ImGui::GetIO().WantTextInput && ImGui::IsKeyDown(ImGuiKey_V)
+            if (hovered && !IsCameraBusy() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false) && selected)
+            {
+                FocusOn(*selected);
+            }
+            m_VertexKeyHeld = !IsCameraBusy() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyDown(ImGuiKey_V)
                 && (hovered || m_GizmoDragging || m_VertexDragging);
             const RenderView view = BuildView(static_cast<float>(width) / static_cast<float>(height));
             renderer.SetViewOverride(view);
             ImGui::GetWindowDrawList()->AddText(ImVec2(min.x + 8.0f, max.y - ImGui::GetTextLineHeight() - 6.0f),
                 IM_COL32(255, 255, 255, 160),
-                "W/E/R: move/rotate/scale  T: local/world  G: grid  V(hold): vertex snap  Ctrl(hold): grid snap  "
-                "RMB: look  WASD/QE: move  Wheel: speed");
+                "W/E/R: move/rotate/scale  T: local/world  G: grid  V(hold): vertex snap  Ctrl(hold): grid snap  F: focus  "
+                "RMB: look  WASD/QE: move  Alt+LMB: orbit  MMB: pan  Wheel: zoom  RMB+Wheel: speed");
+
+            if (!m_PendingDropPath.empty() && scene)
+            {
+                PlaceDroppedAsset(context, *scene, view, min, max);
+                selected = context.GetSelected(scene);
+            }
 
             if (selected && m_ShowBounds)
             {
                 DrawSelectionBounds(*selected, view, min, max);
             }
             m_SnapPreview.reset();
+            // Alt+LMB orbits the camera: the gizmo must not grab that click.
+            ImGuizmo::Enable(!IsCameraBusy() && !ImGui::GetIO().KeyAlt);
             const Matrix4 worldBefore = selected ? selected->GetTransform()->GetLocalToWorldMatrix() : Matrix4::Identity;
             const Vector3 scaleBefore = selected ? selected->GetTransform()->GetScale() : Vector3::One;
             DrawGizmo(selected, view, min, max);
@@ -172,7 +212,8 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
 
             const bool overGizmo = selected && (ImGuizmo::IsOver() || ImGuizmo::IsUsing());
             const bool overVertexHandle = m_VertexDragging || m_HoverSourceVertex.has_value();
-            if (hovered && !m_Navigating && !overGizmo && !overVertexHandle && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            if (hovered && !IsCameraBusy() && !ImGui::GetIO().KeyAlt && !overGizmo && !overVertexHandle
+                && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 const ImVec2 mouse = ImGui::GetMousePos();
                 const float x = mouse.x - min.x;
@@ -186,6 +227,80 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     }
     ImGui::End();
     return request;
+}
+
+bool SceneViewPanel::IsPlaceableAsset(const std::string& assetPath)
+{
+    std::string extension = EditorUtils::ToUtf8(EditorUtils::FromUtf8(assetPath).extension());
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+        [](char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; });
+    // Static meshes only: a skinned mesh (.cnskmesh) needs a skeleton, so it is placed through its prefab.
+    return extension == ".prefab" || extension == MeshSerializer::StaticExtension || extension == ".fbx" || extension == ".gltf";
+}
+
+GameObject* SceneViewPanel::CreateFromAsset(Scene& scene, const std::string& assetPath)
+{
+    const std::filesystem::path file = EditorUtils::GetGameDirectory() / EditorUtils::FromUtf8(assetPath);
+    const std::string fileUtf8 = EditorUtils::ToUtf8(file);
+    if (EditorUtils::ToUtf8(file.extension()) == ".prefab")
+    {
+        GameObject* created = SceneSerializer::InstantiatePrefab(scene, fileUtf8, nullptr);
+        if (!created)
+        {
+            CN_LOG_GAME("Editor", "Cannot place prefab ", assetPath);
+        }
+        return created;
+    }
+
+    // A mesh file becomes an object with a MeshRenderer, named after the file.
+    GameObject* created = scene.GetGameObject(scene.AddGameObject(EditorUtils::ToUtf8(file.stem())));
+    MeshRendererComponent* renderer = created ? created->AddComponent<MeshRendererComponent>() : nullptr;
+    if (!renderer || !renderer->SetMesh(fileUtf8))
+    {
+        CN_LOG_GAME("Editor", "Cannot place mesh ", assetPath, " (the mesh did not load)");
+        if (created)
+        {
+            scene.RemoveGameObject(created->GetHandle());
+        }
+        return nullptr;
+    }
+    return created;
+}
+
+void SceneViewPanel::PlaceDroppedAsset(EditorContext& context, Scene& scene, const RenderView& view, const ImVec2& min,
+    const ImVec2& max)
+{
+    const std::string assetPath = std::exchange(m_PendingDropPath, {});
+    const SceneSnapper::Query query = MakeSnapQuery(view, min, max, nullptr);
+
+    // The surface under the mouse, else the ground plane (y = 0), else a point in front of the camera.
+    Vector3 point;
+    Vector3 normal = Vector3::Up;
+    if (const std::optional<SnapTarget> hit = m_Snapper.FindTarget(scene, SnapMode::Face, query))
+    {
+        point = hit->position;
+        normal = hit->normal;
+    }
+    else
+    {
+        const SnapMath::Ray& ray = query.ray;
+        const float t = std::abs(ray.direction.Y) > 1e-4f ? -ray.origin.Y / ray.direction.Y : -1.0f;
+        point = (t > 0.0f && t < kFarClip) ? ray.origin + ray.direction * t
+            : ray.origin + ray.direction * kDropFallbackDistance;
+    }
+
+    GameObject* created = CreateFromAsset(scene, assetPath);
+    if (!created)
+    {
+        return;
+    }
+    // Rest the object's bounds on the surface instead of sinking its pivot into it; the rotation is kept as authored.
+    TransformComponent* transform = created->GetTransform();
+    const float offset = SurfaceRestOffset(*created, transform->GetWorldRotation(), normal);
+    SetWorldPose(*transform, point + normal * offset, nullptr);
+
+    context.Select(created);
+    context.SetUndoLabel("Place " + created->GetName());
 }
 
 void SceneViewPanel::RequestPick(Renderer& renderer, uint32_t x, uint32_t y)
@@ -416,7 +531,7 @@ void SceneViewPanel::DrawSnapPopup()
 void SceneViewPanel::HandleGizmoShortcuts(bool hovered)
 {
     // RMB + WASD/QE flies the camera, so the shortcuts only apply while not navigating.
-    if (m_Navigating || !hovered || ImGui::GetIO().WantTextInput || ImGuizmo::IsUsing())
+    if (IsCameraBusy() || !hovered || ImGui::GetIO().WantTextInput || ImGuizmo::IsUsing())
     {
         return;
     }
@@ -612,7 +727,7 @@ void SceneViewPanel::UpdateVertexHandle(GameObject* selected, const RenderView& 
 {
     constexpr float kHandleRadius = 10.0f;
     m_HoverSourceVertex.reset();
-    if (!selected || !selected->GetScene() || m_Navigating)
+    if (!selected || !selected->GetScene() || IsCameraBusy() || (!m_VertexDragging && ImGui::GetIO().KeyAlt))
     {
         m_VertexDragging = false;
         return;
@@ -851,6 +966,7 @@ void SceneViewPanel::FocusOn(GameObject& target)
 
     m_FocusFrom = m_Position;
     m_FocusTo = center - forward * distance;
+    m_OrbitDistance = distance; // Alt+LMB then orbits around the focused object
     m_FocusElapsed = 0.0f;
     m_Focusing = true;
 }
@@ -861,8 +977,8 @@ void SceneViewPanel::UpdateFocus(float deltaTime)
     {
         return;
     }
-    // Flying the camera by hand takes over from the focus animation.
-    if (m_Navigating)
+    // Moving the camera by hand takes over from the focus animation.
+    if (IsCameraBusy())
     {
         m_Focusing = false;
         return;
@@ -878,22 +994,78 @@ void SceneViewPanel::UpdateFocus(float deltaTime)
     }
 }
 
-void SceneViewPanel::UpdateCamera(bool hovered, float deltaTime)
+Vector3 SceneViewPanel::GetOrbitPivot() const
+{
+    return m_Position + GetRotation().Rotate(Vector3::Forward) * m_OrbitDistance;
+}
+
+void SceneViewPanel::UpdateCamera(bool hovered, float deltaTime, float viewportHeight)
 {
     ImGuiIO& io = ImGui::GetIO();
+    const bool idle = !IsCameraBusy();
 
-    if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    // A drag that starts on the image keeps going while the button is held, even outside the image.
+    if (hovered && idle && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
     {
         m_Navigating = true;
+    }
+    if (hovered && idle && io.KeyAlt && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsUsing() && !m_VertexDragging)
+    {
+        m_Orbiting = true;
+    }
+    if (hovered && idle && ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
+    {
+        m_Panning = true;
     }
     if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
         m_Navigating = false;
     }
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    {
+        m_Orbiting = false;
+    }
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    {
+        m_Panning = false;
+    }
 
     if (hovered && io.MouseWheel != 0.0f)
     {
-        m_MoveSpeed = std::clamp(m_MoveSpeed * (io.MouseWheel > 0.0f ? 1.2f : 1.0f / 1.2f), 0.5f, 200.0f);
+        if (m_Navigating)
+        {
+            // RMB + wheel: fly speed (the previous wheel behaviour).
+            m_MoveSpeed = std::clamp(m_MoveSpeed * (io.MouseWheel > 0.0f ? 1.2f : 1.0f / 1.2f), 0.5f, 200.0f);
+        }
+        else if (!m_Orbiting && !m_Panning)
+        {
+            // Wheel: zoom toward / away from the orbit pivot. Zooming in past the pivot pushes the pivot ahead.
+            m_Focusing = false;
+            const Vector3 forward = GetRotation().Rotate(Vector3::Forward);
+            const float step = std::max(m_OrbitDistance * kZoomStep, kMinOrbitDistance) * io.MouseWheel;
+            m_Position = m_Position + forward * step;
+            m_OrbitDistance = std::max(m_OrbitDistance - step, kMinOrbitDistance);
+        }
+    }
+
+    if (m_Orbiting)
+    {
+        const Vector3 pivot = GetOrbitPivot();
+        m_Yaw += io.MouseDelta.x * kOrbitSensitivity;
+        m_Pitch = std::clamp(m_Pitch + io.MouseDelta.y * kOrbitSensitivity, -89.0f, 89.0f);
+        m_Position = pivot - GetRotation().Rotate(Vector3::Forward) * m_OrbitDistance;
+        return;
+    }
+
+    if (m_Panning)
+    {
+        // The point under the mouse at the pivot's depth stays under the mouse.
+        const Quaternion rotation = GetRotation();
+        const float worldPerPixel = 2.0f * m_OrbitDistance * std::tan(Math::ToRadians(m_FieldOfView) * 0.5f)
+            / std::max(viewportHeight, 1.0f);
+        m_Position = m_Position - rotation.Rotate(Vector3::Right) * (io.MouseDelta.x * worldPerPixel)
+            + rotation.Rotate(Vector3::Up) * (io.MouseDelta.y * worldPerPixel);
+        return;
     }
 
     if (!m_Navigating)
