@@ -117,9 +117,33 @@ namespace Canape
 			return nullptr;
 		}
 
-		std::filesystem::path& GetAssetRoot()
+		struct BuiltinCubemapEntry
 		{
-			static std::filesystem::path root = []
+			std::string_view key;
+			std::string_view assetPath;
+			std::string_view file;
+		};
+
+		constexpr BuiltinCubemapEntry BuiltinCubemaps[] =
+		{
+			{ "builtin/defaultsky", "Builtin/DefaultSky", "EngineContent/Cubemaps/kloofendal_48d_partly_cloudy_puresky_cube.dds" },
+		};
+
+		const BuiltinCubemapEntry* FindBuiltinCubemap(const std::string& key)
+		{
+			for (const BuiltinCubemapEntry& entry : BuiltinCubemaps)
+			{
+				if (entry.key == key)
+				{
+					return &entry;
+				}
+			}
+			return nullptr;
+		}
+
+		const std::filesystem::path& GetExecutableDirectory()
+		{
+			static const std::filesystem::path directory = []
 			{
 				std::wstring buffer(MAX_PATH, L'\0');
 				for (;;)
@@ -143,6 +167,12 @@ namespace Canape
 				}
 				return std::filesystem::path(buffer).parent_path().lexically_normal();
 			}();
+			return directory;
+		}
+
+		std::filesystem::path& GetAssetRoot()
+		{
+			static std::filesystem::path root = GetExecutableDirectory();
 			return root;
 		}
 
@@ -388,6 +418,17 @@ namespace Canape
 		std::vector<std::string> paths;
 		paths.reserve(std::size(BuiltinMeshes));
 		for (const BuiltinMeshEntry& entry : BuiltinMeshes)
+		{
+			paths.emplace_back(entry.assetPath);
+		}
+		return paths;
+	}
+
+	std::vector<std::string> AssetManager::GetBuiltinCubemapPaths()
+	{
+		std::vector<std::string> paths;
+		paths.reserve(std::size(BuiltinCubemaps));
+		for (const BuiltinCubemapEntry& entry : BuiltinCubemaps)
 		{
 			paths.emplace_back(entry.assetPath);
 		}
@@ -761,6 +802,30 @@ namespace Canape
 
 	CubemapAssetHandle AssetManager::GetCubemapHandle(const std::string& path, const AssetOwnerInfo& owner)
 	{
+		const std::string builtinKey = ToLowerAscii(NormalizeSeparators(path));
+		if (IsBuiltinMeshKey(builtinKey))
+		{
+			const BuiltinCubemapEntry* entry = FindBuiltinCubemap(builtinKey);
+			if (!entry)
+			{
+				CN_LOG_RUNTIME("Asset", "큐브맵 에셋 로드 오류 : 알 수 없는 내장 큐브맵, ", path);
+				return {};
+			}
+
+			CubemapAssetId builtinId = FindCubemap(builtinKey);
+			if (!builtinId.IsValid())
+			{
+				const std::filesystem::path file = (GetExecutableDirectory()
+					/ std::filesystem::path(std::u8string(entry->file.begin(), entry->file.end()))).lexically_normal();
+				builtinId = LoadCubemap(std::string(entry->assetPath), builtinKey, ToUtf8(file.generic_u8string()));
+				if (!builtinId.IsValid())
+				{
+					return {};
+				}
+			}
+			return CreateCubemapHandle(builtinId, owner);
+		}
+
 		ResolvedAssetPath resolved;
 		if (!ResolveAssetPath(path, resolved))
 		{

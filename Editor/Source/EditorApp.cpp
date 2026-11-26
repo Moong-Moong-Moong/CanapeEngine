@@ -4,6 +4,7 @@
 #include "Icons/EditorIcons.h"
 #include "CNDebug/DebugLog.h"
 #include "Scene/Component/LightComponent.h"
+#include "Scene/Component/SkyboxComponent.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -841,6 +842,9 @@ void EditorApp::NewScene()
     LightComponent* light = lightObject->AddComponent<LightComponent>();
     light->SetType(LightType::Directional);
     light->SetCastShadow(true);
+
+    GameObject* skyboxObject = scene->GetGameObject(scene->AddGameObject("Skybox"));
+    skyboxObject->AddComponent<SkyboxComponent>()->SetCubemapPath(AssetManager::GetBuiltinCubemapPaths().front());
 
     ReplaceActiveScene(scene);
     m_Context.SetScenePath({});

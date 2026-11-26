@@ -47,6 +47,7 @@ namespace Canape
 		static std::filesystem::path GetAssetFile(const std::string& path);
 		static std::string ToAssetPath(const std::string& path);
 		static std::vector<std::string> GetBuiltinMeshPaths();
+		static std::vector<std::string> GetBuiltinCubemapPaths();
 
 		//***** Release
 		size_t ReleaseUnusedAssets();
