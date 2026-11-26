@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <iterator>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -128,41 +129,51 @@ void FileBrowserPanel::Draw(EditorContext& context)
         return;
     }
 
+    if (!ImGui::GetDragDropPayload())
+    {
+        m_DragSources.clear();
+    }
+    SyncSelection(context);
+
     const bool focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
     if (focused && m_RenamingPath.empty() && !ImGui::GetIO().WantTextInput)
     {
-        std::error_code existsError;
-        if (!m_SelectedFolder.empty() && (m_SelectedFolder.parent_path() != m_CurrentDirectory || !fs::exists(m_SelectedFolder, existsError)))
-        {
-            m_SelectedFolder.clear();
-        }
-        // The selected folder (content list only) or the selected asset.
-        const fs::path selected = !m_SelectedFolder.empty() ? m_SelectedFolder : context.GetSelectedAsset();
-        if (ImGui::IsKeyPressed(ImGuiKey_F2, false) && CanEdit(selected) && selected.parent_path() == m_CurrentDirectory)
+        // The primary selected item (content list) or the selected asset.
+        const fs::path selected = !m_Selection.empty() ? GetPrimarySelection(context) : context.GetSelectedAsset();
+        if (ImGui::IsKeyPressed(ImGuiKey_F2, false) && m_Selection.size() <= 1 && CanEdit(selected)
+            && selected.parent_path() == m_CurrentDirectory)
         {
             BeginRename(selected);
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && CanEdit(selected) && selected.parent_path() == m_CurrentDirectory)
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
         {
-            RequestDelete(context, selected);
+            if (const std::vector<fs::path> targets = GetShortcutTargets(selected); !targets.empty())
+            {
+                RequestDeletePaths(context, targets);
+            }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !m_MoveSource.empty())
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !m_MoveSources.empty())
         {
-            m_MoveSource.clear();
+            m_MoveSources.clear();
             m_Message = "Move cancelled.";
         }
         const ImGuiIO& io = ImGui::GetIO();
         if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt)
         {
-            if (ImGui::IsKeyPressed(ImGuiKey_C, false) && CanEdit(selected))
+            if (ImGui::IsKeyPressed(ImGuiKey_A, false) && !m_VisibleEntries.empty())
             {
-                CopyAsset(selected);
+                const fs::path primary = IsSelected(GetPrimarySelection(context)) ? GetPrimarySelection(context) : m_VisibleEntries.front();
+                SetSelection(context, m_VisibleEntries, primary);
             }
-            if (ImGui::IsKeyPressed(ImGuiKey_D, false) && CanEdit(selected))
+            if (ImGui::IsKeyPressed(ImGuiKey_C, false))
             {
-                DuplicateAsset(context, selected);
+                CopyAssets(GetShortcutTargets(selected));
             }
-            if (ImGui::IsKeyPressed(ImGuiKey_V, false) && !m_CopySource.empty())
+            if (ImGui::IsKeyPressed(ImGuiKey_D, false))
+            {
+                DuplicateAssets(context, GetShortcutTargets(selected));
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_V, false) && !m_CopySources.empty())
             {
                 PasteInto(context, m_CurrentDirectory);
             }
@@ -203,7 +214,16 @@ void FileBrowserPanel::Draw(EditorContext& context)
         ImGui::EndTable();
     }
     DrawPlanPopup(context);
+    DrawBatchPopup(context);
     ImGui::End();
+
+    if (!m_DropMoveTarget.empty())
+    {
+        // Deferred to here: moving may ask to save the scene (a message box) and rebuilds the listings drawn above.
+        const std::vector<fs::path> sources = std::exchange(m_DropMoveSources, {});
+        const fs::path target = std::exchange(m_DropMoveTarget, {});
+        MoveTo(context, sources, target);
+    }
 
     DrawReferencesWindow(context);
     DrawMissingWindow(context);
@@ -235,6 +255,7 @@ void FileBrowserPanel::DrawDirectoryTree(EditorContext& context, const fs::path&
     {
         m_CurrentDirectory = directory;
     }
+    DrawMoveDropTarget(directory);
     if (ImGui::BeginPopupContextItem())
     {
         DrawFolderMenuItems(context, directory, true);
@@ -261,6 +282,10 @@ void FileBrowserPanel::DrawContentsHeader()
     {
         m_CurrentDirectory = m_CurrentDirectory.parent_path();
     }
+    if (m_CurrentDirectory != root)
+    {
+        DrawMoveDropTarget(m_CurrentDirectory.parent_path());
+    }
     if (m_GridIconSize <= 0.0f)
     {
         m_GridIconSize = EditorSettings::Get().GetContentBrowserGridSize();
@@ -269,13 +294,21 @@ void FileBrowserPanel::DrawContentsHeader()
     ImGui::SameLine();
     ImGui::TextUnformatted(location == "." ? "Game" : ("Game/" + location).c_str());
     DrawViewOptions();
-    if (!m_MoveSource.empty())
+    if (!m_MoveSources.empty())
     {
-        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Moving: %s", ToAssetPath(m_MoveSource).c_str());
+        if (m_MoveSources.size() == 1)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Moving: %s", ToAssetPath(m_MoveSources.front()).c_str());
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Moving %zu items from %s", m_MoveSources.size(),
+                ToAssetPath(m_MoveSources.front().parent_path()).c_str());
+        }
         ImGui::SameLine();
         if (ImGui::SmallButton("Cancel Move"))
         {
-            m_MoveSource.clear();
+            m_MoveSources.clear();
         }
         ImGui::TextDisabled("Right-click a folder and choose Move Here. Esc cancels.");
     }
@@ -300,8 +333,10 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
     fs::path nextDirectory;
     bool renameRowDrawn = false;
     int cellIndex = 0;
+    std::vector<fs::path> visibleEntries;
     for (const Entry& entry : ListDirectory(m_CurrentDirectory, false))
     {
+        visibleEntries.push_back(entry.path);
         if (grid && cellIndex++ % columns != 0)
         {
             ImGui::SameLine();
@@ -350,11 +385,11 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
         }
 
         std::string label = entry.name;
-        if (entry.path == m_MoveSource)
+        if (std::find(m_MoveSources.begin(), m_MoveSources.end(), entry.path) != m_MoveSources.end())
         {
             label += "  (moving)";
         }
-        const bool selected = entry.directory ? m_SelectedFolder == entry.path : context.GetSelectedAsset() == entry.path;
+        const bool selected = IsSelected(entry.path);
         bool clicked = false;
         if (grid)
         {
@@ -375,29 +410,48 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             }
         }
 
-        if (clicked && entry.directory)
+        if (clicked)
         {
-            // Folders are selected here only (not in the inspector) so Delete / F2 / Ctrl+C / Ctrl+D can act on them.
-            m_SelectedFolder = entry.path;
-            context.SelectAsset({});
-        }
-        else if (clicked)
-        {
-            if (selected && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && CanEdit(entry.path))
+            // A plain click on the only selected file arms rename (slow second click), as before.
+            const ImGuiIO& io = ImGui::GetIO();
+            if (!entry.directory && selected && m_Selection.size() == 1 && !io.KeyCtrl && !io.KeyShift
+                && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && CanEdit(entry.path))
             {
                 m_RenameArmedPath = entry.path;
                 m_RenameArmTime = ImGui::GetTime();
             }
-            m_SelectedFolder.clear();
-            context.SelectAsset(entry.path);
+            // Folders are selected here only (not in the inspector) so Delete / F2 / Ctrl+C / Ctrl+D can act on them.
+            HandleEntryClick(context, entry.path);
+        }
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !IsSelected(entry.path))
+        {
+            // Right-click acts on the item under the mouse; it joins nothing it is not part of.
+            SetSelection(context, { entry.path }, entry.path);
+            m_SelectionAnchor = entry.path;
         }
 
-        if (!entry.directory && ImGui::BeginDragDropSource())
+        if (ImGui::BeginDragDropSource())
         {
+            // Dragging a selected item drags the whole selection (moved by dropping on a folder). Files keep the asset
+            // payload so they can also be dropped on inspector fields and the hierarchy.
+            m_DragSources = IsSelected(entry.path) && m_Selection.size() > 1 ? GetActionTargets(entry.path)
+                : std::vector<fs::path>{ entry.path };
             const std::string assetPath = EditorUtils::ToGameRelativePath(entry.path);
-            ImGui::SetDragDropPayload(EditorUtils::kAssetPathPayload, assetPath.data(), assetPath.size());
-            ImGui::TextUnformatted(assetPath.c_str());
+            ImGui::SetDragDropPayload(entry.directory ? EditorUtils::kContentFolderPayload : EditorUtils::kAssetPathPayload,
+                assetPath.data(), assetPath.size());
+            if (m_DragSources.size() > 1)
+            {
+                ImGui::Text("%zu items", m_DragSources.size());
+            }
+            else
+            {
+                ImGui::TextUnformatted(assetPath.c_str());
+            }
             ImGui::EndDragDropSource();
+        }
+        if (entry.directory)
+        {
+            DrawMoveDropTarget(entry.path);
         }
 
         DrawEntryMenu(context, entry.path, entry.directory);
@@ -430,6 +484,7 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
         ImGui::PopID();
     }
 
+    m_VisibleEntries = std::move(visibleEntries);
     if (!m_RenamingPath.empty() && !renameRowDrawn)
     {
         RenameTrace("row-not-drawn");
@@ -478,12 +533,12 @@ void FileBrowserPanel::DrawDirectoryContents(EditorContext& context)
             }
             ImGui::EndMenu();
         }
-        if (!m_MoveSource.empty())
+        if (!m_MoveSources.empty())
         {
             ImGui::Separator();
             DrawMoveHereItem(context, m_CurrentDirectory, "Move Here");
         }
-        if (!m_CopySource.empty())
+        if (!m_CopySources.empty())
         {
             ImGui::Separator();
             DrawPasteItem(context, m_CurrentDirectory, "Paste");
@@ -521,6 +576,40 @@ void FileBrowserPanel::DrawEntryMenu(EditorContext& context, const fs::path& pat
         DrawFolderMenuItems(context, path, false);
     }
 
+    // Part of a multi-selection: the actions that apply to every selected item.
+    const std::vector<fs::path> group = GetActionTargets(path);
+    if (group.size() > 1)
+    {
+        if (drawn)
+        {
+            ImGui::Separator();
+        }
+        const std::string count = std::to_string(group.size());
+        if (ImGui::MenuItem(("Copy " + count + " Items").c_str(), "Ctrl+C"))
+        {
+            CopyAssets(group);
+        }
+        if (ImGui::MenuItem(("Duplicate " + count + " Items").c_str(), "Ctrl+D"))
+        {
+            DuplicateAssets(context, group);
+        }
+        if (ImGui::MenuItem(("Move " + count + " Items").c_str()))
+        {
+            BeginMove(group);
+        }
+        if (ImGui::MenuItem(("Delete " + count + " Items").c_str(), "Del"))
+        {
+            RequestDeletePaths(context, group);
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Show in Explorer"))
+        {
+            EditorUtils::ShowInExplorer(path);
+        }
+        ImGui::EndPopup();
+        return;
+    }
+
     if (CanEdit(path))
     {
         if (drawn)
@@ -534,15 +623,15 @@ void FileBrowserPanel::DrawEntryMenu(EditorContext& context, const fs::path& pat
         }
         if (ImGui::MenuItem("Copy", directory ? nullptr : "Ctrl+C"))
         {
-            CopyAsset(path);
+            CopyAssets({ path });
         }
         if (ImGui::MenuItem("Duplicate", directory ? nullptr : "Ctrl+D"))
         {
-            DuplicateAsset(context, path);
+            DuplicateAssets(context, { path });
         }
         if (ImGui::MenuItem("Move"))
         {
-            BeginMove(path);
+            BeginMove({ path });
         }
         if (ImGui::MenuItem("Find References"))
         {
@@ -599,12 +688,12 @@ void FileBrowserPanel::DrawFolderMenuItems(EditorContext& context, const fs::pat
             CreateFolder(folder);
         }
     }
-    if (!m_MoveSource.empty())
+    if (!m_MoveSources.empty())
     {
         drawn = true;
         DrawMoveHereItem(context, folder, showRename ? "Move Here" : "Move Into This Folder");
     }
-    if (!m_CopySource.empty())
+    if (!m_CopySources.empty())
     {
         drawn = true;
         DrawPasteItem(context, folder, showRename ? "Paste" : "Paste Into This Folder");
@@ -623,15 +712,15 @@ void FileBrowserPanel::DrawFolderMenuItems(EditorContext& context, const fs::pat
         }
         if (ImGui::MenuItem("Copy"))
         {
-            CopyAsset(folder);
+            CopyAssets({ folder });
         }
         if (ImGui::MenuItem("Duplicate"))
         {
-            DuplicateAsset(context, folder);
+            DuplicateAssets(context, { folder });
         }
         if (ImGui::MenuItem("Move"))
         {
-            BeginMove(folder);
+            BeginMove({ folder });
         }
         if (ImGui::MenuItem("Find References"))
         {
@@ -657,19 +746,71 @@ void FileBrowserPanel::DrawFolderMenuItems(EditorContext& context, const fs::pat
 
 void FileBrowserPanel::DrawMoveHereItem(EditorContext& context, const fs::path& folder, const char* label)
 {
-    const std::string error = AssetRefactor::ValidateMove(m_Index.GetRoot(), ToAssetPath(m_MoveSource), ToAssetPath(folder));
-    if (ImGui::MenuItem(label, nullptr, false, error.empty()))
+    // Enabled when at least one item can go there; the others are skipped (and listed before anything moves).
+    std::string firstError;
+    size_t invalid = 0;
+    for (const fs::path& source : m_MoveSources)
     {
-        MoveTo(context, folder);
+        const std::string error = AssetRefactor::ValidateMove(m_Index.GetRoot(), ToAssetPath(source), ToAssetPath(folder));
+        if (!error.empty())
+        {
+            ++invalid;
+            if (firstError.empty())
+            {
+                firstError = error;
+            }
+        }
     }
-    if (!error.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    const bool enabled = invalid < m_MoveSources.size();
+    if (ImGui::MenuItem(label, nullptr, false, enabled))
     {
-        ImGui::SetTooltip("%s", error.c_str());
+        MoveTo(context, m_MoveSources, folder);
+    }
+    if (invalid > 0 && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    {
+        if (m_MoveSources.size() == 1)
+        {
+            ImGui::SetTooltip("%s", firstError.c_str());
+        }
+        else
+        {
+            ImGui::SetTooltip("%zu of %zu items cannot be moved here: %s", invalid, m_MoveSources.size(), firstError.c_str());
+        }
     }
     if (ImGui::MenuItem("Cancel Move"))
     {
-        m_MoveSource.clear();
+        m_MoveSources.clear();
     }
+}
+
+void FileBrowserPanel::DrawMoveDropTarget(const fs::path& folder)
+{
+    const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+    if (!payload || m_DragSources.empty() || !CanCreateIn(folder)
+        || !(payload->IsDataType(EditorUtils::kAssetPathPayload) || payload->IsDataType(EditorUtils::kContentFolderPayload)))
+    {
+        return;
+    }
+    // A folder that is itself being dragged is not a target; otherwise only folders that can take at least one of the
+    // dragged items light up.
+    if (std::find(m_DragSources.begin(), m_DragSources.end(), folder) != m_DragSources.end())
+    {
+        return;
+    }
+    const bool any = std::any_of(m_DragSources.begin(), m_DragSources.end(), [&](const fs::path& source)
+    {
+        return AssetRefactor::ValidateMove(m_Index.GetRoot(), ToAssetPath(source), ToAssetPath(folder)).empty();
+    });
+    if (!any || !ImGui::BeginDragDropTarget())
+    {
+        return;
+    }
+    if (ImGui::AcceptDragDropPayload(payload->DataType))
+    {
+        m_DropMoveSources = m_DragSources;
+        m_DropMoveTarget = folder;
+    }
+    ImGui::EndDragDropTarget();
 }
 
 void FileBrowserPanel::DrawNewSourcePopup()
@@ -959,18 +1100,34 @@ void FileBrowserPanel::CommitRename(EditorContext& context)
     RequestPlan(context, [this, assetPath, name] { return AssetRefactor::PlanRename(m_Index, assetPath, name); }, !emptyFolder);
 }
 
-void FileBrowserPanel::BeginMove(const fs::path& path)
+void FileBrowserPanel::BeginMove(std::vector<fs::path> paths)
 {
-    m_MoveSource = path;
+    paths.erase(std::remove_if(paths.begin(), paths.end(), [this](const fs::path& path) { return !CanEdit(path); }), paths.end());
+    m_MoveSources = std::move(paths);
     m_Message.clear();
 }
 
-void FileBrowserPanel::MoveTo(EditorContext& context, const fs::path& folder)
+void FileBrowserPanel::MoveTo(EditorContext& context, std::vector<fs::path> sources, const fs::path& folder)
 {
+    if (sources.empty())
+    {
+        return;
+    }
+    if (sources.size() > 1)
+    {
+        RequestBatch(context, false, sources, folder);
+        return;
+    }
+    const fs::path& source = sources.front();
     std::error_code error;
-    const bool emptyFolder = fs::is_directory(m_MoveSource, error) && fs::is_empty(m_MoveSource, error);
-    const std::string assetPath = ToAssetPath(m_MoveSource);
+    const bool emptyFolder = fs::is_directory(source, error) && fs::is_empty(source, error);
+    const std::string assetPath = ToAssetPath(source);
     const std::string target = ToAssetPath(folder);
+    if (const std::string reason = AssetRefactor::ValidateMove(m_Index.GetRoot(), assetPath, target); !reason.empty())
+    {
+        m_Message = "Cannot move " + assetPath + ": " + reason;
+        return;
+    }
     RequestPlan(context, [this, assetPath, target] { return AssetRefactor::PlanMove(m_Index, assetPath, target); }, !emptyFolder);
 }
 
@@ -1009,7 +1166,7 @@ void FileBrowserPanel::RequestPlan(EditorContext& context, const std::function<R
     m_OpenPlanPopup = true;
 }
 
-void FileBrowserPanel::ApplyPlan(EditorContext& context, const RefactorPlan& plan, bool sceneChecked)
+bool FileBrowserPanel::ApplyPlan(EditorContext& context, const RefactorPlan& plan, bool sceneChecked)
 {
     std::string error;
     const bool applied = AssetRefactor::Apply(plan, m_Index, error);
@@ -1044,7 +1201,7 @@ void FileBrowserPanel::ApplyPlan(EditorContext& context, const RefactorPlan& pla
     m_CurrentDirectory = isDeleted(m_CurrentDirectory)
         ? AssetPaths::ToAbsolute(root, plan.move.from).parent_path()
         : remap(m_CurrentDirectory);
-    m_MoveSource.clear();
+    m_MoveSources.clear();
 
     if (plan.DeletesOnDisk())
     {
@@ -1086,33 +1243,323 @@ void FileBrowserPanel::ApplyPlan(EditorContext& context, const RefactorPlan& pla
     {
         m_ShowReferences = false;
     }
+    return applied;
 }
 
-void FileBrowserPanel::RequestDelete(EditorContext& context, const fs::path& path)
+std::string FileBrowserPanel::OpenSceneDeleteError(EditorContext& context, const std::string& assetPath) const
 {
-    const std::string assetPath = ToAssetPath(path);
-    const std::string scenePath = context.GetScenePath().empty() ? std::string() : ToAssetPath(fs::path(context.GetScenePath()));
-    std::error_code error;
-    const PathMove deleted{ assetPath, std::string(), fs::is_directory(path, error) };
-    if (!scenePath.empty() && AssetRefactor::Remap(scenePath, deleted))
-    {
-        m_Message = "Cannot delete the scene that is open in the editor. Open another scene first.";
-        return;
-    }
-
-    const bool emptyFolder = fs::is_directory(path, error) && fs::is_empty(path, error);
-    RequestPlan(context, [this, assetPath] { return AssetRefactor::PlanDelete(m_Index, assetPath); }, !emptyFolder);
-}
-
-std::string FileBrowserPanel::RunDeleteCommand(EditorContext& context, const std::string& assetPath)
-{
-    EnsureIndex();
     const std::string scenePath = context.GetScenePath().empty() ? std::string() : ToAssetPath(fs::path(context.GetScenePath()));
     std::error_code error;
     const PathMove deleted{ assetPath, std::string(), fs::is_directory(AssetPaths::ToAbsolute(m_Index.GetRoot(), assetPath), error) };
     if (!scenePath.empty() && AssetRefactor::Remap(scenePath, deleted))
     {
-        m_Message = "Cannot delete the scene that is open in the editor.";
+        return "Cannot delete the scene that is open in the editor. Open another scene first.";
+    }
+    return {};
+}
+
+void FileBrowserPanel::RequestDelete(EditorContext& context, const fs::path& path)
+{
+    const std::string assetPath = ToAssetPath(path);
+    if (std::string reason = OpenSceneDeleteError(context, assetPath); !reason.empty())
+    {
+        m_Message = std::move(reason);
+        return;
+    }
+
+    std::error_code error;
+    const bool emptyFolder = fs::is_directory(path, error) && fs::is_empty(path, error);
+    RequestPlan(context, [this, assetPath] { return AssetRefactor::PlanDelete(m_Index, assetPath); }, !emptyFolder);
+}
+
+void FileBrowserPanel::RequestDeletePaths(EditorContext& context, const std::vector<fs::path>& paths)
+{
+    if (paths.size() == 1)
+    {
+        RequestDelete(context, paths.front());
+    }
+    else if (!paths.empty())
+    {
+        RequestBatch(context, true, paths, {});
+    }
+}
+
+void FileBrowserPanel::RequestBatch(EditorContext& context, bool deleting, const std::vector<fs::path>& paths, const fs::path& folder)
+{
+    std::error_code error;
+    const bool needsScene = std::any_of(paths.begin(), paths.end(),
+        [&](const fs::path& path) { return !(fs::is_directory(path, error) && fs::is_empty(path, error)); });
+    if (needsScene && m_Callbacks.prepareScene && !m_Callbacks.prepareScene())
+    {
+        m_Message = "Cancelled.";
+        return;
+    }
+
+    BatchRequest request;
+    request.deleting = deleting;
+    request.targetFolder = deleting ? std::string() : ToAssetPath(folder);
+    request.sceneChecked = needsScene;
+    size_t valid = 0;
+    bool needsConfirm = deleting;
+    for (const fs::path& path : paths)
+    {
+        const std::string assetPath = ToAssetPath(path);
+        RefactorPlan plan;
+        const std::string sceneError = deleting ? OpenSceneDeleteError(context, assetPath) : std::string();
+        if (!sceneError.empty())
+        {
+            plan.kind = RefactorPlan::Kind::Delete;
+            plan.move = { assetPath, std::string(), fs::is_directory(path, error) };
+            plan.error = sceneError;
+        }
+        else
+        {
+            plan = deleting ? AssetRefactor::PlanDelete(m_Index, assetPath) : AssetRefactor::PlanMove(m_Index, assetPath, request.targetFolder);
+        }
+        if (plan.IsValid())
+        {
+            ++valid;
+            needsConfirm = needsConfirm || !plan.edits.empty() || !plan.warnings.empty() || !plan.startupSceneBefore.empty();
+        }
+        else
+        {
+            // Skipped items are listed in the confirmation, so the user sees why they stay.
+            needsConfirm = true;
+            if (plan.move.from.empty())
+            {
+                plan.move.from = assetPath;
+            }
+        }
+        request.assets.push_back(assetPath);
+        request.preview.push_back(std::move(plan));
+    }
+
+    if (valid == 0)
+    {
+        m_Message = "Cannot " + std::string(deleting ? "delete" : "move") + " the selected items: " + request.preview.front().error;
+        return;
+    }
+    if (!needsConfirm)
+    {
+        ApplyBatch(context, request);
+        return;
+    }
+    m_PendingBatch = std::move(request);
+    m_OpenBatchPopup = true;
+}
+
+void FileBrowserPanel::ApplyBatch(EditorContext& context, const BatchRequest& request)
+{
+    // Each item is planned again just before it is applied: the earlier items may have rewritten its references.
+    size_t applied = 0;
+    size_t edits = 0;
+    size_t warnings = 0;
+    std::vector<std::string> failures;
+    for (const std::string& assetPath : request.assets)
+    {
+        if (request.deleting)
+        {
+            if (std::string reason = OpenSceneDeleteError(context, assetPath); !reason.empty())
+            {
+                failures.push_back(assetPath + ": " + reason);
+                continue;
+            }
+        }
+        const RefactorPlan plan = request.deleting
+            ? AssetRefactor::PlanDelete(m_Index, assetPath)
+            : AssetRefactor::PlanMove(m_Index, assetPath, request.targetFolder);
+        if (!plan.IsValid())
+        {
+            failures.push_back(assetPath + ": " + plan.error);
+            continue;
+        }
+        if (ApplyPlan(context, plan, request.sceneChecked))
+        {
+            ++applied;
+            edits += plan.edits.size();
+            warnings += plan.warnings.size();
+        }
+        else
+        {
+            failures.push_back(assetPath + ": " + m_Message);
+        }
+    }
+    m_MoveSources.clear();
+
+    if (request.deleting)
+    {
+        m_Message = "Deleted " + std::to_string(applied) + " items (moved to the Recycle Bin). Cleared "
+            + std::to_string(edits) + " references.";
+    }
+    else
+    {
+        m_Message = "Moved " + std::to_string(applied) + " items to " + request.targetFolder + ". Updated "
+            + std::to_string(edits) + " references.";
+    }
+    if (warnings > 0)
+    {
+        m_Message += " " + std::to_string(warnings) + " item(s) need manual updates (see log).";
+    }
+    if (!failures.empty())
+    {
+        m_Message += " " + std::to_string(failures.size()) + " skipped (see log).";
+    }
+    CN_LOG_GAME("Editor", m_Message);
+    for (const std::string& failure : failures)
+    {
+        CN_LOG_GAME("Editor", "Skipped ", failure);
+    }
+}
+
+void FileBrowserPanel::DrawBatchPopup(EditorContext& context)
+{
+    constexpr const char* kPopup = "Move / Delete Items";
+    if (m_OpenBatchPopup)
+    {
+        ImGui::OpenPopup(kPopup);
+        m_OpenBatchPopup = false;
+    }
+    ImGui::SetNextWindowSize(ImVec2(760.0f, 0.0f), ImGuiCond_Appearing);
+    if (!ImGui::BeginPopupModal(kPopup))
+    {
+        return;
+    }
+    if (!m_PendingBatch)
+    {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+
+    const BatchRequest& request = *m_PendingBatch;
+    const bool deleting = request.deleting;
+    size_t valid = 0;
+    size_t edits = 0;
+    size_t files = 0;
+    size_t warnings = 0;
+    for (const RefactorPlan& plan : request.preview)
+    {
+        if (plan.IsValid())
+        {
+            ++valid;
+            edits += plan.edits.size();
+            files += plan.files.size();
+            warnings += plan.warnings.size();
+        }
+    }
+
+    if (deleting)
+    {
+        ImGui::Text("Delete %zu items?", valid);
+        ImGui::TextDisabled("They will be moved to the Recycle Bin.");
+    }
+    else
+    {
+        ImGui::Text("Move %zu items", valid);
+        ImGui::Text("  ->  %s", request.targetFolder.c_str());
+    }
+    ImGui::Separator();
+
+    if (ImGui::BeginChild("##BatchItems", ImVec2(0.0f, 260.0f), ImGuiChildFlags_Borders))
+    {
+        for (size_t i = 0; i < request.preview.size(); ++i)
+        {
+            const RefactorPlan& plan = request.preview[i];
+            ImGui::PushID(static_cast<int>(i));
+            if (!plan.IsValid())
+            {
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.4f, 1.0f), "Skipped  %s", request.assets[i].c_str());
+                ImGui::Indent();
+                ImGui::TextWrapped("%s", plan.error.c_str());
+                ImGui::Unindent();
+                ImGui::PopID();
+                continue;
+            }
+
+            const std::string title = request.assets[i] + (plan.move.directory ? "/" : "");
+            const bool hasDetails = !plan.edits.empty() || !plan.companions.empty() || !plan.warnings.empty()
+                || !plan.startupSceneBefore.empty();
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+            if (!hasDetails)
+            {
+                flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+            }
+            const bool open = ImGui::TreeNodeEx("##Item", flags, "%s", title.c_str());
+            if (!plan.edits.empty())
+            {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%zu references in %zu files %s", plan.edits.size(),
+                    plan.files.size(), deleting ? "cleared" : "updated");
+            }
+            if (open && hasDetails)
+            {
+                for (const PathMove& companion : plan.companions)
+                {
+                    ImGui::BulletText(deleting ? "Also deletes %s" : "Also moves %s", companion.from.c_str());
+                }
+                for (const ReferenceEdit& edit : plan.edits)
+                {
+                    ImGui::BulletText("%s: %s  ->  %s", edit.file.c_str(), edit.before.c_str(),
+                        edit.after.empty() ? "(cleared)" : edit.after.c_str());
+                }
+                if (!plan.startupSceneBefore.empty())
+                {
+                    ImGui::BulletText("%s startupScene: %s  ->  %s", std::string(AssetRefactor::kGameConfig).c_str(),
+                        plan.startupSceneBefore.c_str(), plan.startupSceneAfter.c_str());
+                }
+                for (const std::string& warning : plan.warnings)
+                {
+                    ImGui::BulletText("Not updated automatically: %s", warning.c_str());
+                }
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+    }
+    ImGui::EndChild();
+
+    if (edits > 0)
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%zu references in %zu files will be %s.", edits, files,
+            deleting ? "cleared" : "updated");
+    }
+    if (warnings > 0)
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%zu item(s) need manual updates (expand the items above).", warnings);
+    }
+    if (valid < request.preview.size())
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.4f, 1.0f), "%zu item(s) will be skipped.", request.preview.size() - valid);
+    }
+
+    ImGui::Spacing();
+    ImGui::TextDisabled("File changes cannot be undone from the editor. Commit or stash your work first.");
+    ImGui::BeginDisabled(valid == 0);
+    const bool confirm = ImGui::Button(deleting ? "Delete" : "Move");
+    ImGui::EndDisabled();
+    if (confirm)
+    {
+        const BatchRequest applied = std::move(*m_PendingBatch);
+        m_PendingBatch.reset();
+        ImGui::CloseCurrentPopup();
+        ApplyBatch(context, applied);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+    {
+        m_PendingBatch.reset();
+        m_Message = "Cancelled.";
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
+std::string FileBrowserPanel::RunDeleteCommand(EditorContext& context, const std::string& assetPath)
+{
+    EnsureIndex();
+    if (std::string reason = OpenSceneDeleteError(context, assetPath); !reason.empty())
+    {
+        m_Message = std::move(reason);
     }
     else if (m_Callbacks.prepareScene && !m_Callbacks.prepareScene())
     {
@@ -1435,20 +1882,39 @@ namespace
     }
 }
 
-void FileBrowserPanel::CopyAsset(const fs::path& path)
+void FileBrowserPanel::CopyAssets(std::vector<fs::path> paths)
 {
-    if (!CanEdit(path))
+    paths.erase(std::remove_if(paths.begin(), paths.end(), [this](const fs::path& path) { return !CanEdit(path); }), paths.end());
+    if (paths.empty())
     {
         return;
     }
-    m_CopySource = path;
-    m_Message = "Copied " + ToAssetPath(path) + ". Ctrl+V or right-click > Paste to place it.";
+    m_CopySources = std::move(paths);
+    m_Message = (m_CopySources.size() == 1 ? "Copied " + ToAssetPath(m_CopySources.front())
+        : "Copied " + std::to_string(m_CopySources.size()) + " items") + ". Ctrl+V or right-click > Paste to place them.";
 }
 
-std::string FileBrowserPanel::ValidatePaste(const fs::path& folder) const
+std::vector<fs::path> FileBrowserPanel::GetShortcutTargets(const fs::path& selected) const
+{
+    std::vector<fs::path> targets;
+    for (const fs::path& path : m_Selection)
+    {
+        if (CanEdit(path))
+        {
+            targets.push_back(path);
+        }
+    }
+    if (targets.empty() && CanEdit(selected) && selected.parent_path() == m_CurrentDirectory)
+    {
+        targets.push_back(selected);
+    }
+    return targets;
+}
+
+std::string FileBrowserPanel::ValidatePasteSource(const fs::path& sourcePath, const fs::path& folder) const
 {
     std::error_code error;
-    if (m_CopySource.empty() || !fs::exists(m_CopySource, error))
+    if (sourcePath.empty() || !fs::exists(sourcePath, error))
     {
         return "The copied item no longer exists.";
     }
@@ -1456,9 +1922,9 @@ std::string FileBrowserPanel::ValidatePaste(const fs::path& folder) const
     {
         return "Paste is only allowed under Content.";
     }
-    if (fs::is_directory(m_CopySource, error))
+    if (fs::is_directory(sourcePath, error))
     {
-        const fs::path source = m_CopySource.lexically_normal();
+        const fs::path source = sourcePath.lexically_normal();
         const fs::path target = folder.lexically_normal();
         const fs::path relative = target.lexically_relative(source);
         if (!relative.empty() && *relative.begin() != "..")
@@ -1469,10 +1935,34 @@ std::string FileBrowserPanel::ValidatePaste(const fs::path& folder) const
     return {};
 }
 
+std::string FileBrowserPanel::ValidatePaste(const fs::path& folder) const
+{
+    if (m_CopySources.empty())
+    {
+        return "Nothing has been copied.";
+    }
+    std::string firstError;
+    for (const fs::path& source : m_CopySources)
+    {
+        std::string error = ValidatePasteSource(source, folder);
+        if (error.empty())
+        {
+            return {};
+        }
+        if (firstError.empty())
+        {
+            firstError = std::move(error);
+        }
+    }
+    return firstError;
+}
+
 void FileBrowserPanel::DrawPasteItem(EditorContext& context, const fs::path& folder, const char* label)
 {
     const std::string error = ValidatePaste(folder);
-    if (ImGui::MenuItem(label, "Ctrl+V", false, error.empty()))
+    const std::string text = m_CopySources.size() > 1 ? std::string(label) + " (" + std::to_string(m_CopySources.size()) + " Items)"
+        : std::string(label);
+    if (ImGui::MenuItem(text.c_str(), "Ctrl+V", false, error.empty()))
     {
         PasteInto(context, folder);
     }
@@ -1490,58 +1980,243 @@ void FileBrowserPanel::PasteInto(EditorContext& context, const fs::path& folder)
         return;
     }
 
-    std::error_code error;
-    const bool directory = fs::is_directory(m_CopySource, error);
-    const fs::path target = MakeUniqueCopyPath(folder, m_CopySource, directory);
-    if (directory)
-    {
-        fs::copy(m_CopySource, target, fs::copy_options::recursive, error);
-    }
-    else
-    {
-        fs::copy_file(m_CopySource, target, fs::copy_options::none, error);
-    }
-    if (error)
-    {
-        m_Message = "Failed to copy " + ToAssetPath(m_CopySource) + ": " + error.message();
-        return;
-    }
+    // .gltf files go last, so buffers / textures copied in the same paste are already there and not copied twice.
+    std::vector<fs::path> sources = m_CopySources;
+    std::stable_partition(sources.begin(), sources.end(),
+        [](const fs::path& source) { return EditorUtils::ToUtf8(source.extension()) != ".gltf"; });
 
-    // A .gltf pasted into another folder needs its .bin / textures next to it; existing files there are kept.
+    std::vector<fs::path> pasted;
+    std::vector<std::string> failures;
     std::string note;
-    if (!directory && EditorUtils::ToUtf8(target.extension()) == ".gltf" && folder.lexically_normal() != m_CopySource.parent_path().lexically_normal())
+    for (const fs::path& source : sources)
     {
-        for (const std::string& file : GltfSiblingFiles(m_CopySource))
+        if (std::string reason = ValidatePasteSource(source, folder); !reason.empty())
         {
-            const fs::path from = m_CopySource.parent_path() / EditorUtils::FromUtf8(file);
-            const fs::path to = folder / EditorUtils::FromUtf8(file);
-            std::error_code companionError;
-            if (fs::exists(from, companionError) && !fs::exists(to, companionError))
+            failures.push_back(ToAssetPath(source) + ": " + reason);
+            continue;
+        }
+
+        std::error_code error;
+        const bool directory = fs::is_directory(source, error);
+        const fs::path target = MakeUniqueCopyPath(folder, source, directory);
+        if (directory)
+        {
+            fs::copy(source, target, fs::copy_options::recursive, error);
+        }
+        else
+        {
+            fs::copy_file(source, target, fs::copy_options::none, error);
+        }
+        if (error)
+        {
+            failures.push_back(ToAssetPath(source) + ": " + error.message());
+            continue;
+        }
+        pasted.push_back(target);
+
+        // A .gltf pasted into another folder needs its .bin / textures next to it; existing files there are kept.
+        if (!directory && EditorUtils::ToUtf8(target.extension()) == ".gltf"
+            && folder.lexically_normal() != source.parent_path().lexically_normal())
+        {
+            for (const std::string& file : GltfSiblingFiles(source))
             {
-                fs::copy_file(from, to, fs::copy_options::none, companionError);
-                note += companionError ? " (failed to copy " + file + ")" : " (+" + file + ")";
+                const fs::path from = source.parent_path() / EditorUtils::FromUtf8(file);
+                const fs::path to = folder / EditorUtils::FromUtf8(file);
+                std::error_code companionError;
+                if (fs::exists(from, companionError) && !fs::exists(to, companionError))
+                {
+                    fs::copy_file(from, to, fs::copy_options::none, companionError);
+                    note += companionError ? " (failed to copy " + file + ")" : " (+" + file + ")";
+                }
             }
         }
     }
 
-    m_Message = "Pasted " + ToAssetPath(target) + note;
-    if (!directory)
+    if (pasted.empty())
     {
-        context.SelectAsset(target);
+        m_Message = "Failed to paste";
+    }
+    else if (pasted.size() == 1 && failures.empty())
+    {
+        m_Message = "Pasted " + ToAssetPath(pasted.front()) + note;
+    }
+    else
+    {
+        m_Message = "Pasted " + std::to_string(pasted.size()) + " items into " + ToAssetPath(folder) + note;
+    }
+    if (!failures.empty())
+    {
+        m_Message += ". Failed: " + failures.front()
+            + (failures.size() > 1 ? " (+" + std::to_string(failures.size() - 1) + " more, see log)" : std::string());
+        for (const std::string& failure : failures)
+        {
+            CN_LOG_GAME("Editor", "Paste failed: ", failure);
+        }
+    }
+
+    // The pasted items become the selection (shown when the folder is the one open in the list).
+    if (!pasted.empty())
+    {
+        const fs::path primary = pasted.back();
+        SetSelection(context, std::move(pasted), primary);
+        m_SelectionAnchor = primary;
     }
 }
 
-void FileBrowserPanel::DuplicateAsset(EditorContext& context, const fs::path& path)
+void FileBrowserPanel::DuplicateAssets(EditorContext& context, std::vector<fs::path> paths)
 {
-    if (!CanEdit(path))
+    paths.erase(std::remove_if(paths.begin(), paths.end(), [this](const fs::path& path) { return !CanEdit(path); }), paths.end());
+    if (paths.empty())
     {
         return;
     }
-    // Duplicate leaves the clipboard as it was.
-    const fs::path previous = m_CopySource;
-    m_CopySource = path;
-    PasteInto(context, path.parent_path());
-    m_CopySource = previous;
+    // Duplicate copies each item next to itself and leaves the clipboard as it was. Selected items share one folder,
+    // so this is a single paste into it.
+    const std::vector<fs::path> previous = std::move(m_CopySources);
+    m_CopySources = paths;
+    PasteInto(context, paths.front().parent_path());
+    m_CopySources = previous;
+}
+
+bool FileBrowserPanel::IsSelected(const fs::path& path) const
+{
+    return !path.empty() && std::find(m_Selection.begin(), m_Selection.end(), path) != m_Selection.end();
+}
+
+void FileBrowserPanel::SetSelection(EditorContext& context, std::vector<fs::path> paths, const fs::path& primary)
+{
+    m_Selection.clear();
+    for (fs::path& path : paths)
+    {
+        if (!path.empty() && !IsSelected(path))
+        {
+            m_Selection.push_back(std::move(path));
+        }
+    }
+
+    // The inspector shows the primary when it is a file, else the most recently added selected file, else nothing.
+    std::error_code error;
+    fs::path asset;
+    if (IsSelected(primary) && !fs::is_directory(primary, error))
+    {
+        asset = primary;
+    }
+    else
+    {
+        for (auto it = m_Selection.rbegin(); it != m_Selection.rend() && asset.empty(); ++it)
+        {
+            if (!fs::is_directory(*it, error))
+            {
+                asset = *it;
+            }
+        }
+    }
+    if (asset != context.GetSelectedAsset())
+    {
+        context.SelectAsset(asset);
+    }
+    m_SyncedAsset = context.GetSelectedAsset();
+}
+
+void FileBrowserPanel::HandleEntryClick(EditorContext& context, const fs::path& path)
+{
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.KeyShift && !m_SelectionAnchor.empty())
+    {
+        // Shift: the items from the anchor to the clicked one, in list order. Ctrl+Shift adds them to the selection.
+        const auto anchor = std::find(m_VisibleEntries.begin(), m_VisibleEntries.end(), m_SelectionAnchor);
+        const auto target = std::find(m_VisibleEntries.begin(), m_VisibleEntries.end(), path);
+        if (anchor != m_VisibleEntries.end() && target != m_VisibleEntries.end())
+        {
+            std::vector<fs::path> paths = io.KeyCtrl ? m_Selection : std::vector<fs::path>{};
+            const auto first = std::min(anchor, target);
+            const auto last = std::max(anchor, target);
+            paths.insert(paths.end(), first, last + 1);
+            SetSelection(context, std::move(paths), path);
+            return;
+        }
+    }
+
+    if (io.KeyCtrl)
+    {
+        std::vector<fs::path> paths = m_Selection;
+        const auto found = std::find(paths.begin(), paths.end(), path);
+        if (found != paths.end())
+        {
+            paths.erase(found);
+            const fs::path primary = paths.empty() ? fs::path() : paths.back();
+            SetSelection(context, std::move(paths), primary);
+        }
+        else
+        {
+            paths.push_back(path);
+            SetSelection(context, std::move(paths), path);
+        }
+    }
+    else
+    {
+        SetSelection(context, { path }, path);
+    }
+    m_SelectionAnchor = path;
+}
+
+void FileBrowserPanel::SyncSelection(EditorContext& context)
+{
+    // Something outside the list changed the selected asset (paste, references window, a scene object, a refactor).
+    const fs::path& asset = context.GetSelectedAsset();
+    if (asset != m_SyncedAsset)
+    {
+        m_SyncedAsset = asset;
+        if (asset.empty())
+        {
+            m_Selection.clear();
+        }
+        else if (!IsSelected(asset))
+        {
+            m_Selection = { asset };
+            m_SelectionAnchor = asset;
+        }
+    }
+
+    // The selection only covers what the list shows: leaving the folder or deleting / moving an item drops it.
+    std::error_code error;
+    m_Selection.erase(std::remove_if(m_Selection.begin(), m_Selection.end(), [&](const fs::path& path)
+    {
+        return path.parent_path() != m_CurrentDirectory || !fs::exists(path, error);
+    }), m_Selection.end());
+}
+
+fs::path FileBrowserPanel::GetPrimarySelection(const EditorContext& context) const
+{
+    if (IsSelected(context.GetSelectedAsset()))
+    {
+        return context.GetSelectedAsset();
+    }
+    if (IsSelected(m_SelectionAnchor))
+    {
+        return m_SelectionAnchor;
+    }
+    return m_Selection.empty() ? fs::path() : m_Selection.back();
+}
+
+std::vector<fs::path> FileBrowserPanel::GetActionTargets(const fs::path& path) const
+{
+    std::vector<fs::path> targets;
+    if (IsSelected(path) && m_Selection.size() > 1)
+    {
+        for (const fs::path& selected : m_Selection)
+        {
+            if (CanEdit(selected))
+            {
+                targets.push_back(selected);
+            }
+        }
+    }
+    else if (CanEdit(path))
+    {
+        targets.push_back(path);
+    }
+    return targets;
 }
 
 void FileBrowserPanel::DrawViewOptions()

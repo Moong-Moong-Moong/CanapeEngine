@@ -3,6 +3,9 @@
 #include <filesystem>
 #include <cstring>
 #include <algorithm>
+#include <initializer_list>
+#include <sstream>
+#include <stdexcept>
 #include <vector>
 #include "../../Mesh/MeshAsset.h"
 #include "../../Texture/TextureAsset.h"
@@ -23,6 +26,322 @@ namespace Canape
 {
 	namespace
 	{
+		// ===== [오류 처리] =====
+		// glTF 데이터가 잘못되었을 때 rapidjson assert나 범위 밖 읽기로 프로그램이 꺼지지 않도록,
+		// 값을 꺼내기 전에 모두 검사하고 문제가 있으면 GltfError를 던진다.
+		// 공개 함수들은 GltfError(및 std::exception)를 잡아 CNDebug에 원인을 출력하고 실패 값을 돌려준다.
+		struct GltfError : std::runtime_error
+		{
+			using std::runtime_error::runtime_error;
+		};
+
+		template <typename... Args>
+		std::string Concat(const Args&... args)
+		{
+			std::ostringstream stream;
+			(stream << ... << args);
+			return stream.str();
+		}
+
+		template <typename... Args>
+		[[noreturn]] void Fail(const Args&... args)
+		{
+			throw GltfError(Concat(args...));
+		}
+
+		// CN_LOG는 Debug 빌드에서만 출력된다.
+		template <typename... Args>
+		void Warn(const Args&... args)
+		{
+			(static_cast<void>(args), ...);
+			CN_LOG_RUNTIME("Import", "glTF 경고 : ", Concat(args...));
+		}
+
+		void LogFailure(const char* stage, const std::string& file, const char* reason)
+		{
+			static_cast<void>(stage);
+			static_cast<void>(file);
+			static_cast<void>(reason);
+			CN_LOG_RUNTIME("Import", "glTF ", stage, " 실패 (", file, ") : ", reason);
+		}
+
+		bool Has(const Value& object, const char* key)
+		{
+			return object.IsObject() && object.HasMember(key);
+		}
+
+		Value& Member(Value& object, const char* key, const std::string& where)
+		{
+			if (!object.IsObject())
+				Fail(where, " 가 JSON 객체가 아님");
+			if (!object.HasMember(key))
+				Fail(where, " 에 '", key, "' 항목이 없음");
+			return object[key];
+		}
+
+		Value& ArrayMember(Value& object, const char* key, const std::string& where)
+		{
+			Value& value = Member(object, key, where);
+			if (!value.IsArray())
+				Fail(where, ".", key, " 가 배열이 아님");
+			return value;
+		}
+
+		Value& At(Value& array, uint32_t index, const std::string& where)
+		{
+			if (!array.IsArray())
+				Fail(where, " 가 배열이 아님");
+			if (index >= array.Size())
+				Fail(where, "[", index, "] 인덱스 범위 초과 (크기 ", array.Size(), ")");
+			return array[index];
+		}
+
+		uint32_t ToUint(const Value& value, const std::string& where)
+		{
+			if (!value.IsUint())
+				Fail(where, " 가 0 이상의 정수가 아님");
+			return value.GetUint();
+		}
+
+		float ToFloat(const Value& value, const std::string& where)
+		{
+			if (!value.IsNumber())
+				Fail(where, " 가 숫자가 아님");
+			return value.GetFloat();
+		}
+
+		uint32_t UintOf(Value& object, const char* key, const std::string& where)
+		{
+			return ToUint(Member(object, key, where), where + "." + key);
+		}
+
+		uint32_t UintOr(Value& object, const char* key, uint32_t fallback, const std::string& where)
+		{
+			return Has(object, key) ? ToUint(object[key], where + "." + key) : fallback;
+		}
+
+		// 선택 항목: 타입이 틀리면 경고 후 기본값.
+		float FloatOr(Value& object, const char* key, float fallback, const std::string& where)
+		{
+			if (!Has(object, key))
+				return fallback;
+			if (!object[key].IsNumber())
+			{
+				Warn(where, ".", key, " 가 숫자가 아니라 기본값 ", fallback, " 사용");
+				return fallback;
+			}
+			return object[key].GetFloat();
+		}
+
+		bool BoolOr(Value& object, const char* key, bool fallback, const std::string& where)
+		{
+			if (!Has(object, key))
+				return fallback;
+			if (!object[key].IsBool())
+			{
+				Warn(where, ".", key, " 가 bool이 아니라 기본값 사용");
+				return fallback;
+			}
+			return object[key].GetBool();
+		}
+
+		std::string StringOr(Value& object, const char* key, const std::string& fallback, const std::string& where)
+		{
+			if (!Has(object, key))
+				return fallback;
+			if (!object[key].IsString())
+			{
+				Warn(where, ".", key, " 가 문자열이 아니라 기본값 사용");
+				return fallback;
+			}
+			return object[key].GetString();
+		}
+
+		// doc[arrayKey][index]
+		Value& Element(Value& doc, const char* arrayKey, uint32_t index, const std::string& where)
+		{
+			return At(ArrayMember(doc, arrayKey, "glTF"), index, Concat(arrayKey, " (", where, ")"));
+		}
+
+		// node[key] 가 길이 count 이상의 숫자 배열이면 out에 읽는다.
+		void ReadFloats(Value& object, const char* key, uint32_t count, float* out, const std::string& where)
+		{
+			Value& array = ArrayMember(object, key, where);
+			if (array.Size() < count)
+				Fail(where, ".", key, " 원소 개수 부족 (필요 ", count, ", 실제 ", array.Size(), ")");
+			for (uint32_t i = 0; i < count; ++i)
+				out[i] = ToFloat(array[i], Concat(where, ".", key, "[", i, "]"));
+		}
+
+		// ===== [Accessor] 범위를 검사하는 데이터 읽기 =====
+		constexpr uint32_t kByte = 5120, kUnsignedByte = 5121, kShort = 5122, kUnsignedShort = 5123, kUnsignedInt = 5125, kFloat = 5126;
+
+		uint32_t ComponentSize(uint32_t componentType)
+		{
+			switch (componentType)
+			{
+			case kByte: case kUnsignedByte: return 1;
+			case kShort: case kUnsignedShort: return 2;
+			case kUnsignedInt: case kFloat: return 4;
+			default: return 0;
+			}
+		}
+
+		uint32_t ComponentCount(const std::string& type)
+		{
+			if (type == "SCALAR") return 1;
+			if (type == "VEC2") return 2;
+			if (type == "VEC3") return 3;
+			if (type == "VEC4") return 4;
+			if (type == "MAT2") return 4;
+			if (type == "MAT3") return 9;
+			if (type == "MAT4") return 16;
+			return 0;
+		}
+
+		struct AccessorData
+		{
+			const uint8_t* data = nullptr; // 첫 원소
+			uint32_t count = 0;
+			size_t stride = 0;
+			uint32_t componentType = 0;
+
+			const uint8_t* Element(uint32_t i) const { return data + static_cast<size_t>(i) * stride; }
+		};
+
+		// accessor를 검사해서 bin 안의 안전한 읽기 범위를 돌려준다. 원소 [0, count)는 모두 bin 안에 있음이 보장된다.
+		// vertexAttribute: 정점 속성만 bufferView.byteStride를 쓸 수 있다(인덱스, 애니메이션, IBM은 항상 촘촘함).
+		AccessorData ReadAccessor(CNglTF& cNglTF, uint32_t accessorIndex, const std::string& what, const char* expectedType,
+			std::initializer_list<uint32_t> allowedComponents, bool vertexAttribute)
+		{
+			Value& doc = cNglTF.m_doc;
+			const std::string where = Concat(what, " (accessor ", accessorIndex, ")");
+			Value& accessor = Element(doc, "accessors", accessorIndex, where);
+
+			const uint32_t count = UintOf(accessor, "count", where);
+			const uint32_t componentType = UintOf(accessor, "componentType", where);
+			const std::string type = StringOr(accessor, "type", "", where);
+			if (expectedType && type != expectedType)
+				Fail(where, " 의 type이 ", type.empty() ? "(없음)" : type, " (", expectedType, " 필요)");
+			if (std::find(allowedComponents.begin(), allowedComponents.end(), componentType) == allowedComponents.end())
+				Fail(where, " 의 componentType ", componentType, " 은 지원하지 않음 (양자화/정규화 데이터 미지원)");
+			if (Has(accessor, "sparse"))
+				Fail(where, " 는 sparse accessor (지원하지 않음)");
+			if (!Has(accessor, "bufferView"))
+				Fail(where, " 에 bufferView가 없음 (sparse/압축(Draco 등) 데이터는 지원하지 않음)");
+
+			const size_t elementSize = static_cast<size_t>(ComponentSize(componentType)) * ComponentCount(type);
+			if (elementSize == 0)
+				Fail(where, " 의 type/componentType 조합이 잘못됨 (", type, ", ", componentType, ")");
+
+			const uint32_t viewIndex = UintOf(accessor, "bufferView", where);
+			Value& view = Element(doc, "bufferViews", viewIndex, where);
+			const std::string viewWhere = Concat("bufferViews[", viewIndex, "]");
+			const uint32_t bufferIndex = UintOr(view, "buffer", 0u, viewWhere);
+			if (bufferIndex != 0)
+				Fail(viewWhere, " 가 buffers[", bufferIndex, "]를 가리킴 (buffers[0]만 지원)");
+			const uint64_t viewOffset = UintOr(view, "byteOffset", 0u, viewWhere);
+			const uint64_t viewLength = UintOf(view, "byteLength", viewWhere);
+			if (viewOffset + viewLength > cNglTF.m_bin.size())
+				Fail(viewWhere, " 범위(", viewOffset, " + ", viewLength, ")가 bin 크기 ", cNglTF.m_bin.size(), " 를 넘음");
+
+			size_t stride = elementSize;
+			if (Has(view, "byteStride"))
+			{
+				const uint32_t byteStride = UintOf(view, "byteStride", viewWhere);
+				if (vertexAttribute)
+				{
+					if (byteStride < elementSize)
+						Fail(viewWhere, ".byteStride ", byteStride, " 가 원소 크기 ", elementSize, " 보다 작음");
+					stride = byteStride;
+				}
+				else if (byteStride != elementSize)
+				{
+					Warn(viewWhere, ".byteStride 는 정점 속성에만 쓸 수 있어 무시함 (", what, ")");
+				}
+			}
+
+			const uint64_t accessorOffset = UintOr(accessor, "byteOffset", 0u, where);
+			if (count > 0)
+			{
+				const uint64_t end = accessorOffset + static_cast<uint64_t>(count - 1) * stride + elementSize;
+				if (end > viewLength)
+					Fail(where, " 데이터(offset ", accessorOffset, ", count ", count, ", stride ", stride,
+						")가 bufferView 길이 ", viewLength, " 를 넘음");
+			}
+
+			AccessorData data;
+			data.data = cNglTF.m_bin.data() + viewOffset + accessorOffset;
+			data.count = count;
+			data.stride = stride;
+			data.componentType = componentType;
+			return data;
+		}
+
+		// 인덱스 accessor를 읽어 out 끝에 붙인다. primitive에 indices가 없으면 0..vertexCount-1을 만든다.
+		void ReadIndices(CNglTF& cNglTF, Value& primitive, uint32_t vertexCount, std::vector<uint32_t>& out, const std::string& where)
+		{
+			const size_t start = out.size();
+			if (!Has(primitive, "indices"))
+			{
+				out.resize(start + vertexCount);
+				for (uint32_t i = 0; i < vertexCount; ++i)
+					out[start + i] = i;
+				return;
+			}
+
+			const AccessorData indices = ReadAccessor(cNglTF, UintOf(primitive, "indices", where), where + " indices", "SCALAR",
+				{ kUnsignedByte, kUnsignedShort, kUnsignedInt }, false);
+			out.resize(start + indices.count);
+			for (uint32_t i = 0; i < indices.count; ++i)
+			{
+				uint32_t value = 0;
+				if (indices.componentType == kUnsignedInt)
+					std::memcpy(&value, indices.Element(i), sizeof(uint32_t));
+				else if (indices.componentType == kUnsignedShort)
+				{
+					uint16_t shortValue;
+					std::memcpy(&shortValue, indices.Element(i), sizeof(uint16_t));
+					value = shortValue;
+				}
+				else
+					value = *indices.Element(i);
+
+				if (value >= vertexCount)
+					Fail(where, " 인덱스[", i, "] 값 ", value, " 이 정점 수 ", vertexCount, " 를 넘음");
+				out[start + i] = value;
+			}
+			if (indices.count % 3 != 0)
+				Fail(where, " 인덱스 개수 ", indices.count, " 가 3의 배수가 아님");
+		}
+
+		// 삼각형 목록(mode 4)만 지원한다. 그 외(점/선/strip/fan)는 경고 후 건너뛴다.
+		bool IsTrianglePrimitive(Value& primitive, const std::string& where)
+		{
+			const uint32_t mode = UintOr(primitive, "mode", 4u, where);
+			if (mode != 4)
+			{
+				Warn(where, " 의 mode ", mode, " 는 지원하지 않아 건너뜀 (삼각형 목록 4만 지원)");
+				return false;
+			}
+			return true;
+		}
+
+		// primitive.material 이 머터리얼 개수 안이면 그 값, 아니면 경고 후 0
+		uint32_t MaterialSlotOf(Value& primitive, size_t materialCount, const std::string& where)
+		{
+			if (!Has(primitive, "material"))
+				return 0;
+			const uint32_t slot = UintOf(primitive, "material", where);
+			if (slot >= materialCount)
+			{
+				Warn(where, " 의 material ", slot, " 가 머터리얼 개수 ", materialCount, " 를 넘어 0번 슬롯 사용");
+				return 0;
+			}
+			return slot;
+		}
+
+		// ===== 경로 / 이미지 헬퍼 =====
 		std::filesystem::path ToPath(const std::string& utf8)
 		{
 			return std::filesystem::path(std::u8string(utf8.begin(), utf8.end()));
@@ -119,12 +438,12 @@ namespace Canape
 			return true;
 		}
 
-		std::string ImageExtension(const Value& image)
+		std::string ImageExtension(Value& image)
 		{
 			std::string mime;
-			if (image.HasMember("mimeType") && image["mimeType"].IsString())
+			if (Has(image, "mimeType") && image["mimeType"].IsString())
 				mime = image["mimeType"].GetString();
-			else if (image.HasMember("uri") && image["uri"].IsString())
+			else if (Has(image, "uri") && image["uri"].IsString())
 			{
 				const std::string uri = image["uri"].GetString();
 				if (uri.starts_with("data:"))
@@ -136,10 +455,11 @@ namespace Canape
 			return ".png";
 		}
 
+		// imageIndex 범위는 호출하는 쪽에서 검사한다.
 		std::string ImageRelativePath(Value& doc, uint32_t imageIndex, const std::string& gltfStem)
 		{
 			Value& image = doc["images"][imageIndex];
-			if (image.HasMember("uri") && image["uri"].IsString())
+			if (Has(image, "uri") && image["uri"].IsString())
 			{
 				const std::string decoded = PercentDecode(image["uri"].GetString());
 				if (IsLocalRelativeUri(decoded))
@@ -149,7 +469,7 @@ namespace Canape
 			}
 
 			const std::string extension = ImageExtension(image);
-			std::string name = image.HasMember("name") && image["name"].IsString() && image["name"].GetStringLength() > 0
+			std::string name = Has(image, "name") && image["name"].IsString() && image["name"].GetStringLength() > 0
 				? std::string(image["name"].GetString())
 				: gltfStem + "_image" + std::to_string(imageIndex);
 			name = SafeFileName(name);
@@ -158,17 +478,38 @@ namespace Canape
 			return "textures/" + name + extension;
 		}
 
-		std::string TextureAssetPath(CNglTF& cNglTF, Value& textureInfo)
+		// 텍스처를 찾을 수 없으면 경고 후 빈 문자열(텍스처 없음)
+		std::string TextureAssetPath(CNglTF& cNglTF, Value& textureInfo, const std::string& where)
 		{
 			Value& doc = cNglTF.m_doc;
-			if (!textureInfo.HasMember("index") || !doc.HasMember("textures") || !doc.HasMember("images"))
+			if (!Has(textureInfo, "index") || !textureInfo["index"].IsUint())
+			{
+				Warn(where, ".index 가 없거나 정수가 아니라 텍스처를 건너뜀");
 				return {};
+			}
+			if (!Has(doc, "textures") || !doc["textures"].IsArray() || !Has(doc, "images") || !doc["images"].IsArray())
+			{
+				Warn(where, " 가 텍스처를 참조하지만 textures/images 배열이 없음");
+				return {};
+			}
 			const uint32_t textureIndex = textureInfo["index"].GetUint();
-			if (textureIndex >= doc["textures"].Size() || !doc["textures"][textureIndex].HasMember("source"))
+			if (textureIndex >= doc["textures"].Size())
+			{
+				Warn(where, ".index ", textureIndex, " 가 textures 범위를 넘음");
 				return {};
-			const uint32_t imageIndex = doc["textures"][textureIndex]["source"].GetUint();
+			}
+			Value& texture = doc["textures"][textureIndex];
+			if (!Has(texture, "source") || !texture["source"].IsUint())
+			{
+				Warn("textures[", textureIndex, "] 에 source가 없음 (확장 전용 텍스처는 지원하지 않음)");
+				return {};
+			}
+			const uint32_t imageIndex = texture["source"].GetUint();
 			if (imageIndex >= doc["images"].Size())
+			{
+				Warn("textures[", textureIndex, "].source ", imageIndex, " 가 images 범위를 넘음");
 				return {};
+			}
 			const std::string stem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
 			return MakeAssetPath(cNglTF.m_filePath, ImageRelativePath(doc, imageIndex, stem));
 		}
@@ -177,22 +518,24 @@ namespace Canape
 		{
 			Value& doc = cNglTF.m_doc;
 			Value& image = doc["images"][imageIndex];
-			if (image.HasMember("uri") && image["uri"].IsString())
+			if (Has(image, "uri") && image["uri"].IsString())
 			{
 				const std::string uri = image["uri"].GetString();
 				const size_t comma = uri.find(',');
 				return uri.starts_with("data:") && comma != std::string::npos
 					&& DecodeBase64(std::string_view(uri).substr(comma + 1), bytes);
 			}
-			if (!image.HasMember("bufferView") || !doc.HasMember("bufferViews"))
+			if (!Has(image, "bufferView") || !image["bufferView"].IsUint() || !Has(doc, "bufferViews") || !doc["bufferViews"].IsArray())
 				return false;
 			const uint32_t viewIndex = image["bufferView"].GetUint();
 			if (viewIndex >= doc["bufferViews"].Size())
 				return false;
 			Value& view = doc["bufferViews"][viewIndex];
-			if (view.HasMember("buffer") && view["buffer"].GetUint() != 0)
+			if (Has(view, "buffer") && (!view["buffer"].IsUint() || view["buffer"].GetUint() != 0))
 				return false;
-			const size_t offset = view.HasMember("byteOffset") ? view["byteOffset"].GetUint() : 0u;
+			if (!Has(view, "byteLength") || !view["byteLength"].IsUint() || (Has(view, "byteOffset") && !view["byteOffset"].IsUint()))
+				return false;
+			const size_t offset = Has(view, "byteOffset") ? view["byteOffset"].GetUint() : 0u;
 			const size_t length = view["byteLength"].GetUint();
 			if (offset > cNglTF.m_bin.size() || length > cNglTF.m_bin.size() - offset)
 				return false;
@@ -200,20 +543,11 @@ namespace Canape
 			return !bytes.empty();
 		}
 
-		// accessor가 가리키는 데이터의 bin 내 시작 위치 = bufferView.byteOffset + accessor.byteOffset (둘 다 생략 시 0)
-		size_t GetAccessorDataOffset(Value& bufferViews, Value& accessor)
+		// 기본 씬 인덱스: scene 항목, 없으면 0 (scenes가 없으면 오류)
+		Value& DefaultScene(Value& doc)
 		{
-			Value& bufferView = bufferViews[accessor["bufferView"].GetUint()];
-			const size_t viewOffset = bufferView.HasMember("byteOffset") ? bufferView["byteOffset"].GetUint() : 0u;
-			const size_t accessorOffset = accessor.HasMember("byteOffset") ? accessor["byteOffset"].GetUint() : 0u;
-			return viewOffset + accessorOffset;
-		}
-
-		// 요소 간 간격. byteStride가 없으면 tight packing(요소 크기)
-		size_t GetAccessorStride(Value& bufferViews, Value& accessor, size_t elementSize)
-		{
-			Value& bufferView = bufferViews[accessor["bufferView"].GetUint()];
-			return bufferView.HasMember("byteStride") ? bufferView["byteStride"].GetUint() : elementSize;
+			const uint32_t sceneIndex = UintOr(doc, "scene", 0u, "glTF");
+			return Element(doc, "scenes", sceneIndex, "기본 scene");
 		}
 
 		// ===== [Tangent] 헬퍼 시작 =====
@@ -229,7 +563,8 @@ namespace Canape
 		// 정점 하나 = 탄젠트 누적 단위다. (FBX처럼 논리 정점 그룹을 따로 만들 필요 없음)
 		// indices[indexStart ~ indexStart + indexCount)는 이 primitive 기준 로컬 정점 번호다.
 		// 셰이더에서는 B = cross(N, T.xyz) * T.w 를 사용한다.
-		void ComputeTangents(std::vector<StaticVertex>& vertices, uint32_t vertexStart, uint32_t vertexCount,
+		template <typename VertexType>
+		void ComputeTangents(std::vector<VertexType>& vertices, uint32_t vertexStart, uint32_t vertexCount,
 			const std::vector<uint32_t>& indices, uint32_t indexStart, uint32_t indexCount)
 		{
 			std::vector<Vector3> tangents(vertexCount);   // 로컬 정점 번호별 누적 탄젠트
@@ -244,9 +579,9 @@ namespace Canape
 				if (i0 >= vertexCount || i1 >= vertexCount || i2 >= vertexCount)
 					continue; // 잘못된 인덱스 방어
 
-				const StaticVertex& v0 = vertices[vertexStart + i0];
-				const StaticVertex& v1 = vertices[vertexStart + i1];
-				const StaticVertex& v2 = vertices[vertexStart + i2];
+				const VertexType& v0 = vertices[vertexStart + i0];
+				const VertexType& v1 = vertices[vertexStart + i1];
+				const VertexType& v2 = vertices[vertexStart + i2];
 
 				// 위치 차이(e1, e2)와 UV 차이(du, dv)로 UV의 U/V 방향이 3D에서 어디를 향하는지 구한다.
 				const Vector3 e1 = v1.Position - v0.Position;
@@ -270,7 +605,7 @@ namespace Canape
 			//*** 2. 정점마다 노말에 수직이 되도록 보정(Gram-Schmidt)하고 방향 부호(w) 저장
 			for (uint32_t local = 0; local < vertexCount; ++local)
 			{
-				StaticVertex& vertex = vertices[vertexStart + local];
+				VertexType& vertex = vertices[vertexStart + local];
 				const Vector3& n = vertex.Normal;
 				const Vector3& accumulated = tangents[local];
 				Vector3 t = (accumulated - n * Vector3::Dot(n, accumulated)).Normalized();
@@ -282,130 +617,188 @@ namespace Canape
 			}
 		}
 		// ===== [Tangent] 헬퍼 끝 =====
+
+		// 선택 속성(NORMAL, TEXCOORD_0, TANGENT, JOINTS_0, WEIGHTS_0)은 잘못되었으면 경고만 하고 건너뛴다.
+		// read가 GltfError를 던지면 false.
+		template <typename Fn>
+		bool TryOptional(const std::string& what, Fn&& read)
+		{
+			try
+			{
+				read();
+				return true;
+			}
+			catch (const GltfError& error)
+			{
+				Warn(error.what(), " → ", what, " 속성을 건너뜀");
+				return false;
+			}
+		}
+
+		void WarnShortAttribute(const std::string& what, uint32_t count, uint32_t vertexCount)
+		{
+			if (count < vertexCount)
+				Warn(what, " 개수 ", count, " 가 POSITION 개수 ", vertexCount, " 보다 적음 (나머지는 0)");
+		}
 	}
 
 	bool CNglTFImporter::ReadglTF(std::string filePath, CNglTF& cNglTF)
+	try
 	{
 		//***** glTF -> Json -> rapidjson::doc 변환
 		FILE* file = nullptr;
-		if (_wfopen_s(&file, ToPath(filePath).c_str(), L"rt") != 0)
-			return false;
+		if (_wfopen_s(&file, ToPath(filePath).c_str(), L"rb") != 0 || !file)
+			Fail("glTF 파일을 열 수 없음");
 
 		char buff[2048] = "";
 		FileReadStream frs(file, buff, sizeof(buff));
 		cNglTF.m_doc.ParseStream(frs);
 		fclose(file);
 
+		if (cNglTF.m_doc.HasParseError())
+			Fail("JSON 파싱 오류 (offset ", cNglTF.m_doc.GetErrorOffset(), ", code ", static_cast<int>(cNglTF.m_doc.GetParseError()),
+				") .glb 바이너리 glTF는 지원하지 않음");
+		if (!cNglTF.m_doc.IsObject())
+			Fail("glTF 최상위가 JSON 객체가 아님");
+		cNglTF.m_filePath = filePath;
 
 		//***** bin 경로 결정: glTF와 같은 디렉토리 + buffers[0].uri (파일 이름)
-		if (cNglTF.m_doc.HasParseError() || !cNglTF.m_doc.IsObject() || !cNglTF.m_doc.HasMember("buffers")
-			|| !cNglTF.m_doc["buffers"].IsArray() || cNglTF.m_doc["buffers"].Empty() || !cNglTF.m_doc["buffers"][0].HasMember("uri"))
-			return false;
-		const std::filesystem::path binPath = ToPath(filePath).parent_path() / ToPath(PercentDecode(cNglTF.m_doc["buffers"][0]["uri"].GetString()));
-		const std::u8string binPathU8 = binPath.generic_u8string();
-		cNglTF.m_filePath = filePath;
-		cNglTF.m_binFIlePath = std::string(binPathU8.begin(), binPathU8.end());
+		Value& doc = cNglTF.m_doc;
+		Value& buffer = At(ArrayMember(doc, "buffers", "glTF"), 0, "buffers");
+		const std::string uri = StringOr(buffer, "uri", "", "buffers[0]");
+		if (uri.empty())
+			Fail("buffers[0].uri 가 없음 (.glb는 지원하지 않음)");
+		if (uri.starts_with("data:"))
+			Fail("buffers[0] 가 data URI (내장 base64 버퍼는 지원하지 않음)");
+		if (ArrayMember(doc, "buffers", "glTF").Size() > 1)
+			Warn("buffers 가 ", doc["buffers"].Size(), " 개 (buffers[0]만 읽음, 다른 버퍼를 쓰는 데이터는 오류 처리됨)");
 
+		const std::filesystem::path binPath = ToPath(filePath).parent_path() / ToPath(PercentDecode(uri));
+		const std::u8string binPathU8 = binPath.generic_u8string();
+		cNglTF.m_binFIlePath = std::string(binPathU8.begin(), binPathU8.end());
 
 		//***** bin -> vector<uint8_t> 변환
 		FILE* binFile = nullptr;
-
-		if (_wfopen_s(&binFile, binPath.c_str(), L"rb") != 0)
-			return false;
+		if (_wfopen_s(&binFile, binPath.c_str(), L"rb") != 0 || !binFile)
+			Fail("bin 파일을 열 수 없음 : ", cNglTF.m_binFIlePath);
 
 		//*** 파일 전체 크기 확인
-		std::fseek(binFile, 0, SEEK_END); // fseek 현재 파일의 읽기, 쓰기 위치를 파일 끝으로 이동
-		long fileSize = std::ftell(binFile); // 현재 읽기, 쓰기 위치를 long 형으로 반환
-		if (fileSize <= 0) // 파일 사이즈 확인을 실패하거나 파일 사이즈가 0 바이트 이면 false
+		std::fseek(binFile, 0, SEEK_END);
+		const long long fileSize = _ftelli64(binFile);
+		if (fileSize <= 0) // 파일 사이즈 확인을 실패하거나 파일 사이즈가 0 바이트 이면 실패
 		{
 			std::fclose(binFile);
-			return false;
+			Fail("bin 파일이 비어 있거나 크기를 읽을 수 없음 : ", cNglTF.m_binFIlePath);
 		}
-
 
 		//*** 파일 크기만큼 vector 할당 후 데이터 복사
 		cNglTF.m_bin.resize(static_cast<size_t>(fileSize));
-		std::fseek(binFile, 0, SEEK_SET); // 복사를 위해 파일 읽기, 쓰기 위치를 처음으로이동
-		size_t readSize = std::fread(cNglTF.m_bin.data(), 1, cNglTF.m_bin.size(), binFile); // 현재 읽기 쓰기 위치부터 1바이트씩 바이너리 파일 사이즈만큼 읽어서 복사
+		std::fseek(binFile, 0, SEEK_SET);
+		const size_t readSize = std::fread(cNglTF.m_bin.data(), 1, cNglTF.m_bin.size(), binFile);
 		std::fclose(binFile);
-
 		if (readSize != cNglTF.m_bin.size())
-			return false;
+			Fail("bin 파일을 끝까지 읽지 못함 (", readSize, " / ", cNglTF.m_bin.size(), " 바이트)");
 
-		//***** 기본 데이터 추출 및 저장
-		Value& doc = cNglTF.m_doc;
-		Value& meshes = doc["meshes"];
-		Value& accessors = doc["accessors"];
-		Value& materials = doc["materials"];
-		Value& nodes = doc["nodes"];
+		const uint32_t declaredLength = UintOr(buffer, "byteLength", 0u, "buffers[0]");
+		if (declaredLength > cNglTF.m_bin.size())
+			Warn("buffers[0].byteLength ", declaredLength, " 가 실제 bin 크기 ", cNglTF.m_bin.size(), " 보다 큼");
 
-		//*** 메쉬 개수 저장
-		cNglTF.m_meshCnt = meshes.Size();
-
-		//*** 인덱스 개수 저장
-		uint32_t polygonIdxCount = 0;
-		for (Value& mesh : meshes.GetArray())
+		//***** 기본 데이터 추출 및 저장 (없는 항목은 0)
+		const auto arraySize = [&doc](const char* key) -> uint32_t
 		{
-			for (Value& primitive : mesh["primitives"].GetArray())
+			return Has(doc, key) && doc[key].IsArray() ? doc[key].Size() : 0u;
+		};
+		cNglTF.m_meshCnt = arraySize("meshes");
+		cNglTF.m_materialCnt = arraySize("materials");
+		cNglTF.m_nodeCnt = arraySize("nodes");
+		cNglTF.m_idxVtxCnt = 0;
+		cNglTF.m_faceCnt = 0;
+
+		//*** 인덱스, 폴리곤 개수 (통계용이라 잘못된 항목은 경고 없이 건너뜀)
+		uint32_t polygonIdxCount = 0;
+		if (cNglTF.m_meshCnt > 0)
+		{
+			for (Value& mesh : doc["meshes"].GetArray())
 			{
-				uint32_t index = primitive["indices"].GetUint();
-				uint32_t count = accessors.GetArray()[index]["count"].GetUint();
-				cNglTF.m_idxVtxCnt += count;
-				if (!primitive.HasMember("mode") || primitive["mode"].GetUint() == 4) // 폴리곤 개수를 샐 때 삼각형 그리기에 사용되는 인덱스를 따로 더해준다.
+				if (!Has(mesh, "primitives") || !mesh["primitives"].IsArray())
+					continue;
+				for (Value& primitive : mesh["primitives"].GetArray())
 				{
-					polygonIdxCount += count;
+					uint32_t accessorIndex = 0;
+					if (Has(primitive, "indices") && primitive["indices"].IsUint())
+						accessorIndex = primitive["indices"].GetUint();
+					else if (Has(primitive, "attributes") && Has(primitive["attributes"], "POSITION") && primitive["attributes"]["POSITION"].IsUint())
+						accessorIndex = primitive["attributes"]["POSITION"].GetUint();
+					else
+						continue;
+					if (accessorIndex >= arraySize("accessors") || !Has(doc["accessors"][accessorIndex], "count")
+						|| !doc["accessors"][accessorIndex]["count"].IsUint())
+						continue;
+					const uint32_t count = doc["accessors"][accessorIndex]["count"].GetUint();
+					cNglTF.m_idxVtxCnt += count;
+					if (!Has(primitive, "mode") || (primitive["mode"].IsUint() && primitive["mode"].GetUint() == 4))
+						polygonIdxCount += count;
 				}
 			}
 		}
 
 		//*** 폴리곤 개수 저장
 		cNglTF.m_faceCnt = polygonIdxCount / 3;
-
-		//*** 머터리얼 개수 저장
-		cNglTF.m_materialCnt = materials.Size();
-
-		//*** 노드 개수 저장
-		cNglTF.m_nodeCnt = nodes.Size();
-
 		return true;
 	}
+	catch (const std::exception& error)
+	{
+		LogFailure("읽기", filePath, error.what());
+		return false;
+	}
+
 	std::unique_ptr<MeshAsset> CNglTFImporter::LoadMeshAsset(CNglTF& cNglTF)
+	try
 	{
 		//***** 머터리얼 슬롯 추출
 		std::vector<MaterialData> materialSlots;
 		LoadMaterials(cNglTF, materialSlots);
-		
+
 		//***** 노드 데이터 추출
 		Value& doc = cNglTF.m_doc;
-		if (!doc.HasMember("scene")) // scene이 없는 glTF는 지원하지 않음
+		if (!Has(doc, "scene")) // scene이 없는 glTF는 지원하지 않음
+		{
+			Warn("scene 항목이 없어 메쉬를 만들지 않음 : ", cNglTF.m_filePath);
 			return std::make_unique<MeshAsset>();
-		uint32_t defaultSceneIndex = doc["scene"].GetUint();
-		Value& scene = doc["scenes"][defaultSceneIndex];
-		if (!scene.HasMember("nodes")) // 노드가 없으면 모델이 로드되지 않음
+		}
+		Value& scene = DefaultScene(doc);
+		if (!Has(scene, "nodes")) // 노드가 없으면 모델이 로드되지 않음
+		{
+			Warn("기본 scene 에 nodes 가 없어 메쉬를 만들지 않음 : ", cNglTF.m_filePath);
 			return std::make_unique<MeshAsset>();
-		
+		}
+
 		//***** 정점 데이터 추출을 위한 데이터
 		std::vector<StaticVertex> vertices;
 		std::vector<uint32_t> indices;
 		std::vector<SubMesh> subMeshes;
 
-		Value& rootNodes = scene["nodes"];
+		Value& rootNodes = ArrayMember(scene, "nodes", "기본 scene");
 		for (Value& nodeIndex : rootNodes.GetArray())
 		{
 			//*** 노드에 메쉬가 있다면 정점 데이터 추출
 			Matrix4 TRS = Matrix4::Identity; // 루트 노드의 부모 TRS는 단위행렬
-			LoadNodeMesh(
-				cNglTF,
-				doc["nodes"][nodeIndex.GetUint()],
-				TRS,
-				vertices,
-				indices,
-				subMeshes
-			);
+			const uint32_t index = ToUint(nodeIndex, "scene.nodes 원소");
+			LoadNodeMesh(cNglTF, Element(doc, "nodes", index, "scene 루트 노드"), TRS, vertices, indices, subMeshes,
+				true, true, materialSlots.size(), 0);
 		}
+
+		if (vertices.empty() || subMeshes.empty())
+			Fail("삼각형 메쉬 데이터가 하나도 없음");
 
 		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes), std::move(materialSlots));
 	}
+	catch (const std::exception& error)
+	{
+		LogFailure("스태틱 메쉬 로드", cNglTF.m_filePath, error.what());
+		return nullptr;
+	}
+
 	std::unique_ptr<TextureAsset> CNglTFImporter::LoadTextureAsset(CNglTF& cNglTF)
 	{
 		(void)cNglTF;
@@ -413,141 +806,174 @@ namespace Canape
 	}
 
 	std::vector<std::unique_ptr<AnimationClipAsset>> CNglTFImporter::LoadAnimationClipAsset(CNglTF& cNglTF)
+	try
 	{
 		Value& doc = cNglTF.m_doc;
-		if (!doc.HasMember("animations"))
+		if (!Has(doc, "animations"))
 		{
 			return {};
 		}
 
 		//***** 본의 루트 기준 상대 경로를 구하기 위해 전체 노드 경로를 일괄 개산해놓는다.
-		Value& nodes = doc["nodes"];
+		Value& nodes = ArrayMember(doc, "nodes", "glTF");
 		std::vector<std::string> nodePaths(nodes.Size());
-		for (Value& rootNode : doc["scenes"][0u]["nodes"].GetArray())
+		for (Value& rootNode : ArrayMember(At(ArrayMember(doc, "scenes", "glTF"), 0u, "scenes"), "nodes", "scenes[0]").GetArray())
 		{
-			uint32_t rootNodeIndex = rootNode.GetUint();
-			BuildPaths(cNglTF, rootNodeIndex, "", nodePaths);
+			BuildPaths(cNglTF, ToUint(rootNode, "scenes[0].nodes 원소"), "", nodePaths, 0);
 		}
 
-		Value& accessors = doc["accessors"];
-		Value& bufferViews = doc["bufferViews"];
-
-		Value& animations = doc["animations"];
+		Value& animations = ArrayMember(doc, "animations", "glTF");
 		std::vector<std::unique_ptr<AnimationClipAsset>> clips;
 
 		for (SizeType animIndex = 0; animIndex < animations.Size(); animIndex++)
 		{
-			Value& animation = animations[animIndex];
-			Value& channels = animation["channels"];
-			Value& samplers = animation["samplers"];
-
-			std::vector<AnimationTrack> tracks;
-			float duration = 0.0f;
-
-			for (Value& channel : channels.GetArray())
+			const std::string animWhere = Concat("animations[", animIndex, "]");
+			try
 			{
-				AnimationTrack track;
+				Value& animation = animations[animIndex];
+				Value& channels = ArrayMember(animation, "channels", animWhere);
+				Value& samplers = ArrayMember(animation, "samplers", animWhere);
 
-				Value& target = channel["target"];
-				Value& sampler = samplers[channel["sampler"].GetUint()];
+				std::vector<AnimationTrack> tracks;
+				float duration = 0.0f;
 
-				//*** 본 노드 경로
-				track.targetPath = nodePaths[target["node"].GetUint()];
-
-				//*** 트랙 프레임 정보 유형
-				std::string property = target["path"].GetString();
-				if (property == "translation") track.property = AnimationProperty::Translation;
-				else if (property == "rotation") track.property = AnimationProperty::Rotation;
-				else if (property == "scale") track.property = AnimationProperty::Scale;
-
-				//*** 트랙 보간 방법
-				std::string interpolation = sampler["interpolation"].GetString();
-				if (interpolation == "STEP") track.interpolation = AnimationInterpolation::Step;
-				else if (interpolation == "LINEAR") track.interpolation = AnimationInterpolation::Linear;
-
-				//*** 키값 (시간)
-				Value& aInput = accessors[sampler["input"].GetUint()];
-				Value& aOutput = accessors[sampler["output"].GetUint()];
-				uint32_t inputCount = aInput["count"].GetUint();
-				uint32_t outputCount = aOutput["count"].GetUint();
-				Value& bInput = bufferViews[aInput["bufferView"].GetUint()];
-				Value& bOutput = bufferViews[aOutput["bufferView"].GetUint()];
-
-				//*** 키 시간 읽기
-				uint32_t inputOffset = bInput["byteOffset"].GetUint();
-				track.times.resize(inputCount);
-				for (uint32_t i = 0; i < inputCount; i++)
+				for (SizeType channelIndex = 0; channelIndex < channels.Size(); channelIndex++)
 				{
-					std::memcpy(&track.times[i], cNglTF.m_bin.data() + inputOffset + (i * sizeof(float)), sizeof(float));
-				}
+					//*** 채널 하나가 잘못되었으면 그 트랙만 건너뛴다.
+					const std::string where = Concat(animWhere, ".channels[", channelIndex, "]");
+					try
+					{
+						Value& channel = channels[channelIndex];
+						AnimationTrack track;
 
-				//*** 키 값 읽기 (메쉬와 같은 엔진 좌표계로 X축 반전)
-				uint32_t outputOffset = bOutput["byteOffset"].GetUint();
-				track.values.resize(outputCount);
-				for (uint32_t i = 0; i < outputCount; i++)
-				{
-					if (track.property == AnimationProperty::Rotation)
-					{
-						//* 회전 (x, y, z, w) → (x, -y, -z, w)
-						Vector4 rotation;
-						std::memcpy(&rotation, cNglTF.m_bin.data() + outputOffset + (i * sizeof(Vector4)), sizeof(Vector4));
-						track.values[i] = { rotation.X, -rotation.Y, -rotation.Z, rotation.W };
-					}
-					else
-					{
-						//* 위치 (x, y, z) → (-x, y, z), 스케일은 그대로
-						Vector3 value;
-						std::memcpy(&value, cNglTF.m_bin.data() + outputOffset + (i * sizeof(Vector3)), sizeof(Vector3));
-						if (track.property == AnimationProperty::Translation)
+						Value& target = Member(channel, "target", where);
+						if (!Has(target, "node"))
 						{
-							value.X = -value.X;
+							Warn(where, " 에 target.node 가 없어 건너뜀");
+							continue;
 						}
-						track.values[i] = { value.X, value.Y, value.Z, 0.0f };
+						const uint32_t samplerIndex = UintOf(channel, "sampler", where);
+						Value& sampler = At(samplers, samplerIndex, animWhere + ".samplers");
+						const std::string samplerWhere = Concat(animWhere, ".samplers[", samplerIndex, "]");
+
+						//*** 본 노드 경로
+						const uint32_t nodeIndex = UintOf(target, "node", where + ".target");
+						if (nodeIndex >= nodePaths.size())
+							Fail(where, ".target.node ", nodeIndex, " 가 nodes 범위를 넘음");
+						track.targetPath = nodePaths[nodeIndex];
+
+						//*** 트랙 프레임 정보 유형
+						const std::string property = StringOr(target, "path", "", where + ".target");
+						if (property == "translation") track.property = AnimationProperty::Translation;
+						else if (property == "rotation") track.property = AnimationProperty::Rotation;
+						else if (property == "scale") track.property = AnimationProperty::Scale;
+						else
+						{
+							Warn(where, " 의 target.path '", property, "' 는 지원하지 않아 건너뜀");
+							continue;
+						}
+
+						//*** 트랙 보간 방법 (생략 시 LINEAR)
+						const std::string interpolation = StringOr(sampler, "interpolation", "LINEAR", samplerWhere);
+						if (interpolation == "STEP") track.interpolation = AnimationInterpolation::Step;
+						else if (interpolation == "LINEAR") track.interpolation = AnimationInterpolation::Linear;
+						else
+						{
+							Warn(samplerWhere, " 의 보간 '", interpolation, "' 는 지원하지 않아 트랙을 건너뜀");
+							continue;
+						}
+
+						//*** 키값 (시간)
+						const AccessorData input = ReadAccessor(cNglTF, UintOf(sampler, "input", samplerWhere),
+							samplerWhere + " input", "SCALAR", { kFloat }, false);
+						const bool rotation = track.property == AnimationProperty::Rotation;
+						const AccessorData output = ReadAccessor(cNglTF, UintOf(sampler, "output", samplerWhere),
+							samplerWhere + " output", rotation ? "VEC4" : "VEC3", { kFloat }, false);
+						if (output.count < input.count)
+							Fail(samplerWhere, " output 개수 ", output.count, " 가 input 개수 ", input.count, " 보다 적음");
+
+						//*** 키 시간 읽기
+						track.times.resize(input.count);
+						for (uint32_t i = 0; i < input.count; i++)
+						{
+							std::memcpy(&track.times[i], input.Element(i), sizeof(float));
+						}
+
+						//*** 키 값 읽기 (메쉬와 같은 엔진 좌표계로 X축 반전)
+						track.values.resize(input.count);
+						for (uint32_t i = 0; i < input.count; i++)
+						{
+							if (rotation)
+							{
+								//* 회전 (x, y, z, w) → (x, -y, -z, w)
+								Vector4 value;
+								std::memcpy(&value, output.Element(i), sizeof(Vector4));
+								track.values[i] = { value.X, -value.Y, -value.Z, value.W };
+							}
+							else
+							{
+								//* 위치 (x, y, z) → (-x, y, z), 스케일은 그대로
+								Vector3 value;
+								std::memcpy(&value, output.Element(i), sizeof(Vector3));
+								if (track.property == AnimationProperty::Translation)
+								{
+									value.X = -value.X;
+								}
+								track.values[i] = { value.X, value.Y, value.Z, 0.0f };
+							}
+						}
+
+						//*** 클립 길이 = 모든 트랙의 마지막 키 시간 중 최댓값 (시간은 오름차순)
+						if (!track.times.empty() && track.times.back() > duration)
+						{
+							duration = track.times.back();
+						}
+
+						tracks.push_back(std::move(track));
+					}
+					catch (const GltfError& error)
+					{
+						Warn(error.what(), " → 트랙을 건너뜀");
 					}
 				}
 
-				//*** 클립 길이 = 모든 트랙의 마지막 키 시간 중 최댓값 (시간은 오름차순)
-				if (!track.times.empty() && track.times.back() > duration)
-				{
-					duration = track.times.back();
-				}
-
-				tracks.push_back(std::move(track));
+				std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
+				std::string name = StringOr(animation, "name", fileStem + "_Anim_" + std::to_string(animIndex), animWhere);
+				clips.push_back(std::make_unique<AnimationClipAsset>(name, duration, std::move(tracks)));
 			}
-
-			std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
-			std::string name = animation.HasMember("name")
-				? animation["name"].GetString()
-				: fileStem + "_Anim_" + std::to_string(animIndex);
-			clips.push_back(std::make_unique<AnimationClipAsset>(name, duration, std::move(tracks)));
+			catch (const GltfError& error)
+			{
+				Warn(error.what(), " → ", animWhere, " 클립을 건너뜀");
+			}
 		}
 
 		return clips;
 	}
-
-	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out)
+	catch (const std::exception& error)
 	{
-		Value& node = cNglTF.m_doc["nodes"][currentNodeIndex];
+		LogFailure("애니메이션 로드", cNglTF.m_filePath, error.what());
+		return {};
+	}
 
-		std::string name;
-		if (!node.HasMember("name"))
-		{
-			name = "Node_" + std::to_string(currentNodeIndex);
-		}
-		else
-		{
-			name = node["name"].GetString();
-		}
+	void BuildPaths(CNglTF& cNglTF, uint32_t currentNodeIndex, const std::string& parentPath, std::vector<std::string>& out, uint32_t depth)
+	{
+		Value& nodes = ArrayMember(cNglTF.m_doc, "nodes", "glTF");
+		if (depth > nodes.Size())
+			Fail("노드 계층에 순환이 있음 (nodes[", currentNodeIndex, "])");
+		Value& node = At(nodes, currentNodeIndex, "nodes");
+		if (currentNodeIndex >= out.size())
+			Fail("노드 경로 버퍼 크기 부족 (nodes[", currentNodeIndex, "])");
 
+		const std::string where = Concat("nodes[", currentNodeIndex, "]");
+		const std::string name = StringOr(node, "name", "Node_" + std::to_string(currentNodeIndex), where);
 		out[currentNodeIndex] = parentPath.empty() ? name : parentPath + "/" + name;
 
-		if (!node.HasMember("children"))
+		if (!Has(node, "children"))
 			return;
 
-		for (Value& child : node["children"].GetArray())
+		for (Value& child : ArrayMember(node, "children", where).GetArray())
 		{
-			uint32_t childIndex = child.GetUint();
-			BuildPaths(cNglTF, childIndex, out[currentNodeIndex], out);
+			BuildPaths(cNglTF, ToUint(child, where + ".children 원소"), out[currentNodeIndex], out, depth + 1);
 		}
 	}
 
@@ -556,116 +982,90 @@ namespace Canape
 		Value& doc = cNglTF.m_doc;
 
 		//**** 머터리얼 추출
-		if (!doc.HasMember("materials"))
+		if (!Has(doc, "materials"))
 			return;
 
-		Value& materials = doc["materials"];
+		Value& materials = ArrayMember(doc, "materials", "glTF");
 		materialSlots.resize(materials.Size()); // 매터리얼 개수만큼 메쉬의 머터리얼 슬롯 공간 확보
 
-		//*** 이 모델에서 사용하는 모든 머터리얼 추출
+		//*** 이 모델에서 사용하는 모든 머터리얼 추출 (잘못된 값은 경고 후 기본값)
 		for (uint32_t i = 0; i < materials.Size(); i++)
 		{
 			Value& material = materials[i];
+			const std::string where = Concat("materials[", i, "]");
+			if (!material.IsObject())
+			{
+				Warn(where, " 가 JSON 객체가 아니라 기본 머터리얼 사용");
+				continue;
+			}
 
 			//*** 머터리얼 이름으로 머터리얼 에셋 경로 저장
 			//* 머터리얼 이름이 있다면 사용, 없다면 glTF 파일 이름 + Material_i 사용
-			if (material.HasMember("name"))
+			const std::string name = StringOr(material, "name", "", where);
+			if (!name.empty())
 			{
-				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, SafeFileName(material["name"].GetString()) + ".mat");
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, SafeFileName(name) + ".mat");
 			}
 			else
 			{
 				std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
-				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, fileStem + "_Material_" + std::to_string(i) + ".mat"); 
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, fileStem + "_Material_" + std::to_string(i) + ".mat");
 			}
 
 			//*** doubleSided 양면 렌더
-			if (material.HasMember("doubleSided"))
-			{
-				materialSlots[i].doubleSided = material["doubleSided"].GetBool();
-			}
+			materialSlots[i].doubleSided = BoolOr(material, "doubleSided", materialSlots[i].doubleSided, where);
 
 			//*** pprMetallicRoughness 옵션
-			if (material.HasMember("pbrMetallicRoughness"))
+			if (Has(material, "pbrMetallicRoughness"))
 			{
-				Value& pbrMetallicRoughness = material["pbrMetallicRoughness"];
+				Value& pbr = material["pbrMetallicRoughness"];
+				const std::string pbrWhere = where + ".pbrMetallicRoughness";
 
-				//* metallicFactor
-				if (pbrMetallicRoughness.HasMember("metallicFactor"))
-				{
-					materialSlots[i].desc.metallic = material["pbrMetallicRoughness"]["metallicFactor"].GetFloat();
-				}
-				else
-				{
-					materialSlots[i].desc.metallic = 1.0f;
-				}
-
-				//* roughnessFactor
-				if (pbrMetallicRoughness.HasMember("roughnessFactor"))
-				{
-					materialSlots[i].desc.roughness = material["pbrMetallicRoughness"]["roughnessFactor"].GetFloat();
-				}
-				else
-				{
-					materialSlots[i].desc.roughness = 1.0f;
-				}
+				materialSlots[i].desc.metallic = FloatOr(pbr, "metallicFactor", 1.0f, pbrWhere);
+				materialSlots[i].desc.roughness = FloatOr(pbr, "roughnessFactor", 1.0f, pbrWhere);
 
 				//* baseColorFactor
-				if (pbrMetallicRoughness.HasMember("baseColorFactor"))
+				if (Has(pbr, "baseColorFactor"))
 				{
-					materialSlots[i].desc.baseColor =
+					float color[4];
+					try
 					{
-						material["pbrMetallicRoughness"]["baseColorFactor"][0].GetFloat(),
-						material["pbrMetallicRoughness"]["baseColorFactor"][1].GetFloat(),
-						material["pbrMetallicRoughness"]["baseColorFactor"][2].GetFloat(),
-						material["pbrMetallicRoughness"]["baseColorFactor"][3].GetFloat()
-					};
+						ReadFloats(pbr, "baseColorFactor", 4, color, pbrWhere);
+						materialSlots[i].desc.baseColor = { color[0], color[1], color[2], color[3] };
+					}
+					catch (const GltfError& error)
+					{
+						Warn(error.what(), " → 기본 색 사용");
+					}
 				}
 
-				//* baseColorTexture
-				if (pbrMetallicRoughness.HasMember("baseColorTexture"))
-				{
-					materialSlots[i].baseColorTexture = TextureAssetPath(cNglTF, material["pbrMetallicRoughness"]["baseColorTexture"]);
-				}
-
-				//* metallicRoughnessTexture
-				if (pbrMetallicRoughness.HasMember("metallicRoughnessTexture"))
-				{
-					materialSlots[i].metallicRoughnessTexture = TextureAssetPath(cNglTF, material["pbrMetallicRoughness"]["metallicRoughnessTexture"]);
-				}
+				if (Has(pbr, "baseColorTexture"))
+					materialSlots[i].baseColorTexture = TextureAssetPath(cNglTF, pbr["baseColorTexture"], pbrWhere + ".baseColorTexture");
+				if (Has(pbr, "metallicRoughnessTexture"))
+					materialSlots[i].metallicRoughnessTexture = TextureAssetPath(cNglTF, pbr["metallicRoughnessTexture"], pbrWhere + ".metallicRoughnessTexture");
 			}
 
-			if (material.HasMember("normalTexture"))
-			{
-				materialSlots[i].normalTexture = TextureAssetPath(cNglTF, material["normalTexture"]);
-			}
-
-			if (material.HasMember("occlusionTexture"))
-			{
-				materialSlots[i].occlusionTexture = TextureAssetPath(cNglTF, material["occlusionTexture"]);
-			}
-
-
-			if (material.HasMember("emissiveTexture"))
-			{
-				materialSlots[i].emissiveTexture = TextureAssetPath(cNglTF, material["emissiveTexture"]);
-			}
+			if (Has(material, "normalTexture"))
+				materialSlots[i].normalTexture = TextureAssetPath(cNglTF, material["normalTexture"], where + ".normalTexture");
+			if (Has(material, "occlusionTexture"))
+				materialSlots[i].occlusionTexture = TextureAssetPath(cNglTF, material["occlusionTexture"], where + ".occlusionTexture");
+			if (Has(material, "emissiveTexture"))
+				materialSlots[i].emissiveTexture = TextureAssetPath(cNglTF, material["emissiveTexture"], where + ".emissiveTexture");
 		}
-
-		return;
 	}
 
 	Matrix4 CNglTFImporter::GetNodeTRS(Value& node)
 	{
 		//*** matrix가 있으면 TRS 대신 사용
 		// glTF는 열벡터 + column-major 배열, 엔진은 행벡터 + row-major → 배열 순서 그대로 복사하면 된다.
-		if (node.HasMember("matrix"))
+		if (Has(node, "matrix"))
 		{
-			Value& matrix = node["matrix"];
+			float values[16];
+			ReadFloats(node, "matrix", 16, values, "node");
 			Matrix4 m;
 			for (uint32_t i = 0; i < 16; i++)
 			{
-				m.M[i / 4][i % 4] = matrix[i].GetFloat();
+				m.M[i / 4][i % 4] = values[i];
 			}
 			return m;
 		}
@@ -673,58 +1073,46 @@ namespace Canape
 		Matrix4 s;
 		Matrix4 r;
 		Matrix4 t;
-		if (node.HasMember("rotation"))
+		if (Has(node, "rotation"))
 		{
-			Value& rotation = node["rotation"];
-			r = Matrix4::Rotation(
-				{
-					rotation[0].GetFloat(),
-					rotation[1].GetFloat(),
-					rotation[2].GetFloat(),
-					rotation[3].GetFloat(),
-				}
-				);
+			float rotation[4];
+			ReadFloats(node, "rotation", 4, rotation, "node");
+			r = Matrix4::Rotation({ rotation[0], rotation[1], rotation[2], rotation[3] });
 		}
 
-		if (node.HasMember("scale"))
+		if (Has(node, "scale"))
 		{
-			Value& scale = node["scale"];
-			s = Matrix4::Scale(
-				{
-					scale[0].GetFloat(),
-					scale[1].GetFloat(),
-					scale[2].GetFloat(),
-				}
-				);
+			float scale[3];
+			ReadFloats(node, "scale", 3, scale, "node");
+			s = Matrix4::Scale({ scale[0], scale[1], scale[2] });
 		}
 
-		if (node.HasMember("translation"))
+		if (Has(node, "translation"))
 		{
-			Value& translation = node["translation"];
-			t = Matrix4::Translation(
-				{
-					translation[0].GetFloat(),
-					translation[1].GetFloat(),
-					translation[2].GetFloat(),
-				}
-				);
+			float translation[3];
+			ReadFloats(node, "translation", 3, translation, "node");
+			t = Matrix4::Translation({ translation[0], translation[1], translation[2] });
 		}
 
 		return s * r * t;
 	}
 
 	void CNglTFImporter::LoadNodeMesh(
-		CNglTF& cNglTF, 
-		Value& node, 
+		CNglTF& cNglTF,
+		Value& node,
 		Matrix4& parentTM,
 		std::vector<StaticVertex>& vertices,
 		std::vector<uint32_t>& indices,
 		std::vector<SubMesh>& subMeshes,
 		bool includeNodeTransform,
-		bool recurse
+		bool recurse,
+		size_t materialCount,
+		uint32_t depth
 	)
 	{
 		Value& doc = cNglTF.m_doc;
+		if (depth > cNglTF.m_nodeCnt)
+			Fail("노드 계층에 순환이 있음");
 
 		//*** 노드 로컬 tm 행렬
 		Matrix4 TRS = includeNodeTransform ? GetNodeTRS(node) * parentTM : parentTM; // 우리 엔진은 행벡터 규약을 사용
@@ -733,43 +1121,52 @@ namespace Canape
 		float det = DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(TRS.ToXM()));
 
 		//*** 노드에 메쉬가 있다면 메쉬 정보 추출
-		if (node.HasMember("mesh"))
+		if (Has(node, "mesh"))
 		{
-			uint32_t meshIndex = node["mesh"].GetUint();
-			Value& mesh = doc["meshes"][meshIndex];
+			const uint32_t meshIndex = UintOf(node, "mesh", "node");
+			Value& mesh = Element(doc, "meshes", meshIndex, "node.mesh");
+			Value& primitives = ArrayMember(mesh, "primitives", Concat("meshes[", meshIndex, "]"));
 
-			for (Value& primitive : mesh["primitives"].GetArray())
+			for (SizeType primitiveIndex = 0; primitiveIndex < primitives.Size(); primitiveIndex++)
 			{
+				Value& primitive = primitives[primitiveIndex];
+				const std::string where = Concat("meshes[", meshIndex, "].primitives[", primitiveIndex, "]");
+				if (!IsTrianglePrimitive(primitive, where))
+					continue;
+
 				//***** 서브메쉬 정보 넣기 - 1
 				SubMesh sm;
-				sm.startIndex = indices.size();  // 이 primitve의 인덱스 넣기전 시작점
-				sm.baseVertex = vertices.size(); //     ``        정점 넣기전 시작점
-
-				if (primitive.HasMember("material")) // 머터리얼을 사용한다면
-				{
-					sm.materialSlot = primitive["material"].GetUint();
-				}
+				sm.startIndex = static_cast<uint32_t>(indices.size()); // 이 primitve의 인덱스 넣기전 시작점
+				sm.baseVertex = static_cast<int32_t>(vertices.size()); //     ``        정점 넣기전 시작점
+				sm.materialSlot = MaterialSlotOf(primitive, materialCount, where);
 
 				//***** Vertex 정보 추출 : position, normal, uv, tangent
-				Value& attributes = primitive["attributes"];
-				Value& accessors = doc["accessors"];
-				Value& bufferViews = doc["bufferViews"];
+				Value& attributes = Member(primitive, "attributes", where);
 
-				//*** Position
-				Value& aPos = accessors[attributes["POSITION"].GetUint()]; // 포지션 엑세서
-				uint32_t posCnt = aPos["count"].GetUint(); // 읽을 포지션 개수
-				size_t pOffset = GetAccessorDataOffset(bufferViews, aPos); // 포지션 데이터 시작 위치
-				size_t pStride = GetAccessorStride(bufferViews, aPos, sizeof(Vector3));
+				//*** Position (필수)
+				const AccessorData positions = ReadAccessor(cNglTF, UintOf(attributes, "POSITION", where + ".attributes"),
+					where + " POSITION", "VEC3", { kFloat }, true);
+				const uint32_t posCnt = positions.count;
 
 				//***** 바이너리에서 정점 정보 복사
 				//*** 이 primitive를 위한 정점 데이터 메모리 할당
-				uint32_t svStart = static_cast<uint32_t>(vertices.size());
-				vertices.resize(svStart + posCnt);
+				const uint32_t svStart = static_cast<uint32_t>(vertices.size());
+				const uint32_t iStart = static_cast<uint32_t>(indices.size());
 
+				//*** 인덱스를 먼저 검사한다(잘못되면 이 노드 이하 전체가 실패하므로 정점을 넣기 전에).
+				std::vector<uint32_t> primitiveIndices;
+				ReadIndices(cNglTF, primitive, posCnt, primitiveIndices, where);
+				if (primitiveIndices.empty())
+				{
+					Warn(where, " 에 삼각형이 없어 건너뜀");
+					continue;
+				}
+
+				vertices.resize(svStart + posCnt);
 				for (uint32_t i = 0; i < posCnt; i++)
 				{
 					Vector3 pos;
-					std::memcpy(&pos, cNglTF.m_bin.data() + pOffset + (i * pStride), sizeof(Vector3));
+					std::memcpy(&pos, positions.Element(i), sizeof(Vector3));
 					pos = TRS.TransformPoint(pos);
 					// 좌표계 변환
 					pos.X = -pos.X;
@@ -777,94 +1174,77 @@ namespace Canape
 				}
 
 				//*** Normal
-				if (attributes.HasMember("NORMAL"))
+				if (Has(attributes, "NORMAL"))
 				{
-					Value& aNormal = accessors[attributes["NORMAL"].GetUint()]; // 노말 엑세서
-					uint32_t norCnt = (std::min)(aNormal["count"].GetUint(), posCnt); // 읽을 노말 개수
-					size_t nOffset = GetAccessorDataOffset(bufferViews, aNormal); // 노말 데이터 시작 위치
-					size_t nStride = GetAccessorStride(bufferViews, aNormal, sizeof(Vector3));
-
-					//* Normal에는 스케일이 포함되면 방향이 바뀌기 때문에 역전체 행렬을 사용해야함
-					DirectX::XMMATRIX normalMat = DirectX::XMMatrixTranspose(TRS.Inverse().ToXM());
-					for (uint32_t i = 0; i < norCnt; i++)
+					TryOptional(where + " NORMAL", [&]
 					{
-						Vector3 normal;
-						std::memcpy(&normal, cNglTF.m_bin.data() + nOffset + (i * nStride), sizeof(Vector3));
-						DirectX::XMVECTOR n =
-							DirectX::XMVector3TransformNormal(normal.ToXM(), normalMat);
-						Vector3 nrm = Vector3::FromXM(DirectX::XMVector3Normalize(n));
-						nrm.X = -nrm.X; // 좌표계 변환
-						vertices[svStart + i].Normal = nrm;
-					}
+						const AccessorData normals = ReadAccessor(cNglTF, UintOf(attributes, "NORMAL", where + ".attributes"),
+							where + " NORMAL", "VEC3", { kFloat }, true);
+						const uint32_t norCnt = (std::min)(normals.count, posCnt);
+						WarnShortAttribute(where + " NORMAL", normals.count, posCnt);
+
+						//* Normal에는 스케일이 포함되면 방향이 바뀌기 때문에 역전체 행렬을 사용해야함
+						DirectX::XMMATRIX normalMat = DirectX::XMMatrixTranspose(TRS.Inverse().ToXM());
+						for (uint32_t i = 0; i < norCnt; i++)
+						{
+							Vector3 normal;
+							std::memcpy(&normal, normals.Element(i), sizeof(Vector3));
+							DirectX::XMVECTOR n = DirectX::XMVector3TransformNormal(normal.ToXM(), normalMat);
+							Vector3 nrm = Vector3::FromXM(DirectX::XMVector3Normalize(n));
+							nrm.X = -nrm.X; // 좌표계 변환
+							vertices[svStart + i].Normal = nrm;
+						}
+					});
 				}
 
 				//*** uv
-				if (attributes.HasMember("TEXCOORD_0"))
+				if (Has(attributes, "TEXCOORD_0"))
 				{
-					Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()]; // UV 엑세서
-					uint32_t uvCnt = (std::min)(aUv["count"].GetUint(), posCnt); // 읽을 UV 개수
-					size_t uvOffset = GetAccessorDataOffset(bufferViews, aUv); // UV 데이터 시작 위치
-					size_t uvStride = GetAccessorStride(bufferViews, aUv, sizeof(Vector2));
-
-					for (uint32_t i = 0; i < uvCnt; i++)
+					TryOptional(where + " TEXCOORD_0", [&]
 					{
-						Vector2 uv;
-						std::memcpy(&uv, cNglTF.m_bin.data() + uvOffset + (i * uvStride), sizeof(Vector2));
-						vertices[svStart + i].UV = uv;
-					}
+						const AccessorData uvs = ReadAccessor(cNglTF, UintOf(attributes, "TEXCOORD_0", where + ".attributes"),
+							where + " TEXCOORD_0", "VEC2", { kFloat }, true);
+						const uint32_t uvCnt = (std::min)(uvs.count, posCnt);
+						WarnShortAttribute(where + " TEXCOORD_0", uvs.count, posCnt);
+						for (uint32_t i = 0; i < uvCnt; i++)
+						{
+							Vector2 uv;
+							std::memcpy(&uv, uvs.Element(i), sizeof(Vector2));
+							vertices[svStart + i].UV = uv;
+						}
+					});
 				}
 
 				//*** 탄젠트
-				bool hasTangent = attributes.HasMember("TANGENT");
-				if (hasTangent)
+				bool hasTangent = false;
+				if (Has(attributes, "TANGENT"))
 				{
-					Value& aTan = accessors[attributes["TANGENT"].GetUint()];
-					uint32_t tanCnt = (std::min)(aTan["count"].GetUint(), posCnt);
-					size_t tOffset = GetAccessorDataOffset(bufferViews, aTan);
-					size_t tStride = GetAccessorStride(bufferViews, aTan, sizeof(Vector4));
-					const DirectX::XMMATRIX M = TRS.ToXM();
-
-					for (uint32_t i = 0; i < tanCnt; i++)
+					hasTangent = TryOptional(where + " TANGENT", [&]
 					{
-						Vector4 t; // VEC4 float
-						std::memcpy(&t, cNglTF.m_bin.data() + tOffset + (i * tStride), sizeof(Vector4));
+						const AccessorData tangents = ReadAccessor(cNglTF, UintOf(attributes, "TANGENT", where + ".attributes"),
+							where + " TANGENT", "VEC4", { kFloat }, true);
+						const uint32_t tanCnt = (std::min)(tangents.count, posCnt);
+						WarnShortAttribute(where + " TANGENT", tangents.count, posCnt);
+						const DirectX::XMMATRIX M = TRS.ToXM();
 
-						// 탄젠트는 표면 방향 → 역전치 X, TRS 그대로 w=0
-						Vector3 tv = Vector3::FromXM(DirectX::XMVector3Normalize(
-							DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(t.X, t.Y, t.Z, 0.0f), M)));
-						tv.X = -tv.X;                              // 좌표계 미러링
-						const float w = (det > 0.0f) ? -t.W : t.W; // 손 방향이 뒤집히면 부호 반전
-						vertices[svStart + i].Tangent = { tv.X, tv.Y, tv.Z, w };
-					}
+						for (uint32_t i = 0; i < tanCnt; i++)
+						{
+							Vector4 t; // VEC4 float
+							std::memcpy(&t, tangents.Element(i), sizeof(Vector4));
+
+							// 탄젠트는 표면 방향 → 역전치 X, TRS 그대로 w=0
+							Vector3 tv = Vector3::FromXM(DirectX::XMVector3Normalize(
+								DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(t.X, t.Y, t.Z, 0.0f), M)));
+							tv.X = -tv.X;                              // 좌표계 미러링
+							const float w = (det > 0.0f) ? -t.W : t.W; // 손 방향이 뒤집히면 부호 반전
+							vertices[svStart + i].Tangent = { tv.X, tv.Y, tv.Z, w };
+						}
+					});
 				}
 
 				//***** 인덱스 복사
-				Value& aIndex = accessors[primitive["indices"].GetUint()];
-				size_t iOffset = GetAccessorDataOffset(bufferViews, aIndex);
-				uint32_t indexCnt = aIndex["count"].GetUint();
-				const uint32_t componentType = aIndex["componentType"].GetUint(); // 5121: u8, 5123: u16, 5125: u32
-				const uint32_t iStart = static_cast<uint32_t>(indices.size());  // = sm.startIndex
-				indices.resize(iStart + indexCnt);
-				const uint8_t* indexData = cNglTF.m_bin.data() + iOffset;
-				for (uint32_t i = 0; i < indexCnt; i++)
-				{
-					if (componentType == 5125)
-					{
-						uint32_t vi;
-						std::memcpy(&vi, indexData + (i * sizeof(uint32_t)), sizeof(uint32_t));
-						indices[iStart + i] = vi;
-					}
-					else if (componentType == 5123)
-					{
-						uint16_t vi;
-						std::memcpy(&vi, indexData + (i * sizeof(uint16_t)), sizeof(uint16_t));
-						indices[iStart + i] = vi;
-					}
-					else
-					{
-						indices[iStart + i] = indexData[i];
-					}
-				}
+				const uint32_t indexCnt = static_cast<uint32_t>(primitiveIndices.size());
+				indices.insert(indices.end(), primitiveIndices.begin(), primitiveIndices.end());
 
 				//***** 와인딩 반전: X 미러링으로 앞뒷면이 바뀜 (노드에도 미러링이 있으면 원래대로)
 				if (det > 0.0f)
@@ -886,30 +1266,27 @@ namespace Canape
 		}
 
 		//***** 자식노드로 재귀
-		if (recurse && node.HasMember("children"))
+		if (recurse && Has(node, "children"))
 		{
-			for (Value& child : node["children"].GetArray())
+			for (Value& child : ArrayMember(node, "children", "node").GetArray())
 			{
-				uint32_t childNodeIndex = child.GetUint();
-				Value& childNode = cNglTF.m_doc["nodes"][childNodeIndex];
+				const uint32_t childNodeIndex = ToUint(child, "node.children 원소");
+				Value& childNode = Element(doc, "nodes", childNodeIndex, "node.children");
 
-				LoadNodeMesh(
-					cNglTF,
-					childNode,
-					TRS,
-					vertices,
-					indices,
-					subMeshes
-				);
+				LoadNodeMesh(cNglTF, childNode, TRS, vertices, indices, subMeshes, true, true, materialCount, depth + 1);
 			}
 		}
 	}
 
 	std::unique_ptr<MeshAsset> CNglTFImporter::LoadNodeMeshAsset(CNglTF& cNglTF, uint32_t nodeIndex)
+	try
 	{
 		Value& doc = cNglTF.m_doc;
-		if (!doc.HasMember("nodes") || nodeIndex >= doc["nodes"].Size() || !doc["nodes"][nodeIndex].HasMember("mesh"))
+		if (!Has(doc, "nodes") || !doc["nodes"].IsArray() || nodeIndex >= doc["nodes"].Size() || !Has(doc["nodes"][nodeIndex], "mesh"))
+		{
+			Warn("nodes[", nodeIndex, "] 가 없거나 메쉬가 없음 : ", cNglTF.m_filePath);
 			return nullptr;
+		}
 
 		std::vector<MaterialData> materialSlots;
 		LoadMaterials(cNglTF, materialSlots);
@@ -918,160 +1295,182 @@ namespace Canape
 		std::vector<uint32_t> indices;
 		std::vector<SubMesh> subMeshes;
 		Matrix4 identity = Matrix4::Identity; // 노드 오브젝트의 Transform이 노드 TRS를 맡는다
-		LoadNodeMesh(cNglTF, doc["nodes"][nodeIndex], identity, vertices, indices, subMeshes, false, false);
-		if (vertices.empty())
+		LoadNodeMesh(cNglTF, doc["nodes"][nodeIndex], identity, vertices, indices, subMeshes, false, false, materialSlots.size(), 0);
+		if (vertices.empty() || subMeshes.empty())
 			return nullptr;
 
 		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes), std::move(materialSlots));
 	}
+	catch (const std::exception& error)
+	{
+		LogFailure(Concat("노드 메쉬 로드 (nodes[", nodeIndex, "])").c_str(), cNglTF.m_filePath, error.what());
+		return nullptr;
+	}
 
 	std::unique_ptr<MeshAsset> CNglTFImporter::LoadSkinnedMeshAsset(CNglTF& cNglTF, uint32_t skinIndex)
+	try
 	{
 		Value& doc = cNglTF.m_doc;
-		if (!doc.HasMember("skins") || skinIndex >= doc["skins"].Size())
+		if (!Has(doc, "skins") || !doc["skins"].IsArray() || skinIndex >= doc["skins"].Size())
+		{
+			Warn("skins[", skinIndex, "] 가 없음 : ", cNglTF.m_filePath);
 			return nullptr;
+		}
 
-		Value& nodes = doc["nodes"];
+		Value& nodes = ArrayMember(doc, "nodes", "glTF");
 
 		std::vector<MaterialData> materialSlots;
 		LoadMaterials(cNglTF, materialSlots);
-
-		Value& accessors = doc["accessors"];
-		Value& bufferViews = doc["bufferViews"];
-		const uint8_t* bin = cNglTF.m_bin.data();
 
 		std::vector<SkinnedVertex> vertices;
 		std::vector<uint32_t> indices;
 		std::vector<SubMesh> subMeshes;
 
-		for (Value& meshNode : nodes.GetArray())
+		for (SizeType nodeIndex = 0; nodeIndex < nodes.Size(); nodeIndex++)
 		{
-			if (!meshNode.HasMember("skin") || !meshNode.HasMember("mesh") || meshNode["skin"].GetUint() != skinIndex)
+			Value& meshNode = nodes[nodeIndex];
+			const std::string nodeWhere = Concat("nodes[", nodeIndex, "]");
+			if (!Has(meshNode, "skin") || !Has(meshNode, "mesh") || UintOf(meshNode, "skin", nodeWhere) != skinIndex)
 				continue;
 
-			Value& mesh = doc["meshes"][meshNode["mesh"].GetUint()];
-			for (Value& primitive : mesh["primitives"].GetArray())
+			const uint32_t meshIndex = UintOf(meshNode, "mesh", nodeWhere);
+			Value& mesh = Element(doc, "meshes", meshIndex, nodeWhere + ".mesh");
+			Value& primitives = ArrayMember(mesh, "primitives", Concat("meshes[", meshIndex, "]"));
+			for (SizeType primitiveIndex = 0; primitiveIndex < primitives.Size(); primitiveIndex++)
 			{
-				Value& attributes = primitive["attributes"];
+				Value& primitive = primitives[primitiveIndex];
+				const std::string where = Concat("meshes[", meshIndex, "].primitives[", primitiveIndex, "]");
+				if (!IsTrianglePrimitive(primitive, where))
+					continue;
+				Value& attributes = Member(primitive, "attributes", where);
+				const std::string attrWhere = where + ".attributes";
 
 				SubMesh sm;
 				sm.startIndex = static_cast<uint32_t>(indices.size());
-				sm.baseVertex = static_cast<uint32_t>(vertices.size());
-				if (primitive.HasMember("material"))
-				{
-					sm.materialSlot = primitive["material"].GetUint();
-				}
+				sm.baseVertex = static_cast<int32_t>(vertices.size());
+				sm.materialSlot = MaterialSlotOf(primitive, materialSlots.size(), where);
 
-				Value& aPos = accessors[attributes["POSITION"].GetUint()];
-				Value& bPos = bufferViews[aPos["bufferView"].GetUint()];
-				const uint32_t vertexCount = aPos["count"].GetUint();
-				const size_t pOffset = (bPos.HasMember("byteOffset") ? bPos["byteOffset"].GetUint() : 0u) + (aPos.HasMember("byteOffset") ? aPos["byteOffset"].GetUint() : 0u);
+				const AccessorData positions = ReadAccessor(cNglTF, UintOf(attributes, "POSITION", attrWhere),
+					where + " POSITION", "VEC3", { kFloat }, true);
+				const uint32_t vertexCount = positions.count;
+
+				std::vector<uint32_t> primitiveIndices;
+				ReadIndices(cNglTF, primitive, vertexCount, primitiveIndices, where);
+				if (primitiveIndices.empty())
+				{
+					Warn(where, " 에 삼각형이 없어 건너뜀");
+					continue;
+				}
 
 				const uint32_t vStart = static_cast<uint32_t>(vertices.size());
 				vertices.resize(vStart + vertexCount);
 				for (uint32_t i = 0; i < vertexCount; i++)
 				{
 					Vector3 pos;
-					std::memcpy(&pos, bin + pOffset + i * sizeof(Vector3), sizeof(Vector3));
+					std::memcpy(&pos, positions.Element(i), sizeof(Vector3));
 					pos.X = -pos.X;
 					vertices[vStart + i].Position = pos;
 				}
 
-				if (attributes.HasMember("NORMAL"))
+				if (Has(attributes, "NORMAL"))
 				{
-					Value& aNormal = accessors[attributes["NORMAL"].GetUint()];
-					Value& bNormal = bufferViews[aNormal["bufferView"].GetUint()];
-					const size_t nOffset = (bNormal.HasMember("byteOffset") ? bNormal["byteOffset"].GetUint() : 0u) + (aNormal.HasMember("byteOffset") ? aNormal["byteOffset"].GetUint() : 0u);
-					for (uint32_t i = 0; i < vertexCount; i++)
+					TryOptional(where + " NORMAL", [&]
 					{
-						Vector3 normal;
-						std::memcpy(&normal, bin + nOffset + i * sizeof(Vector3), sizeof(Vector3));
-						normal.X = -normal.X;
-						vertices[vStart + i].Normal = normal;
-					}
-				}
-
-				if (attributes.HasMember("TEXCOORD_0"))
-				{
-					Value& aUv = accessors[attributes["TEXCOORD_0"].GetUint()];
-					Value& bUv = bufferViews[aUv["bufferView"].GetUint()];
-					const size_t uvOffset = (bUv.HasMember("byteOffset") ? bUv["byteOffset"].GetUint() : 0u) + (aUv.HasMember("byteOffset") ? aUv["byteOffset"].GetUint() : 0u);
-					for (uint32_t i = 0; i < vertexCount; i++)
-					{
-						std::memcpy(&vertices[vStart + i].UV, bin + uvOffset + i * sizeof(Vector2), sizeof(Vector2));
-					}
-				}
-
-				if (attributes.HasMember("JOINTS_0"))
-				{
-					Value& aJoint = accessors[attributes["JOINTS_0"].GetUint()];
-					Value& bJoint = bufferViews[aJoint["bufferView"].GetUint()];
-					const size_t jOffset = (bJoint.HasMember("byteOffset") ? bJoint["byteOffset"].GetUint() : 0u) + (aJoint.HasMember("byteOffset") ? aJoint["byteOffset"].GetUint() : 0u);
-					const bool isByte = aJoint["componentType"].GetUint() == 5121;
-					for (uint32_t i = 0; i < vertexCount; i++)
-					{
-						for (uint32_t k = 0; k < 4; k++)
+						const AccessorData normals = ReadAccessor(cNglTF, UintOf(attributes, "NORMAL", attrWhere),
+							where + " NORMAL", "VEC3", { kFloat }, true);
+						WarnShortAttribute(where + " NORMAL", normals.count, vertexCount);
+						const uint32_t count = (std::min)(normals.count, vertexCount);
+						for (uint32_t i = 0; i < count; i++)
 						{
-							if (isByte)
+							Vector3 normal;
+							std::memcpy(&normal, normals.Element(i), sizeof(Vector3));
+							normal.X = -normal.X;
+							vertices[vStart + i].Normal = normal;
+						}
+					});
+				}
+
+				if (Has(attributes, "TEXCOORD_0"))
+				{
+					TryOptional(where + " TEXCOORD_0", [&]
+					{
+						const AccessorData uvs = ReadAccessor(cNglTF, UintOf(attributes, "TEXCOORD_0", attrWhere),
+							where + " TEXCOORD_0", "VEC2", { kFloat }, true);
+						WarnShortAttribute(where + " TEXCOORD_0", uvs.count, vertexCount);
+						const uint32_t count = (std::min)(uvs.count, vertexCount);
+						for (uint32_t i = 0; i < count; i++)
+						{
+							std::memcpy(&vertices[vStart + i].UV, uvs.Element(i), sizeof(Vector2));
+						}
+					});
+				}
+
+				if (Has(attributes, "JOINTS_0"))
+				{
+					TryOptional(where + " JOINTS_0", [&]
+					{
+						const AccessorData joints = ReadAccessor(cNglTF, UintOf(attributes, "JOINTS_0", attrWhere),
+							where + " JOINTS_0", "VEC4", { kUnsignedByte, kUnsignedShort }, true);
+						WarnShortAttribute(where + " JOINTS_0", joints.count, vertexCount);
+						const uint32_t count = (std::min)(joints.count, vertexCount);
+						const bool isByte = joints.componentType == kUnsignedByte;
+						for (uint32_t i = 0; i < count; i++)
+						{
+							const uint8_t* element = joints.Element(i);
+							for (uint32_t k = 0; k < 4; k++)
 							{
-								vertices[vStart + i].Joints[k] = bin[jOffset + i * 4 + k];
-							}
-							else
-							{
-								uint16_t joint;
-								std::memcpy(&joint, bin + jOffset + (i * 4 + k) * sizeof(uint16_t), sizeof(uint16_t));
-								vertices[vStart + i].Joints[k] = joint;
+								if (isByte)
+								{
+									vertices[vStart + i].Joints[k] = element[k];
+								}
+								else
+								{
+									uint16_t joint;
+									std::memcpy(&joint, element + k * sizeof(uint16_t), sizeof(uint16_t));
+									vertices[vStart + i].Joints[k] = joint;
+								}
 							}
 						}
-					}
+					});
 				}
 
-				if (attributes.HasMember("WEIGHTS_0"))
+				if (Has(attributes, "WEIGHTS_0"))
 				{
-					Value& aWeight = accessors[attributes["WEIGHTS_0"].GetUint()];
-					Value& bWeight = bufferViews[aWeight["bufferView"].GetUint()];
-					const size_t wOffset = (bWeight.HasMember("byteOffset") ? bWeight["byteOffset"].GetUint() : 0u) + (aWeight.HasMember("byteOffset") ? aWeight["byteOffset"].GetUint() : 0u);
-					for (uint32_t i = 0; i < vertexCount; i++)
+					TryOptional(where + " WEIGHTS_0", [&]
 					{
-						std::memcpy(vertices[vStart + i].Weights, bin + wOffset + i * sizeof(float) * 4, sizeof(float) * 4);
-					}
+						const AccessorData weights = ReadAccessor(cNglTF, UintOf(attributes, "WEIGHTS_0", attrWhere),
+							where + " WEIGHTS_0", "VEC4", { kFloat }, true);
+						WarnShortAttribute(where + " WEIGHTS_0", weights.count, vertexCount);
+						const uint32_t count = (std::min)(weights.count, vertexCount);
+						for (uint32_t i = 0; i < count; i++)
+						{
+							std::memcpy(vertices[vStart + i].Weights, weights.Element(i), sizeof(float) * 4);
+						}
+					});
 				}
 
-				const bool hasTangent = attributes.HasMember("TANGENT");
-				if (hasTangent)
+				bool hasTangent = false;
+				if (Has(attributes, "TANGENT"))
 				{
-					Value& aTangent = accessors[attributes["TANGENT"].GetUint()];
-					Value& bTangent = bufferViews[aTangent["bufferView"].GetUint()];
-					const size_t tOffset = (bTangent.HasMember("byteOffset") ? bTangent["byteOffset"].GetUint() : 0u) + (aTangent.HasMember("byteOffset") ? aTangent["byteOffset"].GetUint() : 0u);
-					for (uint32_t i = 0; i < vertexCount; i++)
+					hasTangent = TryOptional(where + " TANGENT", [&]
 					{
-						Vector4 t;
-						std::memcpy(&t, bin + tOffset + i * sizeof(Vector4), sizeof(Vector4));
-						const Vector3 tv = Vector3(-t.X, t.Y, t.Z).Normalized();
-						vertices[vStart + i].Tangent = { tv.X, tv.Y, tv.Z, -t.W };
-					}
+						const AccessorData tangents = ReadAccessor(cNglTF, UintOf(attributes, "TANGENT", attrWhere),
+							where + " TANGENT", "VEC4", { kFloat }, true);
+						WarnShortAttribute(where + " TANGENT", tangents.count, vertexCount);
+						const uint32_t count = (std::min)(tangents.count, vertexCount);
+						for (uint32_t i = 0; i < count; i++)
+						{
+							Vector4 t;
+							std::memcpy(&t, tangents.Element(i), sizeof(Vector4));
+							const Vector3 tv = Vector3(-t.X, t.Y, t.Z).Normalized();
+							vertices[vStart + i].Tangent = { tv.X, tv.Y, tv.Z, -t.W };
+						}
+					});
 				}
 
-				Value& aIndex = accessors[primitive["indices"].GetUint()];
-				Value& bIndex = bufferViews[aIndex["bufferView"].GetUint()];
-				const size_t iOffset = (bIndex.HasMember("byteOffset") ? bIndex["byteOffset"].GetUint() : 0u) + (aIndex.HasMember("byteOffset") ? aIndex["byteOffset"].GetUint() : 0u);
-				const uint32_t indexCount = aIndex["count"].GetUint();
-				const bool isShort = aIndex["componentType"].GetUint() == 5123;
 				const uint32_t iStart = static_cast<uint32_t>(indices.size());
-				indices.resize(iStart + indexCount);
-				for (uint32_t i = 0; i < indexCount; i++)
-				{
-					if (isShort)
-					{
-						uint16_t index;
-						std::memcpy(&index, bin + iOffset + i * sizeof(uint16_t), sizeof(uint16_t));
-						indices[iStart + i] = index;
-					}
-					else
-					{
-						std::memcpy(&indices[iStart + i], bin + iOffset + i * sizeof(uint32_t), sizeof(uint32_t));
-					}
-				}
+				const uint32_t indexCount = static_cast<uint32_t>(primitiveIndices.size());
+				indices.insert(indices.end(), primitiveIndices.begin(), primitiveIndices.end());
 				for (uint32_t i = 0; i + 2 < indexCount; i += 3)
 				{
 					std::swap(indices[iStart + i + 1], indices[iStart + i + 2]);
@@ -1079,49 +1478,7 @@ namespace Canape
 
 				if (!hasTangent)
 				{
-					std::vector<Vector3> tangents(vertexCount);
-					std::vector<Vector3> bitangents(vertexCount);
-					for (uint32_t i = 0; i + 2 < indexCount; i += 3)
-					{
-						const uint32_t i0 = indices[iStart + i];
-						const uint32_t i1 = indices[iStart + i + 1];
-						const uint32_t i2 = indices[iStart + i + 2];
-						if (i0 >= vertexCount || i1 >= vertexCount || i2 >= vertexCount)
-							continue;
-
-						const SkinnedVertex& v0 = vertices[vStart + i0];
-						const SkinnedVertex& v1 = vertices[vStart + i1];
-						const SkinnedVertex& v2 = vertices[vStart + i2];
-
-						const Vector3 e1 = v1.Position - v0.Position;
-						const Vector3 e2 = v2.Position - v0.Position;
-						const float du1 = v1.UV.X - v0.UV.X, dv1 = v1.UV.Y - v0.UV.Y;
-						const float du2 = v2.UV.X - v0.UV.X, dv2 = v2.UV.Y - v0.UV.Y;
-						const float uvDet = du1 * dv2 - du2 * dv1;
-						if (std::abs(uvDet) < 1e-12f)
-							continue;
-
-						const float r = 1.0f / uvDet;
-						const Vector3 t = (e1 * dv2 - e2 * dv1) * r;
-						const Vector3 b = (e2 * du1 - e1 * du2) * r;
-						for (uint32_t local : { i0, i1, i2 })
-						{
-							tangents[local] += t;
-							bitangents[local] += b;
-						}
-					}
-
-					for (uint32_t local = 0; local < vertexCount; ++local)
-					{
-						SkinnedVertex& vertex = vertices[vStart + local];
-						const Vector3& n = vertex.Normal;
-						const Vector3& accumulated = tangents[local];
-						Vector3 t = (accumulated - n * Vector3::Dot(n, accumulated)).Normalized();
-						if (t.IsNearlyZero())
-							t = AnyPerpendicular(n);
-						const float w = Vector3::Dot(Vector3::Cross(n, t), bitangents[local]) < 0.0f ? -1.0f : 1.0f;
-						vertex.Tangent = { t.X, t.Y, t.Z, w };
-					}
+					ComputeTangents(vertices, vStart, vertexCount, indices, iStart, indexCount);
 				}
 
 				sm.indexCount = indexCount;
@@ -1129,60 +1486,78 @@ namespace Canape
 			}
 		}
 		if (subMeshes.empty())
+		{
+			Warn("skins[", skinIndex, "] 를 쓰는 삼각형 메쉬가 없음 : ", cNglTF.m_filePath);
 			return nullptr;
+		}
 
+		const std::string skinWhere = Concat("skins[", skinIndex, "]");
 		Value& skin = doc["skins"][skinIndex];
-		Value& joints = skin["joints"];
+		Value& joints = ArrayMember(skin, "joints", skinWhere);
 
 		std::vector<std::string> nodePaths(nodes.Size());
-		const uint32_t sceneIndex = doc.HasMember("scene") ? doc["scene"].GetUint() : 0u;
-		for (Value& rootNode : doc["scenes"][sceneIndex]["nodes"].GetArray())
+		for (Value& rootNode : ArrayMember(DefaultScene(doc), "nodes", "기본 scene").GetArray())
 		{
-			BuildPaths(cNglTF, rootNode.GetUint(), "", nodePaths);
+			BuildPaths(cNglTF, ToUint(rootNode, "scene.nodes 원소"), "", nodePaths, 0);
 		}
 
 		std::vector<int32_t> parents(nodes.Size(), -1);
 		for (uint32_t i = 0; i < nodes.Size(); i++)
 		{
-			if (!nodes[i].HasMember("children"))
+			if (!Has(nodes[i], "children"))
 				continue;
-			for (Value& child : nodes[i]["children"].GetArray())
+			const std::string where = Concat("nodes[", i, "]");
+			for (Value& child : ArrayMember(nodes[i], "children", where).GetArray())
 			{
-				parents[child.GetUint()] = static_cast<int32_t>(i);
+				const uint32_t childIndex = ToUint(child, where + ".children 원소");
+				if (childIndex >= nodes.Size())
+					Fail(where, ".children 의 ", childIndex, " 가 nodes 범위를 넘음");
+				parents[childIndex] = static_cast<int32_t>(i);
 			}
 		}
 
+		std::vector<uint32_t> jointNodes;
 		std::vector<bool> isJoint(nodes.Size(), false);
 		for (Value& joint : joints.GetArray())
 		{
-			isJoint[joint.GetUint()] = true;
+			const uint32_t jointNode = ToUint(joint, skinWhere + ".joints 원소");
+			if (jointNode >= nodes.Size())
+				Fail(skinWhere, ".joints 의 ", jointNode, " 가 nodes 범위를 넘음");
+			isJoint[jointNode] = true;
+			jointNodes.push_back(jointNode);
 		}
 
-		int32_t rootJoint = joints.Size() > 0 ? static_cast<int32_t>(joints[0].GetUint()) : -1;
-		while (rootJoint >= 0 && parents[rootJoint] >= 0 && isJoint[parents[rootJoint]])
+		int32_t rootJoint = jointNodes.empty() ? -1 : static_cast<int32_t>(jointNodes[0]);
+		for (size_t guard = 0; rootJoint >= 0 && parents[rootJoint] >= 0 && isJoint[parents[rootJoint]]; ++guard)
 		{
+			if (guard > nodes.Size())
+				Fail("노드 계층에 순환이 있음 (", skinWhere, " 루트 조인트 탐색)");
 			rootJoint = parents[rootJoint];
 		}
 		const int32_t skeletonNode = rootJoint >= 0 ? parents[rootJoint] : -1;
 		const std::string skeletonPrefix = skeletonNode >= 0 ? nodePaths[skeletonNode] + "/" : "";
 
 		std::vector<std::string> bonePaths;
-		for (Value& joint : joints.GetArray())
+		for (const uint32_t jointNode : jointNodes)
 		{
-			const std::string& path = nodePaths[joint.GetUint()];
+			const std::string& path = nodePaths[jointNode];
+			if (path.empty())
+				Warn(skinWhere, " 의 조인트 nodes[", jointNode, "] 가 기본 scene 에 없음 (본 경로 비어 있음)");
 			bonePaths.push_back(path.starts_with(skeletonPrefix) ? path.substr(skeletonPrefix.size()) : path);
 		}
 
-		std::vector<Matrix4> inverseBindMatrices(joints.Size(), Matrix4::Identity);
-		if (skin.HasMember("inverseBindMatrices"))
+		std::vector<Matrix4> inverseBindMatrices(jointNodes.size(), Matrix4::Identity);
+		if (Has(skin, "inverseBindMatrices"))
 		{
-			Value& aIbm = accessors[skin["inverseBindMatrices"].GetUint()];
-			Value& bIbm = bufferViews[aIbm["bufferView"].GetUint()];
-			const size_t mOffset = (bIbm.HasMember("byteOffset") ? bIbm["byteOffset"].GetUint() : 0u) + (aIbm.HasMember("byteOffset") ? aIbm["byteOffset"].GetUint() : 0u);
-			for (uint32_t j = 0; j < joints.Size(); j++)
+			const AccessorData ibms = ReadAccessor(cNglTF, UintOf(skin, "inverseBindMatrices", skinWhere),
+				skinWhere + " inverseBindMatrices", "MAT4", { kFloat }, false);
+			if (ibms.count < jointNodes.size())
+				Warn(skinWhere, " inverseBindMatrices 개수 ", ibms.count, " 가 조인트 수 ", jointNodes.size(), " 보다 적음 (나머지는 단위행렬)");
+			const uint32_t count = (std::min)(ibms.count, static_cast<uint32_t>(jointNodes.size()));
+			for (uint32_t j = 0; j < count; j++)
 			{
 				Matrix4& ibm = inverseBindMatrices[j];
-				std::memcpy(ibm.M, bin + mOffset + j * sizeof(float) * 16, sizeof(float) * 16);
+				std::memcpy(ibm.M, ibms.Element(j), sizeof(float) * 16);
 				for (uint32_t row = 0; row < 4; row++)
 				{
 					for (uint32_t col = 0; col < 4; col++)
@@ -1199,79 +1574,114 @@ namespace Canape
 		return std::make_unique<MeshAsset>(std::move(vertices), std::move(indices), std::move(subMeshes),
 			std::move(inverseBindMatrices), std::move(bonePaths), std::move(materialSlots));
 	}
+	catch (const std::exception& error)
+	{
+		LogFailure(Concat("스킨 메쉬 로드 (skins[", skinIndex, "])").c_str(), cNglTF.m_filePath, error.what());
+		return nullptr;
+	}
 
 	GameObject* CNglTFImporter::LoadSkeleton(CNglTF& cNglTF, Scene& scene, const std::string& name, std::vector<GameObject*>& nodeObjects)
+	try
 	{
 		Value& doc = cNglTF.m_doc;
+		Value& nodes = ArrayMember(doc, "nodes", "glTF");
+		Value& rootNodes = ArrayMember(DefaultScene(doc), "nodes", "기본 scene");
 		GameObject* top = scene.GetGameObject(scene.AddGameObject(name));
 
-		Value& nodes = doc["nodes"];
 		nodeObjects.assign(nodes.Size(), nullptr);
 		for (uint32_t i = 0; i < nodes.Size(); i++)
 		{
 			Value& node = nodes[i];
-			if (node.HasMember("skin") && node.HasMember("mesh"))
+			const std::string where = Concat("nodes[", i, "]");
+			if (Has(node, "skin") && Has(node, "mesh"))
 				continue;
 
-			const std::string nodeName = node.HasMember("name") ? node["name"].GetString() : "Node_" + std::to_string(i);
+			const std::string nodeName = StringOr(node, "name", "Node_" + std::to_string(i), where);
 			nodeObjects[i] = scene.GetGameObject(scene.AddGameObject(nodeName));
 
-			TransformComponent* transform = nodeObjects[i]->GetTransform();
-			if (node.HasMember("matrix"))
+			//*** 트랜스폼이 잘못된 노드는 경고 후 기본 트랜스폼으로 둔다.
+			try
 			{
-				// matrix 노드(Sketchfab 루트의 축 변환·스케일 등): TRS로 분해해서 같은 좌표 변환(X 반전)을 적용한다.
-				DirectX::XMVECTOR scale, rotation, translation;
-				if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, GetNodeTRS(node).ToXM()))
+				TransformComponent* transform = nodeObjects[i]->GetTransform();
+				if (Has(node, "matrix"))
 				{
-					DirectX::XMFLOAT3 t, s;
-					DirectX::XMFLOAT4 r;
-					DirectX::XMStoreFloat3(&t, translation);
-					DirectX::XMStoreFloat3(&s, scale);
-					DirectX::XMStoreFloat4(&r, rotation);
-					transform->SetPosition({ -t.x, t.y, t.z });
-					transform->SetRotation({ r.x, -r.y, -r.z, r.w });
-					transform->SetScale({ s.x, s.y, s.z });
+					// matrix 노드(Sketchfab 루트의 축 변환·스케일 등): TRS로 분해해서 같은 좌표 변환(X 반전)을 적용한다.
+					DirectX::XMVECTOR scale, rotation, translation;
+					if (DirectX::XMMatrixDecompose(&scale, &rotation, &translation, GetNodeTRS(node).ToXM()))
+					{
+						DirectX::XMFLOAT3 t, s;
+						DirectX::XMFLOAT4 r;
+						DirectX::XMStoreFloat3(&t, translation);
+						DirectX::XMStoreFloat3(&s, scale);
+						DirectX::XMStoreFloat4(&r, rotation);
+						transform->SetPosition({ -t.x, t.y, t.z });
+						transform->SetRotation({ r.x, -r.y, -r.z, r.w });
+						transform->SetScale({ s.x, s.y, s.z });
+					}
+					else
+					{
+						Warn(where, ".matrix 를 TRS로 분해할 수 없어 기본 트랜스폼 사용");
+					}
+				}
+				if (Has(node, "translation"))
+				{
+					float t[3];
+					ReadFloats(node, "translation", 3, t, where);
+					transform->SetPosition({ -t[0], t[1], t[2] });
+				}
+				if (Has(node, "rotation"))
+				{
+					float r[4];
+					ReadFloats(node, "rotation", 4, r, where);
+					transform->SetRotation({ r[0], -r[1], -r[2], r[3] });
+				}
+				if (Has(node, "scale"))
+				{
+					float s[3];
+					ReadFloats(node, "scale", 3, s, where);
+					transform->SetScale({ s[0], s[1], s[2] });
 				}
 			}
-			if (node.HasMember("translation"))
+			catch (const GltfError& error)
 			{
-				Value& t = node["translation"];
-				transform->SetPosition({ -t[0].GetFloat(), t[1].GetFloat(), t[2].GetFloat() });
-			}
-			if (node.HasMember("rotation"))
-			{
-				Value& r = node["rotation"];
-				transform->SetRotation({ r[0].GetFloat(), -r[1].GetFloat(), -r[2].GetFloat(), r[3].GetFloat() });
-			}
-			if (node.HasMember("scale"))
-			{
-				Value& s = node["scale"];
-				transform->SetScale({ s[0].GetFloat(), s[1].GetFloat(), s[2].GetFloat() });
+				Warn(error.what(), " → ", where, " 트랜스폼 일부를 기본값으로 둠");
 			}
 		}
 
-		const uint32_t sceneIndex = doc.HasMember("scene") ? doc["scene"].GetUint() : 0u;
-		for (Value& rootNode : doc["scenes"][sceneIndex]["nodes"].GetArray())
+		for (Value& rootNode : rootNodes.GetArray())
 		{
-			if (nodeObjects[rootNode.GetUint()])
-				nodeObjects[rootNode.GetUint()]->GetTransform()->SetParent(top->GetTransform());
+			const uint32_t index = ToUint(rootNode, "scene.nodes 원소");
+			if (index >= nodeObjects.size())
+				Fail("scene.nodes 의 ", index, " 가 nodes 범위를 넘음");
+			if (nodeObjects[index])
+				nodeObjects[index]->GetTransform()->SetParent(top->GetTransform());
 		}
 		for (uint32_t i = 0; i < nodes.Size(); i++)
 		{
-			if (!nodeObjects[i] || !nodes[i].HasMember("children"))
+			if (!nodeObjects[i] || !Has(nodes[i], "children"))
 				continue;
-			for (Value& child : nodes[i]["children"].GetArray())
+			const std::string where = Concat("nodes[", i, "]");
+			for (Value& child : ArrayMember(nodes[i], "children", where).GetArray())
 			{
-				if (nodeObjects[child.GetUint()])
-					nodeObjects[child.GetUint()]->GetTransform()->SetParent(nodeObjects[i]->GetTransform());
+				const uint32_t childIndex = ToUint(child, where + ".children 원소");
+				if (childIndex >= nodeObjects.size())
+					Fail(where, ".children 의 ", childIndex, " 가 nodes 범위를 넘음");
+				if (nodeObjects[childIndex])
+					nodeObjects[childIndex]->GetTransform()->SetParent(nodeObjects[i]->GetTransform());
 			}
 		}
 
 		top->AddComponent<AnimatorComponent>();
 		return top;
 	}
+	catch (const std::exception& error)
+	{
+		LogFailure("스켈레톤 로드", cNglTF.m_filePath, error.what());
+		return nullptr;
+	}
 
 	bool CNglTFImporter::ImportSkeleton(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	try
 	{
 		CNglTF cNglTF;
 		if (!ReadglTF(gltfPath, cNglTF))
@@ -1281,12 +1691,22 @@ namespace Canape
 		Scene scene(modelName);
 		std::vector<GameObject*> nodeObjects;
 		GameObject* top = LoadSkeleton(cNglTF, scene, modelName, nodeObjects);
+		if (!top)
+			return false;
 		if (!clipPath.empty())
 		{
 			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
 		}
 
-		return SceneSerializer::SavePrefab(*top, ToUtf8((ToPath(targetDir) / (modelName + "_Skeleton.prefab")).generic_u8string()));
+		const std::string prefabPath = ToUtf8((ToPath(targetDir) / ToPath(modelName + "_Skeleton.prefab")).generic_u8string());
+		if (!SceneSerializer::SavePrefab(*top, prefabPath))
+			Fail("프리팹 저장 실패 : ", prefabPath);
+		return true;
+	}
+	catch (const std::exception& error)
+	{
+		LogFailure("스켈레톤 임포트", gltfPath, error.what());
+		return false;
 	}
 
 	namespace
@@ -1332,7 +1752,10 @@ namespace Canape
 			AssetManager::WriteDefaultMaterialFiles(mesh);
 			const std::string file = ToUtf8((targetDir / ToPath(stem + MeshSerializer::ExtensionFor(mesh))).generic_u8string());
 			if (!MeshSerializer::Save(mesh, file))
+			{
+				CN_LOG_RUNTIME("Import", "메쉬 파일 저장 실패 : ", file);
 				return {};
+			}
 			return AssetManager::ToAssetPath(file);
 		}
 	}
@@ -1350,13 +1773,15 @@ namespace Canape
 
 		std::error_code error;
 		std::filesystem::create_directories(target, error);
+		if (error)
+			CN_LOG_RUNTIME("Import", "대상 폴더를 만들 수 없음 : ", targetDir, " (", error.message(), ")");
 		const std::string stem = ToUtf8(source.stem().u8string());
-		const uint32_t imageCount = doc.HasMember("images") ? doc["images"].Size() : 0u;
+		const uint32_t imageCount = Has(doc, "images") && doc["images"].IsArray() ? doc["images"].Size() : 0u;
 		for (uint32_t i = 0; i < imageCount; ++i)
 		{
 			const std::filesystem::path to = (target / ToPath(ImageRelativePath(doc, i, stem))).lexically_normal();
 			Value& image = doc["images"][i];
-			const std::string uri = image.HasMember("uri") && image["uri"].IsString() ? image["uri"].GetString() : std::string();
+			const std::string uri = Has(image, "uri") && image["uri"].IsString() ? image["uri"].GetString() : std::string();
 			if (!uri.empty() && !uri.starts_with("data:"))
 			{
 				const std::filesystem::path decoded = ToPath(PercentDecode(uri));
@@ -1378,8 +1803,14 @@ namespace Canape
 			FILE* file = nullptr;
 			if (_wfopen_s(&file, to.c_str(), L"wb") == 0 && file)
 			{
-				std::fwrite(bytes.data(), 1, bytes.size(), file);
+				const size_t written = std::fwrite(bytes.data(), 1, bytes.size(), file);
 				std::fclose(file);
+				if (written != bytes.size())
+					CN_LOG_RUNTIME("Import", "내장 텍스처 쓰기 실패 : ", ToUtf8(to.generic_u8string()));
+			}
+			else
+			{
+				CN_LOG_RUNTIME("Import", "내장 텍스처 파일을 만들 수 없음 : ", ToUtf8(to.generic_u8string()));
 			}
 		}
 
@@ -1390,12 +1821,14 @@ namespace Canape
 			std::filesystem::create_directories(to.parent_path(), error);
 			std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, error);
 			if (error)
-				CN_LOG_RUNTIME("Import", "파일 복사 실패 : ", ToUtf8(from.generic_u8string()), " -> ", ToUtf8(to.generic_u8string()));
+				CN_LOG_RUNTIME("Import", "파일 복사 실패 : ", ToUtf8(from.generic_u8string()), " -> ", ToUtf8(to.generic_u8string()),
+					" (", error.message(), ")");
 		}
 		return ToUtf8((target / source.filename()).generic_u8string());
 	}
 
 	bool CNglTFImporter::ImportSkeletonModel(const std::string& gltfPath, const std::string& targetDir, const std::string& clipPath)
+	try
 	{
 		const std::filesystem::path target = ToPath(targetDir);
 		CNglTF cNglTF;
@@ -1411,33 +1844,39 @@ namespace Canape
 		Scene scene(modelName);
 		std::vector<GameObject*> nodeObjects;
 		GameObject* top = LoadSkeleton(cNglTF, scene, modelName, nodeObjects);
+		if (!top)
+			return false;
 		if (!clipPath.empty())
 		{
 			top->GetComponent<AnimatorComponent>()->SetClip(clipPath);
 		}
 
-		Value& nodes = doc["nodes"];
-		const uint32_t skinCount = doc.HasMember("skins") ? doc["skins"].Size() : 0u;
+		Value& nodes = ArrayMember(doc, "nodes", "glTF");
+		const uint32_t skinCount = Has(doc, "skins") ? ArrayMember(doc, "skins", "glTF").Size() : 0u;
 		for (uint32_t i = 0; i < skinCount; i++)
 		{
 			// 이 스킨을 쓰는 메쉬가 없으면(조인트만 있고 메쉬는 노드에 붙은 강체인 경우) 스킨 렌더러를 만들지 않는다.
 			bool used = false;
 			for (Value& node : nodes.GetArray())
 			{
-				if (node.HasMember("mesh") && node.HasMember("skin") && node["skin"].GetUint() == i)
+				if (Has(node, "mesh") && Has(node, "skin") && node["skin"].IsUint() && node["skin"].GetUint() == i)
 					used = true;
 			}
 			if (!used)
 				continue;
 
+			const std::string skinWhere = Concat("skins[", i, "]");
 			Value& skin = doc["skins"][i];
-			const std::string skinName = skin.HasMember("name") ? skin["name"].GetString() : "Skin_" + std::to_string(i);
+			const std::string skinName = StringOr(skin, "name", "Skin_" + std::to_string(i), skinWhere);
 
 			std::vector<TransformComponent*> jointTransforms;
-			for (Value& joint : skin["joints"].GetArray())
+			for (Value& joint : ArrayMember(skin, "joints", skinWhere).GetArray())
 			{
-				if (nodeObjects[joint.GetUint()])
-					jointTransforms.push_back(nodeObjects[joint.GetUint()]->GetTransform());
+				const uint32_t jointNode = ToUint(joint, skinWhere + ".joints 원소");
+				if (jointNode >= nodeObjects.size())
+					Fail(skinWhere, ".joints 의 ", jointNode, " 가 nodes 범위를 넘음");
+				if (nodeObjects[jointNode])
+					jointTransforms.push_back(nodeObjects[jointNode]->GetTransform());
 			}
 			TransformComponent* skeletonRoot = top->GetTransform();
 			if (!jointTransforms.empty())
@@ -1455,14 +1894,11 @@ namespace Canape
 
 			const std::unique_ptr<MeshAsset> skinMesh = LoadSkinnedMeshAsset(cNglTF, i);
 			if (!skinMesh || skinMesh->GetVertexFormat() != VertexFormat::Skinned)
-			{
-				CN_LOG_RUNTIME("Import", "스킨 메쉬 변환 실패 : ", skinName);
-				return false;
-			}
+				Fail("스킨 메쉬 변환 실패 : ", skinName);
 			const std::string skinMeshPath = SaveMeshFile(*skinMesh, target,
 				UniqueStem(SanitizeFileName(modelName + "_" + skinName), usedStems));
 			if (skinMeshPath.empty())
-				return false;
+				Fail("스킨 메쉬 저장 실패 : ", skinName);
 
 			SkinnedMeshRendererComponent* renderer = meshObject->AddComponent<SkinnedMeshRendererComponent>();
 			renderer->SetMesh(skinMeshPath);
@@ -1472,27 +1908,36 @@ namespace Canape
 		// 노드에 붙은 일반 메쉬: 그 노드 오브젝트에서 노드 로컬 메쉬로 그린다. 노드가 애니메이션되면 메쉬도 같이 움직인다.
 		for (uint32_t i = 0; i < nodes.Size(); i++)
 		{
-			if (!nodeObjects[i] || !nodes[i].HasMember("mesh") || nodes[i].HasMember("skin"))
+			if (!nodeObjects[i] || !Has(nodes[i], "mesh") || Has(nodes[i], "skin"))
 				continue;
 			const std::unique_ptr<MeshAsset> nodeMesh = LoadNodeMeshAsset(cNglTF, i);
 			if (!nodeMesh)
 			{
-				CN_LOG_RUNTIME("Import", "노드 메쉬가 비어 있어 건너뜀 : ", nodeObjects[i]->GetName());
+				CN_LOG_RUNTIME("Import", "노드 메쉬가 비어 있거나 잘못되어 건너뜀 : ", nodeObjects[i]->GetName());
 				continue;
 			}
-			const std::string nodeName = nodes[i].HasMember("name") ? nodes[i]["name"].GetString() : "Node_" + std::to_string(i);
+			const std::string nodeName = StringOr(nodes[i], "name", "Node_" + std::to_string(i), Concat("nodes[", i, "]"));
 			const std::string nodeMeshPath = SaveMeshFile(*nodeMesh, target,
 				UniqueStem(SanitizeFileName(modelName + "_" + nodeName), usedStems));
 			if (nodeMeshPath.empty())
-				return false;
+				Fail("노드 메쉬 저장 실패 : ", nodeName);
 			MeshRendererComponent* renderer = nodeObjects[i]->AddComponent<MeshRendererComponent>();
 			renderer->SetMesh(nodeMeshPath);
 		}
 
-		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_SkeletonModel.prefab")).generic_u8string()));
+		const std::string prefabPath = ToUtf8((target / ToPath(modelName + "_SkeletonModel.prefab")).generic_u8string());
+		if (!SceneSerializer::SavePrefab(*top, prefabPath))
+			Fail("프리팹 저장 실패 : ", prefabPath);
+		return true;
+	}
+	catch (const std::exception& error)
+	{
+		LogFailure("스켈레톤 모델 임포트", gltfPath, error.what());
+		return false;
 	}
 
 	bool CNglTFImporter::ImportStaticModel(const std::string& gltfPath, const std::string& targetDir)
+	try
 	{
 		const std::filesystem::path target = ToPath(targetDir);
 		CNglTF cNglTF;
@@ -1502,25 +1947,26 @@ namespace Canape
 		cNglTF.m_filePath = mappedPath;
 		const std::unique_ptr<MeshAsset> mesh = LoadMeshAsset(cNglTF);
 		if (!mesh || mesh->GetVertexCount() == 0)
-		{
-			CN_LOG_RUNTIME("Import", "정적 모델에 메쉬가 없음 : ", gltfPath);
-			return false;
-		}
+			Fail("정적 모델에 메쉬가 없음 (원인은 위 로그 참고)");
 
 		const std::string modelName = ModelNameOf(ToPath(gltfPath));
 		const std::string meshPath = SaveMeshFile(*mesh, target, SanitizeFileName(modelName));
 		if (meshPath.empty())
-			return false;
+			Fail("메쉬 파일 저장 실패");
 
 		Scene scene(modelName);
 		GameObject* top = scene.GetGameObject(scene.AddGameObject(modelName));
 		MeshRendererComponent* renderer = top->AddComponent<MeshRendererComponent>();
 		renderer->SetMesh(meshPath);
 
-		return SceneSerializer::SavePrefab(*top, ToUtf8((target / (modelName + "_StaticModel.prefab")).generic_u8string()));
+		const std::string prefabPath = ToUtf8((target / ToPath(modelName + "_StaticModel.prefab")).generic_u8string());
+		if (!SceneSerializer::SavePrefab(*top, prefabPath))
+			Fail("프리팹 저장 실패 : ", prefabPath);
+		return true;
 	}
-
-
+	catch (const std::exception& error)
+	{
+		LogFailure("스태틱 모델 임포트", gltfPath, error.what());
+		return false;
+	}
 }
-
-

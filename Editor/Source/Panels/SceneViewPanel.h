@@ -7,6 +7,7 @@
 #include <imgui.h>
 
 #include <optional>
+#include <string>
 
 class SceneViewPanel
 {
@@ -48,9 +49,22 @@ private:
     float SurfaceRestOffset(Canape::GameObject& target, const Canape::Quaternion& newRotation, const Canape::Vector3& normal) const;
     static void SetWorldPose(Canape::TransformComponent& transform, const Canape::Vector3& position,
         const Canape::Quaternion* rotation);
+    // The gizmo edits the primary selection; the rest of a multi-selection follows it by the same change.
+    void ApplyToOtherSelected(EditorContext& context, Canape::GameObject& primary, const Canape::Matrix4& worldBefore,
+        const Canape::Vector3& scaleBefore);
     void DrawSelectionBounds(Canape::GameObject& selected, const Canape::RenderView& view, const ImVec2& min, const ImVec2& max);
     void RequestPick(Canape::Renderer& renderer, uint32_t x, uint32_t y);
-    void UpdateCamera(bool hovered, float deltaTime);
+    // RMB: fly (WASD/QE, wheel = speed), Alt+LMB: orbit, MMB: pan, wheel: zoom. viewportHeight scales panning.
+    void UpdateCamera(bool hovered, float deltaTime, float viewportHeight);
+    bool IsCameraBusy() const { return m_Navigating || m_Orbiting || m_Panning; }
+    Canape::Vector3 GetOrbitPivot() const;
+
+    // Content browser -> scene view: a prefab or mesh file dropped on the image is placed on the surface under the mouse
+    // (or on the ground plane y = 0 when nothing is under it).
+    static bool IsPlaceableAsset(const std::string& assetPath);
+    void PlaceDroppedAsset(EditorContext& context, Canape::Scene& scene, const Canape::RenderView& view, const ImVec2& min,
+        const ImVec2& max);
+    Canape::GameObject* CreateFromAsset(Canape::Scene& scene, const std::string& assetPath);
     void FocusOn(Canape::GameObject& target);
     void UpdateFocus(float deltaTime);
     Canape::Quaternion GetRotation() const;
@@ -62,6 +76,7 @@ private:
     bool m_ShowSelectionOutline = true;
     bool m_ShowBounds = true;
     bool m_PickPending = false;
+    bool m_PickAdditive = false; // Ctrl+click: toggle the picked object in the selection
     bool m_GridPlanes[Canape::EditorGridPlaneCount] = { true, false, false };
 
     RenderDebugMenu m_RenderDebugMenu;
@@ -71,6 +86,10 @@ private:
     float m_MoveSpeed = 8.0f;
     float m_FieldOfView = 60.0f;
     bool m_Navigating = false;
+    bool m_Orbiting = false;
+    bool m_Panning = false;
+    float m_OrbitDistance = 10.0f; // distance from the camera to the point Alt+LMB orbits around (set by focus and zoom)
+    std::string m_PendingDropPath;  // game-relative asset dropped this frame
 
     bool m_Focusing = false;
     float m_FocusElapsed = 0.0f;
