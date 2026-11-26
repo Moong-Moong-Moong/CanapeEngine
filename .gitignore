@@ -443,3 +443,7 @@ FodyWeavers.xsd
 
 # Per-user editor settings (Tools > Editor Settings)
 Editor/Config/EditorSettings.json
+# Understand-Anything scratch data (the graph itself is shared)
+/.ua/.trash-*/
+/.ua/intermediate/
+/.ua/tmp/
