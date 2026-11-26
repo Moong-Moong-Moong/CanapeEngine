@@ -417,7 +417,53 @@ namespace Canape
         if (!InitializeUI(device, uiError)) CN_LOG_RENDERER("UI", uiError);
         std::string gridError;
         if (!InitializeEditorGrid(device, gridError)) CN_LOG_RENDERER("EditorGrid", gridError);
+        std::string wireError;
+        if (!InitializeEditorWire(device, wireError)) CN_LOG_RENDERER("EditorWire", wireError);
         return true;
+    }
+
+    bool DX11PipelineState::InitializeEditorWire(ID3D11Device* device, std::string& error)
+    {
+        DX11PipelineState pending;
+        ComPtr<ID3DBlob> bytecode;
+        if (!CompileShaderFile(L"Shaders/EditorWire.hlsl", "VSMain", "vs_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        HRESULT result = device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.EditorWireVertexShader);
+        if (FAILED(result)) { error = HResultMessage("CreateVertexShader(editor wire)", result); return false; }
+        if (!CompileShaderFile(L"Shaders/EditorWire.hlsl", "PSMain", "ps_5_0", nullptr,
+            kShaderCompileFlags, bytecode, error)) return false;
+        result = device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+            nullptr, &pending.EditorWirePixelShader);
+        if (FAILED(result)) { error = HResultMessage("CreatePixelShader(editor wire)", result); return false; }
+
+        D3D11_RASTERIZER_DESC rasterizer{};
+        rasterizer.FillMode = D3D11_FILL_SOLID;
+        rasterizer.CullMode = D3D11_CULL_NONE;
+        rasterizer.DepthClipEnable = TRUE;
+        rasterizer.MultisampleEnable = TRUE;
+        result = device->CreateRasterizerState(&rasterizer, &pending.EditorWireRasterizerState);
+        if (FAILED(result)) { error = HResultMessage("CreateRasterizerState(editor wire)", result); return false; }
+
+        D3D11_DEPTH_STENCIL_DESC depth{};
+        depth.DepthEnable = TRUE;
+        depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        result = device->CreateDepthStencilState(&depth, &pending.EditorWireDepthState);
+        if (FAILED(result)) { error = HResultMessage("CreateDepthStencilState(editor wire)", result); return false; }
+
+        EditorWireVertexShader = std::move(pending.EditorWireVertexShader);
+        EditorWirePixelShader = std::move(pending.EditorWirePixelShader);
+        EditorWireRasterizerState = std::move(pending.EditorWireRasterizerState);
+        EditorWireDepthState = std::move(pending.EditorWireDepthState);
+        error.clear();
+        return true;
+    }
+
+    DX11PipelineSelection DX11PipelineState::ResolveEditorWire() const
+    {
+        return { EditorWireVertexShader.Get(), EditorWirePixelShader.Get(), nullptr,
+            EditorWireRasterizerState.Get(), OpaqueBlendState.Get(), EditorWireDepthState.Get(), nullptr };
     }
 
     bool DX11PipelineState::InitializeEditorGrid(ID3D11Device* device, std::string& error)

@@ -256,6 +256,11 @@ namespace Canape
         return settings;
     }
 
+    void DX11Renderer::AddEditorWireSphere(const EditorWireSphere& sphere)
+    {
+        m_Impl->QueuedScene.editorWireSpheres.push_back(sphere);
+    }
+
     void DX11Renderer::SetRenderView(const RenderView& view)
     {
         m_Impl->QueuedScene.camera = view;

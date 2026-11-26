@@ -46,6 +46,7 @@ SceneViewPanel::PlayRequest SceneViewPanel::Draw(EditorContext& context, Scene* 
     // Hidden scene view: game UI gets no pointer.
     ui.SetPointerViewport({}, false);
 
+    m_EditingViewVisible = visible && !playing;
     renderer.SetEditorGridEnabled(visible && !playing && m_ShowGrid);
     renderer.SetEditorGridCellSize(m_GridCellSize);
     for (uint32_t plane = 0; plane < EditorGridPlaneCount; ++plane)

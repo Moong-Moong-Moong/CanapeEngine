@@ -96,6 +96,16 @@ void EditorApp::OnInit()
         if (!m_Playing)
         {
             m_ProxyMeshes.Submit(scene, renderer);
+            if (m_SceneView.IsEditingViewVisible())
+            {
+                for (const LightComponent* light : scene.GetLights())
+                {
+                    if (!light || !Scene::IsRunnable(light) || light->GetType() != LightType::Point
+                        || !m_Context.IsSelected(light->GetOwnerObject()->GetId())) continue;
+                    renderer.AddEditorWireSphere({ light->GetTransform()->GetWorldPosition(), light->GetRange(),
+                        { 1.0f, 0.7f, 0.1f, 1.0f } });
+                }
+            }
         }
     });
 

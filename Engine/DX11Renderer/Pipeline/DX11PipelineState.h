@@ -53,11 +53,18 @@ namespace Canape
         bool ShadowsAvailable() const { return ShadowVertexShader && StaticShadowVertexShader && SkinnedShadowVertexShader && MaskedShadowPixelShader && ShadowRasterizerState; }
         bool UIAvailable() const { return UIVertexShader && UIPixelShader && UIInputLayout && UIRasterizerState && UIBlendState && UISampler && UIPixelShaderMS; }
         DX11PipelineSelection ResolveEditorGrid() const;
+        DX11PipelineSelection ResolveEditorWire() const;
+        bool EditorWireAvailable() const { return EditorWireVertexShader && EditorWirePixelShader && EditorWireRasterizerState && EditorWireDepthState; }
         DX11PipelineSelection ResolvePickId(VertexFormat vertexFormat) const;
         bool EditorGridAvailable() const { return EditorGridVertexShader && EditorGridPixelShader && EditorGridRasterizerState && EditorGridDepthState; }
 
     private:
         bool InitializeEditorGrid(ID3D11Device* device, std::string& error);
+        bool InitializeEditorWire(ID3D11Device* device, std::string& error);
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> EditorWireVertexShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> EditorWirePixelShader;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> EditorWireRasterizerState;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> EditorWireDepthState;
         Microsoft::WRL::ComPtr<ID3D11VertexShader> EditorGridVertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader> EditorGridPixelShader;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> EditorGridRasterizerState;

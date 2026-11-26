@@ -27,9 +27,11 @@ public:
     PlayRequest Draw(EditorContext& context, Canape::Scene* scene, Canape::Renderer& renderer, Canape::UISystem& ui,
         float deltaTime, bool playing);
     void FrameMainCamera(Canape::Scene* scene);
+    bool IsEditingViewVisible() const { return m_EditingViewVisible; }
     void RequestPickAt(Canape::Renderer& renderer, float u, float v);
 
 private:
+    bool m_EditingViewVisible = false;
     enum class GizmoOperation { Translate, Rotate, Scale };
 
     PlayRequest DrawToolbar(Canape::Renderer& renderer, bool playing);

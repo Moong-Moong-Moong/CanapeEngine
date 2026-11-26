@@ -115,6 +115,7 @@ namespace Canape
         //***** 에디터 전용
         // Scene::BuildRenderScene 직후마다 불린다. 에디터가 조명/카메라 아이콘 같은 추가 아이템을 넣는 자리.
         void SetEditorSubmit(std::function<void(Scene&, Renderer&)> submit) { m_EditorSubmit = std::move(submit); }
+        void AddEditorWireSphere(const EditorWireSphere& sphere);
         void AddLight(const RenderLight& light);
         void SetFog(const RenderFog& fog);
         void SetSkybox(CubemapAssetId cubemap, const RenderSkybox& skybox);

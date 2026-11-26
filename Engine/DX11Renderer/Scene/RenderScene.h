@@ -4,6 +4,7 @@
 #include "DX11Renderer/Data/PostProcessSettings.h"
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
+#include "Math/Vector4.h"
 
 #include <cstdint>
 #include <optional>
@@ -57,6 +58,14 @@ namespace Canape
         float rotationRadians = 0.0f; // Rotation about the world Up axis.
     };
 
+    // Editor visualization requests; never enter mesh, mirror, shadow or picking lists.
+    struct EditorWireSphere
+    {
+        Vector3 center{};
+        float radius = 1.0f; // World units, independent of the owner's scale.
+        Vector4 color{ 1.0f, 0.7f, 0.1f, 1.0f };
+    };
+
     struct RenderScene
     {
         RenderView camera;
@@ -71,5 +80,6 @@ namespace Canape
         std::optional<float> mirrorPlaneHeight; // World-space Y.
 
         std::vector<RenderLight> lights;
+        std::vector<EditorWireSphere> editorWireSpheres;
     };
 }

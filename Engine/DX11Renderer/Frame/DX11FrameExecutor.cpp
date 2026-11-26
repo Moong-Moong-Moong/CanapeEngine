@@ -3,6 +3,7 @@
 #include "DX11Renderer/Pass/DX11MainPass.h"
 #include "DX11Renderer/Pass/DX11SkyboxPass.h"
 #include "DX11Renderer/Pass/DX11EditorGridPass.h"
+#include "DX11Renderer/Pass/DX11EditorWirePass.h"
 #include "DX11Renderer/Pass/DX11FinalOutputPass.h"
 #include "DX11Renderer/Pass/DX11OutlinePass.h"
 #include "CNDebug/DebugLog.h"
@@ -632,6 +633,16 @@ namespace Canape
             if (AfterTransparentCallback) AfterTransparentCallback();
             ExecutePickPass(prepared, draw);
             DrawEditorGrid();
+            // Editor-only requests are consumed once in the main view, after scene depth is complete.
+            // They never enter PreparedScene's mirror, shadow, outline or picking draw lists.
+            EditorWirePass::Execute(*Context.Get(), Pipelines, EditorWireBuffer.Get(), ViewBuffer.Get(),
+                GetMainTargets(), scene.editorWireSpheres,
+#if CANAPE_RENDER_DEBUG
+                &CurrentStats
+#else
+                nullptr
+#endif
+            );
             OutlineMaskReady = false;
             OutlineStyleCount = OutlineMaxThickness = 0;
             if (!prepared.OutlineDraws.empty() && EnsureOutlineResources() && UploadOutlineStyles(prepared))
