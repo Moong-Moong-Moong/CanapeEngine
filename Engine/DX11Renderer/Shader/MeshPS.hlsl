@@ -57,6 +57,20 @@ float4 PSMain(VertexOutput input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
     }
     float3 rgb = CalculatePBRDirectLighting(input.WorldPosition, normal, baseColor, metallic, roughness)
         + ambient;
+    if (HasLightmap != 0)
+    {
+        // Linear, albedo-free indirect irradiance / PI. Use the same diffuse
+        // energy split as IBL; metals contribute no diffuse reflection.
+        float safeMetallic = saturate(metallic);
+        float3 toCamera = CameraPosition - input.WorldPosition;
+        float3 viewDirection = dot(toCamera, toCamera) > 1e-12f ? normalize(toCamera) : normal;
+        float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), baseColor, safeMetallic);
+        float3 fresnel = FresnelSchlickRoughness(saturate(dot(normal, viewDirection)), f0, saturate(roughness));
+        float3 diffuseReflectance = (1.0f - fresnel) * (1.0f - safeMetallic) * baseColor;
+        float3 bakedLight = LightmapTexture.Sample(LinearSampler, input.UV1).rgb;
+        // Preserve realtime lighting/IBL. Baked occlusion and brightness are already in the map.
+        rgb += diffuseReflectance * bakedLight;
+    }
     rgb = lerp(rgb, FogColor, CalculateFogWeight(input.WorldPosition));
     return float4(rgb, MaterialAlphaMode == 2 ? alpha : 1.0f);
 }

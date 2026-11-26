@@ -8,7 +8,7 @@ Texture2D BaseColorTexture : register(t0);
 Texture2D NormalTexture : register(t3); // Linear UNORM tangent-space normal.
 Texture2D ORMTexture : register(t4); // Linear UNORM: G = roughness, B = metallic.
 Texture2D OcclusionTexture : register(t5); // Linear UNORM: R = AO; may share the ORM image.
-// Reserved for indirect diffuse lighting on UV1. Final-lighting composition is intentionally deferred.
+// Linear, albedo-free indirect irradiance / PI on UV1; added to existing lighting.
 Texture2D LightmapTexture : register(t10);
 SamplerState LinearSampler : register(s0);
 
