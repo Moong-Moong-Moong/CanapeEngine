@@ -107,7 +107,8 @@ static Color ReadSceneCenter(DX11Renderer::Impl& impl)
     return color;
 }
 
-static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectIBL)
+static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectIBL,
+    TextureResourceId lightmap = {})
 {
     auto& impl = *renderer.m_Impl;
     Require(renderer.BeginFrame(), "BeginFrame");
@@ -141,6 +142,31 @@ static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectI
     impl.Context->PSGetSamplers(3, 1, &boundBRDFSampler);
     Require(boundBRDFSampler.Get() == impl.Pipelines.ResolveSkybox().Sampler,
         "BRDF clamp sampler s3 bound");
+    if (!scene.items.empty())
+    {
+        ComPtr<ID3D11ShaderResourceView> boundLightmap;
+        impl.Context->PSGetShaderResources(ShaderConstants::LightmapTextureSlot, 1, &boundLightmap);
+        const auto* expected = impl.Resources.GetTexture(lightmap);
+        Require(boundLightmap.Get() == (expected ? expected->ShaderResourceView.Get() : nullptr),
+            "lightmap t10 binding or clearing");
+        ComPtr<ID3D11Buffer> materialBuffer;
+        impl.Context->PSGetConstantBuffers(1, 1, &materialBuffer);
+        Require(materialBuffer != nullptr, "material constants bound");
+        D3D11_BUFFER_DESC desc{};
+        materialBuffer->GetDesc(&desc);
+        Require(desc.ByteWidth == sizeof(ShaderConstants::MaterialConstants), "material buffer size");
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ComPtr<ID3D11Buffer> staging;
+        Require(SUCCEEDED(impl.Device->CreateBuffer(&desc, nullptr, &staging)), "material staging");
+        impl.Context->CopyResource(staging.Get(), materialBuffer.Get());
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)), "material readback");
+        const auto constants = *static_cast<const ShaderConstants::MaterialConstants*>(mapped.pData);
+        impl.Context->Unmap(staging.Get(), 0);
+        Require(constants.HasLightmap == (expected ? 1u : 0u), "lightmap availability reaches GPU");
+    }
     const Color center = ReadSceneCenter(impl);
     renderer.EndFrame();
     return center;
@@ -153,12 +179,13 @@ static void CheckColor(Color actual, Color expected)
 }
 
 static Color DrawMaterial(DX11Renderer& renderer, RenderScene& scene,
-    const MaterialDesc& desc, TextureResourceId ao = {}, bool expectIBL = true)
+    const MaterialDesc& desc, TextureResourceId ao = {}, bool expectIBL = true,
+    TextureResourceId lightmap = {})
 {
-    const auto material = renderer.CreateMaterial(desc, {}, {}, {}, ao);
+    const auto material = renderer.CreateMaterial(desc, {}, {}, {}, ao, {}, lightmap);
     Require(renderer.IsMaterialValid(material), "shading material");
     scene.items[0].material = material;
-    const Color color = Draw(renderer, scene, expectIBL);
+    const Color color = Draw(renderer, scene, expectIBL, lightmap);
     renderer.DestroyMaterial(material);
     return color;
 }
@@ -185,6 +212,13 @@ static void ShadingChecks(DX11Renderer& renderer)
     MaterialDesc diffuse;
     diffuse.roughness = .5f;
     const Color diffuseAndSpecular = DrawMaterial(renderer, scene, diffuse);
+    const std::array<uint8_t, 4> lightmapPixel{ 255, 0, 255, 255 };
+    const auto lightmap = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, lightmapPixel);
+    Require(renderer.IsTextureValid(lightmap), "lightmap resource");
+    CheckColor(DrawMaterial(renderer, scene, diffuse, {}, true, lightmap), diffuseAndSpecular);
+    CheckColor(DrawMaterial(renderer, scene, diffuse), diffuseAndSpecular);
+    renderer.DestroyTexture(lightmap);
+    std::cout << "Lightmap: t10 and HasLightmap transmitted/cleared; final lighting unchanged PASS\n";
     const std::array<uint8_t, 4> blackAO{0, 0, 0, 255};
     const auto ao = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, blackAO);
     Require(renderer.IsTextureValid(ao), "black AO map");

@@ -34,7 +34,7 @@ LocalSurface ApplySkinning(LocalSurface surface, uint4 boneIndices, float4 boneW
     surface.Position = mul(float4(surface.Position, 1.0f), skinMatrix).xyz;
     surface.Normal = mul(float4(surface.Normal, 0.0f), skinMatrix).xyz;
     surface.Tangent.xyz = mul(float4(surface.Tangent.xyz, 0.0f), skinMatrix).xyz;
-    // UV and Tangent.w are unchanged. Normalize/rebuild the TBN in MeshSurface.
+    // UV, UV1 and Tangent.w are unchanged. Normalize/rebuild the TBN in MeshSurface.
     return surface;
 }
 

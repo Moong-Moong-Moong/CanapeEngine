@@ -8,7 +8,7 @@
 VertexOutput VSMain(PositionVertexInput input)
 {
     LocalSurface surface = ReadSurface(input.Position, float3(0, 0, 0),
-        float2(0, 0), float4(0, 0, 0, 1));
+        float2(0, 0), float4(0, 0, 0, 1), float2(0, 0));
     return BuildVertexOutput(surface);
 }
 #endif

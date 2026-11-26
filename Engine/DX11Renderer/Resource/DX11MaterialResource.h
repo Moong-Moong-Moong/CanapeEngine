@@ -14,5 +14,6 @@ namespace Canape
         TextureResourceId NormalTexture;    // Linear UNORM tangent-space normal map.
         TextureResourceId OcclusionTexture; // Linear UNORM, AO in R.
         TextureResourceId EmissiveTexture;  // sRGB color.
+        TextureResourceId LightmapTexture;  // Linear lighting data, UV1; not composed into lighting yet.
     };
 }

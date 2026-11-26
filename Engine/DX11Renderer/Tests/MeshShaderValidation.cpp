@@ -93,8 +93,9 @@ struct Vertex
     XMFLOAT4 Tangent{ 0.8f, 0.0f, -0.6f, -1.0f };
     uint16_t Indices[4]{};
     float Weights[4]{};
+    XMFLOAT2 UV1{ 0.8f, 0.2f };
 };
-static_assert(sizeof(Vertex) == 72);
+static_assert(sizeof(Vertex) == 80);
 
 struct Output
 {
@@ -103,8 +104,9 @@ struct Output
     XMFLOAT3 Normal;
     XMFLOAT2 UV;
     XMFLOAT4 Tangent;
+    XMFLOAT2 UV1;
 };
-static_assert(sizeof(Output) == 64);
+static_assert(sizeof(Output) == 72);
 
 int main()
 {
@@ -157,12 +159,13 @@ int main()
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 72, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "BLENDINDICES", 0, DXGI_FORMAT_R16G16B16A16_UINT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 56, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         ComPtr<ID3D11InputLayout> staticLayout, skinnedLayout;
-        Check(device->CreateInputLayout(elements, 4, staticCode->GetBufferPointer(), staticCode->GetBufferSize(), &staticLayout));
-        Check(device->CreateInputLayout(elements, 6, skinnedCode->GetBufferPointer(), skinnedCode->GetBufferSize(), &skinnedLayout));
+        Check(device->CreateInputLayout(elements, 5, staticCode->GetBufferPointer(), staticCode->GetBufferSize(), &staticLayout));
+        Check(device->CreateInputLayout(elements, 7, skinnedCode->GetBufferPointer(), skinnedCode->GetBufferSize(), &skinnedLayout));
 
         // Capture actual VS output without a rasterizer, material, or engine draw path.
         const char* gsSource =
@@ -175,11 +178,12 @@ int main()
             { 0, "SV_POSITION", 0, 0, 4, 0 }, { 0, "WORLDPOS", 0, 0, 3, 0 },
             { 0, "NORMAL", 0, 0, 3, 0 }, { 0, "TEXCOORD", 0, 0, 2, 0 },
             { 0, "TANGENT", 0, 0, 4, 0 },
+            { 0, "TEXCOORD", 1, 0, 2, 0 },
         };
         UINT outputStride = sizeof(Output);
         ComPtr<ID3D11GeometryShader> capture;
         Check(device->CreateGeometryShaderWithStreamOutput(gsCode->GetBufferPointer(), gsCode->GetBufferSize(),
-            declarations, 5, &outputStride, 1, D3D11_SO_NO_RASTERIZED_STREAM, nullptr, &capture));
+            declarations, 6, &outputStride, 1, D3D11_SO_NO_RASTERIZED_STREAM, nullptr, &capture));
         context->GSSetShader(capture.Get(), nullptr, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
         auto outputBuffer = makeBuffer(sizeof(Output), D3D11_BIND_STREAM_OUTPUT, nullptr);
@@ -222,7 +226,7 @@ int main()
             context->CopyResource(staging.Get(), outputBuffer.Get());
             D3D11_MAPPED_SUBRESOURCE mapped{};
             Check(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped));
-            std::array<float, 16> actual{};
+            std::array<float, 18> actual{};
             std::memcpy(actual.data(), mapped.pData, sizeof(Output));
             context->Unmap(staging.Get(), 0);
             Output expected{};
@@ -235,7 +239,8 @@ int main()
             XMStoreFloat3(&expected.Normal, XMVector3TransformNormal(normal, inverseTranspose));
             XMStoreFloat4(&expected.Tangent, XMVectorSetW(XMVector3TransformNormal(tangent, world), vertex.Tangent.w));
             expected.UV = vertex.UV;
-            std::array<float, 16> reference{};
+            expected.UV1 = vertex.UV1;
+            std::array<float, 18> reference{};
             std::memcpy(reference.data(), &expected, sizeof(expected));
             for (size_t i = 0; i < actual.size(); ++i)
                 Require(std::isfinite(actual[i]) && std::abs(actual[i] - reference[i]) < 1e-4f,
@@ -294,8 +299,10 @@ int main()
             float Roughness = 1;
             uint32_t HasORMTexture = 0;
             uint32_t HasOcclusionTexture = 0;
+            uint32_t HasLightmap = 0;
+            uint32_t MaterialPadding[3]{};
         } material;
-        static_assert(sizeof(MaterialConstants) == 48);
+        static_assert(sizeof(MaterialConstants) == 64);
         auto materialBuffer = makeBuffer(sizeof(material), D3D11_BIND_CONSTANT_BUFFER, &material);
         context->PSSetConstantBuffers(1, 1, materialBuffer.GetAddressOf());
 

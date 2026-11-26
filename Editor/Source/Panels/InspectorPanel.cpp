@@ -746,6 +746,7 @@ bool InspectorPanel::DrawMaterialData(Scene* scene, MaterialData& material)
     drawTexture("normalTexture", material.normalTexture);
     drawTexture("occlusionTexture", material.occlusionTexture);
     drawTexture("emissiveTexture", material.emissiveTexture);
+    drawTexture("lightmapTexture", material.lightmapTexture);
 
     BeginPropertyRow("baseColor");
     ImGui::PushID("baseColor");
@@ -756,7 +757,7 @@ bool InspectorPanel::DrawMaterialData(Scene* scene, MaterialData& material)
     for (const rttr::property& property : rttr::type::get<MaterialDesc>().get_properties())
     {
         const std::string name = property.get_name().to_string();
-        if (name == "baseColor")
+        if (name == "baseColor" || name == "uvIndex")
         {
             continue;
         }

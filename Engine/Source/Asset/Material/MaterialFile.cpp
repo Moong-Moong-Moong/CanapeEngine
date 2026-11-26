@@ -83,6 +83,7 @@ namespace Canape
 			data.normalTexture = root.value("normalTexture", std::string());
 			data.occlusionTexture = root.value("occlusionTexture", std::string());
 			data.emissiveTexture = root.value("emissiveTexture", std::string());
+			data.lightmapTexture = root.value("lightmapTexture", std::string());
 			
 
 			const auto desc = root.find("desc");
@@ -123,6 +124,7 @@ namespace Canape
 			root["normalTexture"] = data.normalTexture;
 			root["occlusionTexture"] = data.occlusionTexture;
 			root["emissiveTexture"] = data.emissiveTexture;
+			root["lightmapTexture"] = data.lightmapTexture;
 
 
 			Json desc;

@@ -47,9 +47,11 @@ namespace Canape
 
         // Creation copies the descriptor once. Destroy/re-create to apply CPU edits.
         // Normal and occlusion participate in shading; emissive is stored for future shading support.
+        // Lightmap is bound for future shading support (UV1); it does not change final lighting yet.
         MaterialResourceId CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture = {},
             TextureResourceId ormTexture = {}, TextureResourceId normalTexture = {},
-            TextureResourceId occlusionTexture = {}, TextureResourceId emissiveTexture = {});
+            TextureResourceId occlusionTexture = {}, TextureResourceId emissiveTexture = {},
+            TextureResourceId lightmapTexture = {});
         // Invalid/stale IDs resolve to a default white descriptor.
         MaterialDesc GetMaterial(MaterialResourceId material) const;
         void DestroyMaterial(MaterialResourceId material);

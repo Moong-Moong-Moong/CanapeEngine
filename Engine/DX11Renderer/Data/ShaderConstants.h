@@ -13,6 +13,7 @@ namespace Canape::ShaderConstants
 {
     inline constexpr uint32_t OutlineSlot = 11;
     inline constexpr uint32_t OutlineStylesSlot = 9; // PS t9, independent of VS skinning b9.
+    inline constexpr uint32_t LightmapTextureSlot = 10; // PS t10; Material.hlsli.
     struct alignas(16) OutlineMaskConstants
     {
         uint32_t MaskId = 0;
@@ -255,13 +256,16 @@ namespace Canape::ShaderConstants
         float Roughness = 0.5f;
         uint32_t HasORMTexture = 0;
         uint32_t HasOcclusionTexture = 0;
+        uint32_t HasLightmap = 0;
+        uint32_t MaterialPadding[3]{};
     };
-    static_assert(sizeof(MaterialConstants) == 48);
+    static_assert(sizeof(MaterialConstants) == 64);
     static_assert(offsetof(MaterialConstants, Mode) == 16 && offsetof(MaterialConstants, AlphaCutoff) == 20);
     static_assert(offsetof(MaterialConstants, HasBaseColorTexture) == 24);
     static_assert(offsetof(MaterialConstants, HasNormalTexture) == 28);
     static_assert(offsetof(MaterialConstants, Metallic) == 32 && offsetof(MaterialConstants, HasORMTexture) == 40);
     static_assert(offsetof(MaterialConstants, HasOcclusionTexture) == 44);
+    static_assert(offsetof(MaterialConstants, HasLightmap) == 48);
 
 #if CANAPE_RENDER_DEBUG
     struct alignas(16) DepthDisplayConstants

@@ -108,6 +108,7 @@ namespace Canape
         const TextureResourceId normalTexture = resolve(MaterialTextureSlot::Normal);
         const TextureResourceId occlusionTexture = resolve(MaterialTextureSlot::Occlusion);
         const TextureResourceId emissiveTexture = resolve(MaterialTextureSlot::Emissive);
+        const TextureResourceId lightmapTexture = resolve(MaterialTextureSlot::Lightmap);
         if (missing)
         {
             return {};
@@ -115,7 +116,7 @@ namespace Canape
 
         m_Materials.erase(assetId);
         const MaterialResourceId resourceId = m_Renderer.CreateMaterial(material.GetDesc(), baseColorTexture, ormTexture,
-            normalTexture, occlusionTexture, emissiveTexture);
+            normalTexture, occlusionTexture, emissiveTexture, lightmapTexture);
         if (resourceId.IsValid())
         {
             m_Materials.emplace(assetId, resourceId);
