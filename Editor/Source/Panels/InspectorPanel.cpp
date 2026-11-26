@@ -3,6 +3,7 @@
 #include "Icons/EditorIcons.h"
 #include "Simulation/SimulationScene.h"
 #include "Scene/Component/RenderableComponent.h"
+#include "Scene/Component/SkyboxComponent.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -141,17 +142,17 @@ namespace
         return component;
     }
 
-    bool DrawBuiltinMeshPicker(rttr::variant& value)
+    bool DrawBuiltinAssetPicker(rttr::variant& value, const std::vector<std::string>& paths)
     {
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-        if (!ImGui::BeginCombo("##BuiltinMesh", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft))
+        if (!ImGui::BeginCombo("##BuiltinAsset", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft))
         {
             return false;
         }
 
         const std::string current = value.get_value<std::string>();
         bool changed = false;
-        for (const std::string& path : AssetManager::GetBuiltinMeshPaths())
+        for (const std::string& path : paths)
         {
             if (ImGui::Selectable(path.c_str(), path == current))
             {
@@ -402,14 +403,19 @@ void InspectorPanel::DrawComponent(EditorContext& context, Scene& scene, Compone
             ImGui::BeginDisabled(readOnly);
 
             const bool meshPicker = meshRenderer && name == "mesh" && !readOnly;
-            if (meshPicker)
+            const bool cubemapPicker = dynamic_cast<SkyboxComponent*>(&component) && name == "cubemap" && !readOnly;
+            if (meshPicker || cubemapPicker)
             {
                 ImGui::SetNextItemWidth(-(ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x));
             }
 
             rttr::variant value = property.get_value(instance);
             bool changed = DrawValue(&scene, value, std::to_string(component.GetId()) + "." + name);
-            if (meshPicker && DrawBuiltinMeshPicker(value))
+            if (meshPicker && DrawBuiltinAssetPicker(value, AssetManager::GetBuiltinMeshPaths()))
+            {
+                changed = true;
+            }
+            if (cubemapPicker && DrawBuiltinAssetPicker(value, AssetManager::GetBuiltinCubemapPaths()))
             {
                 changed = true;
             }

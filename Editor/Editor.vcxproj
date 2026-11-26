@@ -172,6 +172,7 @@ exit /b 0</Command>
     <None Include="@(RendererShader)">
       <Link>Shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
+    <EngineContent Include="$(CanapeRoot)Engine\Content\**\*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyEngineShaders" AfterTargets="Build">
@@ -179,5 +180,8 @@ exit /b 0</Command>
   </Target>
   <Target Name="CopyRendererShaders" AfterTargets="Build">
     <Copy SourceFiles="@(RendererShader)" DestinationFiles="@(RendererShader->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyEngineContent" AfterTargets="Build">
+    <Copy SourceFiles="@(EngineContent)" DestinationFiles="@(EngineContent->'$(OutDir)EngineContent\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>
