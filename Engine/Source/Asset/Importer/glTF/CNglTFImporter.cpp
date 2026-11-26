@@ -6,7 +6,9 @@
 #include <initializer_list>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
 #include <vector>
+#include <cctype>
 #include "../../Mesh/MeshAsset.h"
 #include "../../Texture/TextureAsset.h"
 #include "Asset/AssetManager.h"
@@ -988,6 +990,27 @@ namespace Canape
 		Value& materials = ArrayMember(doc, "materials", "glTF");
 		materialSlots.resize(materials.Size()); // 매터리얼 개수만큼 메쉬의 머터리얼 슬롯 공간 확보
 
+		std::unordered_set<std::string> usedStems;
+		const auto uniqueStem = [&usedStems](const std::string& stem)
+		{
+			const auto key = [](std::string value)
+			{
+				std::transform(value.begin(), value.end(), value.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				return value;
+			};
+			std::string candidate = stem;
+			for (uint32_t suffix = 1; !usedStems.insert(key(candidate)).second; ++suffix)
+			{
+				candidate = Concat(stem, "_", suffix);
+			}
+			if (candidate != stem)
+			{
+				Warn("머터리얼 이름 '", stem, "' 가 중복되어 '", candidate, "' 로 저장");
+			}
+			return candidate;
+		};
+
 		//*** 이 모델에서 사용하는 모든 머터리얼 추출 (잘못된 값은 경고 후 기본값)
 		for (uint32_t i = 0; i < materials.Size(); i++)
 		{
@@ -1004,12 +1027,12 @@ namespace Canape
 			const std::string name = StringOr(material, "name", "", where);
 			if (!name.empty())
 			{
-				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, SafeFileName(name) + ".mat");
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, uniqueStem(SafeFileName(name)) + ".mat");
 			}
 			else
 			{
 				std::string fileStem = ToUtf8(ToPath(cNglTF.m_filePath).stem().u8string());
-				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, fileStem + "_Material_" + std::to_string(i) + ".mat");
+				materialSlots[i].name = MakeAssetPath(cNglTF.m_filePath, uniqueStem(fileStem + "_Material_" + std::to_string(i)) + ".mat");
 			}
 
 			//*** doubleSided 양면 렌더
