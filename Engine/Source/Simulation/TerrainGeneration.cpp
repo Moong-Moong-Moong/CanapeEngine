@@ -4,8 +4,10 @@
 #include <cstdint>
 
 #include "DX11Simulation/Simulator.h"
+#include "Math/Matrix4.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
+#include "Scene/Component/TransformComponent.h"
 #include "Scene/Scene.h"
 #include "Simulation/TerrainGeneratorComponent.h"
 
@@ -17,16 +19,19 @@ namespace Canape
         constexpr auto UpliftShaderPath = L"Shaders/TerrainUplift.hlsl";
         constexpr std::uint32_t PointsPerSide = 769;
         constexpr float CellSizeMeters = 4.0f;
+        constexpr float SideMeters = (PointsPerSide - 1) * CellSizeMeters;
 
         // Mirrors cbuffer TerrainUplift in Shader/TerrainUplift.hlsl.
         struct TerrainUplift
         {
             std::uint32_t seed = 0;
-            float amount = 0.0f;
+            float baseHeight = 0.0f;
+            float maxHeight = 0.0f;
             float cellSize = 0.0f;
             std::uint32_t pointsPerSide = 0;
+            Vector3 pad_;
         };
-        static_assert(sizeof(TerrainUplift) == 16);
+        static_assert(sizeof(TerrainUplift) == 32);
 
         // Mirrors cbuffer TerrainGeometry in Shader/TerrainSurface.hlsl.
         struct TerrainGeometry
@@ -34,8 +39,9 @@ namespace Canape
             float cellSize = 0.0f;
             std::uint32_t pointsPerSide = 0;
             Vector2 pad_;
+            Matrix4 modelToWorld;
         };
-        static_assert(sizeof(TerrainGeometry) == 16);
+        static_assert(sizeof(TerrainGeometry) == 80);
 
         // Mirrors cbuffer TerrainLook in Shader/TerrainSurface.hlsl.
         struct TerrainLook
@@ -44,6 +50,17 @@ namespace Canape
             float pad_ = 0.0f;
         };
         static_assert(sizeof(TerrainLook) == 16);
+
+        TerrainGeometry geometryOf(const TerrainGeneratorComponent& component)
+        {
+            return {
+                .cellSize = CellSizeMeters,
+                .pointsPerSide = PointsPerSide,
+                .modelToWorld = Matrix4::Scale((TerrainBoxMax - TerrainBoxMin) / SideMeters)
+                    * Matrix4::Translation(TerrainBoxMin)
+                    * component.GetTransform()->GetLocalToWorldMatrix()
+            };
+        }
     }
 
     void TerrainGeneration::Request(const TerrainGeneratorComponent& component)
@@ -52,7 +69,8 @@ namespace Canape
             &component,
             Inputs {
                 .seed = component.GetSeed(),
-                .amount = component.GetAmount()
+                .baseHeightMeters = component.GetBaseHeightRatio() * SideMeters,
+                .maxHeightMeters = component.GetMaxHeightRatio() * SideMeters
             }
         );
     }
@@ -74,7 +92,8 @@ namespace Canape
 
             const TerrainUplift uplift {
                 .seed = request->second.seed,
-                .amount = request->second.amount,
+                .baseHeight = request->second.baseHeightMeters,
+                .maxHeight = request->second.maxHeightMeters,
                 .cellSize = CellSizeMeters,
                 .pointsPerSide = PointsPerSide
             };
@@ -86,10 +105,7 @@ namespace Canape
                     Workspace {
                         .geometry = Geometry(
                             session,
-                            TerrainGeometry {
-                                .cellSize = CellSizeMeters,
-                                .pointsPerSide = PointsPerSide
-                            },
+                            geometryOf(*component),
                             (PointsPerSide - 1) * (PointsPerSide - 1) * 6
                         ),
                         .material = Material(
@@ -119,6 +135,11 @@ namespace Canape
             workspace.remainingStages = { &workspace.upliftKernel };
         }
         requests.clear();
+
+        for(auto& [component, workspace] : workspaces)
+        {
+            workspace.geometry.Upload(geometryOf(*component));
+        }
     }
 
     void TerrainGeneration::Step(Simulator& simulator)

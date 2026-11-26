@@ -267,7 +267,8 @@ namespace Canape
 			registration::class_<TerrainGeneratorComponent>("TerrainGeneratorComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)
 				.property("seed", &TerrainGeneratorComponent::GetSeed, &TerrainGeneratorComponent::SetSeed)
-				.property("amount", &TerrainGeneratorComponent::GetAmount, &TerrainGeneratorComponent::SetAmount);
+				.property("baseHeightRatio", &TerrainGeneratorComponent::GetBaseHeightRatio, &TerrainGeneratorComponent::SetBaseHeightRatio)
+				.property("maxHeightRatio", &TerrainGeneratorComponent::GetMaxHeightRatio, &TerrainGeneratorComponent::SetMaxHeightRatio);
 
 			registration::class_<WaveSurfaceComponent>("WaveSurfaceComponent")
 				.constructor<>()(policy::ctor::as_raw_ptr)

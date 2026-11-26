@@ -3,6 +3,7 @@
 #include "Scene/Component/LightComponent.h"
 #include "Scene/Component/SkinnedMeshRendererComponent.h"
 #include "Scene/Component/RenderableComponent.h"
+#include "Simulation/TerrainGeneratorComponent.h"
 
 #include <functional>
 
@@ -91,6 +92,14 @@ namespace ScenePicking
                 {
                     boxes.push_back({ mesh->GetBounds().Min, mesh->GetBounds().Max, renderer->GetTransform()->GetLocalToWorldMatrix() });
                 }
+            }
+            for (auto* generator : current.GetComponents<TerrainGeneratorComponent>())
+            {
+                boxes.push_back({
+                    TerrainBoxMin,
+                    TerrainBoxMax,
+                    generator->GetTransform()->GetLocalToWorldMatrix()
+                });
             }
         });
 

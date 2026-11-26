@@ -25,7 +25,8 @@ namespace Canape
         struct Inputs
         {
             std::uint32_t seed = 0;
-            float amount = 0.0f;
+            float baseHeightMeters = 0.0f;
+            float maxHeightMeters = 0.0f;
         };
 
         struct Workspace

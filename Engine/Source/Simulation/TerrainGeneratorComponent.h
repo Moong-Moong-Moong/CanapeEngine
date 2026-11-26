@@ -3,19 +3,23 @@
 #include <cstdint>
 
 #include "Math/MathUtility.h"
+#include "Math/Vector3.h"
 #include "Scene/Component/Component.h"
 
 namespace Canape
 {
-    // The terrain starts at the world origin; the Transform is ignored.
+    // The box in the object's space the terrain is generated in; heights are ratios of its height.
+    inline constexpr Vector3 TerrainBoxMin { -0.5f, 0.0f, -0.5f };
+    inline constexpr Vector3 TerrainBoxMax { 0.5f, 1.0f, 0.5f };
+
     class TerrainGeneratorComponent final: public Component
     {
         RTTR_ENABLE(Component)
 
     private:
         std::uint32_t seed = 1;
-        // Meters: the heights stay between the base and this much above it.
-        float amount = 520.0f;
+        float baseHeightRatio = 0.01f;
+        float maxHeightRatio = 0.18f;
 
     public:
         std::uint32_t GetSeed() const
@@ -27,13 +31,24 @@ namespace Canape
             seed = value;
         }
 
-        float GetAmount() const
+        float GetBaseHeightRatio() const
         {
-            return amount;
+            return baseHeightRatio;
         }
-        void SetAmount(float meters)
+        void SetBaseHeightRatio(float ratio)
         {
-            amount = Math::Max(meters, 0.0f);
+            baseHeightRatio = Math::Min(Math::Max(ratio, 0.0f), 1.0f);
+            maxHeightRatio = Math::Max(maxHeightRatio, baseHeightRatio);
+        }
+
+        float GetMaxHeightRatio() const
+        {
+            return maxHeightRatio;
+        }
+        void SetMaxHeightRatio(float ratio)
+        {
+            maxHeightRatio = Math::Min(Math::Max(ratio, 0.0f), 1.0f);
+            baseHeightRatio = Math::Min(baseHeightRatio, maxHeightRatio);
         }
     };
 }

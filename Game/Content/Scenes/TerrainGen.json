@@ -14,15 +14,15 @@
                     "properties": {
                         "enabled": true,
                         "localPosition": {
-                            "X": 1536.0,
-                            "Y": 900.0,
-                            "Z": 0.0
+                            "X": 0.0,
+                            "Y": 0.9,
+                            "Z": -1.2
                         },
                         "localRotation": {
-                            "X": 0.21644,
+                            "X": 0.316228,
                             "Y": 0.0,
                             "Z": 0.0,
-                            "W": 0.976296
+                            "W": 0.948683
                         },
                         "localScale": {
                             "X": 1.0,
@@ -38,8 +38,8 @@
                     "properties": {
                         "enabled": true,
                         "fieldOfView": 60.0,
-                        "nearClip": 1.0,
-                        "farClip": 8000.0
+                        "nearClip": 0.05,
+                        "farClip": 20.0
                     }
                 }
             ]
@@ -128,7 +128,8 @@
                     "properties": {
                         "enabled": true,
                         "seed": 1,
-                        "amount": 520.0
+                        "baseHeightRatio": 0.01,
+                        "maxHeightRatio": 0.18
                     }
                 }
             ]

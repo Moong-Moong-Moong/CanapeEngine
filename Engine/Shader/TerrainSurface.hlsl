@@ -6,6 +6,7 @@ cbuffer TerrainGeometry : register(b10)
     float CellSize;
     uint PointsPerSide;
     float2 pad_;
+    float4x4 ModelToWorld;
 };
 
 // Mirrors TerrainLook in the same file.
@@ -40,18 +41,17 @@ float SurfaceHeightAt(int2 gridPoint)
     return ground.x + ground.y;
 }
 
-float3 SurfaceNormalAt(int2 gridPoint)
+float2 SurfaceGradientAt(int2 gridPoint)
 {
     const int2 last = int2(PointsPerSide, PointsPerSide) - 1;
     const int2 low = max(gridPoint - 1, int2(0, 0));
     const int2 high = min(gridPoint + 1, last);
     const float2 span = float2(high - low) * CellSize;
-    const float2 gradient = float2(
+
+    return float2(
         SurfaceHeightAt(int2(high.x, gridPoint.y)) - SurfaceHeightAt(int2(low.x, gridPoint.y)),
         SurfaceHeightAt(int2(gridPoint.x, high.y)) - SurfaceHeightAt(int2(gridPoint.x, low.y))
     ) / span;
-
-    return normalize(float3(-gradient.x, 1.0, -gradient.y));
 }
 
 TerrainSurfaceVarying vs_main(uint vertexId : SV_VertexID)
@@ -61,13 +61,20 @@ TerrainSurfaceVarying vs_main(uint vertexId : SV_VertexID)
     const int2 gridPoint = int2(CellCorners[vertexId % 6u] + uint2(cell % cells, cell / cells));
 
     TerrainSurfaceVarying output;
-    output.WorldPosition = float3(
+    const float3 modelPosition = float3(
         float(gridPoint.x) * CellSize,
         SurfaceHeightAt(gridPoint),
         float(gridPoint.y) * CellSize
     );
+    output.WorldPosition = mul(float4(modelPosition, 1.0), ModelToWorld).xyz;
     output.Position = mul(float4(output.WorldPosition, 1.0), ViewProjection);
-    output.WorldNormal = SurfaceNormalAt(gridPoint);
+
+    const float2 gradient = SurfaceGradientAt(gridPoint);
+    const float3x3 linearPart = (float3x3)ModelToWorld;
+    const float3 tangentX = mul(float3(1.0, gradient.x, 0.0), linearPart);
+    const float3 tangentZ = mul(float3(0.0, gradient.y, 1.0), linearPart);
+    output.WorldNormal = normalize(cross(tangentZ, tangentX))
+        * (determinant(linearPart) < 0.0 ? -1.0 : 1.0);
     return output;
 }
 

@@ -4,15 +4,16 @@
 cbuffer TerrainUplift : register(b1)
 {
     uint Seed;
-    float Amount;
+    float BaseHeight;
+    float MaxHeight;
     float CellSize;
     uint PointsPerSide;
+    float3 pad_;
 };
 
 // Bedrock height and cover thickness in meters at each grid point.
 RWTexture2D<float2> Ground : register(u0);
 
-static const float BaseHeightMeters = 30.0;
 static const float ScaleMeters = 2400.0;
 static const float StrikeDegrees = 28.0;
 static const float Stretch = 1.7;
@@ -59,5 +60,5 @@ void cs_main(uint3 id : SV_DispatchThreadID)
     const float t = (0.5 + 0.5 * noise / NoiseBound - TiltDrop * along + TiltDrop * reach)
         / (1.0 + 2.0 * TiltDrop * reach);
 
-    Ground[id.xy] = float2(BaseHeightMeters + Amount * t, 0.0);
+    Ground[id.xy] = float2(lerp(BaseHeight, MaxHeight, t), 0.0);
 }
