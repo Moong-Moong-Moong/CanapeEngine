@@ -9,11 +9,14 @@ Open the **Render Debug** dropdown at the right end of the Scene view toolbar.
 | Post Processing | Tone Mapping on/off (independent of Debug View) |
 | Shadow | Cull Mode, Slope Bias, Receiver Bias, PCF |
 | PCSS | PCSS on/off, Shadow Distance, PCF Samples, Legacy 25-tap pattern, Tap Spacing, Blocker Samples, Blocker Search Radius |
-| Stats | GPU timing capture, draw calls, triangles, GPU frame/DrawScene/FinalOutput times |
+| Stats | Editor FPS, GPU timing capture, prepared RenderItems, accepted Point Lights, actual scene MSAA samples, draw calls, triangles, GPU frame/DrawScene/FinalOutput times |
 
 GPU timing results arrive asynchronously; pending/unavailable is shown until a
 valid measurement arrives. GPU frame time excludes Present/VSync. Draw/triangle
 counts include the fullscreen FinalOutput draw (one triangle).
+The stats display refreshes once per second so the numbers are readable. Editor
+FPS measures the editor's full update loop; GPU Frame measures rendering on the
+GPU and cannot be converted directly to actual FPS.
 
 Quick check:
 

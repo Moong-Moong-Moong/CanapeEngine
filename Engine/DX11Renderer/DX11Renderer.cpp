@@ -201,6 +201,7 @@ namespace Canape
         RendererDebugStats stats{};
 #if CANAPE_RENDER_DEBUG
         stats = m_Impl->CompletedStats;
+        stats.sceneSamples = m_Impl->SelectedSceneSampleDesc.Count;
         if (m_Impl->DebugSettings.captureGpuTimings && m_Impl->ProfilerAvailable)
         {
             const GpuTimingResult& timing = m_Impl->Profiler.LatestResult();

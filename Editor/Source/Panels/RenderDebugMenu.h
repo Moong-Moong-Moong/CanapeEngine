@@ -21,4 +21,8 @@ private:
     void DrawPostProcessOptions(Canape::Renderer& renderer);
     void DrawStats(Canape::Renderer& renderer, const Canape::RendererDebugSettings& settings);
     void DrawSampleCountCombo(const char* label, uint32_t current, const std::function<void(uint32_t)>& apply);
+
+    Canape::RendererDebugStats m_DisplayedStats{};
+    double m_LastStatsRefreshTime = -1.0;
+    float m_DisplayedFps = 0.0f;
 };
