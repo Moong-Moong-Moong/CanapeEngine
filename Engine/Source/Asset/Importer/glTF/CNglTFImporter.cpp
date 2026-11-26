@@ -4,6 +4,7 @@
 #include <cstring>
 #include <algorithm>
 #include <initializer_list>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
@@ -642,6 +643,68 @@ namespace Canape
 			if (count < vertexCount)
 				Warn(what, " 개수 ", count, " 가 POSITION 개수 ", vertexCount, " 보다 적음 (나머지는 0)");
 		}
+
+		template <typename VertexType>
+		void ReadTexCoords(CNglTF& cNglTF, Value& attributes, const char* key, Vector2 VertexType::* uv,
+			std::vector<VertexType>& vertices, uint32_t start, uint32_t vertexCount,
+			const std::string& where, const std::string& attributesWhere)
+		{
+			if (!Has(attributes, key))
+				return;
+			const std::string what = Concat(where, " ", key);
+			TryOptional(what, [&]
+			{
+				const AccessorData uvs = ReadAccessor(cNglTF, UintOf(attributes, key, attributesWhere),
+					what, "VEC2", { kFloat }, true);
+				WarnShortAttribute(what, uvs.count, vertexCount);
+				const uint32_t count = (std::min)(uvs.count, vertexCount);
+				for (uint32_t i = 0; i < count; i++)
+				{
+					std::memcpy(&(vertices[start + i].*uv), uvs.Element(i), sizeof(Vector2));
+				}
+			});
+		}
+
+		uint32_t MaterialUVIndex(Value& material, const std::string& where)
+		{
+			std::vector<Value*> textureInfos;
+			if (Has(material, "pbrMetallicRoughness") && material["pbrMetallicRoughness"].IsObject())
+			{
+				Value& pbr = material["pbrMetallicRoughness"];
+				for (const char* key : { "baseColorTexture", "metallicRoughnessTexture" })
+				{
+					if (Has(pbr, key) && pbr[key].IsObject())
+						textureInfos.push_back(&pbr[key]);
+				}
+			}
+			for (const char* key : { "normalTexture", "occlusionTexture", "emissiveTexture" })
+			{
+				if (Has(material, key) && material[key].IsObject())
+					textureInfos.push_back(&material[key]);
+			}
+
+			std::optional<uint32_t> chosen;
+			for (Value* info : textureInfos)
+			{
+				const uint32_t texCoord = UintOr(*info, "texCoord", 0u, where);
+				if (!chosen)
+				{
+					chosen = texCoord;
+				}
+				else if (*chosen != texCoord)
+				{
+					Warn(where, " 의 텍스처들이 서로 다른 UV(texCoord ", *chosen, ", ", texCoord, ")를 써서 texCoord ", *chosen, " 사용");
+				}
+			}
+
+			const uint32_t index = chosen.value_or(0u);
+			if (index >= kMaxUVSets)
+			{
+				Warn(where, " 의 texCoord ", index, " 는 지원하지 않아 0번 UV 사용 (최대 ", kMaxUVSets, "개)");
+				return 0u;
+			}
+			return index;
+		}
 	}
 
 	bool CNglTFImporter::ReadglTF(std::string filePath, CNglTF& cNglTF)
@@ -1074,6 +1137,8 @@ namespace Canape
 				materialSlots[i].occlusionTexture = TextureAssetPath(cNglTF, material["occlusionTexture"], where + ".occlusionTexture");
 			if (Has(material, "emissiveTexture"))
 				materialSlots[i].emissiveTexture = TextureAssetPath(cNglTF, material["emissiveTexture"], where + ".emissiveTexture");
+
+			materialSlots[i].desc.uvIndex = MaterialUVIndex(material, where);
 		}
 	}
 
@@ -1221,22 +1286,8 @@ namespace Canape
 				}
 
 				//*** uv
-				if (Has(attributes, "TEXCOORD_0"))
-				{
-					TryOptional(where + " TEXCOORD_0", [&]
-					{
-						const AccessorData uvs = ReadAccessor(cNglTF, UintOf(attributes, "TEXCOORD_0", where + ".attributes"),
-							where + " TEXCOORD_0", "VEC2", { kFloat }, true);
-						const uint32_t uvCnt = (std::min)(uvs.count, posCnt);
-						WarnShortAttribute(where + " TEXCOORD_0", uvs.count, posCnt);
-						for (uint32_t i = 0; i < uvCnt; i++)
-						{
-							Vector2 uv;
-							std::memcpy(&uv, uvs.Element(i), sizeof(Vector2));
-							vertices[svStart + i].UV = uv;
-						}
-					});
-				}
+				ReadTexCoords(cNglTF, attributes, "TEXCOORD_0", &StaticVertex::UV, vertices, svStart, posCnt, where, where + ".attributes");
+				ReadTexCoords(cNglTF, attributes, "TEXCOORD_1", &StaticVertex::UV1, vertices, svStart, posCnt, where, where + ".attributes");
 
 				//*** 탄젠트
 				bool hasTangent = false;
@@ -1413,20 +1464,8 @@ namespace Canape
 					});
 				}
 
-				if (Has(attributes, "TEXCOORD_0"))
-				{
-					TryOptional(where + " TEXCOORD_0", [&]
-					{
-						const AccessorData uvs = ReadAccessor(cNglTF, UintOf(attributes, "TEXCOORD_0", attrWhere),
-							where + " TEXCOORD_0", "VEC2", { kFloat }, true);
-						WarnShortAttribute(where + " TEXCOORD_0", uvs.count, vertexCount);
-						const uint32_t count = (std::min)(uvs.count, vertexCount);
-						for (uint32_t i = 0; i < count; i++)
-						{
-							std::memcpy(&vertices[vStart + i].UV, uvs.Element(i), sizeof(Vector2));
-						}
-					});
-				}
+				ReadTexCoords(cNglTF, attributes, "TEXCOORD_0", &SkinnedVertex::UV, vertices, vStart, vertexCount, where, attrWhere);
+				ReadTexCoords(cNglTF, attributes, "TEXCOORD_1", &SkinnedVertex::UV1, vertices, vStart, vertexCount, where, attrWhere);
 
 				if (Has(attributes, "JOINTS_0"))
 				{

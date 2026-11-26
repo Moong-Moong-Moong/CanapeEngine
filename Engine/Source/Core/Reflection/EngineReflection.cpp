@@ -142,7 +142,8 @@ namespace Canape
 				.property("roughness", &MaterialDesc::roughness)
 				.property("metallic", &MaterialDesc::metallic)
 				.property("alphaMode", &MaterialDesc::alphaMode)
-				.property("alphaCutoff", &MaterialDesc::alphaCutoff);
+				.property("alphaCutoff", &MaterialDesc::alphaCutoff)
+				.property("uvIndex", &MaterialDesc::uvIndex);
 		}
 
 		void RegisterComponents()

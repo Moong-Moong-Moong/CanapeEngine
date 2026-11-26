@@ -14,7 +14,7 @@ namespace Canape
 	public:
 		static constexpr const char* StaticExtension = ".cnmesh";
 		static constexpr const char* SkinnedExtension = ".cnskmesh";
-		static constexpr uint32_t Version = 1;
+		static constexpr uint32_t Version = 2;
 
 		static bool IsStaticMeshPath(const std::string& path);
 		static bool IsSkinnedMeshPath(const std::string& path);
