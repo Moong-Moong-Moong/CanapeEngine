@@ -13,6 +13,7 @@ namespace Canape
 		Normal,
 		Occlusion,
 		Emissive,
+		Lightmap, // Linear lighting data; always sampled with UV1.
 		Count
 	};
 
@@ -35,6 +36,7 @@ namespace Canape
 		std::string normalTexture;
 		std::string occlusionTexture;
 		std::string emissiveTexture;
+		std::string lightmapTexture;
 
 		const std::string& GetTexturePath(MaterialTextureSlot slot) const
 		{
@@ -45,6 +47,7 @@ namespace Canape
 			case MaterialTextureSlot::Normal:            return normalTexture;
 			case MaterialTextureSlot::Occlusion:         return occlusionTexture;
 			case MaterialTextureSlot::Emissive:          return emissiveTexture;
+			case MaterialTextureSlot::Lightmap:          return lightmapTexture;
 			default:                                     break;
 			}
 			static const std::string empty;

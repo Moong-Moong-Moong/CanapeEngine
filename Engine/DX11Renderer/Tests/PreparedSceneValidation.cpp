@@ -57,7 +57,7 @@ struct Fixture
         {
             MaterialDesc desc;
             desc.alphaMode = alpha;
-            return Resources.CreateMaterial(desc, {}, {}, {}, {}, {}, Error);
+            return Resources.CreateMaterial(desc, {}, {}, {}, {}, {}, {}, Error);
         };
         Opaque = material(AlphaMode::Opaque);
         Masked = material(AlphaMode::Masked);
@@ -174,6 +174,33 @@ void RangeAndFailureChecks(Fixture& fixture)
     std::cout << "PASS: individual draw rejection, later valid draws, empty scene reset\n";
 }
 
+void LightmapResourceChecks(Fixture& fixture)
+{
+    const std::array<uint8_t, 4> pixels{ 32, 64, 128, 255 };
+    const auto texture = fixture.Resources.CreateTexture(fixture.Device.Get(), fixture.Context.Get(),
+        1, 1, TextureFormat::RGBA8_UNORM, pixels, fixture.Error);
+    Require(texture.IsValid(), "lightmap texture");
+    const auto material = fixture.Resources.CreateMaterial({}, {}, {}, {}, {}, {}, texture, fixture.Error);
+    Require(material.IsValid(), "lightmap material");
+    const auto prepared = ScenePreparation::PrepareMaterial(fixture.Resources, material);
+    Require(prepared.Constants.HasLightmap == 1
+        && prepared.LightmapTexture == fixture.Resources.GetTexture(texture)->ShaderResourceView.Get(),
+        "lightmap survives material creation and preparation");
+    const auto plain = ScenePreparation::PrepareMaterial(fixture.Resources, fixture.Opaque);
+    Require(plain.Constants.HasLightmap == 0 && plain.LightmapTexture == nullptr,
+        "ordinary material has no lightmap");
+    fixture.Resources.DestroyMaterial(material);
+    const auto recreated = fixture.Resources.CreateMaterial({}, {}, {}, {}, {}, {}, texture, fixture.Error);
+    Require(recreated.IsValid(), "lightmap material can be recreated after an edit");
+    fixture.Resources.DestroyTexture(texture);
+    Require(!fixture.Resources.IsMaterialValid(recreated), "destroying lightmap invalidates its material");
+    Require(fixture.Resources.IsMaterialValid(fixture.Opaque), "unrelated material survives lightmap destruction");
+    const auto stale = ScenePreparation::PrepareMaterial(fixture.Resources, recreated);
+    Require(stale.Constants.HasLightmap == 0 && stale.LightmapTexture == nullptr,
+        "stale material falls back without a lightmap");
+    std::cout << "PASS: lightmap creation, defaults, recreation and texture lifetime\n";
+}
+
 int main()
 {
     try
@@ -181,6 +208,7 @@ int main()
         Fixture fixture;
         QueueAndOwnershipChecks(fixture);
         RangeAndFailureChecks(fixture);
+        LightmapResourceChecks(fixture);
         ComPtr<ID3D11InfoQueue> messages;
         Require(SUCCEEDED(fixture.Device.As(&messages)), "D3D11 debug info queue");
         Require(messages->GetNumStoredMessages() == 0, "unexpected D3D11 debug message");

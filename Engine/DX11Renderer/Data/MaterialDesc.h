@@ -14,5 +14,6 @@ namespace Canape
         float metallic = 0.0f;
         AlphaMode alphaMode = AlphaMode::Opaque;
         float alphaCutoff = 0.5f;
+        uint32_t uvIndex = 0; // Legacy .mat compatibility only. Surface maps use UV0; lightmaps use UV1.
     };
 }

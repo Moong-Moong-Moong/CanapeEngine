@@ -107,7 +107,8 @@ static Color ReadSceneCenter(DX11Renderer::Impl& impl)
     return color;
 }
 
-static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectIBL)
+static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectIBL,
+    TextureResourceId lightmap = {})
 {
     auto& impl = *renderer.m_Impl;
     Require(renderer.BeginFrame(), "BeginFrame");
@@ -141,6 +142,31 @@ static Color Draw(DX11Renderer& renderer, const RenderScene& scene, bool expectI
     impl.Context->PSGetSamplers(3, 1, &boundBRDFSampler);
     Require(boundBRDFSampler.Get() == impl.Pipelines.ResolveSkybox().Sampler,
         "BRDF clamp sampler s3 bound");
+    if (!scene.items.empty() || !scene.skinnedItems.empty())
+    {
+        ComPtr<ID3D11ShaderResourceView> boundLightmap;
+        impl.Context->PSGetShaderResources(ShaderConstants::LightmapTextureSlot, 1, &boundLightmap);
+        const auto* expected = impl.Resources.GetTexture(lightmap);
+        Require(boundLightmap.Get() == (expected ? expected->ShaderResourceView.Get() : nullptr),
+            "lightmap t10 binding or clearing");
+        ComPtr<ID3D11Buffer> materialBuffer;
+        impl.Context->PSGetConstantBuffers(1, 1, &materialBuffer);
+        Require(materialBuffer != nullptr, "material constants bound");
+        D3D11_BUFFER_DESC desc{};
+        materialBuffer->GetDesc(&desc);
+        Require(desc.ByteWidth == sizeof(ShaderConstants::MaterialConstants), "material buffer size");
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ComPtr<ID3D11Buffer> staging;
+        Require(SUCCEEDED(impl.Device->CreateBuffer(&desc, nullptr, &staging)), "material staging");
+        impl.Context->CopyResource(staging.Get(), materialBuffer.Get());
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        Require(SUCCEEDED(impl.Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)), "material readback");
+        const auto constants = *static_cast<const ShaderConstants::MaterialConstants*>(mapped.pData);
+        impl.Context->Unmap(staging.Get(), 0);
+        Require(constants.HasLightmap == (expected ? 1u : 0u), "lightmap availability reaches GPU");
+    }
     const Color center = ReadSceneCenter(impl);
     renderer.EndFrame();
     return center;
@@ -153,12 +179,13 @@ static void CheckColor(Color actual, Color expected)
 }
 
 static Color DrawMaterial(DX11Renderer& renderer, RenderScene& scene,
-    const MaterialDesc& desc, TextureResourceId ao = {}, bool expectIBL = true)
+    const MaterialDesc& desc, TextureResourceId ao = {}, bool expectIBL = true,
+    TextureResourceId lightmap = {})
 {
-    const auto material = renderer.CreateMaterial(desc, {}, {}, {}, ao);
+    const auto material = renderer.CreateMaterial(desc, {}, {}, {}, ao, {}, lightmap);
     Require(renderer.IsMaterialValid(material), "shading material");
     scene.items[0].material = material;
-    const Color color = Draw(renderer, scene, expectIBL);
+    const Color color = Draw(renderer, scene, expectIBL, lightmap);
     renderer.DestroyMaterial(material);
     return color;
 }
@@ -185,6 +212,16 @@ static void ShadingChecks(DX11Renderer& renderer)
     MaterialDesc diffuse;
     diffuse.roughness = .5f;
     const Color diffuseAndSpecular = DrawMaterial(renderer, scene, diffuse);
+    const std::array<uint8_t, 4> lightmapPixel{ 255, 0, 255, 255 };
+    const auto lightmap = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, lightmapPixel);
+    Require(renderer.IsTextureValid(lightmap), "lightmap resource");
+    Color bakedExpected = diffuseAndSpecular;
+    bakedExpected[0] += .96f;
+    bakedExpected[2] += .96f;
+    CheckColor(DrawMaterial(renderer, scene, diffuse, {}, true, lightmap), bakedExpected);
+    CheckColor(DrawMaterial(renderer, scene, diffuse), diffuseAndSpecular);
+    renderer.DestroyTexture(lightmap);
+    std::cout << "Lightmap: t10 and HasLightmap transmitted/cleared; diffuse added to existing IBL PASS\n";
     const std::array<uint8_t, 4> blackAO{0, 0, 0, 255};
     const auto ao = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, blackAO);
     Require(renderer.IsTextureValid(ao), "black AO map");
@@ -265,6 +302,107 @@ static void ShadingChecks(DX11Renderer& renderer)
     renderer.DestroyCubemap(constantCube);
     renderer.DestroyMesh(mesh);
     std::cout << "IBL mesh shading: diffuse, specular, AO, roughness, view, rotation, brightness, fallback PASS\n";
+}
+
+static void LightmapShadingChecks(DX11Renderer& renderer)
+{
+    std::array<StaticVertex, 4> vertices{};
+    const std::array<Vector3, 4> positions{
+        Vector3{-1,-1,1}, Vector3{-1,1,1}, Vector3{1,1,1}, Vector3{1,-1,1} };
+    std::array<SkinnedVertex, 4> skin{};
+    for (size_t i = 0; i < vertices.size(); ++i)
+    {
+        vertices[i].Position = skin[i].Position = positions[i];
+        vertices[i].Normal = skin[i].Normal = {0, 0, -1};
+        vertices[i].UV = skin[i].UV = {.25f, .5f};
+        vertices[i].UV1 = skin[i].UV1 = {.75f, .5f};
+        skin[i].Weights[0] = 1;
+    }
+    const std::array<uint32_t, 6> indices{0, 1, 2, 0, 2, 3};
+    const auto mesh = renderer.CreateMesh(vertices, indices, {});
+    const auto skinned = renderer.CreateMesh(skin, indices, {});
+    Require(renderer.IsMeshValid(mesh) && renderer.IsMeshValid(skinned), "lightmap test meshes");
+    // UV0 addresses the black texel; UV1 addresses the colored texel.
+    const std::array<uint8_t, 8> lightingPixels{0, 0, 0, 255, 255, 128, 64, 255};
+    const auto lightmap = renderer.CreateTexture(2, 1, TextureFormat::RGBA8_UNORM, lightingPixels);
+    const std::array<uint8_t, 4> black{0, 0, 0, 255};
+    const auto blackMap = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, black);
+    const std::array<uint8_t, 8> basePixels{128, 255, 128, 255, 255, 0, 255, 255};
+    const auto baseTexture = renderer.CreateTexture(2, 1, TextureFormat::RGBA8_UNORM, basePixels);
+    // A fully metallic descriptor becomes nonmetallic after sampling this ORM B=0.
+    const std::array<uint8_t, 4> ormPixels{255, 255, 0, 255};
+    const auto orm = renderer.CreateTexture(1, 1, TextureFormat::RGBA8_UNORM, ormPixels);
+    Require(renderer.IsTextureValid(lightmap) && renderer.IsTextureValid(blackMap)
+        && renderer.IsTextureValid(baseTexture) && renderer.IsTextureValid(orm), "lightmap test maps");
+
+    RenderScene scene;
+    scene.camera.view = Matrix4::LookTo({}, {0, 0, 1});
+    scene.camera.projection = Matrix4::Perspective(.95f, 1, .1f, 100);
+    scene.ambientColor = {.2f, .4f, .6f};
+    scene.ambientIntensity = .5f;
+    RenderLight light;
+    light.id = 1;
+    light.type = LightType::Directional;
+    light.direction = {0, 0, 1};
+    light.intensity = .5f;
+    scene.lights.push_back(light);
+    scene.bonePalettes = {Matrix4::Identity};
+    MaterialDesc tinted;
+    tinted.baseColor = {.5f, .25f, .75f, 1};
+    tinted.roughness = .5f;
+    const Color sample{1, 128.0f / 255, 64.0f / 255};
+    const Color diffuse{.96f * tinted.baseColor.X * sample[0],
+        .96f * tinted.baseColor.Y * sample[1], .96f * tinted.baseColor.Z * sample[2]};
+
+    for (bool useSkin : {false, true})
+    {
+        scene.items.clear();
+        scene.skinnedItems.clear();
+        if (useSkin) scene.skinnedItems.push_back({skinned, 0, {}, Matrix4::Identity, 0, 1, false});
+        else scene.items.push_back({mesh, 0, {}, Matrix4::Identity, false});
+        auto render = [&](const MaterialDesc& desc, TextureResourceId baked,
+            TextureResourceId ao = {}, TextureResourceId base = {}, TextureResourceId packed = {})
+        {
+            const auto material = renderer.CreateMaterial(desc, base, packed, {}, ao, {}, baked);
+            Require(renderer.IsMaterialValid(material), "lightmap shading material");
+            if (useSkin) scene.skinnedItems[0].material = material;
+            else scene.items[0].material = material;
+            const Color color = Draw(renderer, scene, false, baked);
+            renderer.DestroyMaterial(material);
+            return color;
+        };
+        auto checkIncrement = [&](const MaterialDesc& desc, TextureResourceId baked, Color expected,
+            TextureResourceId ao = {}, TextureResourceId base = {}, TextureResourceId packed = {})
+        {
+            const Color before = render(desc, {}, ao, base, packed);
+            const Color after = render(desc, baked, ao, base, packed);
+            for (size_t c = 0; c < 3; ++c)
+                Require(std::abs((after[c] - before[c]) - expected[c]) < .02f,
+                    "lightmap contribution differs from expected diffuse reflection");
+            CheckColor(render(desc, {}, ao, base, packed), before);
+        };
+        checkIncrement(tinted, lightmap, diffuse); // UV1 and colored diffuse response, additive to direct/ambient.
+        checkIncrement(tinted, blackMap, {0, 0, 0});
+        checkIncrement(tinted, lightmap, diffuse, blackMap); // Do not apply baked AO twice.
+        scene.skybox.brightness = 0;
+        checkIncrement(tinted, lightmap, diffuse); // Static baked lighting is independent of skybox brightness.
+        scene.skybox.brightness = 1;
+        const float half = 128.0f / 255;
+        checkIncrement(tinted, lightmap, {diffuse[0] * half, diffuse[1], diffuse[2] * half}, {}, baseTexture);
+        MaterialDesc metal = tinted;
+        metal.metallic = 1;
+        checkIncrement(metal, lightmap, {0, 0, 0});
+        checkIncrement(metal, lightmap, diffuse, {}, {}, orm);
+        scene.fog.mode = FogMode::Linear;
+        scene.fog.startDistance = scene.fog.endDistance = 0;
+        scene.fog.color = {.1f, .2f, .3f};
+        CheckColor(render(tinted, lightmap), {.1f, .2f, .3f});
+        scene.fog.mode = FogMode::Disabled;
+    }
+    for (const auto texture : {lightmap, blackMap, baseTexture, orm}) renderer.DestroyTexture(texture);
+    renderer.DestroyMesh(mesh);
+    renderer.DestroyMesh(skinned);
+    std::cout << "Lightmap WARP: static/skinned UV1, additive diffuse, base UV0, metal/ORM, AO, fog, defaults PASS\n";
 }
 
 int main()
@@ -397,6 +535,7 @@ int main()
             renderer.DestroyCubemap(cubeFailure);
             renderer.DestroyCubemap(cubeA);
             ShadingChecks(renderer);
+            LightmapShadingChecks(renderer);
             sharedLUT.Reset();
             impl.Context->ClearState();
             for (UINT64 i = 0; i < queue->GetNumStoredMessages(); ++i)

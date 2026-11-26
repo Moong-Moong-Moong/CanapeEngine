@@ -60,6 +60,7 @@ namespace Canape::MeshDraw
         // Bind null views too, so a material cannot inherit the previous draw's maps.
         context.Context.PSSetShaderResources(3, 1, &draw.Material.NormalTexture);
         context.Context.PSSetShaderResources(5, 1, &draw.Material.OcclusionTexture);
+        context.Context.PSSetShaderResources(ShaderConstants::LightmapTextureSlot, 1, &draw.Material.LightmapTexture);
         const AlphaMode alpha = draw.Material.Description.alphaMode;
 #if CANAPE_RENDER_DEBUG
         const auto& settings = *context.DebugSettings;

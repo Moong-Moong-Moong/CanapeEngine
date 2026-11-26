@@ -312,7 +312,7 @@ namespace Canape
 
     MaterialResourceId DX11Renderer::CreateMaterial(const MaterialDesc& desc, TextureResourceId baseColorTexture,
         TextureResourceId ormTexture, TextureResourceId normalTexture,
-        TextureResourceId occlusionTexture, TextureResourceId emissiveTexture)
+        TextureResourceId occlusionTexture, TextureResourceId emissiveTexture, TextureResourceId lightmapTexture)
     {
         if (!m_Impl->Initialized)
         {
@@ -321,7 +321,7 @@ namespace Canape
             return {};
         }
         return m_Impl->Resources.CreateMaterial(desc, baseColorTexture, ormTexture, normalTexture,
-            occlusionTexture, emissiveTexture, m_Impl->LastError);
+            occlusionTexture, emissiveTexture, lightmapTexture, m_Impl->LastError);
     }
 
     MaterialDesc DX11Renderer::GetMaterial(MaterialResourceId material) const

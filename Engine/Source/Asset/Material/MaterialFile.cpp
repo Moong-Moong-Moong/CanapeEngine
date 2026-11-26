@@ -1,5 +1,6 @@
 ﻿#include "Asset/Material/MaterialFile.h"
 #include "CNDebug/DebugLog.h"
+#include "DX11Renderer/Data/MeshData.h"
 
 #include <nlohmann/json.hpp>
 
@@ -82,6 +83,7 @@ namespace Canape
 			data.normalTexture = root.value("normalTexture", std::string());
 			data.occlusionTexture = root.value("occlusionTexture", std::string());
 			data.emissiveTexture = root.value("emissiveTexture", std::string());
+			data.lightmapTexture = root.value("lightmapTexture", std::string());
 			
 
 			const auto desc = root.find("desc");
@@ -98,6 +100,11 @@ namespace Canape
 				data.desc.metallic = ReadFloat(*desc, "metallic", data.desc.metallic);
 				data.desc.alphaMode = ToAlphaMode(desc->value("alphaMode", std::string()));
 				data.desc.alphaCutoff = ReadFloat(*desc, "alphaCutoff", data.desc.alphaCutoff);
+				const auto uvIndex = desc->find("uvIndex");
+				if (uvIndex != desc->end() && uvIndex->is_number_unsigned() && uvIndex->get<uint32_t>() < kMaxUVSets)
+				{
+					data.desc.uvIndex = uvIndex->get<uint32_t>();
+				}
 			}
 			return true;
 		}
@@ -117,6 +124,7 @@ namespace Canape
 			root["normalTexture"] = data.normalTexture;
 			root["occlusionTexture"] = data.occlusionTexture;
 			root["emissiveTexture"] = data.emissiveTexture;
+			root["lightmapTexture"] = data.lightmapTexture;
 
 
 			Json desc;
@@ -127,6 +135,7 @@ namespace Canape
 			desc["metallic"] = data.desc.metallic;
 			desc["alphaMode"] = ToString(data.desc.alphaMode);
 			desc["alphaCutoff"] = data.desc.alphaCutoff;
+			desc["uvIndex"] = data.desc.uvIndex < kMaxUVSets ? data.desc.uvIndex : 0u;
 			root["desc"] = std::move(desc);
 
 			std::ofstream stream(file);

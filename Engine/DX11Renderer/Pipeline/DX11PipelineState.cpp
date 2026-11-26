@@ -140,6 +140,7 @@ namespace Canape
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, Normal)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, Tangent)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(StaticVertex, UV1)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         result = device->CreateInputLayout(staticElements, static_cast<UINT>(std::size(staticElements)),
             vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.StaticInputLayout);
@@ -169,6 +170,7 @@ namespace Canape
             { "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Tangent)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "BLENDINDICES", 0, DXGI_FORMAT_R16G16B16A16_UINT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Joints)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, Weights)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(SkinnedVertex, UV1)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         result = device->CreateInputLayout(skinnedElements, static_cast<UINT>(std::size(skinnedElements)),
             vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(), &pending.SkinnedInputLayout);

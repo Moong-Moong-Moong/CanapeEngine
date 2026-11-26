@@ -8,7 +8,7 @@ cbuffer ObjectBuffer : register(b0)
     float4x4 WorldInverseTranspose;
 };
 
-// Linear RGB and alpha. Layout matches the 48-byte CPU MaterialConstants.
+// Linear RGB and alpha. Layout matches the 64-byte CPU MaterialConstants.
 cbuffer MaterialBuffer : register(b1)
 {
     float4 BaseColor;
@@ -20,6 +20,8 @@ cbuffer MaterialBuffer : register(b1)
     float MaterialRoughness;
     uint HasORMTexture;
     uint HasOcclusionTexture;
+    uint HasLightmap;
+    uint3 MaterialPadding;
 };
 
 // Per view. Layout matches the 208-byte CPU ViewConstants.

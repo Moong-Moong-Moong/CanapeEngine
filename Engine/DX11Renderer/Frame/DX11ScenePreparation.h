@@ -41,6 +41,7 @@ namespace Canape
         ID3D11ShaderResourceView* ORMTexture = nullptr;
         ID3D11ShaderResourceView* NormalTexture = nullptr;
         ID3D11ShaderResourceView* OcclusionTexture = nullptr;
+        ID3D11ShaderResourceView* LightmapTexture = nullptr;
     };
     struct PreparedLighting
     {

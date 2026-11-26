@@ -35,9 +35,27 @@ namespace Canape
 
 		static_assert(sizeof(FileHeader) == 36);
 		static_assert(std::is_trivially_copyable_v<SubMesh> && sizeof(SubMesh) == 16);
-		static_assert(std::is_trivially_copyable_v<StaticVertex> && sizeof(StaticVertex) == 48);
-		static_assert(std::is_trivially_copyable_v<SkinnedVertex> && sizeof(SkinnedVertex) == 72);
+		static_assert(std::is_trivially_copyable_v<StaticVertex> && sizeof(StaticVertex) == 56);
+		static_assert(std::is_trivially_copyable_v<SkinnedVertex> && sizeof(SkinnedVertex) == 80);
 		static_assert(std::is_trivially_copyable_v<Matrix4> && sizeof(Matrix4) == 64);
+
+		constexpr uint32_t kSingleUVVersion = 1;
+		constexpr uint32_t kSingleUVStaticStride = 48;
+		constexpr uint32_t kSingleUVSkinnedStride = 72;
+		static_assert(offsetof(StaticVertex, UV1) == kSingleUVStaticStride);
+		static_assert(offsetof(SkinnedVertex, UV1) == kSingleUVSkinnedStride);
+
+		bool IsSupportedVersion(uint32_t version)
+		{
+			return version == kSingleUVVersion || version == MeshSerializer::Version;
+		}
+
+		uint32_t VertexStrideFor(uint32_t version, bool skinned)
+		{
+			if (version == kSingleUVVersion)
+				return skinned ? kSingleUVSkinnedStride : kSingleUVStaticStride;
+			return static_cast<uint32_t>(skinned ? sizeof(SkinnedVertex) : sizeof(StaticVertex));
+		}
 
 		std::filesystem::path ToPath(const std::string& utf8)
 		{
@@ -126,6 +144,23 @@ namespace Canape
 				return true;
 			}
 
+			template <typename Vertex>
+			bool Vertices(std::vector<Vertex>& values, uint32_t count, uint32_t stride)
+			{
+				static_assert(std::is_trivially_copyable_v<Vertex>);
+				if (stride == sizeof(Vertex))
+					return Array(values, count);
+				if (stride > sizeof(Vertex) || count > Remaining() / stride)
+					return false;
+				values.assign(count, Vertex{});
+				for (Vertex& value : values)
+				{
+					if (!Bytes(&value, stride))
+						return false;
+				}
+				return true;
+			}
+
 			size_t Remaining() const { return m_Data.size() - m_Offset; }
 			size_t Offset() const { return m_Offset; }
 
@@ -195,12 +230,12 @@ namespace Canape
 		{
 			Reader reader(data);
 			FileHeader header{};
-			if (!reader.Value(header) || std::memcmp(header.magic, kMagic, sizeof(kMagic)) != 0 || header.version != MeshSerializer::Version)
+			if (!reader.Value(header) || std::memcmp(header.magic, kMagic, sizeof(kMagic)) != 0 || !IsSupportedVersion(header.version))
 				return false;
 			const bool skinned = header.vertexFormat == kFormatSkinned;
 			if (!skinned && header.vertexFormat != kFormatStatic)
 				return false;
-			if (header.vertexStride != (skinned ? sizeof(SkinnedVertex) : sizeof(StaticVertex)))
+			if (header.vertexStride != VertexStrideFor(header.version, skinned))
 				return false;
 			if (!reader.Skip(header.subMeshCount, sizeof(SubMesh))
 				|| !reader.Skip(header.vertexCount, header.vertexStride)
@@ -354,13 +389,13 @@ namespace Canape
 		FileHeader header{};
 		if (!reader.Value(header) || std::memcmp(header.magic, kMagic, sizeof(kMagic)) != 0)
 			return fail("cnmesh 형식이 아님");
-		if (header.version != Version)
+		if (!IsSupportedVersion(header.version))
 			return fail("지원하지 않는 cnmesh 버전");
 
 		const bool skinned = header.vertexFormat == kFormatSkinned;
 		if (!skinned && header.vertexFormat != kFormatStatic)
 			return fail("알 수 없는 정점 형식");
-		if (header.vertexStride != (skinned ? sizeof(SkinnedVertex) : sizeof(StaticVertex)))
+		if (header.vertexStride != VertexStrideFor(header.version, skinned))
 			return fail("정점 크기 불일치");
 		if (!skinned && header.boneCount != 0)
 			return fail("정적 메쉬에 본 데이터가 있음");
@@ -378,8 +413,8 @@ namespace Canape
 		if (!reader.Array(subMeshes, header.subMeshCount))
 			return fail("서브메쉬 데이터 손상");
 		const bool verticesRead = skinned
-			? reader.Array(skinnedVertices, header.vertexCount)
-			: reader.Array(staticVertices, header.vertexCount);
+			? reader.Vertices(skinnedVertices, header.vertexCount, header.vertexStride)
+			: reader.Vertices(staticVertices, header.vertexCount, header.vertexStride);
 		if (!verticesRead)
 			return fail("정점 데이터 손상");
 		if (!reader.Array(indices, header.indexCount))
