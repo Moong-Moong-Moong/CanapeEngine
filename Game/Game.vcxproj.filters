@@ -37,6 +37,9 @@
     <Filter Include="Source\FsmSample">
       <UniqueIdentifier>{A09F0646-7C41-C492-C5F8-96D67134117C}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\KnightsGame">
+      <UniqueIdentifier>{5D3A7C21-8E4B-4F96-A1B2-3C7E9D0F4A68}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\MoveSample">
       <UniqueIdentifier>{1C2EF7E4-9B90-5A3F-4C4A-7F14DBCC28A7}</UniqueIdentifier>
     </Filter>
@@ -504,6 +507,36 @@
     </None>
     <None Include="Content\Models\Player.fbx">
       <Filter>Content\Models</Filter>
+    </None>
+    <ClInclude Include="Source\KnightsGame\KnightsRules.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\KnightsGame\KnightsAi.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\KnightsGame\KnightsTitleMenu.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\KnightsGame\KnightsBoardController.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\KnightsGame\KnightsRules.cpp">
+      <Filter>Source\KnightsGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\KnightsGame\KnightsAi.cpp">
+      <Filter>Source\KnightsGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\KnightsGame\KnightsTitleMenu.cpp">
+      <Filter>Source\KnightsGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\KnightsGame\KnightsBoardController.cpp">
+      <Filter>Source\KnightsGame</Filter>
+    </ClCompile>
+    <None Include="Content\Scenes\KnightsGame.json">
+      <Filter>Content\Scenes</Filter>
+    </None>
+    <None Include="Content\Scenes\KnightsTitle.json">
+      <Filter>Content\Scenes</Filter>
     </None>
     <None Include="Content\Scenes\FsmSample.json">
       <Filter>Content\Scenes</Filter>

@@ -101,6 +101,10 @@ exit /b 0</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameApp.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsRules.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsAi.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsTitleMenu.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsBoardController.h" />
     <ClInclude Include="Source\Scripts\PlayerController.h" />
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
@@ -156,6 +160,10 @@ exit /b 0</Command>
   <ItemGroup>
     <ClCompile Include="Source\GameApp.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\KnightsGame\KnightsRules.cpp" />
+    <ClCompile Include="Source\KnightsGame\KnightsAi.cpp" />
+    <ClCompile Include="Source\KnightsGame\KnightsTitleMenu.cpp" />
+    <ClCompile Include="Source\KnightsGame\KnightsBoardController.cpp" />
     <ClCompile Include="Source\Scripts\PlayerController.cpp" />
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />
@@ -240,6 +248,8 @@ exit /b 0</Command>
     <None Include="Content\Game.json" />
     <None Include="Content\Scenes\FsmSample.json" />
     <None Include="Content\Scenes\Island.json" />
+    <None Include="Content\Scenes\KnightsGame.json" />
+    <None Include="Content\Scenes\KnightsTitle.json" />
     <None Include="Content\Scenes\MaterialMaps.json" />
     <None Include="Content\Scenes\PhysicsPlayground.json" />
     <None Include="Content\Scenes\SampleScene.json" />
