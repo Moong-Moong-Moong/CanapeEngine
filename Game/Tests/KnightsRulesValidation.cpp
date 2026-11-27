@@ -1,8 +1,12 @@
-// 기사단 게임 룰 코어 검증. 엔진에 링크하지 않고 룰 소스만 컴파일한다.
+// 기사단 게임 룰 코어·AI 검증. 엔진에 링크하지 않고 룰·AI 소스만 컴파일한다.
+#include "KnightsGame/KnightsAi.h"
 #include "KnightsGame/KnightsRules.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <set>
 #include <string_view>
+#include <utility>
 
 using namespace Knights;
 
@@ -418,6 +422,94 @@ namespace
         for (int r = 0; r < 4; ++r)
             CHECK(g.GetMonsterScore(r) == fresh.GetMonsterScore(r));
     }
+
+    constexpr std::array<AiPersonality, 4> kAllPersonalities = {
+        AiPersonality::Aggressive, AiPersonality::Cautious, AiPersonality::Reinforcer, AiPersonality::Balanced};
+
+    void AiPersonalityMapping()
+    {
+        CHECK(GetAiPersonality(1) == AiPersonality::Aggressive);
+        CHECK(GetAiPersonality(2) == AiPersonality::Cautious);
+        CHECK(GetAiPersonality(3) == AiPersonality::Reinforcer);
+        CHECK(GetAiPersonality(4) == AiPersonality::Balanced);
+    }
+
+    // 시드 1..1000 자가 대전. 플레이어 0도 균형형 AI로 대체한다. 모든 제출이 None이고 불변식이 지켜진다.
+    void AiAlwaysValid()
+    {
+        const auto& defs = GetRegionDefs();
+        for (uint32_t seed = 1; seed <= 1000; ++seed)
+        {
+            Game g(seed);
+            std::vector<Ai> ais;
+            ais.emplace_back(AiPersonality::Balanced, seed * kPlayerCount);
+            for (int p = 1; p < kPlayerCount; ++p)
+                ais.emplace_back(GetAiPersonality(p), seed * kPlayerCount + static_cast<uint32_t>(p));
+
+            for (int round = 1; round <= kRoundCount; ++round)
+            {
+                CHECK(g.GetRound() == round && g.GetPhase() == Phase::FlagPlacement);
+                for (int r = 0; r < kRegionCount; ++r)
+                {
+                    if (defs[r].kind == RegionKind::Monster)
+                        CHECK(g.GetMonsterScore(r) >= defs[r].minScore && g.GetMonsterScore(r) <= defs[r].maxScore);
+                }
+                for (int p = 0; p < kPlayerCount; ++p)
+                    CHECK(g.SubmitFlags(p, ais[p].ChooseFlags(g.GetView(p))) == SubmitError::None);
+                CHECK(g.GetPhase() == Phase::KnightPlacement);
+                for (int p = 0; p < kPlayerCount; ++p)
+                    CHECK(g.SubmitKnights(p, ais[p].ChooseKnights(g.GetView(p))) == SubmitError::None);
+                CHECK(g.GetPhase() == Phase::Resolution);
+                for (const RegionEvent& e : g.GetResolution())
+                    CHECK(e.dice >= 0 && e.dice <= 6);
+                for (int p = 0; p < kPlayerCount; ++p)
+                    CHECK(g.GetPlayer(p).knights >= 0);
+                g.AdvanceRound();
+            }
+            CHECK(g.GetPhase() == Phase::GameOver);
+            CHECK(!g.GetWinners().empty());
+        }
+    }
+
+    // 나 혼자 깃발을 꽂은 지역에서 보유 기사가 몬스터 점수보다 적으면 한 명도 보내지 않는다.
+    void AiNoHopelessSolo()
+    {
+        PublicView v;
+        v.viewer = 2;
+        v.round = 1;
+        v.phase = Phase::KnightPlacement;
+        v.monsterScores = {2, 4, 7, 12, 0, 0};
+        v.flags[2][3] = true;  // 드래곤 동굴(점수 12): 나만 깃발
+        v.flags[2][4] = true;  // 훈련소
+        v.players[2].knights = 5;
+        for (AiPersonality personality : kAllPersonalities)
+        {
+            for (uint32_t seed = 1; seed <= 20; ++seed)
+            {
+                Ai ai(personality, seed);
+                const KnightAllocation a = ai.ChooseKnights(v);
+                CHECK(a[3] == 0);
+                for (int r = 0; r < kRegionCount; ++r)
+                    CHECK(a[r] == 0);
+            }
+        }
+    }
+
+    // 같은 뷰에서도 시드에 따라 깃발 선택이 달라진다.
+    void AiVaries()
+    {
+        const Game g(1);
+        const PublicView v = g.GetView(4);
+        std::set<std::pair<int, int>> seen;
+        for (uint32_t seed = 1; seed <= 50; ++seed)
+        {
+            Ai ai(AiPersonality::Balanced, seed);
+            const FlagChoice f = ai.ChooseFlags(v);
+            CHECK(f[0] != f[1] && f[0] >= 0 && f[1] >= 0 && f[0] < kRegionCount && f[1] < kRegionCount);
+            seen.insert({std::min(f[0], f[1]), std::max(f[0], f[1])});
+        }
+        CHECK(seen.size() >= 2);
+    }
 }
 
 int main()
@@ -442,6 +534,10 @@ int main()
     AdvanceOnlyInResolution();
     Winners();
     ResetRestoresStart();
+    AiPersonalityMapping();
+    AiAlwaysValid();
+    AiNoHopelessSolo();
+    AiVaries();
 
     if (g_failures == 0)
     {
