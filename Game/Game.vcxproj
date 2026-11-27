@@ -105,6 +105,8 @@ exit /b 0</Command>
     <ClInclude Include="Source\KnightsGame\KnightsAi.h" />
     <ClInclude Include="Source\KnightsGame\KnightsTitleMenu.h" />
     <ClInclude Include="Source\KnightsGame\KnightsBoardController.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsBoardText.h" />
+    <ClInclude Include="Source\KnightsGame\KnightsUi.h" />
     <ClInclude Include="Source\Scripts\PlayerController.h" />
     <ClInclude Include="Source\Scripts\CameraController.h" />
     <ClInclude Include="Source\Scripts\SceneChanger.h" />
@@ -164,6 +166,7 @@ exit /b 0</Command>
     <ClCompile Include="Source\KnightsGame\KnightsAi.cpp" />
     <ClCompile Include="Source\KnightsGame\KnightsTitleMenu.cpp" />
     <ClCompile Include="Source\KnightsGame\KnightsBoardController.cpp" />
+    <ClCompile Include="Source\KnightsGame\KnightsBoardText.cpp" />
     <ClCompile Include="Source\Scripts\PlayerController.cpp" />
     <ClCompile Include="Source\Scripts\CameraController.cpp" />
     <ClCompile Include="Source\Scripts\SceneChanger.cpp" />

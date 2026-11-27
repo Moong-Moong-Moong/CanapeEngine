@@ -520,6 +520,12 @@
     <ClInclude Include="Source\KnightsGame\KnightsBoardController.h">
       <Filter>Source\KnightsGame</Filter>
     </ClInclude>
+    <ClInclude Include="Source\KnightsGame\KnightsBoardText.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\KnightsGame\KnightsUi.h">
+      <Filter>Source\KnightsGame</Filter>
+    </ClInclude>
     <ClCompile Include="Source\KnightsGame\KnightsRules.cpp">
       <Filter>Source\KnightsGame</Filter>
     </ClCompile>
@@ -530,6 +536,9 @@
       <Filter>Source\KnightsGame</Filter>
     </ClCompile>
     <ClCompile Include="Source\KnightsGame\KnightsBoardController.cpp">
+      <Filter>Source\KnightsGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\KnightsGame\KnightsBoardText.cpp">
       <Filter>Source\KnightsGame</Filter>
     </ClCompile>
     <None Include="Content\Scenes\KnightsGame.json">
