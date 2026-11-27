@@ -73,6 +73,10 @@ namespace Knights
         std::array<int, kPlayerCount> knightsGained{};
     };
 
+    // 순수 함수: 몬스터 지역 정산 규칙만. sent는 깃발이 있는 플레이어만 0보다 크다고 가정한다.
+    RegionEvent ResolveMonster(int region, int monsterScore, const std::array<int, kPlayerCount>& sent,
+                               const std::array<bool, kPlayerCount>& flagged);
+
     struct PublicView
     {
         int viewer = 0;
