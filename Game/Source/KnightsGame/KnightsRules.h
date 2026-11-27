@@ -16,10 +16,13 @@ namespace Knights
     constexpr int kFlagsPerPlayer = 2;
     constexpr int kStartKnights = 5;
     constexpr int kHumanPlayer = 0;
+    constexpr int kLateRoundStart = 5;         // 이 라운드부터 몬스터 점수 범위가 오른다
+    constexpr int kLateRoundMonsterBonus = 2;  // 그때 최소·최댓값에 더하는 값
+    constexpr int kMaxMonsterScore = 17;       // 나올 수 있는 최대 몬스터 점수(드래곤 15 + 후반 2)
 
     enum class RegionKind { Monster, TrainingGround, MercenaryMarket };
 
-    // 증원 지역은 minScore, maxScore가 0이다.
+    // 1~4라운드 기준 범위. 증원 지역은 minScore, maxScore가 0이다.
     struct RegionDef
     {
         std::string_view name;
@@ -29,6 +32,15 @@ namespace Knights
     };
 
     const std::array<RegionDef, kRegionCount>& GetRegionDefs();
+
+    struct ScoreRange
+    {
+        int min;
+        int max;
+    };
+
+    // 해당 라운드에 실제로 쓰는 몬스터 점수 범위(kLateRoundStart부터 보정). 증원 지역은 {0, 0}.
+    ScoreRange GetMonsterRange(int region, int round);
 
     // 공개는 단계 전환으로 표현한다: KnightPlacement 진입 = 깃발 공개, Resolution 진입 = 기사 공개 + 정산 완료.
     enum class Phase { FlagPlacement, KnightPlacement, Resolution, GameOver };

@@ -8,7 +8,6 @@ namespace Knights
 {
     namespace
     {
-        constexpr int kMaxMonsterScore = 12;           // 지역 테이블의 최대 몬스터 점수
         constexpr int kSamples = 12;                   // 남의 배치를 추정할 무작위 표본 수
         constexpr double kOtherCommitRate = 0.75;      // 남은 보유 기사의 이 비율을 몬스터 깃발 수로 나눠 보낸다고 추정
         constexpr double kKnightValuePerRound = 0.45;  // 기사 1명이 남은 라운드 하나에서 벌어 올 점수 추정

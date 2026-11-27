@@ -41,6 +41,7 @@ private:
         Canape::UIImage* frame = nullptr;     // 강조 테두리(카드 뒤)
         Canape::UIButton* button = nullptr;
         Canape::UIText* bigValue = nullptr;   // 몬스터 점수 / 증원 값
+        Canape::UIText* sub = nullptr;        // 종류·점수 범위 줄(몬스터 범위는 라운드에 따라 바뀐다)
         std::array<Canape::UIImage*, Knights::kPlayerCount> flagChips{};
         std::array<Canape::UIElement*, Knights::kPlayerCount> knightChips{};
         std::array<Canape::UIText*, Knights::kPlayerCount> knightCounts{};

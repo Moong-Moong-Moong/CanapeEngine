@@ -5,14 +5,23 @@ namespace Knights
     const std::array<RegionDef, kRegionCount>& GetRegionDefs()
     {
         static const std::array<RegionDef, kRegionCount> kDefs = {{
-            {"고블린 둥지", RegionKind::Monster, 1, 3},
-            {"오크 야영지", RegionKind::Monster, 3, 6},
-            {"트롤 다리", RegionKind::Monster, 5, 9},
-            {"드래곤 동굴", RegionKind::Monster, 8, 12},
+            {"고블린 둥지", RegionKind::Monster, 2, 7},
+            {"오크 야영지", RegionKind::Monster, 6, 11},
+            {"트롤 다리", RegionKind::Monster, 8, 13},
+            {"드래곤 동굴", RegionKind::Monster, 10, 15},
             {"훈련소", RegionKind::TrainingGround, 0, 0},
             {"용병 시장", RegionKind::MercenaryMarket, 0, 0},
         }};
         return kDefs;
+    }
+
+    ScoreRange GetMonsterRange(int region, int round)
+    {
+        const RegionDef& def = GetRegionDefs()[region];
+        if (def.kind != RegionKind::Monster)
+            return {0, 0};
+        const int bonus = round >= kLateRoundStart ? kLateRoundMonsterBonus : 0;
+        return {def.minScore + bonus, def.maxScore + bonus};
     }
 
     Game::Game(uint32_t seed)
@@ -40,7 +49,8 @@ namespace Knights
         {
             if (defs[r].kind == RegionKind::Monster)
             {
-                std::uniform_int_distribution<int> dist(defs[r].minScore, defs[r].maxScore);
+                const ScoreRange range = GetMonsterRange(r, m_round);
+                std::uniform_int_distribution<int> dist(range.min, range.max);
                 m_monsterScores[r] = dist(m_rng);
             }
             else

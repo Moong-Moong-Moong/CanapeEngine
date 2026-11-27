@@ -155,14 +155,12 @@ void KnightsBoardController::BuildBoard(UIElement& root)
         UIButton& face = *card.button;
         AddLabel(face, "Name", std::string(def.name), 34.0f, { 20.0f, 10.0f }, { 260.0f, 48.0f });
 
-        std::string sub;
-        if (monster)
-            sub = "몬스터 · 점수 범위 " + Num(def.minScore) + "~" + Num(def.maxScore);
-        else if (def.kind == RegionKind::TrainingGround)
+        std::string sub;  // 몬스터 범위는 RefreshCards가 라운드에 맞춰 채운다.
+        if (def.kind == RegionKind::TrainingGround)
             sub = "증원 · 깃발 1개당 기사 +1";
-        else
+        else if (def.kind == RegionKind::MercenaryMarket)
             sub = "증원 · 주사위 → 깃발 수로 나눔";
-        AddLabel(face, "Sub", sub, 22.0f, { 20.0f, 64.0f }, { 410.0f, 32.0f }, KnightsUi::kSubTextColor);
+        card.sub = AddLabel(face, "Sub", sub, 22.0f, { 20.0f, 64.0f }, { 410.0f, 32.0f }, KnightsUi::kSubTextColor);
 
         card.bigValue = AddLabel(face, "Value", "", monster ? 56.0f : 38.0f, { -20.0f, 4.0f }, { 180.0f, 62.0f },
                                  KnightsUi::kTitleColor, UITextAlign::End);
@@ -752,7 +750,11 @@ void KnightsBoardController::RefreshCards(const PublicView& view)
         //*** 큰 값
         std::string value;
         if (monster)
+        {
+            const ScoreRange range = GetMonsterRange(r, view.round);
+            KnightsUi::SetTextIfChanged(*card.sub, "몬스터 · 점수 범위 " + Num(range.min) + "~" + Num(range.max));
             value = Num(view.monsterScores[r]) + "점";
+        }
         else if (defs[r].kind == RegionKind::TrainingGround)
             value = "기사 +1";
         else
@@ -933,7 +935,12 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
         break;
     case Stage::RoundEnd:
         message = "라운드 " + Num(view.round) + " 종료";
-        detail = view.round < kRoundCount ? "다음 라운드에는 몬스터 점수를 새로 뽑습니다." : "최종 결과를 확인합니다.";
+        if (view.round >= kRoundCount)
+            detail = "최종 결과를 확인합니다.";
+        else if (view.round + 1 == kLateRoundStart)
+            detail = "다음 라운드부터 몬스터 점수 범위가 " + Num(kLateRoundMonsterBonus) + "씩 오릅니다.";
+        else
+            detail = "다음 라운드에는 몬스터 점수를 새로 뽑습니다.";
         break;
     case Stage::GameOver:
         message = "게임 종료";

@@ -38,13 +38,13 @@ namespace
         const auto& defs = GetRegionDefs();
         CHECK(defs.size() == 6);
         CHECK(defs[0].name == std::string_view("고블린 둥지"));
-        CHECK(defs[0].kind == RegionKind::Monster && defs[0].minScore == 1 && defs[0].maxScore == 3);
+        CHECK(defs[0].kind == RegionKind::Monster && defs[0].minScore == 2 && defs[0].maxScore == 7);
         CHECK(defs[1].name == std::string_view("오크 야영지"));
-        CHECK(defs[1].kind == RegionKind::Monster && defs[1].minScore == 3 && defs[1].maxScore == 6);
+        CHECK(defs[1].kind == RegionKind::Monster && defs[1].minScore == 6 && defs[1].maxScore == 11);
         CHECK(defs[2].name == std::string_view("트롤 다리"));
-        CHECK(defs[2].kind == RegionKind::Monster && defs[2].minScore == 5 && defs[2].maxScore == 9);
+        CHECK(defs[2].kind == RegionKind::Monster && defs[2].minScore == 8 && defs[2].maxScore == 13);
         CHECK(defs[3].name == std::string_view("드래곤 동굴"));
-        CHECK(defs[3].kind == RegionKind::Monster && defs[3].minScore == 8 && defs[3].maxScore == 12);
+        CHECK(defs[3].kind == RegionKind::Monster && defs[3].minScore == 10 && defs[3].maxScore == 15);
         CHECK(defs[4].name == std::string_view("훈련소"));
         CHECK(defs[4].kind == RegionKind::TrainingGround && defs[4].minScore == 0 && defs[4].maxScore == 0);
         CHECK(defs[5].name == std::string_view("용병 시장"));
@@ -276,7 +276,7 @@ namespace
             if (i == 3 && e.wiped)
                 dragonWiped = true;
         }
-        CHECK(dragonWiped);  // 드래곤 점수 8 이상, 보낸 기사 4명이므로 항상 전멸
+        CHECK(dragonWiped);  // 드래곤 점수 10 이상, 보낸 기사 4명이므로 항상 전멸
         CHECK(lost >= 4);
         CHECK(g.GetPlayer(0).score == score);
         CHECK(g.GetPlayer(0).knights == kStartKnights - lost + gained);
@@ -389,6 +389,45 @@ namespace
         CHECK(!g.GetWinners().empty());
     }
 
+    // 1~4라운드는 테이블 범위, 5라운드부터 최소·최댓값이 각각 +2. 증원 지역은 {0, 0}.
+    void MonsterRangeByRound()
+    {
+        const auto& defs = GetRegionDefs();
+        for (int r = 0; r < kRegionCount; ++r)
+        {
+            for (int round = 1; round <= kRoundCount; ++round)
+            {
+                const ScoreRange range = GetMonsterRange(r, round);
+                if (defs[r].kind != RegionKind::Monster)
+                {
+                    CHECK(range.min == 0 && range.max == 0);
+                    continue;
+                }
+                const int bonus = round >= 5 ? 2 : 0;
+                CHECK(range.min == defs[r].minScore + bonus && range.max == defs[r].maxScore + bonus);
+                CHECK(range.max <= kMaxMonsterScore);
+            }
+        }
+        CHECK(GetMonsterRange(3, 5).min == 12 && GetMonsterRange(3, 5).max == kMaxMonsterScore);
+        CHECK(GetMonsterRange(0, 4).min == 2 && GetMonsterRange(0, 5).min == 4);
+
+        // 실제 게임에서도 라운드마다 그 라운드 범위 안에서 뽑힌다(시드 여러 개).
+        for (uint32_t seed = 1; seed <= 200; ++seed)
+        {
+            Game g(seed);
+            for (int round = 1; round <= kRoundCount; ++round)
+            {
+                for (int r = 0; r < 4; ++r)
+                {
+                    const ScoreRange range = GetMonsterRange(r, round);
+                    CHECK(g.GetMonsterScore(r) >= range.min && g.GetMonsterScore(r) <= range.max);
+                }
+                PlayRound(g);
+                g.AdvanceRound();
+            }
+        }
+    }
+
     void AdvanceOnlyInResolution()
     {
         Game g(1);
@@ -498,8 +537,9 @@ namespace
                 CHECK(g.GetRound() == round && g.GetPhase() == Phase::FlagPlacement);
                 for (int r = 0; r < kRegionCount; ++r)
                 {
+                    const ScoreRange range = GetMonsterRange(r, round);
                     if (defs[r].kind == RegionKind::Monster)
-                        CHECK(g.GetMonsterScore(r) >= defs[r].minScore && g.GetMonsterScore(r) <= defs[r].maxScore);
+                        CHECK(g.GetMonsterScore(r) >= range.min && g.GetMonsterScore(r) <= range.max);
                 }
                 const int roundDice = g.GetMarketDice();
                 CHECK(roundDice >= 1 && roundDice <= 6);
@@ -663,6 +703,7 @@ int main()
     ReinforceNextRound();
     MarketDiceInGame();
     RoundsAndGameOver();
+    MonsterRangeByRound();
     AdvanceOnlyInResolution();
     ResolutionClearedAfterAdvance();
     Winners();
