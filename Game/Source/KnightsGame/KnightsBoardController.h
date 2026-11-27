@@ -8,6 +8,7 @@
 #include <array>
 #include <optional>
 #include <string>
+#include <vector>
 
 //***** 기사단 게임 본 화면
 //*** 룰 코어(Knights::Game)와 AI를 소유하고, 코어 단계 위에 화면 단계(Stage)를 얹어 연출 시간을 준다.
@@ -43,7 +44,8 @@ private:
         std::array<Canape::UIImage*, Knights::kPlayerCount> flagChips{};
         std::array<Canape::UIElement*, Knights::kPlayerCount> knightChips{};
         std::array<Canape::UIText*, Knights::kPlayerCount> knightCounts{};
-        Canape::UIText* result = nullptr;
+        Canape::UIText* result = nullptr;     // 결과 줄(잘라 내는 상자 안에 있어 카드 밖으로 넘치지 않는다)
+        float resultFitScale = 0.0f;          // 결과 줄 글자 크기를 마지막으로 맞춘 레이아웃 배율
     };
 
     //***** 점수판 한 줄
@@ -81,6 +83,7 @@ private:
     void OnConfirmClicked();
     void ChangeAllocation(int row, int delta);
     bool ConsumeRawClick();
+    void GoToTitle();
 
     //***** 제출과 단계 확인. 코어가 받아들인 경우에만 다음으로 넘어간다.
     bool SubmitAiFlags(int ai);
@@ -97,6 +100,8 @@ private:
     void RefreshCards(const Knights::PublicView& view);
     void RefreshScoreboard(const Knights::PublicView& view);
     void RefreshActionPanel(const Knights::PublicView& view);
+    // 결과 줄 글자를 바꾸고, 상자(카드 안)에 다 들어가도록 글자 크기를 줄인다.
+    static void SetCardResult(RegionCard& card, const std::string& text, Canape::UIColor color);
     // 종료 화면 내용(순위·승자)은 GameOver에 들어갈 때 한 번만 채운다.
     void ShowGameOver();
 
@@ -119,6 +124,9 @@ private:
     bool m_MouseWasDown = true;  // 원본 마우스 누름 검출용(씬에 들어온 클릭은 무시하도록 true로 시작)
     std::string m_ProblemText;   // 마지막 제출 거부·진행 오류(화면 하단에 표시, 단계가 바뀌면 지움)
     bool m_Stalled = false;      // 복구할 수 없는 진행 오류: 자동 진행을 멈춘다
+    // 지난 라운드 정산 결과의 사본. 코어는 다음 라운드로 넘어가며 기록을 비우므로 화면이 따로 들고,
+    // 다음 라운드의 깃발·기사 배치 동안 카드에 흐리게 보여 준다. 새 결과가 나오면(기사 공개) 그만 보이고, 새 게임에서 지운다.
+    std::vector<Knights::RegionEvent> m_LastEvents;
 
     Canape::TextureResourceId m_RoundedTexture;
     Canape::UIText* m_RoundText = nullptr;
@@ -130,6 +138,7 @@ private:
     std::array<KnightRow, kMaxKnightRows> m_KnightRows{};
     Canape::UIText* m_RemainingText = nullptr;
     Canape::UIButton* m_ConfirmButton = nullptr;
+    Canape::UIElement* m_StallButtons = nullptr;  // 진행 오류로 멈췄을 때만 보이는 [다시 하기] [타이틀로]
     Canape::UIElement* m_GameOverRoot = nullptr;
     Canape::UIText* m_WinnerText = nullptr;
     std::array<Canape::UIText*, Knights::kPlayerCount> m_RankPlaces{};

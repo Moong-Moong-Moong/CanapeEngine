@@ -36,6 +36,12 @@ namespace
     constexpr float kScoreRowTop = 96.0f;
     constexpr float kScoreRowHeight = 96.0f;
     constexpr float kScoreRowStep = 104.0f;
+    // 카드 결과 줄 상자. 글이 길면 아래 글자 크기 순서대로 줄여 상자에 맞추고, 그래도 넘치면 상자가 잘라 낸다.
+    constexpr float kResultX = 20.0f;
+    constexpr float kResultY = 210.0f;
+    constexpr float kResultWidth = 410.0f;
+    constexpr float kResultHeight = 80.0f;
+    constexpr std::array<float, 4> kResultFontSizes{ 22.0f, 20.0f, 18.0f, 16.0f };
 
     //***** 색
     constexpr UIColor kMonsterCardColor{ 96, 62, 66 };
@@ -49,6 +55,7 @@ namespace
     constexpr UIColor kRankRowColor{ 48, 54, 72 };
     constexpr UIColor kRankWinnerColor{ 104, 86, 40 };
     constexpr UIColor kOverlayColor{ 0, 0, 0, 170 };
+    constexpr uint8_t kPreviousResultAlpha = 130;  // 지난 라운드 결과 줄은 흐리게
 
     // 카드는 비활성일 때도 흐려지지 않게 하고, 활성일 때는 올렸을 때 밝아지게 한다.
     constexpr UIButtonColors kCardStateColors{ { 225, 225, 225, 255 }, { 255, 255, 255, 255 }, { 196, 196, 196, 255 }, { 225, 225, 225, 255 } };
@@ -191,9 +198,13 @@ void KnightsBoardController::BuildBoard(UIElement& root)
             card.knightChips[p] = chip;
         }
 
-        //*** 결과 줄(정산 뒤 라운드 끝까지 남는다)
-        card.result = AddLabel(face, "Result", "", 22.0f, { 20.0f, 210.0f }, { 410.0f, 80.0f }, KnightsUi::kSubTextColor,
-                               UITextAlign::Start, UITextAlign::Start);
+        //*** 결과 줄(정산 뒤 다음 라운드 기사 공개 전까지 남는다). 잘라 내는 상자 안에 두어 카드 밖으로 넘치지 않게 한다.
+        auto* resultBox = face.AddChild<UIElement>("ResultBox");
+        resultBox->SetPosition({ kResultX, kResultY });
+        resultBox->SetSize({ kResultWidth, kResultHeight });
+        resultBox->SetClipChildren(true);
+        card.result = AddLabel(*resultBox, "Result", "", kResultFontSizes[0], { 0.0f, 0.0f }, { kResultWidth, kResultHeight },
+                               KnightsUi::kSubTextColor, UITextAlign::Start, UITextAlign::Start);
         card.result->SetWrap(true);
     }
 }
@@ -267,6 +278,18 @@ void KnightsBoardController::BuildActionPanel(UIElement& root)
                                            { 300.0f, 110.0f }, KnightsUi::kConfirmColor);
     m_ConfirmButton->SetStateColors(kActionStateColors);
     m_ConfirmButton->OnClicked = [this] { OnConfirmClicked(); };
+
+    //*** 진행 오류로 멈췄을 때 빠져나갈 길: 기사 배치 줄 자리(왼쪽 아래)에 [다시 하기] [타이틀로]
+    m_StallButtons = panel->AddChild<UIElement>("StallButtons");
+    m_StallButtons->SetPosition({ 28.0f, kActionHeight - 28.0f - 90.0f });
+    m_StallButtons->SetSize({ 580.0f, 90.0f });
+    auto* again = KnightsUi::AddButton(*m_StallButtons, "Again", m_RoundedTexture, "다시 하기", 36.0f, { 0.0f, 0.0f },
+                                       { 280.0f, 90.0f }, KnightsUi::kConfirmColor);
+    again->OnClicked = [this] { NewGame(); };
+    auto* title = KnightsUi::AddButton(*m_StallButtons, "ToTitle", m_RoundedTexture, "타이틀로", 36.0f, { 300.0f, 0.0f },
+                                       { 280.0f, 90.0f }, KnightsUi::kNeutralButtonColor);
+    title->OnClicked = [this] { GoToTitle(); };
+    m_StallButtons->SetVisible(false);
 }
 
 void KnightsBoardController::BuildGameOverPanel(UIElement& root)
@@ -307,17 +330,24 @@ void KnightsBoardController::BuildGameOverPanel(UIElement& root)
 
     auto* title = KnightsUi::AddButton(*panel, "ToTitle", m_RoundedTexture, "타이틀로", 36.0f, { width - 130.0f - 280.0f, height - 120.0f },
                                        { 280.0f, 90.0f }, KnightsUi::kNeutralButtonColor);
-    title->OnClicked = [this]
-    {
-        SceneManager& sceneManager = Application::Get().GetSceneManager();
-        Scene* currentScene = GetOwnerObject()->GetScene();
-        if (sceneManager.OpenScene("KnightsTitle"))
-        {
-            sceneManager.UnloadScene(currentScene);
-        }
-    };
+    title->OnClicked = [this] { GoToTitle(); };
 
     overlay->SetVisible(false);
+}
+
+void KnightsBoardController::GoToTitle()
+{
+    SceneManager& sceneManager = Application::Get().GetSceneManager();
+    Scene* currentScene = GetOwnerObject()->GetScene();
+    if (sceneManager.OpenScene("KnightsTitle"))
+    {
+        sceneManager.UnloadScene(currentScene);
+    }
+    else
+    {
+        // 실패하면 지금 씬에 그대로 남는다. 조용히 넘어가지 않도록 로그와 화면에 남긴다.
+        ReportProblem("타이틀 씬(KnightsTitle)을 열지 못했습니다");
+    }
 }
 
 //***** 진행
@@ -331,6 +361,7 @@ void KnightsBoardController::NewGame()
         m_Ais[p].emplace(GetAiPersonality(p), device());
     }
     m_Stalled = false;
+    m_LastEvents.clear();
     // 카드 결과 줄·칩·점수판은 매 프레임 Refresh가 새 상태로 다시 그린다. 종료 화면은 EnterStage가 숨긴다.
     EnterStage(Stage::PlayerFlags);
 }
@@ -394,38 +425,29 @@ void KnightsBoardController::AdvanceStage(bool skipRequested)
     switch (m_Stage)
     {
     case Stage::AiFlags:
-        if (m_AiIndex < kPlayerCount)
+        if (m_AiIndex < kPlayerCount && m_Timer >= kAiTurnDelay)
         {
-            if (m_Timer >= kAiTurnDelay)
-            {
-                m_Timer = 0.0f;
-                if (SubmitAiFlags(m_AiIndex))
-                    ++m_AiIndex;
-            }
+            m_Timer = 0.0f;
+            if (SubmitAiFlags(m_AiIndex))
+                ++m_AiIndex;
         }
-        else if (RequireCorePhase(Phase::KnightPlacement, "AI 깃발 제출 뒤"))
-        {
+        // 마지막 AI가 제출한 같은 프레임에 넘어간다("AI 5 차례"가 한 프레임 보이지 않게).
+        if (m_AiIndex >= kPlayerCount && RequireCorePhase(Phase::KnightPlacement, "AI 깃발 제출 뒤"))
             EnterStage(Stage::FlagReveal);
-        }
         break;
     case Stage::FlagReveal:
         if (m_Timer >= kRevealHold && RequireCorePhase(Phase::KnightPlacement, "깃발 공개 뒤"))
             EnterStage(Stage::PlayerKnights);
         break;
     case Stage::AiKnights:
-        if (m_AiIndex < kPlayerCount)
+        if (m_AiIndex < kPlayerCount && m_Timer >= kAiTurnDelay)
         {
-            if (m_Timer >= kAiTurnDelay)
-            {
-                m_Timer = 0.0f;
-                if (SubmitAiKnights(m_AiIndex))
-                    ++m_AiIndex;
-            }
+            m_Timer = 0.0f;
+            if (SubmitAiKnights(m_AiIndex))
+                ++m_AiIndex;
         }
-        else if (RequireCorePhase(Phase::Resolution, "AI 기사 제출 뒤"))
-        {
+        if (m_AiIndex >= kPlayerCount && RequireCorePhase(Phase::Resolution, "AI 기사 제출 뒤"))
             EnterStage(Stage::KnightReveal);
-        }
         break;
     case Stage::KnightReveal:
         if (m_Timer >= kRevealHold && RequireCorePhase(Phase::Resolution, "기사 공개 뒤"))
@@ -444,6 +466,8 @@ void KnightsBoardController::AdvanceStage(bool skipRequested)
     case Stage::RoundEnd:
         if ((m_Timer >= kRoundEndHold || skipRequested) && RequireCorePhase(Phase::Resolution, "라운드 종료"))
         {
+            // 코어는 AdvanceRound에서 정산 기록을 비우므로, 다음 라운드에 보여 줄 사본을 먼저 남긴다.
+            m_LastEvents = m_Game.GetResolution();
             m_Game.AdvanceRound();
             if (m_Game.GetPhase() == Phase::GameOver)
                 EnterStage(Stage::GameOver);
@@ -630,7 +654,7 @@ int KnightsBoardController::GetCurrentTurnPlayer() const
         return kHumanPlayer;
     case Stage::AiFlags:
     case Stage::AiKnights:
-        return m_AiIndex;
+        return m_AiIndex < kPlayerCount ? m_AiIndex : -1;
     default:
         return -1;
     }
@@ -756,12 +780,21 @@ void KnightsBoardController::RefreshCards(const PublicView& view)
             KnightsUi::SetTextIfChanged(*card.knightCounts[p], Num(count));
         }
 
-        //*** 결과 줄
+        //*** 결과 줄: 이번 라운드 결과, 없으면(기사 공개 전) 지난 라운드 결과를 흐리게
+        const RegionEvent* previous = nullptr;
+        if (!shown && !knightsVisible)
+        {
+            for (const RegionEvent& event : m_LastEvents)
+            {
+                if (event.region == r)
+                    previous = &event;
+            }
+        }
         std::string result;
         UIColor resultColor = KnightsUi::kSubTextColor;
-        if (shown)
+        if (shown || previous)
         {
-            const EventText text = DescribeEvent(*shown);
+            const EventText text = DescribeEvent(shown ? *shown : *previous);
             result = text.cardLine;
             switch (text.tone)
             {
@@ -770,16 +803,38 @@ void KnightsBoardController::RefreshCards(const PublicView& view)
             case EventTone::Reinforce: resultColor = KnightsUi::kReinforceColor; break;
             case EventTone::Nothing: break;
             }
+            if (previous)
+            {
+                result = "지난 라운드: " + result;
+                resultColor.A = kPreviousResultAlpha;
+            }
         }
         else if (knightsVisible && monster && totalKnights > 0)
         {
             result = "보낸 기사 합 " + Num(totalKnights) + "명 vs 몬스터 " + Num(view.monsterScores[r]) + "점";
         }
         if (m_Stage != Stage::GameOver)
-        {
-            KnightsUi::SetTextIfChanged(*card.result, result);
-            card.result->SetColor(resultColor);
-        }
+            SetCardResult(card, result, resultColor);
+    }
+}
+
+void KnightsBoardController::SetCardResult(RegionCard& card, const std::string& text, UIColor color)
+{
+    UIText& label = *card.result;
+    label.SetColor(color);
+    // 글자나 화면 배율이 바뀐 때만 다시 맞춘다(글자 배치 캐시를 지키기 위해).
+    const float scale = label.GetLayoutScale() > 0.0f ? label.GetLayoutScale() : 1.0f;
+    if (label.GetText() == text && card.resultFitScale == scale)
+        return;
+    label.SetText(text);
+    card.resultFitScale = scale;
+    // 큰 글자부터 실제 화면 배율로 줄바꿈 높이를 재서, 상자 높이에 들어가는 첫 크기를 쓴다.
+    // 가장 작은 크기로도 넘치면 상자(ResultBox)가 잘라 내고, 전체 문구는 정산 때 하단 패널에 나온다.
+    for (float size : kResultFontSizes)
+    {
+        label.SetFontSize(size);
+        if (label.GetPreferredHeight(kResultWidth * scale, scale) <= kResultHeight * scale)
+            break;
     }
 }
 
@@ -841,7 +896,8 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
         detail = "지역 카드를 눌러 선택 — 다시 누르면 해제. 증원 지역(훈련소, 용병 시장)도 고를 수 있습니다. 2곳을 고르면 [확정]을 누르세요.";
         break;
     case Stage::AiFlags:
-        message = "AI " + Num(m_AiIndex) + " 차례 — 깃발을 고르는 중...";
+        // 마지막 AI가 제출하면 같은 프레임에 다음 단계로 넘어가므로, 범위 밖 번호("AI 5")는 그리지 않는다.
+        message = m_AiIndex < kPlayerCount ? PlayerName(m_AiIndex) + " 차례 — 깃발을 고르는 중..." : "AI가 깃발을 모두 꽂았습니다";
         detail = "다른 플레이어의 깃발은 모두 꽂은 뒤 한꺼번에 공개됩니다.";
         break;
     case Stage::FlagReveal:
@@ -861,7 +917,7 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
         }
         break;
     case Stage::AiKnights:
-        message = "AI " + Num(m_AiIndex) + " 차례 — 기사를 보내는 중...";
+        message = m_AiIndex < kPlayerCount ? PlayerName(m_AiIndex) + " 차례 — 기사를 보내는 중..." : "AI가 기사를 모두 보냈습니다";
         detail = "배치는 모두 마친 뒤 한꺼번에 공개됩니다.";
         break;
     case Stage::KnightReveal:
@@ -884,8 +940,10 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
         break;
     }
     //*** 제출 거부·진행 오류가 있으면 보조 문구 자리에 빨간색으로 보여 준다(로그에도 남아 있다).
+    //*** 멈췄으면 [다시 하기] [타이틀로]로 빠져나갈 수 있게 한다.
     if (m_Stalled)
-        message = "진행 오류 — 게임을 계속할 수 없습니다";
+        message = "진행 오류로 멈췄습니다 — [다시 하기] 또는 [타이틀로]";
+    m_StallButtons->SetVisible(m_Stalled);
     if (!m_ProblemText.empty())
         detail = "문제: " + m_ProblemText;
     m_DetailText->SetColor(m_ProblemText.empty() ? KnightsUi::kSubTextColor : KnightsUi::kBadColor);
@@ -893,7 +951,7 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
     KnightsUi::SetTextIfChanged(*m_DetailText, detail);
 
     //*** 기사 배치 줄과 남은 기사
-    const bool placing = m_Stage == Stage::PlayerKnights;
+    const bool placing = m_Stage == Stage::PlayerKnights && !m_Stalled;  // 멈춤 버튼과 같은 자리이므로 멈추면 숨긴다
     const int owned = view.players[kHumanPlayer].knights;
     const int remaining = owned - GetAllocatedKnights();
     for (KnightRow& row : m_KnightRows)
@@ -912,7 +970,9 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
 
     //*** [확정]: 깃발은 정확히 2개일 때만, 기사 배치는 항상(0명 허용)
     bool canConfirm = false;
-    if (m_Stage == Stage::PlayerFlags)
+    if (m_Stalled)
+        canConfirm = false;
+    else if (m_Stage == Stage::PlayerFlags)
         canConfirm = GetSelectedFlagCount() == kFlagsPerPlayer;
     else if (m_Stage == Stage::PlayerKnights)
         canConfirm = true;

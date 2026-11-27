@@ -166,6 +166,12 @@ namespace Knights
             if (allocation[r] < 0)
                 return SubmitError::NegativeCount;
         }
+        // 한 지역 값이 보유 기사보다 크면 합을 구하기 전에 거부한다(큰 값끼리 더해 넘치는 일을 막는다).
+        for (int r = 0; r < kRegionCount; ++r)
+        {
+            if (allocation[r] > m_players[player].knights)
+                return SubmitError::ExceedsKnights;
+        }
         for (int r = 0; r < kRegionCount; ++r)
         {
             if (allocation[r] == 0)
@@ -299,6 +305,8 @@ namespace Knights
     {
         if (m_phase != Phase::Resolution)
             return;
+        // 정산 기록은 Resolution 단계에서만 유효하다. 다음 단계(다음 라운드·GameOver)에서는 비워 둔다.
+        m_resolution.clear();
         if (m_round >= kRoundCount)
         {
             m_phase = Phase::GameOver;

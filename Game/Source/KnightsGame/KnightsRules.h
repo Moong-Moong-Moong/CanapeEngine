@@ -114,6 +114,7 @@ namespace Knights
 
         SubmitError SubmitFlags(int player, const FlagChoice& regions);
         SubmitError SubmitKnights(int player, const KnightAllocation& allocation);
+        // Resolution 단계의 정산 기록(지역 0~5 순서). 다른 단계에서는 비어 있다.
         const std::vector<RegionEvent>& GetResolution() const { return m_resolution; }
         void AdvanceRound();
         std::vector<int> GetWinners() const;

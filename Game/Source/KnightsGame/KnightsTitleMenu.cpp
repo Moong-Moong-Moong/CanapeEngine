@@ -1,5 +1,6 @@
 #include "KnightsGame/KnightsTitleMenu.h"
 #include "KnightsGame/KnightsUi.h"
+#include "CNDebug/DebugLog.h"
 
 RTTR_REGISTRATION
 {
@@ -44,6 +45,11 @@ void KnightsTitleMenu::Start()
         if (sceneManager.OpenScene("KnightsGame"))
         {
             sceneManager.UnloadScene(currentScene);
+        }
+        else
+        {
+            // 실패하면 타이틀에 그대로 남는다. 조용히 넘어가지 않도록 로그에 남긴다.
+            CN_LOG_GAME("Knights", "게임 씬(KnightsGame)을 열지 못했습니다");
         }
     };
 

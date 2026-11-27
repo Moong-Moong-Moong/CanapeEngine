@@ -17,12 +17,13 @@ $env:PATH = "$env:PATH;$pf86\Microsoft Visual Studio\Installer"
 $vcvars = Join-Path $VisualStudioPath 'VC/Auxiliary/Build/vcvars64.bat'
 New-Item -ItemType Directory -Path $validationDir -Force | Out-Null
 
-# 룰 코어는 표준 라이브러리만 쓰므로 엔진에 링크하지 않고 소스만 컴파일한다.
-# KnightsAi.cpp는 Task 4 전에는 없으므로 있을 때만 목록에 넣는다.
-$sources = @('Game\Tests\KnightsRulesValidation.cpp', 'Game\Source\KnightsGame\KnightsRules.cpp')
-if (Test-Path (Join-Path $repoRoot 'Game/Source/KnightsGame/KnightsAi.cpp')) {
-    $sources += 'Game\Source\KnightsGame\KnightsAi.cpp'
-}
+# 룰 코어·AI·화면 문구(KnightsBoardText)는 표준 라이브러리만 쓰므로 엔진에 링크하지 않고 소스만 컴파일한다.
+$sources = @(
+    'Game\Tests\KnightsRulesValidation.cpp',
+    'Game\Source\KnightsGame\KnightsRules.cpp',
+    'Game\Source\KnightsGame\KnightsAi.cpp',
+    'Game\Source\KnightsGame\KnightsBoardText.cpp'
+)
 $sourceList = $sources -join ' '
 
 $batch = @"

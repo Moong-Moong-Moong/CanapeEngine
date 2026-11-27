@@ -1,10 +1,13 @@
-// 기사단 게임 룰 코어·AI 검증. 엔진에 링크하지 않고 룰·AI 소스만 컴파일한다.
+// 기사단 게임 룰 코어·AI·화면 문구 검증. 엔진에 링크하지 않고 엔진과 무관한 소스만 컴파일한다.
 #include "KnightsGame/KnightsAi.h"
+#include "KnightsGame/KnightsBoardText.h"
 #include "KnightsGame/KnightsRules.h"
 
 #include <algorithm>
+#include <climits>
 #include <cstdio>
 #include <set>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -201,6 +204,21 @@ namespace
         CHECK(g.SubmitKnights(0, KnightAllocation{1, 0, 0, 0, 0, 0}) == SubmitError::AlreadySubmitted);
     }
 
+    // 한 지역 값이 보유 기사보다 크면 합을 구하기 전에 거부한다. 큰 값 둘을 더하면 int가 넘쳐 음수 합이 될 수 있다.
+    void HugeEntryRejected()
+    {
+        Game g(1);
+        ToKnightPlacement(g, FlagChoice{0, 1});
+        CHECK(g.SubmitKnights(0, KnightAllocation{INT_MAX, INT_MAX, 0, 0, 0, 0}) == SubmitError::ExceedsKnights);
+        CHECK(g.SubmitKnights(0, KnightAllocation{INT_MAX, 1, 0, 0, 0, 0}) == SubmitError::ExceedsKnights);
+        CHECK(g.SubmitKnights(0, KnightAllocation{6, 0, 0, 0, 0, 0}) == SubmitError::ExceedsKnights);
+        // 깃발 없는 지역이라도 보유보다 큰 값은 ExceedsKnights로 먼저 거부된다.
+        CHECK(g.SubmitKnights(0, KnightAllocation{0, 0, 0, INT_MAX, 0, 0}) == SubmitError::ExceedsKnights);
+        CHECK(!g.HasSubmitted(0));
+        CHECK(g.GetView(0).knights[0] == (KnightAllocation{}));
+        CHECK(g.SubmitKnights(0, KnightAllocation{3, 2, 0, 0, 0, 0}) == SubmitError::None);
+    }
+
     void ZeroAllocationAccepted()
     {
         Game g(1);
@@ -373,6 +391,23 @@ namespace
         CHECK(g.GetRound() == 1 && g.GetPhase() == Phase::KnightPlacement);
     }
 
+    // 정산 기록은 Resolution 단계에서만 있다. 다음 라운드와 GameOver에서는 비어 있다.
+    void ResolutionClearedAfterAdvance()
+    {
+        Game g(9);
+        for (int round = 1; round <= kRoundCount; ++round)
+        {
+            CHECK(g.GetResolution().empty());
+            PlayRound(g);
+            CHECK(g.GetPhase() == Phase::Resolution);
+            CHECK(g.GetResolution().size() == kRegionCount);
+            g.AdvanceRound();
+            CHECK(g.GetResolution().empty());
+        }
+        CHECK(g.GetPhase() == Phase::GameOver);
+        CHECK(g.GetResolution().empty());
+    }
+
     void Winners()
     {
         using Players = std::array<PlayerState, kPlayerCount>;
@@ -438,7 +473,10 @@ namespace
     void AiAlwaysValid()
     {
         const auto& defs = GetRegionDefs();
-        for (uint32_t seed = 1; seed <= 1000; ++seed)
+        constexpr uint32_t kGames = 1000;
+        // AI 1~4(성향별)가 모든 게임에서 보낸 기사 합. "항상 0명만 보내는" 퇴화를 잡는다.
+        std::array<long long, kPlayerCount> sentTotal{};
+        for (uint32_t seed = 1; seed <= kGames; ++seed)
         {
             Game g(seed);
             std::vector<Ai> ais;
@@ -458,7 +496,12 @@ namespace
                     CHECK(g.SubmitFlags(p, ais[p].ChooseFlags(g.GetView(p))) == SubmitError::None);
                 CHECK(g.GetPhase() == Phase::KnightPlacement);
                 for (int p = 0; p < kPlayerCount; ++p)
-                    CHECK(g.SubmitKnights(p, ais[p].ChooseKnights(g.GetView(p))) == SubmitError::None);
+                {
+                    const KnightAllocation a = ais[p].ChooseKnights(g.GetView(p));
+                    for (int count : a)
+                        sentTotal[p] += count;
+                    CHECK(g.SubmitKnights(p, a) == SubmitError::None);
+                }
                 CHECK(g.GetPhase() == Phase::Resolution);
                 for (const RegionEvent& e : g.GetResolution())
                     CHECK(e.dice >= 0 && e.dice <= 6);
@@ -469,6 +512,20 @@ namespace
             CHECK(g.GetPhase() == Phase::GameOver);
             CHECK(!g.GetWinners().empty());
         }
+
+        // AI(1~4)가 실제로 기사를 보내고, 성향마다 라운드당 평균 보낸 수가 모두 같지는 않다.
+        long long aiTotal = 0;
+        std::set<long long> distinct;
+        const double rounds = static_cast<double>(kGames) * kRoundCount;
+        for (int p = 1; p < kPlayerCount; ++p)
+        {
+            aiTotal += sentTotal[p];
+            distinct.insert(sentTotal[p]);
+            std::printf("  %s (%s) average knights sent per round: %.3f\n", PlayerName(p).c_str(), PersonalityName(p).c_str(),
+                        static_cast<double>(sentTotal[p]) / rounds);
+        }
+        CHECK(aiTotal > 0);
+        CHECK(distinct.size() >= 2);
     }
 
     // 나 혼자 깃발을 꽂은 지역에서 보유 기사가 몬스터 점수보다 적으면 한 명도 보내지 않는다.
@@ -510,6 +567,69 @@ namespace
         }
         CHECK(seen.size() >= 2);
     }
+
+    bool Has(const std::string& text, std::string_view part)
+    {
+        return text.find(part) != std::string::npos;
+    }
+
+    // 화면 문구: 전체 문장이 아니라 핵심 부분 문자열만 확인한다(문장 다듬기에 테스트가 깨지지 않게).
+    void EventTextWin()
+    {
+        const Flg flags{true, true, false, false, false};
+        const EventText t = DescribeEvent(ResolveMonster(1, 5, Arr{2, 3, 0, 0, 0}, flags));
+        CHECK(t.tone == EventTone::Win);
+        CHECK(Has(t.headline, "오크 야영지") && Has(t.headline, "승리"));
+        CHECK(Has(t.headline, "나 +2") && Has(t.headline, "AI 1 +3"));
+        CHECK(!Has(t.headline, "폐기"));
+        CHECK(Has(t.cardLine, "승리") && Has(t.cardLine, "나 +2") && Has(t.cardLine, "AI 1 +3"));
+        CHECK(Has(t.detail, "5점"));
+    }
+
+    void EventTextWipe()
+    {
+        const Flg flags{true, true, false, false, false};
+        const EventText t = DescribeEvent(ResolveMonster(2, 7, Arr{2, 3, 0, 0, 0}, flags));
+        CHECK(t.tone == EventTone::Wipe);
+        CHECK(Has(t.headline, "트롤 다리") && Has(t.headline, "전멸"));
+        CHECK(Has(t.headline, "나 기사 2명") && Has(t.headline, "AI 1 기사 3명"));
+        CHECK(Has(t.cardLine, "전멸") && Has(t.cardLine, "나 -2") && Has(t.cardLine, "AI 1 -3"));
+        CHECK(!Has(t.headline, "+"));
+    }
+
+    void EventTextDiscard()
+    {
+        const Flg flags{true, true, false, false, false};
+        const EventText t = DescribeEvent(ResolveMonster(1, 5, Arr{3, 3, 0, 0, 0}, flags));
+        CHECK(t.tone == EventTone::Win);
+        CHECK(Has(t.headline, "나 +2") && Has(t.headline, "AI 1 +2"));
+        CHECK(Has(t.headline, "1점 폐기"));
+        CHECK(Has(t.cardLine, "1점 폐기"));
+    }
+
+    void EventTextMarketZero()
+    {
+        // 주사위 1을 2명이 나누면 0명씩, 1명 폐기.
+        const EventText t = DescribeEvent(ResolveMarket(5, 1, Flg{true, false, true, false, false}));
+        CHECK(t.tone == EventTone::Reinforce);
+        CHECK(Has(t.headline, "용병 시장") && Has(t.headline, "주사위 1"));
+        CHECK(Has(t.headline, "2명이 0명씩") && Has(t.headline, "1명 폐기"));
+        CHECK(Has(t.detail, "나") && Has(t.detail, "AI 2"));
+        CHECK(Has(t.cardLine, "0명씩"));
+    }
+
+    void EventTextFlagsNoKnights()
+    {
+        const EventText t = DescribeEvent(ResolveMonster(0, 3, Arr{}, Flg{true, false, false, true, false}));
+        CHECK(t.tone == EventTone::Nothing);
+        CHECK(Has(t.headline, "고블린 둥지") && Has(t.headline, "아무도 싸우지 않음"));
+        CHECK(Has(t.cardLine, "싸운 기사 없음"));
+        CHECK(!Has(t.headline, "승리") && !Has(t.headline, "전멸"));
+
+        // 깃발 자체가 없을 때는 따로 알린다.
+        const EventText none = DescribeEvent(ResolveMonster(0, 3, Arr{}, Flg{}));
+        CHECK(Has(none.headline, "깃발 없음") && none.tone == EventTone::Nothing);
+    }
 }
 
 int main()
@@ -523,6 +643,7 @@ int main()
     FlagsSubmitWrongPhase();
     MonsterTable();
     KnightValidation();
+    HugeEntryRejected();
     ZeroAllocationAccepted();
     KnightsHiddenUntilAll();
     WipeAcrossRegions();
@@ -532,12 +653,18 @@ int main()
     MarketDiceInGame();
     RoundsAndGameOver();
     AdvanceOnlyInResolution();
+    ResolutionClearedAfterAdvance();
     Winners();
     ResetRestoresStart();
     AiPersonalityMapping();
     AiAlwaysValid();
     AiNoHopelessSolo();
     AiVaries();
+    EventTextWin();
+    EventTextWipe();
+    EventTextDiscard();
+    EventTextMarketZero();
+    EventTextFlagsNoKnights();
 
     if (g_failures == 0)
     {

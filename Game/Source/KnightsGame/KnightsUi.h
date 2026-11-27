@@ -28,13 +28,15 @@ namespace KnightsUi
     constexpr Canape::UIColor kNeutralButtonColor{ 78, 88, 116 };
 
     //***** 플레이어 고정 색: 나 금색, AI 1~4 빨강·파랑·초록·보라
-    constexpr std::array<Canape::UIColor, Knights::kPlayerCount> kPlayerColors{ {
+    //*** 배열 크기를 적은 색 개수로 정한다(to_array). 하나라도 빠지면 아래 static_assert가 잡는다(빠진 칸이 흰색으로 채워지지 않게).
+    constexpr auto kPlayerColors = std::to_array<Canape::UIColor>({
         { 250, 200, 70 },
         { 232, 84, 84 },
         { 80, 150, 245 },
         { 90, 200, 110 },
         { 180, 110, 235 },
-    } };
+    });
+    static_assert(kPlayerColors.size() == Knights::kPlayerCount, "kPlayerColors needs exactly one color per player");
 
     //***** 둥근 사각형 텍스처. 화면 스크립트가 Start에서 만들고 OnDestroy에서 지운다.
     inline Canape::TextureResourceId CreateRoundedTexture()
