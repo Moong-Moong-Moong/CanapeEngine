@@ -7,6 +7,7 @@
 
 #include <array>
 #include <optional>
+#include <string>
 
 //***** 기사단 게임 본 화면
 //*** 룰 코어(Knights::Game)와 AI를 소유하고, 코어 단계 위에 화면 단계(Stage)를 얹어 연출 시간을 준다.
@@ -81,12 +82,23 @@ private:
     void ChangeAllocation(int row, int delta);
     bool ConsumeRawClick();
 
+    //***** 제출과 단계 확인. 코어가 받아들인 경우에만 다음으로 넘어간다.
+    bool SubmitAiFlags(int ai);
+    bool SubmitAiKnights(int ai);
+    // 코어 단계가 기대와 다르면 진행을 멈추고(m_Stalled) 화면과 로그에 알린다.
+    bool RequireCorePhase(Knights::Phase expected, const char* where);
+    void ReportProblem(const std::string& text);
+    void Stall(const std::string& text);
+    // 증원(몬스터가 아닌) 지역 2곳. 항상 서로 다른 유효 지역이다.
+    static Knights::FlagChoice GetFallbackFlags();
+
     //***** 매 프레임 화면 갱신
     void Refresh();
     void RefreshCards(const Knights::PublicView& view);
     void RefreshScoreboard(const Knights::PublicView& view);
     void RefreshActionPanel(const Knights::PublicView& view);
-    void RefreshGameOver();
+    // 종료 화면 내용(순위·승자)은 GameOver에 들어갈 때 한 번만 채운다.
+    void ShowGameOver();
 
     // 정산 중에는 아직 보여 주지 않은 이벤트를 빼서, 화면 숫자가 보여 준 이벤트까지만 반영되게 한다.
     std::array<Knights::PlayerState, Knights::kPlayerCount> GetShownPlayers(const Knights::PublicView& view) const;
@@ -105,6 +117,8 @@ private:
     std::array<bool, Knights::kRegionCount> m_SelectedFlags{};
     Knights::KnightAllocation m_Allocation{};
     bool m_MouseWasDown = true;  // 원본 마우스 누름 검출용(씬에 들어온 클릭은 무시하도록 true로 시작)
+    std::string m_ProblemText;   // 마지막 제출 거부·진행 오류(화면 하단에 표시, 단계가 바뀌면 지움)
+    bool m_Stalled = false;      // 복구할 수 없는 진행 오류: 자동 진행을 멈춘다
 
     Canape::TextureResourceId m_RoundedTexture;
     Canape::UIText* m_RoundText = nullptr;
@@ -116,9 +130,9 @@ private:
     std::array<KnightRow, kMaxKnightRows> m_KnightRows{};
     Canape::UIText* m_RemainingText = nullptr;
     Canape::UIButton* m_ConfirmButton = nullptr;
-    Canape::UIText* m_ConfirmLabel = nullptr;
     Canape::UIElement* m_GameOverRoot = nullptr;
     Canape::UIText* m_WinnerText = nullptr;
+    std::array<Canape::UIText*, Knights::kPlayerCount> m_RankPlaces{};
     std::array<Canape::UIImage*, Knights::kPlayerCount> m_RankChips{};
     std::array<Canape::UIText*, Knights::kPlayerCount> m_RankNames{};
     std::array<Canape::UIText*, Knights::kPlayerCount> m_RankScores{};

@@ -162,6 +162,24 @@ namespace Knights
         return {};
     }
 
+    const char* SubmitErrorName(SubmitError error)
+    {
+        switch (error)
+        {
+        case SubmitError::None: return "None";
+        case SubmitError::WrongPhase: return "WrongPhase";
+        case SubmitError::AlreadySubmitted: return "AlreadySubmitted";
+        case SubmitError::InvalidPlayer: return "InvalidPlayer";
+        case SubmitError::InvalidRegion: return "InvalidRegion";
+        case SubmitError::DuplicateRegion: return "DuplicateRegion";
+        case SubmitError::NoFlagThere: return "NoFlagThere";
+        case SubmitError::NotMonsterRegion: return "NotMonsterRegion";
+        case SubmitError::NegativeCount: return "NegativeCount";
+        case SubmitError::ExceedsKnights: return "ExceedsKnights";
+        }
+        return "Unknown";
+    }
+
     EventText DescribeEvent(const RegionEvent& event)
     {
         const std::string name(GetRegionDefs()[event.region].name);

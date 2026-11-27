@@ -14,6 +14,9 @@ namespace Knights
     // AI 성향 이름("공격형" 등). 사람(0)은 빈 문자열.
     std::string PersonalityName(int player);
 
+    // 로그·오류 표시용 이름("DuplicateRegion" 등)
+    const char* SubmitErrorName(SubmitError error);
+
     enum class EventTone { Nothing, Win, Wipe, Reinforce };
 
     // 정산 이벤트 하나를 화면에 보여 줄 문구.

@@ -1,6 +1,7 @@
 #include "KnightsGame/KnightsBoardController.h"
 #include "KnightsGame/KnightsBoardText.h"
 #include "KnightsGame/KnightsUi.h"
+#include "CNDebug/DebugLog.h"
 
 #include <algorithm>
 #include <random>
@@ -293,8 +294,8 @@ void KnightsBoardController::BuildGameOverPanel(UIElement& root)
         m_RankBackgrounds[i] = KnightsUi::AddPanel(*panel, "Rank" + Num(i), m_RoundedTexture, { 60.0f, 160.0f + i * 78.0f },
                                                    { width - 120.0f, 68.0f }, kRankRowColor, 12.0f);
         UIImage& row = *m_RankBackgrounds[i];
-        AddLabel(row, "Place", "", 30.0f, { 20.0f, 0.0f }, { 70.0f, 68.0f }, KnightsUi::kSubTextColor);
-        m_RankChips[i] = KnightsUi::AddPanel(row, "Color", m_RoundedTexture, { 96.0f, 18.0f }, { 32.0f, 32.0f }, KnightsUi::kPlayerColors[0], 8.0f);
+        m_RankPlaces[i] = AddLabel(row, "Place", "", 30.0f, { 20.0f, 0.0f }, { 70.0f, 68.0f }, KnightsUi::kSubTextColor);
+        m_RankChips[i] = KnightsUi::AddPanel(row, "Color", m_RoundedTexture, { 96.0f, 18.0f }, { 32.0f, 32.0f }, KnightsUi::kPlayerColors[i], 8.0f);
         m_RankNames[i] = AddLabel(row, "Name", "", 34.0f, { 146.0f, 0.0f }, { 220.0f, 68.0f });
         m_RankScores[i] = AddLabel(row, "Score", "", 34.0f, { 360.0f, 0.0f }, { 160.0f, 68.0f }, KnightsUi::kTitleColor, UITextAlign::End);
         m_RankKnights[i] = AddLabel(row, "Knights", "", 30.0f, { 530.0f, 0.0f }, { 170.0f, 68.0f }, KnightsUi::kTextColor, UITextAlign::End);
@@ -329,7 +330,8 @@ void KnightsBoardController::NewGame()
     {
         m_Ais[p].emplace(GetAiPersonality(p), device());
     }
-    // 카드 결과 줄·칩·점수판은 매 프레임 Refresh가 새 상태로 다시 그린다.
+    m_Stalled = false;
+    // 카드 결과 줄·칩·점수판은 매 프레임 Refresh가 새 상태로 다시 그린다. 종료 화면은 EnterStage가 숨긴다.
     EnterStage(Stage::PlayerFlags);
 }
 
@@ -337,6 +339,9 @@ void KnightsBoardController::EnterStage(Stage stage)
 {
     m_Stage = stage;
     m_Timer = 0.0f;
+    if (!m_Stalled)
+        m_ProblemText.clear();
+    m_GameOverRoot->SetVisible(stage == Stage::GameOver);
     switch (stage)
     {
     case Stage::PlayerFlags:
@@ -372,6 +377,9 @@ void KnightsBoardController::EnterStage(Stage stage)
     case Stage::Resolving:
         m_ResolveIndex = 0;
         break;
+    case Stage::GameOver:
+        ShowGameOver();
+        break;
     default:
         break;
     }
@@ -379,45 +387,53 @@ void KnightsBoardController::EnterStage(Stage stage)
 
 void KnightsBoardController::AdvanceStage(bool skipRequested)
 {
+    // 복구할 수 없는 오류가 나면 화면에 알린 채 멈춘다(잘못된 단계로 넘어가 조용히 굳는 것보다 낫다).
+    if (m_Stalled)
+        return;
+
     switch (m_Stage)
     {
     case Stage::AiFlags:
-        if (m_Timer >= kAiTurnDelay)
+        if (m_AiIndex < kPlayerCount)
         {
-            const int ai = m_AiIndex;
-            // AI는 항상 유효한 선택을 돌려주지만, 혹시 거부되면 증원 두 곳으로 대신해 진행이 멈추지 않게 한다.
-            if (m_Game.SubmitFlags(ai, m_Ais[ai]->ChooseFlags(m_Game.GetView(ai))) != SubmitError::None)
+            if (m_Timer >= kAiTurnDelay)
             {
-                m_Game.SubmitFlags(ai, { 4, 5 });
+                m_Timer = 0.0f;
+                if (SubmitAiFlags(m_AiIndex))
+                    ++m_AiIndex;
             }
-            m_Timer = 0.0f;
-            if (++m_AiIndex >= kPlayerCount)
-                EnterStage(Stage::FlagReveal);
+        }
+        else if (RequireCorePhase(Phase::KnightPlacement, "AI 깃발 제출 뒤"))
+        {
+            EnterStage(Stage::FlagReveal);
         }
         break;
     case Stage::FlagReveal:
-        if (m_Timer >= kRevealHold)
+        if (m_Timer >= kRevealHold && RequireCorePhase(Phase::KnightPlacement, "깃발 공개 뒤"))
             EnterStage(Stage::PlayerKnights);
         break;
     case Stage::AiKnights:
-        if (m_Timer >= kAiTurnDelay)
+        if (m_AiIndex < kPlayerCount)
         {
-            const int ai = m_AiIndex;
-            // 혹시 거부되면 0명 배치(항상 유효)로 대신한다.
-            if (m_Game.SubmitKnights(ai, m_Ais[ai]->ChooseKnights(m_Game.GetView(ai))) != SubmitError::None)
+            if (m_Timer >= kAiTurnDelay)
             {
-                m_Game.SubmitKnights(ai, KnightAllocation{});
+                m_Timer = 0.0f;
+                if (SubmitAiKnights(m_AiIndex))
+                    ++m_AiIndex;
             }
-            m_Timer = 0.0f;
-            if (++m_AiIndex >= kPlayerCount)
-                EnterStage(Stage::KnightReveal);
+        }
+        else if (RequireCorePhase(Phase::Resolution, "AI 기사 제출 뒤"))
+        {
+            EnterStage(Stage::KnightReveal);
         }
         break;
     case Stage::KnightReveal:
-        if (m_Timer >= kRevealHold)
+        if (m_Timer >= kRevealHold && RequireCorePhase(Phase::Resolution, "기사 공개 뒤"))
             EnterStage(Stage::Resolving);
         break;
     case Stage::Resolving:
+        if (!RequireCorePhase(Phase::Resolution, "정산 중"))
+            break;
         if (m_Timer >= kResolveStep || skipRequested)
         {
             m_Timer = 0.0f;
@@ -426,15 +442,88 @@ void KnightsBoardController::AdvanceStage(bool skipRequested)
         }
         break;
     case Stage::RoundEnd:
-        if (m_Timer >= kRoundEndHold || skipRequested)
+        if ((m_Timer >= kRoundEndHold || skipRequested) && RequireCorePhase(Phase::Resolution, "라운드 종료"))
         {
             m_Game.AdvanceRound();
-            EnterStage(m_Game.GetPhase() == Phase::GameOver ? Stage::GameOver : Stage::PlayerFlags);
+            if (m_Game.GetPhase() == Phase::GameOver)
+                EnterStage(Stage::GameOver);
+            else if (RequireCorePhase(Phase::FlagPlacement, "다음 라운드 시작"))
+                EnterStage(Stage::PlayerFlags);
         }
         break;
     default:
         break;
     }
+}
+
+bool KnightsBoardController::SubmitAiFlags(int ai)
+{
+    const SubmitError error = m_Game.SubmitFlags(ai, m_Ais[ai]->ChooseFlags(m_Game.GetView(ai)));
+    if (error == SubmitError::None)
+        return true;
+    ReportProblem(PlayerName(ai) + " 깃발 제출 거부: " + SubmitErrorName(error) + " (증원 지역으로 대신 제출)");
+
+    // AI는 항상 유효한 선택을 돌려주지만, 혹시 거부되면 증원 두 곳으로 대신해 진행이 멈추지 않게 한다.
+    const SubmitError fallback = m_Game.SubmitFlags(ai, GetFallbackFlags());
+    if (fallback == SubmitError::None)
+        return true;
+    Stall(PlayerName(ai) + " 대체 깃발 제출도 거부: " + SubmitErrorName(fallback));
+    return false;
+}
+
+bool KnightsBoardController::SubmitAiKnights(int ai)
+{
+    const SubmitError error = m_Game.SubmitKnights(ai, m_Ais[ai]->ChooseKnights(m_Game.GetView(ai)));
+    if (error == SubmitError::None)
+        return true;
+    ReportProblem(PlayerName(ai) + " 기사 배치 거부: " + SubmitErrorName(error) + " (0명 배치로 대신 제출)");
+
+    // 0명 배치는 기사 배치 단계에서 항상 유효하다.
+    const SubmitError fallback = m_Game.SubmitKnights(ai, KnightAllocation{});
+    if (fallback == SubmitError::None)
+        return true;
+    Stall(PlayerName(ai) + " 대체 기사 배치도 거부: " + SubmitErrorName(fallback));
+    return false;
+}
+
+bool KnightsBoardController::RequireCorePhase(Phase expected, const char* where)
+{
+    if (m_Game.GetPhase() == expected)
+        return true;
+    Stall(std::string(where) + ": 룰 코어 단계가 예상과 다름(" + Num(static_cast<int>(m_Game.GetPhase())) + ", 기대 " +
+          Num(static_cast<int>(expected)) + ")");
+    return false;
+}
+
+void KnightsBoardController::ReportProblem(const std::string& text)
+{
+    CN_LOG_GAME("Knights", text);
+    m_ProblemText = text;
+}
+
+void KnightsBoardController::Stall(const std::string& text)
+{
+    ReportProblem(text);
+    m_Stalled = true;
+}
+
+FlagChoice KnightsBoardController::GetFallbackFlags()
+{
+    // 몬스터가 아닌 지역을 앞에서부터 고르고, 모자라면 남은 지역으로 채운다(항상 서로 다른 2곳).
+    const auto& defs = GetRegionDefs();
+    FlagChoice choice{};
+    int count = 0;
+    for (int r = 0; r < kRegionCount && count < kFlagsPerPlayer; ++r)
+    {
+        if (defs[r].kind != RegionKind::Monster)
+            choice[count++] = r;
+    }
+    for (int r = 0; r < kRegionCount && count < kFlagsPerPlayer; ++r)
+    {
+        if (defs[r].kind == RegionKind::Monster)
+            choice[count++] = r;
+    }
+    return choice;
 }
 
 void KnightsBoardController::OnCardClicked(int region)
@@ -460,14 +549,21 @@ void KnightsBoardController::OnConfirmClicked()
             if (m_SelectedFlags[r])
                 choice[n++] = r;
         }
-        if (m_Game.SubmitFlags(kHumanPlayer, choice) == SubmitError::None)
+        // 코어가 받아들인 경우에만 넘어간다. 거부되면 이유를 로그와 화면에 남기고 이 단계에 머문다.
+        const SubmitError error = m_Game.SubmitFlags(kHumanPlayer, choice);
+        if (error == SubmitError::None)
             EnterStage(Stage::AiFlags);
+        else
+            ReportProblem("나 깃발 제출 거부: " + std::string(SubmitErrorName(error)));
     }
     else if (m_Stage == Stage::PlayerKnights)
     {
         // 0명 배치도 그대로 제출한다(깃발이 증원 지역에만 있거나 기사가 없어도 막히지 않음).
-        if (m_Game.SubmitKnights(kHumanPlayer, m_Allocation) == SubmitError::None)
+        const SubmitError error = m_Game.SubmitKnights(kHumanPlayer, m_Allocation);
+        if (error == SubmitError::None)
             EnterStage(Stage::AiKnights);
+        else
+            ReportProblem("나 기사 배치 거부: " + std::string(SubmitErrorName(error)));
     }
 }
 
@@ -580,7 +676,6 @@ void KnightsBoardController::Refresh()
     RefreshCards(view);
     RefreshScoreboard(view);
     RefreshActionPanel(view);
-    RefreshGameOver();
 }
 
 void KnightsBoardController::RefreshCards(const PublicView& view)
@@ -788,6 +883,12 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
         message = "게임 종료";
         break;
     }
+    //*** 제출 거부·진행 오류가 있으면 보조 문구 자리에 빨간색으로 보여 준다(로그에도 남아 있다).
+    if (m_Stalled)
+        message = "진행 오류 — 게임을 계속할 수 없습니다";
+    if (!m_ProblemText.empty())
+        detail = "문제: " + m_ProblemText;
+    m_DetailText->SetColor(m_ProblemText.empty() ? KnightsUi::kSubTextColor : KnightsUi::kBadColor);
     KnightsUi::SetTextIfChanged(*m_MessageText, message);
     KnightsUi::SetTextIfChanged(*m_DetailText, detail);
 
@@ -818,30 +919,33 @@ void KnightsBoardController::RefreshActionPanel(const PublicView& view)
     SetButtonEnabled(*m_ConfirmButton, canConfirm);
 }
 
-void KnightsBoardController::RefreshGameOver()
+void KnightsBoardController::ShowGameOver()
 {
-    const bool over = m_Stage == Stage::GameOver;
-    m_GameOverRoot->SetVisible(over);
-    if (!over)
-        return;
-
-    //*** 순위: 점수 내림차순, 같으면 남은 기사 내림차순
+    //*** 순위: 점수 내림차순, 같으면 남은 기사 내림차순. GameOver에 들어갈 때 한 번만 채운다.
+    std::array<PlayerState, kPlayerCount> players{};
     std::array<int, kPlayerCount> order{};
     for (int p = 0; p < kPlayerCount; ++p)
-        order[p] = p;
-    auto better = [this](int a, int b)
     {
-        const PlayerState& pa = m_Game.GetPlayer(a);
-        const PlayerState& pb = m_Game.GetPlayer(b);
-        if (pa.score != pb.score)
-            return pa.score > pb.score;
-        return pa.knights > pb.knights;
+        players[p] = m_Game.GetPlayer(p);
+        order[p] = p;
+    }
+    auto better = [&players](int a, int b)
+    {
+        if (players[a].score != players[b].score)
+            return players[a].score > players[b].score;
+        return players[a].knights > players[b].knights;
     };
     std::stable_sort(order.begin(), order.end(), better);
 
     const std::vector<int> winners = m_Game.GetWinners();
     std::string winnerText;
-    if (winners.size() == 1)
+    if (winners.empty())
+    {
+        // GetWinners는 GameOver 단계에서만 채워진다. 비어 있으면 이름 없는 "공동 우승"을 띄우지 않는다.
+        ReportProblem("종료 화면: 승자 목록이 비어 있음");
+        winnerText = "게임 종료";
+    }
+    else if (winners.size() == 1)
     {
         winnerText = winners[0] == kHumanPlayer ? "나의 승리!" : PlayerName(winners[0]) + " 승리";
     }
@@ -855,12 +959,11 @@ void KnightsBoardController::RefreshGameOver()
             winnerText += PlayerName(winners[i]);
         }
     }
-    KnightsUi::SetTextIfChanged(*m_WinnerText, winnerText);
+    m_WinnerText->SetText(winnerText);
 
     for (int i = 0; i < kPlayerCount; ++i)
     {
         const int p = order[i];
-        const PlayerState& state = m_Game.GetPlayer(p);
         int place = 1;
         for (int q = 0; q < kPlayerCount; ++q)
         {
@@ -869,11 +972,10 @@ void KnightsBoardController::RefreshGameOver()
         }
         const bool winner = std::find(winners.begin(), winners.end(), p) != winners.end();
         m_RankBackgrounds[i]->SetColor(winner ? kRankWinnerColor : kRankRowColor);
-        if (auto* placeText = m_RankBackgrounds[i]->Find<UIText>("Place"))
-            KnightsUi::SetTextIfChanged(*placeText, Num(place) + "위");
+        m_RankPlaces[i]->SetText(Num(place) + "위");
         m_RankChips[i]->SetColor(KnightsUi::kPlayerColors[p]);
-        KnightsUi::SetTextIfChanged(*m_RankNames[i], PlayerName(p));
-        KnightsUi::SetTextIfChanged(*m_RankScores[i], Num(state.score) + "점");
-        KnightsUi::SetTextIfChanged(*m_RankKnights[i], "기사 " + Num(state.knights) + "명");
+        m_RankNames[i]->SetText(PlayerName(p));
+        m_RankScores[i]->SetText(Num(players[p].score) + "점");
+        m_RankKnights[i]->SetText("기사 " + Num(players[p].knights) + "명");
     }
 }

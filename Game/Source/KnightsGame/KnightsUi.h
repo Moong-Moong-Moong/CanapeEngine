@@ -4,6 +4,7 @@
 
 #include <Engine.h>
 
+#include "KnightsGame/KnightsRules.h"
 #include "Scripts/UIDemoTextures.h"
 
 #include <array>
@@ -27,7 +28,7 @@ namespace KnightsUi
     constexpr Canape::UIColor kNeutralButtonColor{ 78, 88, 116 };
 
     //***** 플레이어 고정 색: 나 금색, AI 1~4 빨강·파랑·초록·보라
-    constexpr std::array<Canape::UIColor, 5> kPlayerColors{ {
+    constexpr std::array<Canape::UIColor, Knights::kPlayerCount> kPlayerColors{ {
         { 250, 200, 70 },
         { 232, 84, 84 },
         { 80, 150, 245 },
