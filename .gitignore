@@ -447,3 +447,4 @@ Editor/Config/EditorSettings.json
 /.ua/.trash-*/
 /.ua/intermediate/
 /.ua/tmp/
+/Dist/
