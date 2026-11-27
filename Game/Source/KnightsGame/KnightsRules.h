@@ -108,6 +108,18 @@ namespace Knights
         std::array<KnightAllocation, kPlayerCount> knights{};              // 공개 전에는 viewer 것만 채워짐
     };
 
+    // 정산이 끝난 라운드 하나의 기록. 모든 정보가 공개된 뒤에만 만들어지므로 누구에게 보여 줘도 된다.
+    struct RoundRecord
+    {
+        int round = 1;
+        std::array<int, kRegionCount> monsterScores{};
+        int marketDice = 0;
+        std::array<std::array<bool, kRegionCount>, kPlayerCount> flags{};
+        std::array<KnightAllocation, kPlayerCount> knights{};
+        std::vector<RegionEvent> events;                 // 지역 0~5 순서
+        std::array<PlayerState, kPlayerCount> playersAfter{};  // 정산 뒤 점수·보유 기사
+    };
+
     // 최고 점수, 동점이면 기사가 많은 쪽, 그래도 같으면 모두. 인덱스 오름차순.
     std::vector<int> RankWinners(const std::array<PlayerState, kPlayerCount>& players);
 
@@ -130,6 +142,8 @@ namespace Knights
         SubmitError SubmitKnights(int player, const KnightAllocation& allocation);
         // Resolution 단계의 정산 기록(지역 0~5 순서). 다른 단계에서는 비어 있다.
         const std::vector<RegionEvent>& GetResolution() const { return m_resolution; }
+        // 정산이 끝난 라운드 기록(오래된 순). 정산되는 순간 그 라운드가 추가되고, Reset에서 비운다.
+        const std::vector<RoundRecord>& GetHistory() const { return m_history; }
         void AdvanceRound();
         std::vector<int> GetWinners() const;
         PublicView GetView(int viewer) const;
@@ -147,5 +161,6 @@ namespace Knights
         std::array<std::array<bool, kRegionCount>, kPlayerCount> m_flags{};
         std::array<KnightAllocation, kPlayerCount> m_knights{};
         std::vector<RegionEvent> m_resolution;
+        std::vector<RoundRecord> m_history;
     };
 }

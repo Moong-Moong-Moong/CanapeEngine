@@ -42,6 +42,13 @@ namespace
     constexpr float kResultWidth = 410.0f;
     constexpr float kResultHeight = 80.0f;
     constexpr std::array<float, 4> kResultFontSizes{ 22.0f, 20.0f, 18.0f, 16.0f };
+    // 진행 기록 창
+    constexpr float kLogWidth = 1500.0f;
+    constexpr float kLogHeight = 940.0f;
+    constexpr float kLogPadding = 40.0f;
+    constexpr float kLogContentTop = 132.0f;
+    constexpr float kLogViewportHeight = kLogHeight - kLogContentTop - 32.0f;
+    constexpr float kLogWheelStep = 90.0f;  // 휠 한 칸에 움직이는 양
 
     //***** 색
     constexpr UIColor kMonsterCardColor{ 96, 62, 66 };
@@ -94,6 +101,7 @@ void KnightsBoardController::Start()
     BuildScoreboard(root);
     BuildActionPanel(root);
     BuildGameOverPanel(root);
+    BuildLogPanel(root);  // 종료 화면 위에서도 열 수 있도록 마지막에 만든다.
 
     NewGame();
     Refresh();
@@ -107,8 +115,12 @@ void KnightsBoardController::Update()
     Application::Get().GetInputManager().SetCursorRequested(true);
 
     const bool clicked = ConsumeRawClick();
-    m_Timer += Time::DeltaTime();
-    AdvanceStage(clicked);
+    // 기록 창이 열려 있으면 진행을 멈춘다(시간도 흐르지 않고, 창 안의 클릭이 정산을 넘기지 않는다).
+    if (!m_LogOpen)
+    {
+        m_Timer += Time::DeltaTime();
+        AdvanceStage(clicked);
+    }
     Refresh();
 }
 
@@ -125,7 +137,13 @@ void KnightsBoardController::BuildTopBar(UIElement& root)
     auto* bar = KnightsUi::AddPanel(root, "TopBar", m_RoundedTexture, { kMargin, 16.0f }, { 1920.0f - 2.0f * kMargin, kTopBarHeight },
                                     KnightsUi::kPanelColor);
     m_RoundText = AddLabel(*bar, "Round", "", 44.0f, { 28.0f, 0.0f }, { 300.0f, kTopBarHeight }, KnightsUi::kTitleColor);
-    m_StageText = AddLabel(*bar, "Stage", "", 32.0f, { 330.0f, 0.0f }, { 1500.0f, kTopBarHeight });
+    m_StageText = AddLabel(*bar, "Stage", "", 32.0f, { 330.0f, 0.0f }, { 1300.0f, kTopBarHeight });
+
+    auto* log = KnightsUi::AddButton(*bar, "Log", m_RoundedTexture, "기록", 30.0f, { -20.0f, 0.0f }, { 180.0f, 64.0f },
+                                     KnightsUi::kNeutralButtonColor);
+    log->SetAnchor({ 1.0f, 0.5f });
+    log->SetPivot({ 1.0f, 0.5f });
+    log->OnClicked = [this] { SetLogOpen(true); };
 }
 
 void KnightsBoardController::BuildBoard(UIElement& root)
@@ -322,13 +340,75 @@ void KnightsBoardController::BuildGameOverPanel(UIElement& root)
         m_RankKnights[i] = AddLabel(row, "Knights", "", 30.0f, { 530.0f, 0.0f }, { 170.0f, 68.0f }, KnightsUi::kTextColor, UITextAlign::End);
     }
 
-    auto* again = KnightsUi::AddButton(*panel, "Again", m_RoundedTexture, "다시 하기", 36.0f, { 130.0f, height - 120.0f },
-                                       { 280.0f, 90.0f }, KnightsUi::kConfirmColor);
+    constexpr float buttonWidth = 240.0f;
+    constexpr float buttonGap = 30.0f;
+    constexpr float buttonLeft = (width - 3.0f * buttonWidth - 2.0f * buttonGap) * 0.5f;
+    auto* again = KnightsUi::AddButton(*panel, "Again", m_RoundedTexture, "다시 하기", 36.0f, { buttonLeft, height - 120.0f },
+                                       { buttonWidth, 90.0f }, KnightsUi::kConfirmColor);
     again->OnClicked = [this] { NewGame(); };
 
-    auto* title = KnightsUi::AddButton(*panel, "ToTitle", m_RoundedTexture, "타이틀로", 36.0f, { width - 130.0f - 280.0f, height - 120.0f },
-                                       { 280.0f, 90.0f }, KnightsUi::kNeutralButtonColor);
+    auto* log = KnightsUi::AddButton(*panel, "Log", m_RoundedTexture, "기록 보기", 36.0f,
+                                     { buttonLeft + buttonWidth + buttonGap, height - 120.0f }, { buttonWidth, 90.0f },
+                                     KnightsUi::kNeutralButtonColor);
+    log->OnClicked = [this] { SetLogOpen(true); };
+
+    auto* title = KnightsUi::AddButton(*panel, "ToTitle", m_RoundedTexture, "타이틀로", 36.0f,
+                                       { buttonLeft + 2.0f * (buttonWidth + buttonGap), height - 120.0f }, { buttonWidth, 90.0f },
+                                       KnightsUi::kNeutralButtonColor);
     title->OnClicked = [this] { GoToTitle(); };
+
+    overlay->SetVisible(false);
+}
+
+void KnightsBoardController::BuildLogPanel(UIElement& root)
+{
+    //*** 화면 전체를 어둡게 덮어 아래 보드·종료 화면 입력을 막는다.
+    auto* overlay = root.AddChild<UIImage>("Log");
+    overlay->SetAnchors({ 0.0f, 0.0f }, { 1.0f, 1.0f });
+    overlay->SetSize({ 0.0f, 0.0f });
+    overlay->SetColor(kOverlayColor);
+    overlay->SetHitTestable(true);
+    m_LogRoot = overlay;
+
+    auto* panel = KnightsUi::AddPanel(*overlay, "Panel", m_RoundedTexture, { 0.0f, 0.0f }, { kLogWidth, kLogHeight },
+                                      KnightsUi::kPanelColor, 20.0f);
+    panel->SetAnchor({ 0.5f, 0.5f });
+    panel->SetPivot({ 0.5f, 0.5f });
+
+    AddLabel(*panel, "Title", "진행 기록", 44.0f, { 40.0f, 20.0f }, { 400.0f, 64.0f }, KnightsUi::kTitleColor);
+    AddLabel(*panel, "Hint", "최근 라운드가 위 · 마우스 휠로 스크롤 · 보는 동안 게임은 멈춥니다", 22.0f, { 40.0f, 84.0f },
+             { 1000.0f, 32.0f }, KnightsUi::kSubTextColor);
+
+    auto* close = KnightsUi::AddButton(*panel, "Close", m_RoundedTexture, "닫기", 30.0f, { -32.0f, 24.0f }, { 180.0f, 64.0f },
+                                       KnightsUi::kNeutralButtonColor);
+    close->SetAnchor({ 1.0f, 0.0f });
+    close->SetPivot({ 1.0f, 0.0f });
+    close->OnClicked = [this] { SetLogOpen(false); };
+
+    //*** 내용 상자: 넘치는 부분은 잘라 내고, 안쪽 세로 박스를 위아래로 움직여 스크롤한다.
+    auto* viewport = panel->AddChild<UIElement>("Viewport");
+    viewport->SetPosition({ kLogPadding, kLogContentTop });
+    viewport->SetSize({ kLogWidth - 2.0f * kLogPadding, kLogViewportHeight });
+    viewport->SetClipChildren(true);
+
+    auto* content = viewport->AddChild<UIVerticalBox>("Content");
+    content->SetSize({ kLogWidth - 2.0f * kLogPadding, kLogViewportHeight });
+    content->SetChildAlign(UIBoxAlign::Stretch);
+    content->SetSpacing(6.0f);
+    m_LogContent = content;
+
+    m_LogEmpty = AddLabel(*content, "Empty", "아직 끝난 라운드가 없습니다.", 28.0f, {}, { 0.0f, 60.0f }, KnightsUi::kSubTextColor);
+    for (int i = 0; i < kRoundCount; ++i)
+    {
+        // 라운드 사이 여백. 맨 위 라운드 앞에서는 RefreshLog가 숨긴다.
+        m_LogSpacers[i] = content->AddChild<UIElement>("RoundGap" + Num(i));
+        m_LogSpacers[i]->SetSize({ 0.0f, 22.0f });
+        m_LogTitles[i] = AddLabel(*content, "RoundTitle" + Num(i), "", 32.0f, {}, { 0.0f, 56.0f }, KnightsUi::kTitleColor,
+                                  UITextAlign::Start, UITextAlign::End);
+        m_LogBodies[i] = AddLabel(*content, "RoundBody" + Num(i), "", 24.0f, {}, { 0.0f, 0.0f }, KnightsUi::kTextColor,
+                                  UITextAlign::Start, UITextAlign::Start);
+        m_LogBodies[i]->SetWrap(true);
+    }
 
     overlay->SetVisible(false);
 }
@@ -360,6 +440,8 @@ void KnightsBoardController::NewGame()
     }
     m_Stalled = false;
     m_LastEvents.clear();
+    SetLogOpen(false);
+    m_LogShownCount = -1;
     // 카드 결과 줄·칩·점수판은 매 프레임 Refresh가 새 상태로 다시 그린다. 종료 화면은 EnterStage가 숨긴다.
     EnterStage(Stage::PlayerFlags);
 }
@@ -698,6 +780,76 @@ void KnightsBoardController::Refresh()
     RefreshCards(view);
     RefreshScoreboard(view);
     RefreshActionPanel(view);
+    RefreshLog();
+}
+
+//***** 진행 기록 창
+
+void KnightsBoardController::SetLogOpen(bool open)
+{
+    m_LogOpen = open;
+    m_LogScroll = 0.0f;  // 열 때마다 가장 최근 라운드부터
+    m_LogRoot->SetVisible(open);
+}
+
+int KnightsBoardController::GetVisibleHistoryCount() const
+{
+    const int count = static_cast<int>(m_Game.GetHistory().size());
+    // 코어는 기사 공개 순간 이번 라운드를 기록에 넣지만, 화면은 정산을 지역별로 천천히 보여 준다.
+    // 그 연출이 끝나(RoundEnd) 전에는 이번 라운드를 숨긴다.
+    if (m_Game.GetPhase() == Phase::Resolution && m_Stage != Stage::RoundEnd)
+        return std::max(0, count - 1);
+    return count;
+}
+
+void KnightsBoardController::RefreshLog()
+{
+    if (!m_LogOpen)
+        return;
+
+    //*** 기록 수가 바뀐 때만 글을 다시 채운다(0번 칸 = 가장 최근 라운드).
+    const int count = GetVisibleHistoryCount();
+    if (count != m_LogShownCount)
+    {
+        m_LogShownCount = count;
+        const auto& history = m_Game.GetHistory();
+        m_LogEmpty->SetVisible(count == 0);
+        for (int i = 0; i < kRoundCount; ++i)
+        {
+            const bool used = i < count;
+            m_LogSpacers[i]->SetVisible(used && i > 0);
+            m_LogTitles[i]->SetVisible(used);
+            m_LogBodies[i]->SetVisible(used);
+            if (!used)
+                continue;
+            const RoundLogText text = DescribeRound(history[count - 1 - i]);
+            KnightsUi::SetTextIfChanged(*m_LogTitles[i], text.title);
+            KnightsUi::SetTextIfChanged(*m_LogBodies[i], text.body);
+        }
+    }
+
+    //*** 휠 스크롤. UI가 포인터를 잡은 프레임에는 GetMouseWheel이 0이므로 원본 입력을 읽는다.
+    const float wheel = Application::Get().GetInputManager().GetInput().MouseWheel;
+    m_LogScroll -= wheel * kLogWheelStep;
+
+    // 내용 높이는 지난 프레임 배치 결과로 잰다(마지막으로 보이는 자식의 아래 끝).
+    float contentHeight = 0.0f;
+    const float scale = m_LogContent->GetLayoutScale();
+    if (scale > 0.0f)
+    {
+        const float top = m_LogContent->GetLayoutRect().Y;
+        for (const auto& child : m_LogContent->GetChildren())
+        {
+            if (child->IsVisible())
+            {
+                const UIRect& rect = child->GetLayoutRect();
+                contentHeight = std::max(contentHeight, (rect.Y + rect.Height - top) / scale);
+            }
+        }
+    }
+    const float maxScroll = std::max(0.0f, contentHeight - kLogViewportHeight);
+    m_LogScroll = std::clamp(m_LogScroll, 0.0f, maxScroll);
+    m_LogContent->SetPosition({ 0.0f, -m_LogScroll });
 }
 
 void KnightsBoardController::RefreshCards(const PublicView& view)

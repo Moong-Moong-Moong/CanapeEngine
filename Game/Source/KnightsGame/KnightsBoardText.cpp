@@ -1,19 +1,21 @@
 #include "KnightsGame/KnightsBoardText.h"
 #include "KnightsGame/KnightsAi.h"
 
+#include <array>
+#include <utility>
 #include <vector>
 
 namespace Knights
 {
     namespace
     {
-        std::string Join(const std::vector<std::string>& parts)
+        std::string Join(const std::vector<std::string>& parts, const std::string& separator = ", ")
         {
             std::string result;
             for (size_t i = 0; i < parts.size(); ++i)
             {
                 if (i > 0)
-                    result += ", ";
+                    result += separator;
                 result += parts[i];
             }
             return result;
@@ -116,6 +118,11 @@ namespace Knights
             return text;
         }
 
+        std::string Signed(int value)
+        {
+            return (value >= 0 ? "+" : "") + std::to_string(value);
+        }
+
         EventText DescribeMarket(const RegionEvent& event, const std::string& name)
         {
             EventText text;
@@ -190,5 +197,67 @@ namespace Knights
         case RegionKind::MercenaryMarket: return DescribeMarket(event, name);
         }
         return {};
+    }
+
+    RoundLogText DescribeRound(const RoundRecord& record)
+    {
+        const auto& defs = GetRegionDefs();
+        RoundLogText text;
+        text.title = "라운드 " + std::to_string(record.round);
+
+        //*** 라운드 시작에 공개된 값
+        std::vector<std::string> openings;
+        for (int r = 0; r < kRegionCount; ++r)
+        {
+            const std::string name(defs[r].name);
+            if (defs[r].kind == RegionKind::Monster)
+                openings.push_back(name + " " + std::to_string(record.monsterScores[r]) + "점");
+            else if (defs[r].kind == RegionKind::MercenaryMarket)
+                openings.push_back(name + " 주사위 " + std::to_string(record.marketDice));
+        }
+        std::string body = "공개: " + Join(openings, " · ") + "\n";
+
+        //*** 플레이어별 깃발과 보낸 기사
+        body += "배치\n";
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            std::vector<std::string> places;
+            for (int r = 0; r < kRegionCount; ++r)
+            {
+                if (!record.flags[p][r])
+                    continue;
+                std::string place(defs[r].name);
+                if (defs[r].kind == RegionKind::Monster)
+                    place += " 기사 " + std::to_string(record.knights[p][r]) + "명";
+                places.push_back(place);
+            }
+            body += "   " + PlayerName(p) + ": " + (places.empty() ? std::string("깃발 없음") : Join(places)) + "\n";
+        }
+
+        //*** 지역별 정산(화면 하단 문구와 같은 글)
+        body += "정산\n";
+        std::array<int, kPlayerCount> scoreDelta{};
+        std::array<int, kPlayerCount> knightDelta{};
+        for (const RegionEvent& event : record.events)
+        {
+            body += "   " + DescribeEvent(event).headline + "\n";
+            for (int p = 0; p < kPlayerCount; ++p)
+            {
+                scoreDelta[p] += event.scoreGained[p];
+                knightDelta[p] += event.knightsGained[p] - event.knightsLost[p];
+            }
+        }
+
+        //*** 라운드 끝 점수·기사(이번 라운드 변화)
+        std::vector<std::string> totals;
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            const PlayerState& player = record.playersAfter[p];
+            totals.push_back(PlayerName(p) + " " + std::to_string(player.score) + "점(" + Signed(scoreDelta[p]) + ") 기사 " +
+                             std::to_string(player.knights) + "명(" + Signed(knightDelta[p]) + ")");
+        }
+        body += "결과: " + Join(totals, " · ");
+        text.body = std::move(body);
+        return text;
     }
 }

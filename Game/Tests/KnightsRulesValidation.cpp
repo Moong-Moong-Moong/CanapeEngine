@@ -681,6 +681,83 @@ namespace
         const EventText none = DescribeEvent(ResolveMonster(0, 3, Arr{}, Flg{}));
         CHECK(Has(none.headline, "깃발 없음") && none.tone == EventTone::Nothing);
     }
+
+    // 라운드 기록: 정산되는 순간 추가되고, 그 라운드의 공개 값·배치·정산·결과를 그대로 담는다.
+    void RoundHistory()
+    {
+        Game g(21);
+        CHECK(g.GetHistory().empty());
+        const int goblin = g.GetMonsterScore(0);
+        const int dice = g.GetMarketDice();
+        ToKnightPlacement(g, FlagChoice{0, 4});  // 모두 고블린 + 훈련소
+        CHECK(g.GetHistory().empty());           // 배치 중에는 아직 없다(숨은 정보가 새지 않게)
+        CHECK(g.SubmitKnights(0, KnightAllocation{3, 0, 0, 0, 0, 0}) == SubmitError::None);
+        for (int p = 1; p < kPlayerCount; ++p)
+            CHECK(g.SubmitKnights(p, KnightAllocation{}) == SubmitError::None);
+        CHECK(g.GetPhase() == Phase::Resolution);
+        CHECK(g.GetHistory().size() == 1);
+
+        const RoundRecord& record = g.GetHistory()[0];
+        CHECK(record.round == 1);
+        CHECK(record.monsterScores[0] == goblin && record.marketDice == dice);
+        CHECK(record.flags[0][0] && record.flags[0][4] && !record.flags[0][5]);
+        CHECK(record.knights[0][0] == 3);
+        CHECK(record.events.size() == kRegionCount);
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            CHECK(record.playersAfter[p].score == g.GetPlayer(p).score);
+            CHECK(record.playersAfter[p].knights == g.GetPlayer(p).knights);
+        }
+
+        // 다음 라운드로 넘어가도 기록은 남고, 정산마다 하나씩 쌓인다.
+        g.AdvanceRound();
+        CHECK(g.GetHistory().size() == 1);
+        PlayRound(g);
+        CHECK(g.GetHistory().size() == 2 && g.GetHistory()[1].round == 2);
+        g.Reset(21);
+        CHECK(g.GetHistory().empty());
+
+        // 8라운드를 끝까지 하면 기록도 8개
+        for (int round = 1; round <= kRoundCount; ++round)
+        {
+            PlayRound(g);
+            g.AdvanceRound();
+        }
+        CHECK(g.GetPhase() == Phase::GameOver && g.GetHistory().size() == kRoundCount);
+        for (int i = 0; i < kRoundCount; ++i)
+            CHECK(g.GetHistory()[i].round == i + 1);
+    }
+
+    void RoundLogTextContents()
+    {
+        RoundRecord record;
+        record.round = 3;
+        record.monsterScores = {5, 8, 10, 13, 0, 0};
+        record.marketDice = 4;
+        record.flags[0][0] = true;
+        record.flags[0][4] = true;
+        record.knights[0][0] = 3;
+        record.flags[1][0] = true;
+        record.flags[1][5] = true;
+        record.knights[1][0] = 2;
+        // 고블린 5점: 나 3명, AI 1 2명 → AI 1 +2, 나 +3
+        record.events.push_back(ResolveMonster(0, 5, Arr{3, 2, 0, 0, 0}, Flg{true, true, false, false, false}));
+        record.events.push_back(ResolveTraining(4, Flg{true, false, false, false, false}));
+        record.events.push_back(ResolveMarket(5, 4, Flg{false, true, false, false, false}));
+        record.playersAfter[0] = {7, 6};
+        record.playersAfter[1] = {2, 9};
+
+        const RoundLogText t = DescribeRound(record);
+        CHECK(t.title == "라운드 3");
+        CHECK(Has(t.body, "고블린 둥지 5점") && Has(t.body, "드래곤 동굴 13점") && Has(t.body, "용병 시장 주사위 4"));
+        CHECK(Has(t.body, "나: 고블린 둥지 기사 3명, 훈련소"));
+        CHECK(Has(t.body, "AI 1: 고블린 둥지 기사 2명, 용병 시장"));
+        CHECK(Has(t.body, "AI 2: 깃발 없음"));
+        CHECK(Has(t.body, "고블린 둥지 승리!"));
+        CHECK(Has(t.body, "나 7점(+3) 기사 6명(+1)"));
+        CHECK(Has(t.body, "AI 1 2점(+2) 기사 9명(+4)"));
+        CHECK(Has(t.body, "AI 2 0점(+0) 기사 5명(+0)"));
+    }
 }
 
 int main()
@@ -717,6 +794,8 @@ int main()
     EventTextDiscard();
     EventTextMarketZero();
     EventTextFlagsNoKnights();
+    RoundHistory();
+    RoundLogTextContents();
 
     if (g_failures == 0)
     {

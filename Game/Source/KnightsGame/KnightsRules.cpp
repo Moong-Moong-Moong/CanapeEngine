@@ -1,5 +1,7 @@
 #include "KnightsGame/KnightsRules.h"
 
+#include <utility>
+
 namespace Knights
 {
     const std::array<RegionDef, kRegionCount>& GetRegionDefs()
@@ -39,6 +41,7 @@ namespace Knights
         m_flags = {};
         m_knights = {};
         m_resolution.clear();
+        m_history.clear();
         RollMonsterScores();
     }
 
@@ -239,6 +242,17 @@ namespace Knights
             }
             m_resolution.push_back(e);
         }
+
+        RoundRecord record;
+        record.round = m_round;
+        record.monsterScores = m_monsterScores;
+        record.marketDice = m_marketDice;
+        record.flags = m_flags;
+        record.knights = m_knights;
+        record.events = m_resolution;
+        record.playersAfter = m_players;
+        m_history.push_back(std::move(record));
+
         m_phase = Phase::Resolution;
         m_submitted = {};
         return SubmitError::None;

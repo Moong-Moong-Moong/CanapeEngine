@@ -75,6 +75,7 @@ private:
     void BuildScoreboard(Canape::UIElement& root);
     void BuildActionPanel(Canape::UIElement& root);
     void BuildGameOverPanel(Canape::UIElement& root);
+    void BuildLogPanel(Canape::UIElement& root);
 
     //***** 진행
     void NewGame();
@@ -105,6 +106,13 @@ private:
     static void SetCardResult(RegionCard& card, const std::string& text, Canape::UIColor color);
     // 종료 화면 내용(순위·승자)은 GameOver에 들어갈 때 한 번만 채운다.
     void ShowGameOver();
+
+    //***** 진행 기록 창. 열려 있는 동안 게임 진행(AI 차례·연출 시간)을 멈춘다.
+    void SetLogOpen(bool open);
+    // 기록 수가 바뀌면 글을 다시 채우고, 휠 입력으로 스크롤한다.
+    void RefreshLog();
+    // 화면에 보여도 되는 기록 수. 정산 연출이 끝나기 전에는 이번 라운드를 빼서 결과를 미리 알리지 않는다.
+    int GetVisibleHistoryCount() const;
 
     // 정산 중에는 아직 보여 주지 않은 이벤트를 빼서, 화면 숫자가 보여 준 이벤트까지만 반영되게 한다.
     std::array<Knights::PlayerState, Knights::kPlayerCount> GetShownPlayers(const Knights::PublicView& view) const;
@@ -148,4 +156,15 @@ private:
     std::array<Canape::UIText*, Knights::kPlayerCount> m_RankScores{};
     std::array<Canape::UIText*, Knights::kPlayerCount> m_RankKnights{};
     std::array<Canape::UIImage*, Knights::kPlayerCount> m_RankBackgrounds{};
+
+    //*** 진행 기록 창: 라운드마다 제목·본문 한 쌍(0번 칸이 가장 최근 라운드)
+    Canape::UIElement* m_LogRoot = nullptr;
+    Canape::UIElement* m_LogContent = nullptr;  // 잘라 내는 상자 안에서 위아래로 움직이는 세로 박스
+    Canape::UIText* m_LogEmpty = nullptr;
+    std::array<Canape::UIElement*, Knights::kRoundCount> m_LogSpacers{};
+    std::array<Canape::UIText*, Knights::kRoundCount> m_LogTitles{};
+    std::array<Canape::UIText*, Knights::kRoundCount> m_LogBodies{};
+    bool m_LogOpen = false;
+    float m_LogScroll = 0.0f;   // 내용을 위로 올린 양(캔버스 기준 픽셀)
+    int m_LogShownCount = -1;   // 마지막으로 글을 채운 기록 수(-1 = 다시 채워야 함)
 };

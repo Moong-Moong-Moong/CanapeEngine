@@ -29,4 +29,13 @@ namespace Knights
     };
 
     EventText DescribeEvent(const RegionEvent& event);
+
+    // 진행 기록 창에 보여 줄 라운드 하나.
+    struct RoundLogText
+    {
+        std::string title;  // "라운드 3"
+        std::string body;   // 여러 줄: 몬스터·주사위, 배치, 정산, 라운드 끝 점수
+    };
+
+    RoundLogText DescribeRound(const RoundRecord& record);
 }
