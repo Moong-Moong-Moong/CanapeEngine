@@ -204,12 +204,24 @@ namespace Knights
             {
                 e = ResolveMonster(r, m_monsterScores[r], sent, flagged);
             }
+            else if (defs[r].kind == RegionKind::TrainingGround)
+            {
+                e = ResolveTraining(r, flagged);
+            }
             else
             {
-                // 증원 지역은 Task 3에서 채운다.
-                e.region = r;
-                e.kind = defs[r].kind;
-                e.flagged = flagged;
+                // 깃발이 하나도 없으면 주사위를 굴리지 않는다(RNG 소비 없음).
+                int dice = 0;
+                for (bool f : flagged)
+                {
+                    if (f)
+                    {
+                        std::uniform_int_distribution<int> dist(1, 6);
+                        dice = dist(m_rng);
+                        break;
+                    }
+                }
+                e = ResolveMarket(r, dice, flagged);
             }
             for (int p = 0; p < kPlayerCount; ++p)
             {
@@ -223,15 +235,88 @@ namespace Knights
         return SubmitError::None;
     }
 
+    RegionEvent ResolveTraining(int region, const std::array<bool, kPlayerCount>& flagged)
+    {
+        RegionEvent e;
+        e.region = region;
+        e.kind = RegionKind::TrainingGround;
+        e.flagged = flagged;
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            if (flagged[p])
+                e.knightsGained[p] = 1;
+        }
+        return e;
+    }
+
+    RegionEvent ResolveMarket(int region, int dice, const std::array<bool, kPlayerCount>& flagged)
+    {
+        RegionEvent e;
+        e.region = region;
+        e.kind = RegionKind::MercenaryMarket;
+        e.flagged = flagged;
+        int n = 0;
+        for (bool f : flagged)
+        {
+            if (f)
+                ++n;
+        }
+        if (n == 0)
+            return e;  // 깃발이 없으면 주사위를 굴리지 않는다.
+
+        e.dice = dice;
+        const int share = dice / n;
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            if (flagged[p])
+                e.knightsGained[p] = share;
+        }
+        e.discarded = dice - share * n;
+        return e;
+    }
+
+    std::vector<int> RankWinners(const std::array<PlayerState, kPlayerCount>& players)
+    {
+        std::vector<int> winners;
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            if (winners.empty())
+            {
+                winners.push_back(p);
+                continue;
+            }
+            const PlayerState& best = players[winners[0]];
+            const PlayerState& cur = players[p];
+            if (cur.score > best.score || (cur.score == best.score && cur.knights > best.knights))
+                winners = {p};
+            else if (cur.score == best.score && cur.knights == best.knights)
+                winners.push_back(p);
+        }
+        return winners;
+    }
+
     void Game::AdvanceRound()
     {
-        // Task 3에서 구현한다.
+        if (m_phase != Phase::Resolution)
+            return;
+        if (m_round >= kRoundCount)
+        {
+            m_phase = Phase::GameOver;
+            return;
+        }
+        ++m_round;
+        m_phase = Phase::FlagPlacement;
+        m_submitted = {};
+        m_flags = {};
+        m_knights = {};
+        RollMonsterScores();
     }
 
     std::vector<int> Game::GetWinners() const
     {
-        // Task 3에서 구현한다.
-        return {};
+        if (m_phase != Phase::GameOver)
+            return {};
+        return RankWinners(m_players);
     }
 
     PublicView Game::GetView(int viewer) const

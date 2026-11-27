@@ -157,6 +157,10 @@ namespace
             CHECK(e.scoreGained == (Arr{2, 2, 0, 0, 0}) && e.discarded == 1);
         }
         {
+            RegionEvent e = ResolveMonster(1, 5, Arr{2, 4, 4, 0, 0}, all);
+            CHECK(e.scoreGained == (Arr{2, 1, 1, 0, 0}) && e.discarded == 1);
+        }
+        {
             RegionEvent e = ResolveMonster(2, 7, Arr{2, 3, 0, 0, 0}, all);
             CHECK(e.wiped && e.knightsLost == (Arr{2, 3, 0, 0, 0}));
             CHECK(e.scoreGained == (Arr{0, 0, 0, 0, 0}) && e.discarded == 0);
@@ -251,8 +255,168 @@ namespace
         CHECK(g.GetPlayer(0).score == score);
         CHECK(g.GetPlayer(0).knights == kStartKnights - lost + gained);
         CHECK(g.GetPlayer(0).knights >= 0);
+        // 나머지는 훈련소(+1)와 용병 시장(주사위 4명 분배)만 받는다.
+        const int marketShare = events[5].dice / 4;
         for (int p = 1; p < kPlayerCount; ++p)
-            CHECK(g.GetPlayer(p).knights == kStartKnights && g.GetPlayer(p).score == 0);
+            CHECK(g.GetPlayer(p).knights == kStartKnights + 1 + marketShare && g.GetPlayer(p).score == 0);
+    }
+
+    void TrainingGround()
+    {
+        RegionEvent e = ResolveTraining(4, Flg{true, false, true, false, false});
+        CHECK(e.region == 4 && e.kind == RegionKind::TrainingGround);
+        CHECK(e.knightsGained == (Arr{1, 0, 1, 0, 0}));
+        CHECK(e.flagged == (Flg{true, false, true, false, false}));
+        CHECK(e.scoreGained == (Arr{}) && e.knightsLost == (Arr{}));
+    }
+
+    void Market()
+    {
+        {
+            RegionEvent e = ResolveMarket(5, 1, Flg{true, true, false, false, false});
+            CHECK(e.kind == RegionKind::MercenaryMarket && e.region == 5);
+            CHECK(e.knightsGained == (Arr{0, 0, 0, 0, 0}) && e.discarded == 1 && e.dice == 1);
+        }
+        {
+            RegionEvent e = ResolveMarket(5, 6, Flg{true, true, true, true, false});
+            CHECK(e.knightsGained == (Arr{1, 1, 1, 1, 0}) && e.discarded == 2 && e.dice == 6);
+        }
+        {
+            RegionEvent e = ResolveMarket(5, 5, Flg{false, false, false, true, false});
+            CHECK(e.knightsGained == (Arr{0, 0, 0, 5, 0}) && e.discarded == 0);
+        }
+        {
+            RegionEvent e = ResolveMarket(5, 4, Flg{});
+            CHECK(e.dice == 0 && e.discarded == 0 && e.knightsGained == (Arr{}));
+        }
+    }
+
+    // 정산 직후 증원이 knights에 반영되고, 다음 라운드 배치에서 쓸 수 있다.
+    void ReinforceNextRound()
+    {
+        Game g(3);
+        CHECK(g.SubmitFlags(0, FlagChoice{4, 0}) == SubmitError::None);
+        for (int p = 1; p < kPlayerCount; ++p)
+            CHECK(g.SubmitFlags(p, FlagChoice{1, 2}) == SubmitError::None);
+        for (int p = 0; p < kPlayerCount; ++p)
+            CHECK(g.SubmitKnights(p, KnightAllocation{}) == SubmitError::None);
+        CHECK(g.GetPhase() == Phase::Resolution);
+        CHECK(g.GetPlayer(0).knights == kStartKnights + 1);
+        CHECK(g.GetResolution()[4].knightsGained[0] == 1);
+        CHECK(g.GetResolution()[5].dice == 0);
+        for (int p = 1; p < kPlayerCount; ++p)
+            CHECK(g.GetPlayer(p).knights == kStartKnights);
+
+        g.AdvanceRound();
+        CHECK(g.GetRound() == 2 && g.GetPhase() == Phase::FlagPlacement);
+        ToKnightPlacement(g, FlagChoice{0, 4});
+        CHECK(g.SubmitKnights(0, KnightAllocation{7, 0, 0, 0, 0, 0}) == SubmitError::ExceedsKnights);
+        CHECK(g.SubmitKnights(0, KnightAllocation{6, 0, 0, 0, 0, 0}) == SubmitError::None);
+    }
+
+    void MarketDiceInGame()
+    {
+        Game g(11);
+        CHECK(g.SubmitFlags(0, FlagChoice{5, 0}) == SubmitError::None);
+        for (int p = 1; p < kPlayerCount; ++p)
+            CHECK(g.SubmitFlags(p, FlagChoice{1, 2}) == SubmitError::None);
+        for (int p = 0; p < kPlayerCount; ++p)
+            CHECK(g.SubmitKnights(p, KnightAllocation{}) == SubmitError::None);
+        const RegionEvent& m = g.GetResolution()[5];
+        CHECK(m.dice >= 1 && m.dice <= 6);
+        CHECK(m.knightsGained[0] == m.dice && m.discarded == 0);
+        CHECK(g.GetPlayer(0).knights == kStartKnights + m.dice);
+    }
+
+    void PlayRound(Game& g)
+    {
+        for (int p = 0; p < kPlayerCount; ++p)
+            CHECK(g.SubmitFlags(p, FlagChoice{4, 5}) == SubmitError::None);
+        for (int p = 0; p < kPlayerCount; ++p)
+            CHECK(g.SubmitKnights(p, KnightAllocation{}) == SubmitError::None);
+    }
+
+    void RoundsAndGameOver()
+    {
+        Game g(5);
+        CHECK(g.GetWinners().empty());  // GameOver 전에는 비어 있다
+        for (int round = 1; round <= kRoundCount; ++round)
+        {
+            CHECK(g.GetRound() == round);
+            CHECK(g.GetPhase() == Phase::FlagPlacement);
+            for (int p = 0; p < kPlayerCount; ++p)
+                CHECK(!g.HasSubmitted(p));
+            PlayRound(g);
+            CHECK(g.GetPhase() == Phase::Resolution);
+            g.AdvanceRound();
+        }
+        CHECK(g.GetPhase() == Phase::GameOver);
+        CHECK(g.GetRound() == kRoundCount);
+        CHECK(g.SubmitFlags(0, FlagChoice{4, 5}) == SubmitError::WrongPhase);
+        CHECK(g.SubmitKnights(0, KnightAllocation{}) == SubmitError::WrongPhase);
+        g.AdvanceRound();  // GameOver에서는 무시
+        CHECK(g.GetPhase() == Phase::GameOver && g.GetRound() == kRoundCount);
+        CHECK(!g.GetWinners().empty());
+    }
+
+    void AdvanceOnlyInResolution()
+    {
+        Game g(1);
+        g.AdvanceRound();
+        CHECK(g.GetRound() == 1 && g.GetPhase() == Phase::FlagPlacement);
+        ToKnightPlacement(g, FlagChoice{4, 5});
+        g.AdvanceRound();
+        CHECK(g.GetRound() == 1 && g.GetPhase() == Phase::KnightPlacement);
+    }
+
+    void Winners()
+    {
+        using Players = std::array<PlayerState, kPlayerCount>;
+        auto make = [](const Arr& scores, const Arr& knights)
+        {
+            Players ps{};
+            for (int p = 0; p < kPlayerCount; ++p)
+            {
+                ps[p].score = scores[p];
+                ps[p].knights = knights[p];
+            }
+            return ps;
+        };
+        // 단독 1위
+        CHECK(RankWinners(make(Arr{3, 5, 1, 1, 0}, Arr{9, 2, 4, 9, 9})) == (std::vector<int>{1}));
+        // 점수 동점이면 기사가 많은 쪽
+        CHECK(RankWinners(make(Arr{3, 5, 5, 1, 0}, Arr{9, 2, 4, 9, 9})) == (std::vector<int>{2}));
+        // 점수·기사 모두 같으면 공동 우승
+        CHECK(RankWinners(make(Arr{5, 5, 1, 0, 0}, Arr{3, 3, 9, 9, 9})) == (std::vector<int>{0, 1}));
+    }
+
+    void ResetRestoresStart()
+    {
+        Game g(5);
+        for (int i = 0; i < 3; ++i)
+        {
+            PlayRound(g);
+            g.AdvanceRound();
+        }
+        CHECK(g.GetRound() == 4);
+        CHECK(g.SubmitFlags(0, FlagChoice{4, 5}) == SubmitError::None);
+        g.Reset(7);
+        CHECK(g.GetRound() == 1 && g.GetPhase() == Phase::FlagPlacement);
+        CHECK(g.GetResolution().empty());
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            CHECK(g.GetPlayer(p).score == 0 && g.GetPlayer(p).knights == kStartKnights);
+            CHECK(!g.HasSubmitted(p));
+        }
+        const PublicView v = g.GetView(0);
+        for (int p = 0; p < kPlayerCount; ++p)
+        {
+            for (int r = 0; r < kRegionCount; ++r)
+                CHECK(!v.flags[p][r] && v.knights[p][r] == 0);
+        }
+        Game fresh(7);
+        for (int r = 0; r < 4; ++r)
+            CHECK(g.GetMonsterScore(r) == fresh.GetMonsterScore(r));
     }
 }
 
@@ -270,6 +434,14 @@ int main()
     ZeroAllocationAccepted();
     KnightsHiddenUntilAll();
     WipeAcrossRegions();
+    TrainingGround();
+    Market();
+    ReinforceNextRound();
+    MarketDiceInGame();
+    RoundsAndGameOver();
+    AdvanceOnlyInResolution();
+    Winners();
+    ResetRestoresStart();
 
     if (g_failures == 0)
     {

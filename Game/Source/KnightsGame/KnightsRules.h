@@ -56,7 +56,7 @@ namespace Knights
         int knights = kStartKnights;
     };
 
-    // 지역 하나의 정산 결과(Task 2에서 채운다).
+    // 지역 하나의 정산 결과.
     struct RegionEvent
     {
         int region = 0;
@@ -77,6 +77,12 @@ namespace Knights
     RegionEvent ResolveMonster(int region, int monsterScore, const std::array<int, kPlayerCount>& sent,
                                const std::array<bool, kPlayerCount>& flagged);
 
+    // 훈련소: 깃발 1개당 기사 +1.
+    RegionEvent ResolveTraining(int region, const std::array<bool, kPlayerCount>& flagged);
+
+    // 용병 시장: 주사위 눈 dice를 깃발 인원 n명이 floor(dice/n)씩 나누고 나머지는 폐기한다. n이 0이면 아무 일도 없다.
+    RegionEvent ResolveMarket(int region, int dice, const std::array<bool, kPlayerCount>& flagged);
+
     struct PublicView
     {
         int viewer = 0;
@@ -88,6 +94,9 @@ namespace Knights
         std::array<std::array<bool, kRegionCount>, kPlayerCount> flags{};  // 공개 전에는 viewer 것만 채워짐
         std::array<KnightAllocation, kPlayerCount> knights{};              // 공개 전에는 viewer 것만 채워짐
     };
+
+    // 최고 점수, 동점이면 기사가 많은 쪽, 그래도 같으면 모두. 인덱스 오름차순.
+    std::vector<int> RankWinners(const std::array<PlayerState, kPlayerCount>& players);
 
     class Game
     {
@@ -104,10 +113,10 @@ namespace Knights
         bool HasSubmitted(int player) const { return m_submitted[player]; }
 
         SubmitError SubmitFlags(int player, const FlagChoice& regions);
-        SubmitError SubmitKnights(int player, const KnightAllocation& allocation);  // Task 2
-        const std::vector<RegionEvent>& GetResolution() const { return m_resolution; }  // Task 2
-        void AdvanceRound();                                                        // Task 3
-        std::vector<int> GetWinners() const;                                        // Task 3
+        SubmitError SubmitKnights(int player, const KnightAllocation& allocation);
+        const std::vector<RegionEvent>& GetResolution() const { return m_resolution; }
+        void AdvanceRound();
+        std::vector<int> GetWinners() const;
         PublicView GetView(int viewer) const;
 
     private:
