@@ -123,7 +123,7 @@ namespace Knights
             if (flagged == 0)
             {
                 text.headline = name + " — 깃발 없음";
-                text.detail = "아무도 깃발을 꽂지 않아 주사위를 굴리지 않았습니다.";
+                text.detail = "아무도 깃발을 꽂지 않아 기사를 받은 사람이 없습니다.";
                 text.cardLine = "깃발 없음";
                 return text;
             }

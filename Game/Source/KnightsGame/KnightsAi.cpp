@@ -203,7 +203,7 @@ namespace Knights
             return out;
         }
 
-        // 용병 시장 깃발 하나의 기대 기사 수 floor(d / n). 남이 꽂을 확률은 보유 기사로만 추정한다.
+        // 용병 시장 깃발 하나의 기대 기사 수 floor(d / n). d는 공개된 주사위, 남이 꽂을 확률은 보유 기사로만 추정한다.
         double ExpectedMarketKnights(const PublicView& view)
         {
             // 남의 인원 분포를 동적 계획법으로 구한다.
@@ -218,12 +218,11 @@ namespace Knights
                     dist[n] = dist[n] * (1.0 - q) + dist[n - 1] * q;
                 dist[0] *= 1.0 - q;
             }
+            // 주사위 눈은 라운드 시작에 공개되므로 그 값을 그대로 쓴다.
+            const int dice = view.marketDice;
             double expected = 0.0;
             for (int n = 0; n < kPlayerCount; ++n)
-            {
-                for (int d = 1; d <= 6; ++d)
-                    expected += dist[n] * (d / (n + 1)) / 6.0;
-            }
+                expected += dist[n] * (dice / (n + 1));
             return expected;
         }
 

@@ -70,6 +70,10 @@ namespace
         }
         CHECK(g.GetMonsterScore(4) == 0);
         CHECK(g.GetMonsterScore(5) == 0);
+        // 용병 시장 주사위는 라운드 시작에 굴려 모두에게 공개된다.
+        CHECK(g.GetMarketDice() >= 1 && g.GetMarketDice() <= 6);
+        for (int p = 0; p < kPlayerCount; ++p)
+            CHECK(g.GetView(p).marketDice == g.GetMarketDice());
     }
 
     void FlagValidation()
@@ -339,13 +343,17 @@ namespace
     void MarketDiceInGame()
     {
         Game g(11);
+        // 라운드 시작에 공개된 주사위가 단계 내내 그대로이고, 정산에 그 값이 쓰인다.
+        const int revealed = g.GetMarketDice();
+        CHECK(revealed >= 1 && revealed <= 6);
         CHECK(g.SubmitFlags(0, FlagChoice{5, 0}) == SubmitError::None);
         for (int p = 1; p < kPlayerCount; ++p)
             CHECK(g.SubmitFlags(p, FlagChoice{1, 2}) == SubmitError::None);
+        CHECK(g.GetView(1).marketDice == revealed);
         for (int p = 0; p < kPlayerCount; ++p)
             CHECK(g.SubmitKnights(p, KnightAllocation{}) == SubmitError::None);
         const RegionEvent& m = g.GetResolution()[5];
-        CHECK(m.dice >= 1 && m.dice <= 6);
+        CHECK(m.dice == revealed);
         CHECK(m.knightsGained[0] == m.dice && m.discarded == 0);
         CHECK(g.GetPlayer(0).knights == kStartKnights + m.dice);
     }
@@ -456,6 +464,7 @@ namespace
         Game fresh(7);
         for (int r = 0; r < 4; ++r)
             CHECK(g.GetMonsterScore(r) == fresh.GetMonsterScore(r));
+        CHECK(g.GetMarketDice() == fresh.GetMarketDice());
     }
 
     constexpr std::array<AiPersonality, 4> kAllPersonalities = {
@@ -492,6 +501,8 @@ namespace
                     if (defs[r].kind == RegionKind::Monster)
                         CHECK(g.GetMonsterScore(r) >= defs[r].minScore && g.GetMonsterScore(r) <= defs[r].maxScore);
                 }
+                const int roundDice = g.GetMarketDice();
+                CHECK(roundDice >= 1 && roundDice <= 6);
                 for (int p = 0; p < kPlayerCount; ++p)
                     CHECK(g.SubmitFlags(p, ais[p].ChooseFlags(g.GetView(p))) == SubmitError::None);
                 CHECK(g.GetPhase() == Phase::KnightPlacement);
@@ -504,7 +515,7 @@ namespace
                 }
                 CHECK(g.GetPhase() == Phase::Resolution);
                 for (const RegionEvent& e : g.GetResolution())
-                    CHECK(e.dice >= 0 && e.dice <= 6);
+                    CHECK(e.dice == 0 || e.dice == roundDice);
                 for (int p = 0; p < kPlayerCount; ++p)
                     CHECK(g.GetPlayer(p).knights >= 0);
                 g.AdvanceRound();

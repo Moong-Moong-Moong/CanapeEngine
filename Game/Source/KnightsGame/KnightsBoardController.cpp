@@ -756,7 +756,7 @@ void KnightsBoardController::RefreshCards(const PublicView& view)
         else if (defs[r].kind == RegionKind::TrainingGround)
             value = "기사 +1";
         else
-            value = (shown && shown->dice > 0) ? "주사위 " + Num(shown->dice) : "주사위";
+            value = "주사위 " + Num(view.marketDice);  // 라운드 시작에 공개된 값
         KnightsUi::SetTextIfChanged(*card.bigValue, value);
 
         //*** 깃발 칩: 고르는 중에는 내 선택만, 그 뒤로는 공개 뷰 그대로(공개 전엔 내 것만 들어 있다)

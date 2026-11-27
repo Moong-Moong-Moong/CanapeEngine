@@ -90,6 +90,7 @@ namespace Knights
         Phase phase = Phase::FlagPlacement;
         std::array<PlayerState, kPlayerCount> players{};
         std::array<int, kRegionCount> monsterScores{};  // 증원 지역은 0
+        int marketDice = 0;                             // 이번 라운드 용병 시장 주사위(1~6, 라운드 시작에 공개)
         std::array<bool, kPlayerCount> submitted{};     // 현재 단계 제출 여부(모두 공개)
         std::array<std::array<bool, kRegionCount>, kPlayerCount> flags{};  // 공개 전에는 viewer 것만 채워짐
         std::array<KnightAllocation, kPlayerCount> knights{};              // 공개 전에는 viewer 것만 채워짐
@@ -103,13 +104,14 @@ namespace Knights
     public:
         explicit Game(uint32_t seed);
 
-        // 1라운드 FlagPlacement로 되돌리고 몬스터 점수를 굴린다.
+        // 1라운드 FlagPlacement로 되돌리고 몬스터 점수와 용병 시장 주사위를 굴린다.
         void Reset(uint32_t seed);
 
         Phase GetPhase() const { return m_phase; }
         int GetRound() const { return m_round; }
         const PlayerState& GetPlayer(int player) const { return m_players[player]; }
         int GetMonsterScore(int region) const { return m_monsterScores[region]; }
+        int GetMarketDice() const { return m_marketDice; }
         bool HasSubmitted(int player) const { return m_submitted[player]; }
 
         SubmitError SubmitFlags(int player, const FlagChoice& regions);
@@ -128,6 +130,7 @@ namespace Knights
         Phase m_phase = Phase::FlagPlacement;
         std::array<PlayerState, kPlayerCount> m_players{};
         std::array<int, kRegionCount> m_monsterScores{};
+        int m_marketDice = 0;
         std::array<bool, kPlayerCount> m_submitted{};
         std::array<std::array<bool, kRegionCount>, kPlayerCount> m_flags{};
         std::array<KnightAllocation, kPlayerCount> m_knights{};

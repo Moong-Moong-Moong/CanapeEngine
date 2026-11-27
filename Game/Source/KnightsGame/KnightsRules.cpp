@@ -48,6 +48,9 @@ namespace Knights
                 m_monsterScores[r] = 0;
             }
         }
+        // 용병 시장 주사위도 라운드 시작에 굴려 몬스터 점수와 함께 공개한다.
+        std::uniform_int_distribution<int> dice(1, 6);
+        m_marketDice = dice(m_rng);
     }
 
     SubmitError Game::SubmitFlags(int player, const FlagChoice& regions)
@@ -216,18 +219,8 @@ namespace Knights
             }
             else
             {
-                // 깃발이 하나도 없으면 주사위를 굴리지 않는다(RNG 소비 없음).
-                int dice = 0;
-                for (bool f : flagged)
-                {
-                    if (f)
-                    {
-                        std::uniform_int_distribution<int> dist(1, 6);
-                        dice = dist(m_rng);
-                        break;
-                    }
-                }
-                e = ResolveMarket(r, dice, flagged);
+                // 주사위는 라운드 시작에 이미 굴려 공개했다.
+                e = ResolveMarket(r, m_marketDice, flagged);
             }
             for (int p = 0; p < kPlayerCount; ++p)
             {
@@ -268,7 +261,7 @@ namespace Knights
                 ++n;
         }
         if (n == 0)
-            return e;  // 깃발이 없으면 주사위를 굴리지 않는다.
+            return e;  // 깃발이 없으면 아무도 받지 않는다(dice는 0으로 남긴다).
 
         e.dice = dice;
         const int share = dice / n;
@@ -335,6 +328,7 @@ namespace Knights
         view.phase = m_phase;
         view.players = m_players;
         view.monsterScores = m_monsterScores;
+        view.marketDice = m_marketDice;
         view.submitted = m_submitted;
 
         const bool flagsRevealed = m_phase != Phase::FlagPlacement;
